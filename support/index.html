@@ -3,158 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>サポート & FAQ | RowPilot</title>
-    <meta name="description" content="RowPilot（ローパイロット）のヘルプ、よくある質問、トラブルシューティング、お問い合わせ窓口のページです。Concept2エルゴ接続やGPS設定に関する疑問を解決します。">
-    <!-- Favicon -->
+    <title>サポート & FAQ — RowPilot</title>
+    <meta name="description" content="RowPilotのサポートページ。Concept2 PM5の接続トラブル、SOS機能の使い方、サブスクリプションの解約方法など。">
     <link rel="icon" href="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
-    <!-- CSS -->
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
 
-    <!-- Header & Navigation -->
-    <header>
-        <div class="nav-container">
-            <a href="../index.html" class="logo" id="nav-logo">
-                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot Icon">
-                <span>RowPilot</span>
-            </a>
-            <ul class="nav-links">
-                <li><a href="../index.html">ホーム</a></li>
-                <li><a href="../index.html#features">機能紹介</a></li>
-                <li><a href="../index.html#premium">プラン</a></li>
-                <li><a href="../index.html#story">ストーリー</a></li>
-                <li><a href="#" class="active">サポート</a></li>
-                <li><a href="../privacy-policy/index.html">プライバシーポリシー</a></li>
-            </ul>
+<header>
+    <div class="nav-wrap">
+        <a href="../index.html" class="logo" id="nav-logo">
+            <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+            <span class="logo-text">RowPilot</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="../index.html#features">機能</a></li>
+            <li><a href="../index.html#premium">プラン</a></li>
+            <li><a href="../index.html#story">ストーリー</a></li>
+            <li><a href="#" class="active">サポート</a></li>
+            <li><a href="../privacy-policy/index.html">プライバシー</a></li>
+        </ul>
+        <button class="nav-toggle" id="nav-toggle" aria-label="メニュー">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+</header>
+
+<nav class="mobile-menu" id="mobile-menu">
+    <div class="mobile-menu-inner">
+        <a href="../index.html">Home</a>
+        <a href="../index.html#features">機能</a>
+        <a href="../index.html#premium">プラン</a>
+        <a href="../index.html#story">ストーリー</a>
+        <div class="mobile-menu-divider"></div>
+        <a href="#" class="active">サポート</a>
+        <a href="../privacy-policy/index.html">プライバシーポリシー</a>
+    </div>
+</nav>
+
+<!-- Contact -->
+<div class="contact-wrap animate-fade-up" style="animation: fadeUp 0.7s both;">
+    <div class="contact-icon-wrap">✉️</div>
+    <h1>サポート窓口</h1>
+    <p>バグの報告・機能リクエスト・使い方のご質問など、何でもお気軽にどうぞ。</p>
+    <a href="mailto:rowpilot.jp@gmail.com" class="contact-email-link" id="contact-email">rowpilot.jp@gmail.com</a>
+    <p class="contact-note">高知県ローイング協会への寄贈・協賛に関するご相談もこちらから。</p>
+</div>
+
+<!-- FAQ -->
+<div class="container">
+    <div class="faq-sec">
+        <div class="sec-header">
+            <span class="sec-label">FAQ</span>
+            <h2>よくある質問</h2>
+            <p>困ったときにまずここを確認してみてください。</p>
         </div>
-    </header>
 
-    <!-- Support Hero / Contact Info -->
-    <section class="contact-container animate-fade-up">
-        <div class="contact-icon">✉️</div>
-        <h1>サポート窓口</h1>
-        <p>RowPilotに関するお問い合わせ、バグの報告、機能のご要望などがございましたら、以下のメールアドレスまでお気軽にご連絡ください。</p>
-        <a href="mailto:rowpilot.jp@gmail.com" class="contact-email" id="support-email-link">rowpilot.jp@gmail.com</a>
-        <p style="font-size: 0.85rem; color: var(--text-muted);">※高知県ローイング協会への寄贈や協賛に関するお問い合わせもこちらで承っております。</p>
-    </section>
-
-    <!-- FAQ Section -->
-    <section class="faq-section animate-fade-up delay-1">
-        <div class="section-title">
-            <h2>よくある質問 (FAQ)</h2>
-            <p>RowPilotをご利用中によく遭遇する問題と解決策をまとめています。</p>
-        </div>
-
-        <!-- FAQ Item 1 -->
         <div class="faq-item" id="faq-pm5">
-            <div class="faq-question">
-                <span>Q. Concept2のPM5とBluetooth接続がうまくいきません。</span>
-                <span>▼</span>
+            <div class="faq-q">
+                <span>Concept2 PM5 と Bluetooth 接続できません</span>
+                <span class="faq-arrow">▼</span>
             </div>
-            <div class="faq-answer">
-                <p>A. 以下の手順をお試しください：<br>
-                1. PM5モニターのボタンを押し、<strong>「Connect」</strong>（接続）メニューを選択して無線通信をONにしてください。<br>
-                2. iPhone側の「設定」アプリで、Bluetoothがオンになっており、RowPilotアプリにBluetoothの使用許可が与えられているか確認してください。<br>
-                3. アプリの「Practice」タブを開き、スキャンを開始するとお使いのPM5が表示されます。タップして接続を完了してください。<br>
-                ※接続が頻繁に切れる場合は、PM5のファームウェアが最新であるか確認するか、他のBluetooth通信機器との物理的な干渉を避けてみてください。</p>
+            <div class="faq-a">
+                PM5 モニターのメニューから <strong>「Connect」</strong> を選択し、無線通信を ON にしてください。次に iPhone の「設定」→「プライバシーとセキュリティ」→「Bluetooth」でRowPilotに権限が付与されているか確認します。その後、Practice タブでスキャンを開始するとデバイス一覧に表示されます。接続が安定しない場合は、周囲の他の Bluetooth 機器を一時的にオフにするか、PM5 のファームウェアが最新か確認してみてください。
             </div>
         </div>
 
-        <!-- FAQ Item 2 -->
         <div class="faq-item" id="faq-sos">
-            <div class="faq-question">
-                <span>Q. SOS機能はどのように設定・使用しますか？</span>
-                <span>▼</span>
+            <div class="faq-q">
+                <span>SOS 機能の設定・使い方を教えてください</span>
+                <span class="faq-arrow">▼</span>
             </div>
-            <div class="faq-answer">
-                <p>A. SOS機能は、水上での急な天候変化やアクシデントの際に、緊急連絡先に現在地とSOSメッセージを即座に送信できる機能です。<br>
-                <strong>設定方法：</strong><br>
-                「Settings（設定）」タブ ＞ 「SOS連絡先設定」から、送信先のEメールアドレスまたは電話番号を事前に登録します。<br>
-                <strong>使用方法：</strong><br>
-                RowMode（GPSレート計画面）上でSOSボタンをタップ、または画面を長押しすることで、事前に設定された宛先へGPS位置情報を含むメッセージが送信されます。水上での安全確保にご活用ください。</p>
+            <div class="faq-a">
+                <strong>設定：</strong>「Settings」タブ →「SOS連絡先設定」から送信先のメールまたは電話番号を事前登録します。<br>
+                <strong>使用：</strong>RowMode（GPSレート計画面）上の SOS ボタンをタップすると、登録先へ現在の GPS 位置情報を含むメッセージが即座に送信されます。水上での万が一の備えとしてぜひ活用してください。
             </div>
         </div>
 
-        <!-- FAQ Item 3 -->
         <div class="faq-item" id="faq-tide">
-            <div class="faq-question">
-                <span>Q. TideViewの潮汐地点はどのように変更しますか？</span>
-                <span>▼</span>
+            <div class="faq-q">
+                <span>TideView の表示地点を変えたい</span>
+                <span class="faq-arrow">▼</span>
             </div>
-            <div class="faq-answer">
-                <p>A. TideView（潮汐画面）の上部にある地点選択ボタンをタップすると、気象庁が定義する全国249地点のリストが表示されます。都道府県や港名から検索・選択することで、瞬時にその地点の干満予測グラフが表示されます。普段お使いの練習拠点を「お気に入り」に登録しておくと、次回からワンタップで呼び出せます。</p>
-            </div>
-        </div>
-
-        <!-- FAQ Item 4 -->
-        <div class="faq-item" id="faq-billing">
-            <div class="faq-question">
-                <span>Q. プレミアムプランの自動更新を解除（解約）するには？</span>
-                <span>▼</span>
-            </div>
-            <div class="faq-answer">
-                <p>A. RowPilotのプレミアムサブスクリプションはAppleのApp Storeを通じて処理されます。解約はiOSのシステム設定から行えます：<br>
-                1. iPhoneの「設定」アプリを開きます。<br>
-                2. 最上部の「Apple ID（ご自身のお名前）」をタップします。<br>
-                3. <strong>「サブスクリプション」</strong>をタップします。<br>
-                4. リリストから「RowPilot」を選択し、「サブスクリプションをキャンセルする」をタップします。</p>
+            <div class="faq-a">
+                TideView 上部の地点名をタップするとリストが開きます。全国 249 地点から都道府県・港名で検索・選択でき、タップした瞬間にそのポイントの潮汐グラフへ切り替わります。よく使う練習拠点はお気に入り登録が便利です。
             </div>
         </div>
 
-        <!-- FAQ Item 5 -->
-        <div class="faq-item" id="faq-dev">
-            <div class="faq-question">
-                <span>Q. 収益はどのように高知県ローイング協会に寄贈されますか？</span>
-                <span>▼</span>
+        <div class="faq-item" id="faq-cancel">
+            <div class="faq-q">
+                <span>プレミアムプランを解約するには？</span>
+                <span class="faq-arrow">▼</span>
             </div>
-            <div class="faq-answer">
-                <p>A. RowPilot Premiumプランから得られた収益（App Store手数料30%/15%および税金、最低限のサーバー維持費等の実費を除く）の大部分は、年に一度まとめて開発者自身の手により「高知県ローイング協会」へ正式に寄付されます。寄付された資金は、高知県内のボート用具の整備や、ジュニア・ユース選手の活動支援に役立てられます。</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer>
-        <div class="footer-container">
-            <a href="../index.html" class="footer-logo">
-                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot Mini Logo">
-                <span>RowPilot</span>
-            </a>
-            <div class="footer-links">
-                <a href="../index.html">ホーム</a>
-                <a href="../index.html#features">機能</a>
-                <a href="../index.html#premium">プラン</a>
-                <a href="#">サポート</a>
-                <a href="../privacy-policy/index.html">プライバシーポリシー</a>
-            </div>
-            <div class="copyright">
-                &copy; 2026 RowPilot. All rights reserved. Designed for Rowers.
+            <div class="faq-a">
+                iPhone の「設定」→ 上部の Apple ID →「サブスクリプション」→「RowPilot」→「サブスクリプションをキャンセルする」の順で操作してください。次の請求日前にキャンセルすれば、その月の残り期間は引き続き利用できます。
             </div>
         </div>
-    </footer>
 
-    <!-- Interactive FAQ Script -->
-    <script>
-        document.querySelectorAll('.faq-question').forEach(item => {
-            item.addEventListener('click', event => {
-                const answer = item.nextElementSibling;
-                const arrow = item.querySelector('span:last-child');
-                
-                if (answer.style.display === 'block') {
-                    answer.style.display = 'none';
-                    arrow.textContent = '▼';
-                } else {
-                    answer.style.display = 'block';
-                    arrow.textContent = '▲';
-                }
-            });
-        });
-        
-        // Hide FAQ answers by default
-        document.querySelectorAll('.faq-answer').forEach(answer => {
-            answer.style.display = 'none';
-        });
-    </script>
+        <div class="faq-item" id="faq-donation">
+            <div class="faq-q">
+                <span>収益はどのように高知県ローイング協会に届くの？</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                App Store 手数料（30% または 15%）・税金・最低限のサーバー維持費を除いた収益を、開発者が年に一度まとめて高知県ローイング協会へ正式に寄付します。寄付金はボート用具の整備や、ジュニア・ユース選手の活動支援に役立てられます。
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-inner">
+        <a href="../index.html" class="footer-logo">
+            <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+            RowPilot
+        </a>
+        <div class="footer-links">
+            <a href="../index.html">Home</a>
+            <a href="../index.html#features">機能</a>
+            <a href="../index.html#premium">プラン</a>
+            <a href="#">サポート</a>
+            <a href="../privacy-policy/index.html">プライバシーポリシー</a>
+        </div>
+        <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+    </div>
+</footer>
+
+<script>
+// Hamburger
+const toggle = document.getElementById('nav-toggle');
+const mMenu  = document.getElementById('mobile-menu');
+toggle.addEventListener('click', () => {
+    const open = mMenu.classList.toggle('open');
+    toggle.classList.toggle('open', open);
+});
+mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+    mMenu.classList.remove('open'); toggle.classList.remove('open');
+}));
+
+// FAQ accordion
+document.querySelectorAll('.faq-item').forEach(item => {
+    item.querySelector('.faq-q').addEventListener('click', () => {
+        const isOpen = item.classList.toggle('open');
+        const ans = item.querySelector('.faq-a');
+        ans.style.display = isOpen ? 'block' : 'none';
+    });
+});
+document.querySelectorAll('.faq-a').forEach(a => a.style.display = 'none');
+</script>
 </body>
 </html>

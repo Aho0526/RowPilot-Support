@@ -3,449 +3,317 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RowPilot | 水上も、エルゴも。このアプリひとつで。</title>
-    <meta name="description" content="現役ボート部員が開発した、屋内外の練習に対応した唯一の統合型ローイングアプリ。GPSレート計、気象庁の潮汐データ、Concept2 PM5との連携、複数エルゴの同期まで。">
-    <!-- Favicon -->
+    <title>RowPilot — 水上も、エルゴも。このアプリひとつで。</title>
+    <meta name="description" content="現役ボート部員が開発。GPSレート計・潮汐予測・Concept2 PM5接続を一台に凝縮した、屋内外対応の統合型ローイングアプリ。">
     <link rel="icon" href="pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
-    <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        /* Modal for Plan Details */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(7, 10, 18, 0.85);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            z-index: 200;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: var(--transition-smooth);
-        }
-        .modal-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .modal-box {
-            background: #111827;
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
-            max-width: 550px;
-            width: 90%;
-            padding: 2.5rem;
-            position: relative;
-            transform: translateY(30px);
-            transition: var(--transition-smooth);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-        }
-        .modal-overlay.active .modal-box {
-            transform: translateY(0);
-        }
-        .modal-close {
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: var(--transition-smooth);
-        }
-        .modal-close:hover {
-            color: var(--text-primary);
-        }
-        .modal-title {
-            font-family: var(--font-heading);
-            font-size: 1.75rem;
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-            background: var(--grad-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .modal-price {
-            font-family: var(--font-heading);
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--color-premium);
-            margin-bottom: 1.5rem;
-        }
-        .modal-desc {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            margin-bottom: 1.5rem;
-            line-height: 1.6;
-        }
-        .modal-features-list {
-            margin-bottom: 2rem;
-            list-style: none;
-        }
-        .modal-features-list li {
-            font-size: 0.9rem;
-            color: var(--text-primary);
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .modal-features-list li::before {
-            content: '✓';
-            color: var(--color-accent);
-            font-weight: bold;
-        }
-        .modal-note {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            border-top: 1px solid var(--border-color);
-            padding-top: 1rem;
-            text-align: center;
-        }
-    </style>
 </head>
 <body>
 
-    <!-- Header & Navigation -->
-    <header>
-        <div class="nav-container">
-            <a href="#" class="logo" id="nav-logo">
-                <img src="pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot アプリアイコン">
-                <span>RowPilot</span>
-            </a>
-            <ul class="nav-links">
-                <li><a href="#" class="active">ホーム</a></li>
-                <li><a href="#features">アプリの機能</a></li>
-                <li><a href="#premium">プラン紹介</a></li>
-                <li><a href="#story">生まれた背景</a></li>
-                <li><a href="support/index.html">サポート</a></li>
-                <li><a href="privacy-policy/index.html">プライバシーポリシー</a></li>
-            </ul>
-        </div>
-    </header>
+<!-- ── HEADER ─────────────────────────────── -->
+<header>
+    <div class="nav-wrap">
+        <a href="#" class="logo" id="nav-logo">
+            <img src="pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+            <span class="logo-text">RowPilot</span>
+        </a>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-badge animate-fade-up">現役ボート部員が作った、水上と陸上の両対応ローイングアプリ</div>
-        <h1 class="animate-fade-up delay-1">水上も、エルゴも。<br>このアプリひとつで。</h1>
-        <p class="animate-fade-up delay-2">部活のGPSレート計が足りない問題から生まれたRowPilot。水上でのGPS計測や潮汐確認から、エルゴ（Concept2 PM5）とのBluetooth連携まで、ローイングに必要な機能をすべてスマホに詰め込みました。</p>
-        <div class="hero-btns animate-fade-up delay-3">
-            <a href="#features" class="btn btn-primary" id="hero-btn-explore">機能を見てみる</a>
-            <a href="#story" class="btn btn-secondary" id="hero-btn-story">開発ストーリー</a>
-        </div>
-    </section>
+        <!-- Desktop links -->
+        <ul class="nav-links" id="nav-links">
+            <li><a href="#" class="active">Home</a></li>
+            <li><a href="#features">機能</a></li>
+            <li><a href="#premium">プラン</a></li>
+            <li><a href="#story">ストーリー</a></li>
+            <li><a href="support/index.html">サポート</a></li>
+            <li><a href="privacy-policy/index.html">プライバシー</a></li>
+        </ul>
 
-    <!-- Feature Section -->
-    <section id="features" class="section-container">
-        <div class="section-title">
+        <!-- Hamburger -->
+        <button class="nav-toggle" id="nav-toggle" aria-label="メニュー">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+</header>
+
+<!-- Mobile drawer -->
+<nav class="mobile-menu" id="mobile-menu">
+    <div class="mobile-menu-inner">
+        <a href="#" class="active" id="mm-home">Home</a>
+        <a href="#features" id="mm-features">機能</a>
+        <a href="#premium" id="mm-premium">プラン</a>
+        <a href="#story" id="mm-story">ストーリー</a>
+        <div class="mobile-menu-divider"></div>
+        <a href="support/index.html">サポート</a>
+        <a href="privacy-policy/index.html">プライバシーポリシー</a>
+    </div>
+</nav>
+
+<!-- ── HERO ───────────────────────────────── -->
+<section class="hero">
+    <div class="hero-eyebrow">現役ボート部員が一人で作った iOS アプリ</div>
+    <h1>水上も、エルゴも。<br>このアプリひとつで。</h1>
+    <p class="hero-sub">部活で GPSレート計が足りない——その一点から始まった開発が、潮汐予測・Concept2 PM5 連携・複数エルゴ同期まで備えた統合アプリへ進化しました。</p>
+    <div class="hero-cta">
+        <a href="#features" class="btn btn-primary" id="hero-cta-feat">機能を見る</a>
+        <a href="#story" class="btn btn-ghost" id="hero-cta-story">開発ストーリー</a>
+    </div>
+</section>
+
+<!-- ── FEATURES ───────────────────────────── -->
+<section id="features" class="features-sec">
+    <div class="container">
+        <div class="sec-header">
+            <span class="sec-label">Features</span>
             <h2>RowPilot でできること</h2>
-            <p>水上のGPSレート計から陸上エルゴのデータ同期まで、選手とマネージャーが本当に欲しかった機能を網羅しています。</p>
+            <p>水上もエルゴも、練習に必要な機能をすべてカバー。選手もマネージャーも、一台で戦える。</p>
         </div>
         <div class="features-grid">
-            
-            <!-- HomeView -->
-            <div class="feature-card" id="feature-home">
-                <div class="feature-icon">📅</div>
+
+            <div class="feat-card" id="feat-home">
+                <div class="feat-icon">📅</div>
                 <h3>HomeView</h3>
-                <p>練習前に必要な情報をまとめてチェック。日付や天気、次の満潮・干潮時刻がひと目でわかります。リギング設定へのジャンプや、今月の走行距離、直近のワークアウト履歴、そしてアプリ内の全てを横断して検索できる機能も備わっています。</p>
+                <p>天気・次の干満時刻・今月の走行距離・直近セッションをまとめて確認。アプリ内の全データを横断して検索できる機能も内蔵しています。</p>
             </div>
 
-            <!-- TideView -->
-            <div class="feature-card" id="feature-tide">
-                <div class="feature-icon">🌊</div>
+            <div class="feat-card" id="feat-tide">
+                <div class="feat-icon">🌊</div>
                 <h3>TideView</h3>
-                <p>水上練習の予定作りに役立つ潮汐表示。気象庁の予測データをグラフ化して表示します。全国249地点に対応しており、練習場所の潮の満ち引きをいつでもサッと確認できます。</p>
+                <p>気象庁の公開データをもとにした潮汐グラフを表示。全国 249 地点に対応し、水上練習の計画に必要な干満情報をいつでも確認できます。</p>
             </div>
 
-            <!-- RowMode -->
-            <div class="feature-card" id="feature-rowmode">
-                <div class="feature-icon">⚡</div>
+            <div class="feat-card" id="feat-rowmode">
+                <div class="feat-icon">⚡</div>
                 <h3>RowMode</h3>
-                <p>水上でのGPSレート計画面。スマホを横向きにすると、ボートでお馴染みの「StrokeCoach」のような視認性の高い本格ディスプレイに変わります。モーション感度の微調整ができるほか、有事の際にワンタップで登録済みの連絡先に位置情報を送れるSOS機能も備えています。</p>
+                <p>スマホを横向きにすると StrokeCoach ライクな本格画面へ。モーション感度を細かく調整でき、緊急時には登録した連絡先へ現在地を即送信できる SOS 機能も搭載。</p>
             </div>
 
-            <!-- Practice (Concept2) -->
-            <div class="feature-card" id="feature-practice">
-                <span class="feature-badge">エルゴ連携</span>
-                <div class="feature-icon">🏋️</div>
+            <div class="feat-card" id="feat-practice">
+                <span class="feat-tag">Concept2 対応</span>
+                <div class="feat-icon">🏋️</div>
                 <h3>Practice</h3>
-                <p>Concept2社のRowErg（PM5）と接続して、ワークアウトメニューを相互に送受信できます（単一距離、単一時間、単一カロリー、普遍インターバル、可変インターバルの全5種に完全対応）。プレミアムプランでは、1台のスマホで複数のエルゴと接続してペースを監視できるマネージャーモードも使用可能です。</p>
+                <p>Concept2 RowErg（PM5）と Bluetooth 接続。単一距離・時間・カロリー・インターバル 2 種の全 5 種メニューを双方向に送受信できます。プレミアムプランでは複数エルゴの同時接続も解放。</p>
             </div>
 
-            <!-- Settings -->
-            <div class="feature-card" id="feature-settings">
-                <div class="feature-icon">⚙️</div>
+            <div class="feat-card" id="feat-settings">
+                <div class="feat-icon">⚙️</div>
                 <h3>Settings</h3>
-                <p>表示項目の切り替え、SOS送信先の管理、センサーのしきい値調整など、RowPilotの動作を使い慣れたスタイルに合わせて何でも設定することができます。</p>
+                <p>表示項目・SOS 連絡先・センサーしきい値など、RowPilot のあらゆる動作を自分好みに設定できます。</p>
             </div>
 
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- RowPilot Premium Plan Section -->
-    <section id="premium" class="premium-section">
-        <div class="premium-container">
-            <div class="section-title">
-                <h2>RowPilot Premium</h2>
-                <p>より高度な機能や、複数台のエルゴ連携を使いたい方向けの定期購入オプションです。（プランの購入手続きはアプリ内で行えます）</p>
-            </div>
-            
-            <div class="premium-plans">
-                
-                <!-- Pro -->
-                <div class="plan-card" id="plan-pro">
-                    <div>
-                        <div class="plan-name">RowPilot Pro</div>
-                        <div class="plan-price">¥480<span>/月</span></div>
-                        <ul class="plan-features">
-                            <li>個人トレーニング向け</li>
-                            <li>ワークアウト履歴の無制限保存</li>
-                            <li>詳細なピッチ・出力分析</li>
-                            <li>TideViewの高度なグラフ機能</li>
-                        </ul>
-                    </div>
-                    <button class="btn btn-secondary btn-sm btn-detail" data-plan="pro">詳しく見る</button>
-                </div>
-
-                <!-- Manager -->
-                <div class="plan-card featured" id="plan-manager">
-                    <div>
-                        <div class="plan-name">RowPilot Manager</div>
-                        <div class="plan-price">¥980<span>/月</span></div>
-                        <ul class="plan-features">
-                            <li>コックス・指導者向け</li>
-                            <li>1対複数のエルゴ接続を解放</li>
-                            <li>リアルタイムレースビュー</li>
-                            <li>進捗データのCSV書き出し</li>
-                        </ul>
-                    </div>
-                    <button class="btn btn-primary btn-sm btn-detail" data-plan="manager">詳しく見る</button>
-                </div>
-
-                <!-- Team -->
-                <div class="plan-card" id="plan-team">
-                    <div>
-                        <div class="plan-name">RowPilot Team</div>
-                        <div class="plan-price">¥1,980<span>/月</span></div>
-                        <ul class="plan-features">
-                            <li>ひとつのクルー向け</li>
-                            <li>最大10名のメンバー同期</li>
-                            <li>チームダッシュボード</li>
-                            <li>リギング設定の共有</li>
-                        </ul>
-                    </div>
-                    <button class="btn btn-secondary btn-sm btn-detail" data-plan="team">詳しく見る</button>
-                </div>
-
-                <!-- MAX -->
-                <div class="plan-card" id="plan-max">
-                    <div>
-                        <div class="plan-name">RowPilot MAX</div>
-                        <div class="plan-price">¥3,980<span>/月</span></div>
-                        <ul class="plan-features">
-                            <li>ボート部・クラブ向け</li>
-                            <li>最大30名のメンバー同期</li>
-                            <li>複数マネージャーでのデータ管理</li>
-                            <li>優先テクニカルサポート</li>
-                        </ul>
-                    </div>
-                    <button class="btn btn-secondary btn-sm btn-detail" data-plan="max">詳しく見る</button>
-                </div>
-
-                <!-- Organization -->
-                <div class="plan-card" id="plan-org">
-                    <div>
-                        <div class="plan-name">RowPilot Organization</div>
-                        <div class="plan-price">¥7,980<span>/月</span></div>
-                        <ul class="plan-features">
-                            <li>学校全体・団体向け</li>
-                            <li>メンバー上限なしの同期</li>
-                            <li>専用のクラウド連携</li>
-                            <li>イベント管理用ツール</li>
-                        </ul>
-                    </div>
-                    <button class="btn btn-secondary btn-sm btn-detail" data-plan="org">詳しく見る</button>
-                </div>
-
-            </div>
+<!-- ── PREMIUM ─────────────────────────────── -->
+<section id="premium" class="premium-sec">
+    <div class="container">
+        <div class="sec-header">
+            <span class="sec-label">Premium</span>
+            <h2>RowPilot Premium</h2>
+            <p>より高度な機能が必要な方向けの定期購読プラン。ご購入はアプリ内（App Store）から行えます。</p>
         </div>
-    </section>
+        <div class="plans-grid">
 
-    <!-- Story / Developer Section -->
-    <section id="story" class="story-section">
-        <div class="story-card">
-            <h3>RowPilotが生まれた背景</h3>
-            <div class="story-content">
-                <p>部活で使用する「GPSレート計」が圧倒的に不足していること——。それがRowPilot開発のスタート地点でした。艇速やピッチをリアルタイムで測るGPSレート計はローイングにおいて極めて有用な道具ですが、非常に高価であり、部員全員に行き渡る台数を用意することは困難でした。</p>
-                <p>「自分たちが普段持っているスマートフォンをそのままGPSレート計として使えないか？」そんなひらめきから始まったプロジェクトは、AIをパートナーとした約1年間の長い闘いとなりました。当初はシンプルな計測アプリを予定していましたが、潮汐予測やConcept2エルゴメーターとの無線通信など、水上と陸上のすべてを繋ぐ統合アプリへと進化していきました。</p>
-                
+            <div class="plan-card" id="plan-pro">
+                <div>
+                    <div class="plan-name">Pro</div>
+                    <div class="plan-price">¥480<span>/月</span></div>
+                </div>
+                <ul class="plan-features">
+                    <li>個人トレーニング向け</li>
+                    <li>ワークアウト履歴 無制限保存</li>
+                    <li>詳細ピッチ・出力グラフ</li>
+                    <li>TideView 高度グラフ</li>
+                </ul>
+                <button class="plan-btn" data-plan="pro">詳しく見る</button>
+            </div>
+
+            <div class="plan-card featured" id="plan-manager">
+                <div>
+                    <div class="plan-name">Manager</div>
+                    <div class="plan-price">¥980<span>/月</span></div>
+                </div>
+                <ul class="plan-features">
+                    <li>コックス・指導者向け</li>
+                    <li>1:複数エルゴ同時接続</li>
+                    <li>リアルタイムレースビュー</li>
+                    <li>セッション CSV 書き出し</li>
+                </ul>
+                <button class="plan-btn featured-btn" data-plan="manager">詳しく見る</button>
+            </div>
+
+            <div class="plan-card" id="plan-team">
+                <div>
+                    <div class="plan-name">Team</div>
+                    <div class="plan-price">¥1,980<span>/月</span></div>
+                </div>
+                <ul class="plan-features">
+                    <li>クルー・小規模グループ向け</li>
+                    <li>最大 10 名で同期</li>
+                    <li>チームダッシュボード</li>
+                    <li>リギング設定の共有</li>
+                </ul>
+                <button class="plan-btn" data-plan="team">詳しく見る</button>
+            </div>
+
+            <div class="plan-card" id="plan-max">
+                <div>
+                    <div class="plan-name">MAX</div>
+                    <div class="plan-price">¥3,980<span>/月</span></div>
+                </div>
+                <ul class="plan-features">
+                    <li>ボート部・クラブ向け</li>
+                    <li>最大 30 名で同期</li>
+                    <li>複数マネージャーで共同管理</li>
+                    <li>優先サポート</li>
+                </ul>
+                <button class="plan-btn" data-plan="max">詳しく見る</button>
+            </div>
+
+            <div class="plan-card" id="plan-org">
+                <div>
+                    <div class="plan-name">Organization</div>
+                    <div class="plan-price">¥7,980<span>/月</span></div>
+                </div>
+                <ul class="plan-features">
+                    <li>学校・団体向け</li>
+                    <li>メンバー上限なし</li>
+                    <li>専用クラウド連携</li>
+                    <li>イベント管理ツール</li>
+                </ul>
+                <button class="plan-btn" data-plan="org">詳しく見る</button>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ── STORY ───────────────────────────────── -->
+<section id="story" class="story-sec">
+    <div class="container">
+        <div class="story-wrap">
+            <h2>RowPilot が生まれた背景</h2>
+            <div class="story-body">
+                <p>部活でGPSレート計が圧倒的に足りない——それが開発のスタート地点でした。市販品は高価で、艇の人数分を揃えることは難しい。なら、みんなが持っているスマホを使えばいい。そのひらめきから、約1年間の開発が始まりました。</p>
+                <p>当初はシンプルな計測アプリを想定していましたが、「潮汐情報もアプリ内で見たい」「エルゴのデータも連携したい」という要求が積み重なり、気づけば水上と陸上の両方をカバーする統合アプリになっていました。</p>
                 <div class="story-quote">
-                    「Concept2エルゴのPM5と通信したい——。そう思い立ったものの、Bluetoothプロトコルの壁は高く、AIと何日話し合っても解決しない日々が続きました。諦め半分で本社（Concept2 USA）に直接メールを送ったところ、開発エンジニアのRyanさんが親身になって手伝ってくれ、ついに9台のエルゴに同時にメニューを送り、8台での相互通信を成功させることができたのです。」
+                    「PM5との Bluetooth 通信は本当に難しかった。AIと何日も話し合っても解決しない壁にぶつかり、諦め半分で Concept2 本社にメールを送ったら、エンジニアの Ryan さんが親身に手伝ってくれた。最終的に9台のエルゴに同時メニューを送り、8台で相互通信を成功させることができました。」
                 </div>
-                
-                <p>RowPilotは、ボート競技における情報の非対称性をなくし、すべての努力を可視化してチーム全体のレベルを高めることを目指しています。一人の高校生が好奇心と情熱だけで作り上げたこのアプリは、今やローイング界をアップデートする力を秘めています。</p>
+                <p>収益の大部分は、高知県ローイング協会への寄贈に充てています。一人の高校生が作ったアプリが、ローイング界の底上げに少しでも貢献できれば——それが最大のモチベーションです。</p>
             </div>
-            
             <div class="story-footer">
-                <div class="developer-info">
-                    <img src="pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="Developer Icon" style="width: 48px; height: 48px; border-radius: 50%;">
-                    <div class="developer-name">
-                        <h4>Kaito Nakahira</h4>
-                        <p>RowPilot Developer</p>
+                <div class="dev-info">
+                    <img src="pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="developer icon">
+                    <div>
+                        <div class="dev-name">Kaito Nakahira</div>
+                        <div class="dev-role">RowPilot Developer</div>
                     </div>
                 </div>
-                <div class="donation-badge">
-                    <span>収益の大部分は開発者を通じて<br><strong>高知県ローイング協会</strong>へ寄贈されます</span>
+                <div class="donate-tag">
+                    収益の大部分は<br><strong>高知県ローイング協会</strong>へ寄贈されます
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer>
-        <div class="footer-container">
-            <a href="#" class="footer-logo">
-                <img src="pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot Mini Logo">
-                <span>RowPilot</span>
-            </a>
-            <div class="footer-links">
-                <a href="#">ホーム</a>
-                <a href="#features">機能</a>
-                <a href="#premium">プラン</a>
-                <a href="support/index.html">サポート</a>
-                <a href="privacy-policy/index.html">プライバシーポリシー</a>
-            </div>
-            <div class="copyright">
-                &copy; 2026 RowPilot. All rights reserved. Designed for Rowers.
-            </div>
-        </div>
-    </footer>
-
-    <!-- Plan Detail Modals Structure -->
-    <div class="modal-overlay" id="plan-modal">
-        <div class="modal-box">
-            <button class="modal-close" id="modal-close-btn">&times;</button>
-            <div class="modal-title" id="modal-plan-name">Plan Name</div>
-            <div class="modal-price" id="modal-plan-price">Price</div>
-            <div class="modal-desc" id="modal-plan-desc">Description</div>
-            <ul class="modal-features-list" id="modal-plan-features">
-                <!-- Injected dynamically -->
-            </ul>
-            <div class="modal-note">
-                ※このプランはRowPilotアプリ内（App Storeの定期購読）からご加入いただけます。Webサイト上での直接販売や決済の誘導は行っておりません。
             </div>
         </div>
     </div>
+</section>
 
-    <!-- Modals Script -->
-    <script>
-        const plansData = {
-            pro: {
-                name: "RowPilot Pro",
-                price: "¥480 / 月",
-                desc: "個人で日々の水上・エルゴ練習データを蓄積し、本格的な分析を行いたいボート選手に最適なプランです。",
-                features: [
-                    "ワークアウト履歴を無制限に保存可能（無料版は制限あり）",
-                    "ピッチや出力曲線の詳細なグラフ分析機能",
-                    "TideViewでの高度な干満差予測グラフ表示",
-                    "CSVデータ書き出しによるトレーニング日誌への転記サポート"
-                ]
-            },
-            manager: {
-                name: "RowPilot Manager",
-                price: "¥980 / 月",
-                desc: "指導者、コックス、またはチームマネージャー向け。1台のデバイスだけで周囲の複数のエルゴ（PM5）からデータを同時に無線取得・同期します。",
-                features: [
-                    "1:複数（最大数台）のPM5エルゴとの同時接続・データ取得",
-                    "全員のペースや進捗を一覧表示する「リアルタイムレースビュー」",
-                    "各セッションごとのデータCSVエクスポート機能",
-                    "指導用のワークアウトメニュー一括送信機能"
-                ]
-            },
-            team: {
-                name: "RowPilot Team",
-                price: "¥1,980 / 月",
-                desc: "同一クルーや少人数の練習グループ向け。お互いの走行距離やワークアウト結果、およびボートのリギングデータを簡単に同期・共有できます。",
-                features: [
-                    "最大10名までのメンバー間データ同期・チーム作成",
-                    "全員の進捗が可視化される「チームダッシュボード」",
-                    "リギング設定（スパン、ピッチ、ピン高など）のクルー内同期",
-                    "ワークアウト設定のワンタップ共有"
-                ]
-            },
-            max: {
-                name: "RowPilot MAX",
-                price: "¥3,980 / 月",
-                desc: "大学のボート部や強豪クラブチーム向け。部員全体の練習データをまとめてクラウドで一元管理できます。",
-                features: [
-                    "最大30名までのメンバー間データ同期・連携",
-                    "複数人のマネージャー（指導者）での重複管理・閲覧機能",
-                    "ワークアウト目標設定と達成度の自動トラッキング",
-                    "優先的なテクニカル・セットアップサポート"
-                ]
-            },
-            org: {
-                name: "RowPilot Organization",
-                price: "¥7,980 / 月",
-                desc: "大人数のボート部、実業団チーム、またはローイング協会などの組織向け。完全にメンバー無制限でデータを共有し、練習管理のDX化を推進します。",
-                features: [
-                    "メンバー登録上限なしでの同期・管理",
-                    "組織専用の安全なクラウドデータベースとの連携",
-                    "協会などが主催するイベントや模擬レース用の特別管理ダッシュボード",
-                    "新機能の先行プレビューおよび専任サポート窓口"
-                ]
-            }
-        };
+<!-- ── FOOTER ──────────────────────────────── -->
+<footer>
+    <div class="footer-inner">
+        <a href="#" class="footer-logo">
+            <img src="pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+            RowPilot
+        </a>
+        <div class="footer-links">
+            <a href="#">Home</a>
+            <a href="#features">機能</a>
+            <a href="#premium">プラン</a>
+            <a href="support/index.html">サポート</a>
+            <a href="privacy-policy/index.html">プライバシーポリシー</a>
+        </div>
+        <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+    </div>
+</footer>
 
-        const modal = document.getElementById('plan-modal');
-        const modalName = document.getElementById('modal-plan-name');
-        const modalPrice = document.getElementById('modal-plan-price');
-        const modalDesc = document.getElementById('modal-plan-desc');
-        const modalFeatures = document.getElementById('modal-plan-features');
-        const closeBtn = document.getElementById('modal-close-btn');
+<!-- ── PLAN DETAIL MODAL ───────────────────── -->
+<div class="overlay" id="plan-overlay">
+    <div class="modal" id="plan-modal">
+        <button class="modal-close-btn" id="modal-close">&times;</button>
+        <div class="modal-plan-name" id="m-name"></div>
+        <div class="modal-plan-price" id="m-price"></div>
+        <div class="modal-plan-desc" id="m-desc"></div>
+        <ul class="modal-list" id="m-feats"></ul>
+        <div class="modal-note">※このプランはRowPilotアプリ内（App Storeの定期購読）からご加入いただけます。このWebサイトでの直接販売・決済は行っておりません。</div>
+    </div>
+</div>
 
-        document.querySelectorAll('.btn-detail').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const planKey = btn.getAttribute('data-plan');
-                const plan = plansData[planKey];
-                if (plan) {
-                    modalName.textContent = plan.name;
-                    modalPrice.textContent = plan.price;
-                    modalDesc.textContent = plan.desc;
-                    
-                    // Clear and inject features
-                    modalFeatures.innerHTML = '';
-                    plan.features.forEach(f => {
-                        const li = document.createElement('li');
-                        li.textContent = f;
-                        modalFeatures.appendChild(li);
-                    });
-                    
-                    modal.classList.add('active');
-                }
-            });
-        });
+<script>
+// ─ Hamburger ─────────────────────────────
+const toggle  = document.getElementById('nav-toggle');
+const mMenu   = document.getElementById('mobile-menu');
 
-        const closeModal = () => {
-            modal.classList.remove('active');
-        };
+toggle.addEventListener('click', () => {
+    const open = mMenu.classList.toggle('open');
+    toggle.classList.toggle('open', open);
+});
 
-        closeBtn.addEventListener('click', closeModal);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeModal();
-            }
-        });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('active')) {
-                closeModal();
-            }
-        });
-    </script>
+// Close on link click
+mMenu.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+        mMenu.classList.remove('open');
+        toggle.classList.remove('open');
+    });
+});
+
+// ─ Plan modal ────────────────────────────
+const plans = {
+    pro: {
+        name: 'RowPilot Pro', price: '¥480 / 月',
+        desc: '個人で日々の練習データを蓄積し、本格的な分析を行いたいボート選手向けのプランです。',
+        feats: ['ワークアウト履歴を無制限に保存（無料版は制限あり）','ピッチ・出力曲線の詳細グラフ分析','TideViewの高度な干満差予測グラフ','CSVデータ書き出しによるトレーニング日誌への転記サポート']
+    },
+    manager: {
+        name: 'RowPilot Manager', price: '¥980 / 月',
+        desc: '指導者・コックス・チームマネージャー向け。1台のスマホで周囲の複数エルゴからデータを同時取得します。',
+        feats: ['1:複数のPM5エルゴと同時接続・データ取得','全員のペース・進捗を一覧するリアルタイムレースビュー','セッションごとのデータCSVエクスポート','ワークアウトメニューの一括送信機能']
+    },
+    team: {
+        name: 'RowPilot Team', price: '¥1,980 / 月',
+        desc: '同一クルーや少人数グループ向け。練習結果やリギングデータをメンバー間で簡単に同期・共有できます。',
+        feats: ['最大10名のメンバー間データ同期','全員の進捗が可視化されるチームダッシュボード','リギング設定（スパン・ピッチ・ピン高など）のクルー内共有','ワークアウト設定のワンタップ共有']
+    },
+    max: {
+        name: 'RowPilot MAX', price: '¥3,980 / 月',
+        desc: '大学のボート部や強豪クラブチーム向け。部員全体の練習データをまとめて一元管理できます。',
+        feats: ['最大30名のメンバー間データ同期・連携','複数の指導者・マネージャーによる共同管理','ワークアウト目標設定と達成度の自動トラッキング','優先テクニカルサポート']
+    },
+    org: {
+        name: 'RowPilot Organization', price: '¥7,980 / 月',
+        desc: '大人数のボート部・実業団・協会など組織単位向け。メンバー無制限で練習管理を完全DX化します。',
+        feats: ['メンバー登録上限なしの同期・管理','組織専用の安全なクラウドデータベース連携','協会主催イベント・模擬レース用の特別管理ダッシュボード','新機能の先行プレビューと専任サポート窓口']
+    }
+};
+
+const overlay = document.getElementById('plan-overlay');
+
+document.querySelectorAll('.plan-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const p = plans[btn.dataset.plan];
+        if (!p) return;
+        document.getElementById('m-name').textContent  = p.name;
+        document.getElementById('m-price').textContent = p.price;
+        document.getElementById('m-desc').textContent  = p.desc;
+        const ul = document.getElementById('m-feats');
+        ul.innerHTML = '';
+        p.feats.forEach(f => { const li = document.createElement('li'); li.textContent = f; ul.appendChild(li); });
+        overlay.classList.add('open');
+    });
+});
+
+const closeModal = () => overlay.classList.remove('open');
+document.getElementById('modal-close').addEventListener('click', closeModal);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
 </body>
 </html>
