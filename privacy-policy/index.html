@@ -1,10 +1,95 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <title>RowPilot</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プライバシーポリシー | RowPilot</title>
+    <meta name="description" content="RowPilot（ローパイロット）アプリのプライバシーポリシーです。位置情報やトレーニングデータの設計、および開発者がデータにアクセスできない仕組みについて説明しています。">
+    <!-- Favicon -->
+    <link rel="icon" href="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <!-- CSS -->
+    <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-  <h1>RowPilot(Privacy-policy)</h1>
-  <p>Coming Soon</p>
+
+    <!-- Header & Navigation -->
+    <header>
+        <div class="nav-container">
+            <a href="../index.html" class="logo" id="nav-logo">
+                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot Icon">
+                <span>RowPilot</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="../index.html">ホーム</a></li>
+                <li><a href="../index.html#features">アプリの機能</a></li>
+                <li><a href="../index.html#premium">プラン紹介</a></li>
+                <li><a href="../index.html#story">生まれた背景</a></li>
+                <li><a href="../support/index.html">サポート</a></li>
+                <li><a href="#" class="active">プライバシーポリシー</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Privacy Policy Container -->
+    <section class="policy-container animate-fade-up">
+        <h1>プライバシーポリシー</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">最終更新日: 2026年6月11日</p>
+        
+        <div class="policy-content">
+            <p>RowPilot開発者（以下、「開発者」といいます）は、ユーザーのプライバシーの保護に真剣に取り組んでいます。本プライバシーポリシーでは、iOSアプリケーション「RowPilot」（以下、「本アプリ」といいます）のデータ設計と、取り扱うユーザー情報の保護方針について説明します。</p>
+
+            <h2>1. 開発者がデータにアクセスできない設計（データ非保持）</h2>
+            <p>本アプリはプライバシー最優先で設計されており、<strong>開発者はユーザーのいかなるデータにもアクセス、取得、または蓄積することができない仕組み</strong>になっています。トレーニングデータや位置情報、設定などは、すべてユーザーのデバイス内（ローカルストレージ）またはユーザー自身のApple iCloud領域にのみ安全に保存されます。</p>
+
+            <h2>2. ユーザー間のデータ共有について（AirDropの利用）</h2>
+            <p>本アプリにはユーザー間でトレーニングデータを共有する機能がありますが、これはAppleの<strong>AirDrop（デバイス間の直接通信）</strong>を介して行われます。仲介するWebサーバー等を経由しないため、開発者がユーザー同士のデータ通信を傍受したり、共有内容にアクセスすることは技術的に不可能です。</p>
+
+            <h2>3. 取得する情報とその保護方針</h2>
+            <ul>
+                <li><strong>位置情報（GPSデータ）の完全ローカル処理:</strong> <br>
+                「RowMode（GPSレート計）」機能におけるスピード算出や移動軌跡の記録、および「SOS機能」における緊急メッセージ作成にGPS情報を使用します。これらのGPS情報が開発者や外部のサーバーに送信されることはなく、<strong>デバイスの外へ漏洩することは絶対にありません。</strong></li>
+                
+                <li><strong>Team / MAX / Organizationプラン等の同期機能:</strong> <br>
+                複数人での同期機能やダッシュボード共有を利用する際、共有データベース（サーバー）に記録されるのは<strong>「トレーニングの実績数値（距離、タイム、ピッチなどの統計数値）」のみ</strong>に厳しく制限されています。この同期機能を使用している場合でも、GPSによる位置情報の軌跡データなどがサーバーにアップロードされることは一切ありません。</li>
+
+                <li><strong>Bluetooth（無線通信機能）:</strong> <br>
+                「Practice」機能において、Concept2社製のローイングエルゴメーター（PM5モニター等）とワイヤレスで接続し、ワークアウトデータ（出力、ピッチ、距離など）を送受信するために使用します。この通信もデバイスとPM5間で完結します。</li>
+
+                <li><strong>SOS送信データのローカル管理:</strong> <br>
+                「SOS機能」において、ユーザーが手動で設定した緊急連絡先に対して現在地テキストを送信します。この送信処理はOSの標準機能で行われ、開発者が連絡先リストを取得・保持することは一切ありません。</li>
+            </ul>
+
+            <h2>4. 購入処理と課金データについて</h2>
+            <p>本アプリの定期購入プラン「RowPilot Premium」は、Appleの提供する安全な決済インフラ（StoreKit）を使用して処理されます。クレジットカード情報など、決済に必要な一切の個人情報はApple社によって保護されており、開発者が直接収集・保持することはありません。</p>
+
+            <h2>5. お問い合わせ</h2>
+            <p>本プライバシーポリシーに関するご質問や、データの取り扱いに関するお問い合わせは、以下のサポート窓口までご連絡ください。</p>
+            <p style="text-align: center; margin-top: 2rem;">
+                <a href="mailto:rowpilot.jp@gmail.com" class="btn btn-secondary" style="border-radius: 8px;">メールで問い合わせる</a><br>
+                <span style="font-size: 0.9rem; color: var(--text-secondary); display: inline-block; margin-top: 0.5rem;">rowpilot.jp@gmail.com</span>
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <a href="../index.html" class="footer-logo">
+                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot Mini Logo">
+                <span>RowPilot</span>
+            </a>
+            <div class="footer-links">
+                <a href="../index.html">ホーム</a>
+                <a href="../index.html#features">機能</a>
+                <a href="../index.html#premium">プラン</a>
+                <a href="../support/index.html">サポート</a>
+                <a href="#">プライバシーポリシー</a>
+            </div>
+            <div class="copyright">
+                &copy; 2026 RowPilot. All rights reserved. Designed for Rowers.
+            </div>
+        </div>
+    </footer>
+
 </body>
 </html>
