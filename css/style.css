@@ -82,6 +82,7 @@ header {
 .logo-text {
     background: var(--grad);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -244,6 +245,7 @@ header {
     letter-spacing: -0.04em;
     background: var(--grad-text);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 1.25rem;
     animation: fadeUp 0.8s 0.1s var(--ease) both;
@@ -426,19 +428,7 @@ header {
     border-color: rgba(255,179,71,0.35);
     background: linear-gradient(160deg, rgba(255,179,71,0.05) 0%, rgba(15,15,26,0.6) 100%);
 }
-.plan-card.featured::before {
-    content: '人気';
-    position: absolute;
-    top: -11px;
-    left: 1.5rem;
-    background: var(--grad-gold);
-    color: #100a00;
-    font-size: 0.68rem;
-    font-weight: 800;
-    padding: 0.2rem 0.7rem;
-    border-radius: 999px;
-    letter-spacing: 0.04em;
-}
+
 .plan-name {
     font-family: var(--font-h);
     font-size: 1rem;
@@ -513,6 +503,7 @@ header {
     letter-spacing: -0.03em;
     background: var(--grad);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 1.75rem;
 }
@@ -644,6 +635,7 @@ footer {
     letter-spacing: -0.02em;
     background: var(--grad);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.35rem;
 }
