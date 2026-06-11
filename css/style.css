@@ -239,7 +239,7 @@ header {
 
 .hero h1 {
     font-family: var(--font-h);
-    font-size: clamp(2.6rem, 7vw, 5.5rem);
+    font-size: clamp(2rem, 7vw, 5.5rem);
     font-weight: 900;
     line-height: 1.08;
     letter-spacing: -0.04em;
@@ -249,6 +249,11 @@ header {
     -webkit-text-fill-color: transparent;
     margin-bottom: 1.25rem;
     animation: fadeUp 0.8s 0.1s var(--ease) both;
+}
+
+.text-nowrap {
+    display: inline-block;
+    white-space: nowrap;
 }
 
 .hero-sub {
