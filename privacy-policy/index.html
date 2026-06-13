@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>プライバシーポリシー — RowPilot</title>
-    <meta name="description" content="RowPilotのプライバシーポリシー。位置情報・Bluetooth・SOS機能・チーム同期などのデータ設計方針を説明しています。">
+    <meta name="description" content="RowPilotのプライバシーポリシー。位置情報・Bluetooth・iCloud同期・購入処理など、アプリが扱うすべてのデータと保護方針を詳しく説明しています。">
     <link rel="icon" href="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../css/style.css">
 </head>
@@ -45,57 +45,276 @@
     </nav>
 
     <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
-        <h1>プライバシーポリシー</h1>
-        <p class="policy-updated">最終更新日: 2026年6月11日</p>
+        <div class="policy-hero">
+            <div class="policy-badge">Privacy Policy</div>
+            <h1>プライバシーポリシー</h1>
+            <p class="policy-lead">RowPilotは「開発者はあなたのデータを見られない」設計を基本原則としています。このページでは、アプリが取得する権限・データの種類・保護方針・第三者への共有方針をすべて透明に説明します。</p>
+            <p class="policy-updated">最終更新日: 2026年6月13日</p>
+        </div>
+
+        <nav class="policy-toc">
+            <p class="policy-toc-title">目次</p>
+            <ol>
+                <li><a href="#section-1">開発者のデータアクセスについて</a></li>
+                <li><a href="#section-2">取得する権限とその目的</a></li>
+                <li><a href="#section-3">データの保存場所と管理</a></li>
+                <li><a href="#section-4">ユーザー間のデータ共有</a></li>
+                <li><a href="#section-5">チームプランのサーバー同期</a></li>
+                <li><a href="#section-6">購入・決済処理について</a></li>
+                <li><a href="#section-7">第三者サービスとの連携</a></li>
+                <li><a href="#section-8">本ポリシーの変更について</a></li>
+                <li><a href="#section-9">準拠法および管轄</a></li>
+                <li><a href="#section-10">お問い合わせ・透明性の確保</a></li>
+            </ol>
+        </nav>
 
         <div class="policy-content">
 
-            <p>RowPilot開発者（以下、「開発者」といいます）は、ユーザーのプライバシーを最優先として本アプリを設計しています。このページでは、RowPilotが扱う権限・データとその保護方針を説明します。</p>
+            <h2 id="section-1">1. 開発者のデータアクセスについて</h2>
+            <p>RowPilotは<strong>プライバシーファースト</strong>を設計の根幹に置いており、<strong>開発者はユーザーのいかなる個人データにも技術的にアクセス・取得・蓄積することができません。</strong></p>
+            <p>トレーニング記録・位置情報・設定情報・連絡先はすべて、ユーザーのデバイス内（ローカルストレージ）またはユーザー自身のApple iCloud領域にのみ保存されます。開発者がアクセスできる中央サーバーには、これらのデータは一切保存されません。</p>
+            <div class="policy-callout policy-callout-green">
+                <span class="policy-callout-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-lock"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </span>
+                <span>RowPilotのソースコードは完全にオープンソースとして公開されており、この原則が技術的に正しく実装されていることを誰でも検証できます。</span>
+            </div>
 
-            <h2>1. 開発者はいかなるデータにもアクセスできない設計</h2>
-            <p>RowPilotはプライバシーファーストで設計されており、<strong>開発者はユーザーのいかなるデータにもアクセス・取得・蓄積することが技術的にできません。</strong>トレーニングデータ・位置情報・設定情報はすべてユーザーのデバイス内（ローカル）またはユーザー自身のApple
-                iCloud領域にのみ保存されます。</p>
+            <h2 id="section-2">2. 取得する権限とその目的</h2>
+            <p>RowPilotは以下の権限をiOSから要求します。それぞれの権限は明記した目的以外には使用しません。</p>
 
-            <h2>2. ユーザー間のデータ共有はAirDrop経由で完結</h2>
-            <p>本アプリにはトレーニングデータをユーザー間で共有する機能がありますが、これはAppleの<strong>AirDrop（デバイス同士の直接通信）</strong>を使って行われます。仲介サーバーを経由しないため、共有された内容に開発者がアクセスすることは不可能です。
-            </p>
+            <div class="policy-permission-list">
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-map-pin"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        </span>
+                        <div>
+                            <strong>位置情報（GPS）</strong>
+                            <span class="policy-perm-badge policy-perm-badge-local">ローカル処理</span>
+                        </div>
+                    </div>
+                    <p>RowModeでのスピード算出・移動軌跡記録、およびSOS機能での緊急メッセージ作成にのみ使用します。GPS座標が開発者や外部サーバーに送信・漏洩することは絶対にありません。練習セッション中のみ取得し、バックグラウンドでの常時追跡は行いません。</p>
+                    <ul>
+                        <li>取得タイミング：RowModeの練習セッション中のみ</li>
+                        <li>保存先：デバイス内またはユーザー自身のiCloud</li>
+                        <li>外部送信：なし（SOS送信時はOSの標準機能を使用）</li>
+                    </ul>
+                </div>
 
-            <h2>3. 取得する権限とその目的</h2>
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bluetooth"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></svg>
+                        </span>
+                        <div>
+                            <strong>Bluetooth</strong>
+                            <span class="policy-perm-badge policy-perm-badge-local">デバイス間通信</span>
+                        </div>
+                    </div>
+                    <p>Concept2 PM5エルゴメーターとの無線接続に使用します。通信はユーザーのiPhoneとPM5デバイスの間でのみ完結し、外部へのデータ転送は一切行いません。</p>
+                    <ul>
+                        <li>接続先：Concept2 PM5（固有のUUIDでフィルタリング）のみ</li>
+                        <li>取得データ：距離・タイム・ピッチ・ペース等のトレーニング数値</li>
+                        <li>外部送信：なし</li>
+                    </ul>
+                </div>
+
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-activity"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                        </span>
+                        <div>
+                            <strong>モーション・フィットネスセンサー</strong>
+                            <span class="policy-perm-badge policy-perm-badge-local">ローカル処理</span>
+                        </div>
+                    </div>
+                    <p>RowModeでのストロークピッチ検出および振動感度判定に使用します。センサーデータは計測処理にのみ利用され、生データが外部に送信されることはありません。</p>
+                    <ul>
+                        <li>取得タイミング：RowModeの練習セッション中のみ</li>
+                        <li>外部送信：なし</li>
+                    </ul>
+                </div>
+
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-cloud"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
+                        </span>
+                        <div>
+                            <strong>iCloud（CloudKit）</strong>
+                            <span class="policy-perm-badge policy-perm-badge-cloud">ユーザー管理</span>
+                        </div>
+                    </div>
+                    <p>ユーザーのApple IDに紐づいたiCloud領域にトレーニングデータ・設定・チーム管理情報を保存します。このデータはAppleのiCloudインフラで保護されており、開発者はアクセスできません。</p>
+                    <ul>
+                        <li>保存先：ユーザー自身のiCloud（Private Database）</li>
+                        <li>開発者アクセス：不可能（技術的に）</li>
+                        <li>対象プラン：全プラン（フリープランを含む）</li>
+                    </ul>
+                </div>
+
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-alert-triangle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        </span>
+                        <div>
+                            <strong>SOS連絡先</strong>
+                            <span class="policy-perm-badge policy-perm-badge-local">ローカル管理</span>
+                        </div>
+                    </div>
+                    <p>ユーザーが手動登録した緊急連絡先（メール・電話番号）はデバイス内またはiCloudにのみ保存されます。SOSメッセージの送信はiOSの標準機能（メール/メッセージアプリ）を使用し、開発者が連絡先を取得・保持することはありません。</p>
+                </div>
+            </div>
+
+            <h2 id="section-3">3. データの保存場所と管理</h2>
+            <p>RowPilotが扱うデータの保存場所は以下の通りです：</p>
+            <div class="policy-table-wrap">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>データの種類</th>
+                            <th>保存場所</th>
+                            <th>開発者アクセス</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>トレーニング記録（水上）</td>
+                            <td>デバイス内 / iCloud</td>
+                            <td class="td-no">不可</td>
+                        </tr>
+                        <tr>
+                            <td>トレーニング記録（エルゴ）</td>
+                            <td>デバイス内 / iCloud</td>
+                            <td class="td-no">不可</td>
+                        </tr>
+                        <tr>
+                            <td>GPS軌跡・位置座標</td>
+                            <td>デバイス内 / iCloud</td>
+                            <td class="td-no">不可</td>
+                        </tr>
+                        <tr>
+                            <td>SOS連絡先</td>
+                            <td>デバイス内 / iCloud</td>
+                            <td class="td-no">不可</td>
+                        </tr>
+                        <tr>
+                            <td>アプリ設定</td>
+                            <td>デバイス内 / iCloud</td>
+                            <td class="td-no">不可</td>
+                        </tr>
+                        <tr>
+                            <td>チーム管理データ（Team以上）</td>
+                            <td>iCloud / 開発者サーバー（数値のみ）</td>
+                            <td class="td-partial">数値統計のみ※</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p style="font-size:0.8rem; color: var(--text-3);">※ チームプランの同期サーバーに保存されるのはトレーニングの数値統計（距離・タイム・ピッチ等）のみです。GPS座標・移動軌跡が含まれることはありません。詳細は第5節をご参照ください。</p>
+
+            <h2 id="section-4">4. ユーザー間のデータ共有</h2>
+            <p>RowPilotには、トレーニングデータをユーザー間で共有する機能があります。共有はAppleの<strong>AirDrop（デバイス同士のP2P直接通信）</strong>を通じて行われます。仲介サーバーを経由しないため、共有された内容に開発者がアクセスすることは技術的に不可能です。</p>
+            <p>AirDropの通信はAppleが提供するエンドツーエンド暗号化で保護されており、共有を受けるかどうかはユーザーが毎回明示的に承認します。</p>
+
+            <h2 id="section-5">5. チームプランのサーバー同期</h2>
+            <p>Team・MAX・Organizationプランでは、複数メンバーのデータを同期するために開発者が管理するサーバー（チームデータベース）を使用します。</p>
+            <p><strong>サーバーに記録されるデータ：</strong></p>
             <ul>
-                <li>
-                    <strong>位置情報（GPS） — 完全ローカル処理</strong><br>
-                    RowMode
-                    でのスピード算出・移動軌跡記録、およびSOS機能での緊急メッセージ作成にのみ使用します。<strong>GPS位置情報が開発者や外部サーバーに送信・漏洩することは絶対にありません。</strong>練習中のみ取得し、バックグラウンドでの常時追跡は行いません。
-                </li>
-                <li>
-                    <strong>Bluetooth — デバイスとPM5間でのみ通信</strong><br>
-                    Concept2 PM5との接続に使用します。通信はデバイスとPM5間で完結し、外部へのデータ転送はありません。
-                </li>
-                <li>
-                    <strong>Team以上のプランのサーバー同期 — 数値統計のみ</strong><br>
-                    複数人の同期機能を利用する際にサーバーへ記録されるのは、<strong>トレーニングの数値統計（距離・タイム・ピッチなど）のみです。</strong>GPSによる位置座標・移動軌跡がサーバーにアップロードされることは一切ありません。
-                </li>
-                <li>
-                    <strong>SOS連絡先 — ローカル管理、開発者は非保持</strong><br>
-                    ユーザーが手動設定した緊急連絡先はデバイス内にのみ保存されます。SOSメッセージの送信はOSの標準機能で処理され、開発者が連絡先を取得・保持することはありません。
-                </li>
-                <li>
-                    <strong>モーションセンサー</strong><br>
-                    RowMode でのストロークピッチ検出・振動感度判定に使用します。センサーデータは計測処理にのみ使われ、外部へ送信されません。
-                </li>
+                <li>トレーニングの数値統計（距離・タイム・ピッチ・ペース・パワー等）</li>
+                <li>チームメンバーの識別情報（アプリ内のユーザーIDのみ。氏名・メールアドレスは含まれません）</li>
+            </ul>
+            <p><strong>サーバーに記録されないデータ：</strong></p>
+            <ul>
+                <li>GPS座標・移動軌跡（水上練習の位置情報）</li>
+                <li>SOS連絡先</li>
+                <li>Apple IDやメールアドレス等の個人識別情報</li>
+                <li>決済情報</li>
+            </ul>
+            <div class="policy-callout policy-callout-blue">
+                <span class="policy-callout-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </span>
+                <span>チームサーバーへの接続はTLS暗号化を使用しています。フリープランおよびPro・Managerプランのユーザーは、チームサーバーへのデータ送信は行われません。</span>
+            </div>
+
+            <h2 id="section-6">6. 購入・決済処理について</h2>
+            <p>RowPilot Premiumの定期購読はAppleのStoreKit 2を通じて処理されます。</p>
+            <ul>
+                <li>決済情報（クレジットカード番号等）はAppleが保護・管理しており、開発者には一切共有されません</li>
+                <li>開発者が受け取るのは「購入が成立したかどうか」のApple署名付きトランザクション情報のみです</li>
+                <li>購読の管理・解約はApp Storeのサブスクリプション設定から行えます</li>
+                <li>アプリ内課金に関するご不満・返金についてはAppleサポートへお問い合わせください</li>
             </ul>
 
-            <h2>4. 購入処理について</h2>
-            <p>RowPilot Premiumの定期購読はAppleのStoreKitを通じて処理されます。決済情報はAppleが管理・保護しており、開発者が直接収集・保持することはありません。</p>
+            <h2 id="section-7">7. 第三者サービスとの連携</h2>
+            <p>現時点でRowPilotが使用する第三者サービスは以下の通りです：</p>
+            <div class="policy-permission-list">
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c.6.5 1.2 1 2.5 1 1.3 0 2.5-2 5-2 2.5 0 3.7 2 5 2 1.3 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>
+                        </span>
+                        <div>
+                            <strong>気象庁 潮汐データ API</strong>
+                            <span class="policy-perm-badge policy-perm-badge-local">読み取りのみ</span>
+                        </div>
+                    </div>
+                    <p>TideViewの潮汐グラフ表示のため、気象庁が公開している潮汐予測データを取得します。このAPI呼び出しにユーザーの個人情報は一切含まれません。</p>
+                </div>
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-share-2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                        </span>
+                        <div>
+                            <strong>Strava 連携（準備中）</strong>
+                            <span class="policy-perm-badge policy-perm-badge-cloud">開発中</span>
+                        </div>
+                    </div>
+                    <p>将来的にStravaとのトレーニングデータ連携機能を提供予定です。この機能は明示的なユーザー認証（OAuth）が必要で、ユーザーの同意なしにデータが連携されることはありません。実装時には本ポリシーを更新します。</p>
+                </div>
+            </div>
+            <p>広告SDKや行動追跡ライブラリ（Google Analytics、Firebase Analytics等）は使用していません。アプリ内でユーザーの行動データを収集・プロファイリングする仕組みは存在しません。</p>
 
-            <h2>5. お問い合わせと透明性の確保</h2>
-            <p>本ポリシーやデータの取り扱いに関するご質問、バグ報告等は、メール（<a href="mailto:rowpilot.jp@gmail.com"
-                    style="color:var(--accent); text-decoration:none;">rowpilot.jp@gmail.com</a>）または <a
-                    href="https://github.com/Aho0526/RowPilot" target="_blank" rel="noopener noreferrer"
-                    style="color:var(--accent); text-decoration:none;">GitHub リポジトリ</a> の Issues よりご連絡ください。</p>
-            <p>また、RowPilotはプライバシー保護が技術的に正しく行われていることを客観的に検証できるよう、アプリのソースコードを完全にオープンソースとして公開しています。具体的な実装内容について確認したい場合は、リポジトリをご参照ください。
-            </p>
-            <p style="font-size: 0.82rem; color: var(--text-3); margin-top: 1rem;">※公開しているソースコードの著作権はすべて開発者に帰属します。セキュリティの検証および開発プロセスの透明性確保を目的として公開しており、無断での複製、改変、再配布、および類似アプリの作成などの二次利用は固く禁じます。</p>
+            <h2 id="section-8">8. 本ポリシーの変更について</h2>
+            <p>RowPilotの機能追加や法令の変更に伴い、本プライバシーポリシーを更新することがあります。</p>
+            <ul>
+                <li>変更の際はページ上部の「最終更新日」を更新します</li>
+                <li>ユーザーのデータ取り扱いに大きな影響を与える変更の場合は、アプリ内通知またはサポートページにてお知らせします</li>
+                <li>変更後も継続してアプリをご利用いただくことで、変更後のポリシーに同意したものとみなします</li>
+            </ul>
+
+            <h2 id="section-9">9. 準拠法および管轄</h2>
+            <p>本プライバシーポリシーは日本国法に準拠し、解釈されます。本ポリシーに関して争いが生じた場合は、開発者の住所地を管轄する裁判所を第一審の専属合意管轄裁判所とします。</p>
+
+            <h2 id="section-10">10. お問い合わせ・透明性の確保</h2>
+            <p>本ポリシーやデータの取り扱いに関するご質問、バグ報告等は以下よりご連絡ください：</p>
+            <div class="policy-contact-block">
+                <div class="policy-contact-item">
+                    <span class="policy-contact-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-mail"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    </span>
+                    <div>
+                        <div class="policy-contact-label">メール（推奨）</div>
+                        <a href="mailto:rowpilot.jp@gmail.com" class="policy-contact-link">rowpilot.jp@gmail.com</a>
+                    </div>
+                </div>
+                <div class="policy-contact-item">
+                    <span class="policy-contact-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-github"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                    </span>
+                    <div>
+                        <div class="policy-contact-label">GitHub Issues</div>
+                        <a href="https://github.com/Aho0526/RowPilot" target="_blank" rel="noopener noreferrer" class="policy-contact-link">github.com/Aho0526/RowPilot</a>
+                    </div>
+                </div>
+            </div>
+            <p>RowPilotはプライバシー保護が技術的に正しく行われていることを客観的に検証できるよう、アプリのソースコードを完全にオープンソースとして公開しています。具体的な実装内容について確認したい場合は、GitHubリポジトリをご参照ください。</p>
+            <p style="font-size: 0.82rem; color: var(--text-3); margin-top: 1rem;">※ 公開しているソースコードの著作権はすべて開発者に帰属します。セキュリティの検証および開発プロセスの透明性確保を目的として公開しており、無断での複製・改変・再配布・および類似アプリの作成などの二次利用は固く禁じます。</p>
 
         </div>
     </div>

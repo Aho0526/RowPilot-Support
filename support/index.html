@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>サポート & FAQ — RowPilot</title>
-    <meta name="description" content="RowPilotのサポートページ。Concept2 PM5の接続トラブル、SOS機能の使い方、サブスクリプションの解約方法など。">
+    <title>サポート &amp; FAQ — RowPilot</title>
+    <meta name="description" content="RowPilotのサポートページ。Concept2 PM5の接続トラブル、iCloudバックアップ、SOS機能、サブスクリプションの解約・復元など、よくある質問に回答しています。">
     <link rel="icon" href="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../css/style.css">
 </head>
@@ -44,9 +44,11 @@
 
 <!-- Contact -->
 <div class="contact-wrap animate-fade-up" style="animation: fadeUp 0.7s both;">
-    <div class="contact-icon-wrap">✉️</div>
+    <div class="contact-icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-mail"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+    </div>
     <h1>サポート窓口</h1>
-    <p>バグの報告・機能リクエスト・使い方のご質問など、何でもお気軽にどうぞ。</p>
+    <p>バグの報告・機能リクエスト・使い方のご質問など、何でもお気軽にどうぞ。<br>通常2〜3営業日以内に返信します。</p>
     <a href="mailto:rowpilot.jp@gmail.com" class="contact-email-link" id="contact-email">rowpilot.jp@gmail.com</a>
     <p class="contact-note">高知県ローイング協会への寄贈・協賛に関するご相談もこちらから。</p>
 </div>
@@ -60,15 +62,82 @@
             <p>困ったときにまずここを確認してみてください。</p>
         </div>
 
+        <!-- カテゴリ: 接続 -->
+        <div class="faq-category-label">Bluetooth &amp; 接続</div>
+
         <div class="faq-item" id="faq-pm5">
             <div class="faq-q">
                 <span>Concept2 PM5 と Bluetooth 接続できません</span>
                 <span class="faq-arrow">▼</span>
             </div>
             <div class="faq-a">
-                PM5 モニターのメニューから <strong>「Connect」</strong> を選択し、無線通信を ON にしてください。次に iPhone の「設定」→「プライバシーとセキュリティ」→「Bluetooth」でRowPilotに権限が付与されているか確認します。その後、Practice タブでスキャンを開始するとデバイス一覧に表示されます。接続が安定しない場合は、周囲の他の Bluetooth 機器を一時的にオフにするか、PM5 のファームウェアが最新か確認してみてください。
+                <p>以下の手順を順番に試してみてください：</p>
+                <ol>
+                    <li>PM5 モニターのメニューから <strong>「Connect」→「Wireless」</strong> を選択し、無線通信を ON にします。</li>
+                    <li>iPhoneの「設定」→「プライバシーとセキュリティ」→「Bluetooth」でRowPilotに権限が付与されているか確認します。</li>
+                    <li>PracticeタブでBluetoothスキャンを開始すると、PM5がデバイス一覧に表示されます。</li>
+                    <li>接続が安定しない場合は、周囲の他のBluetooth機器を一時的にオフにするか距離を置いてください。</li>
+                    <li>PM5のファームウェアが最新バージョンか確認してください（PM5メニューから確認可能）。</li>
+                </ol>
+                <p>上記で解決しない場合はメールにてお問い合わせください。</p>
             </div>
         </div>
+
+        <div class="faq-item" id="faq-multi-pm5">
+            <div class="faq-q">
+                <span>複数台のエルゴを同時に接続するには？</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>複数台同時接続はManager・Team・MAX・Organizationプランでご利用いただける機能です（最大10台まで）。</p>
+                <p>各PM5で個別にBluetooth接続をオンにした後、RowPilotのPracticeタブでスキャンを開始すると複数台が一覧に表示されます。接続したい台数分を順番にタップして接続してください。同一メニューを全台に一括送信することも可能です。</p>
+            </div>
+        </div>
+
+        <!-- カテゴリ: データ・バックアップ -->
+        <div class="faq-category-label">データ &amp; バックアップ</div>
+
+        <div class="faq-item" id="faq-icloud">
+            <div class="faq-q">
+                <span>iCloudバックアップは自動で行われますか？</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>はい。RowPilotはiCloud（CloudKit）を使用しており、iPhoneのiCloud設定が有効になっていれば、トレーニング記録・設定・チーム管理データが自動的にiCloudへ同期・バックアップされます。全プラン（フリープランを含む）でご利用いただけます。</p>
+                <p>iCloudバックアップを有効にするには：「設定」→「Apple ID」→「iCloud」→「RowPilot」がオンになっていることを確認してください。</p>
+            </div>
+        </div>
+
+        <div class="faq-item" id="faq-restore">
+            <div class="faq-q">
+                <span>機種変更後にデータを引き継ぐには？</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>iCloudが有効になっていれば、新しいデバイスに同じApple IDでサインインしてRowPilotをインストールするだけで、データは自動的に復元されます。</p>
+                <p><strong>推奨手順：</strong></p>
+                <ol>
+                    <li>旧端末で最後のセッション終了後、iCloudへの同期が完了していることを確認（Wi-Fi接続推奨）</li>
+                    <li>新端末に同じApple IDでサインイン</li>
+                    <li>App StoreからRowPilotをインストール</li>
+                    <li>起動後、iCloudから自動的にデータが読み込まれます</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="faq-item" id="faq-data-delete">
+            <div class="faq-q">
+                <span>記録したデータを削除したい</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>個別のトレーニング記録は、アプリ内の履歴画面でスワイプまたは長押しして削除できます。</p>
+                <p>すべてのデータを完全に削除したい場合は、アプリをアンインストールしてください。iCloudに同期済みのデータも削除したい場合は、iPhoneの「設定」→「Apple ID」→「iCloud」→「iCloudを管理」→「RowPilot」→「データを削除」の順に操作してください。</p>
+            </div>
+        </div>
+
+        <!-- カテゴリ: 機能 -->
+        <div class="faq-category-label">機能の使い方</div>
 
         <div class="faq-item" id="faq-sos">
             <div class="faq-q">
@@ -76,8 +145,9 @@
                 <span class="faq-arrow">▼</span>
             </div>
             <div class="faq-a">
-                <strong>設定：</strong>「Settings」タブ →「SOS連絡先設定」から送信先のメールまたは電話番号を事前登録します。<br>
-                <strong>使用：</strong>RowMode（GPSレート計画面）上の SOS ボタンをタップすると、登録先へ現在の GPS 位置情報を含むメッセージが即座に送信されます。水上での万が一の備えとしてぜひ活用してください。
+                <p><strong>事前設定：</strong>「Settings」タブ →「SOS連絡先設定」から送信先のメールまたは電話番号を事前登録します。</p>
+                <p><strong>使い方：</strong>RowMode（GPSレート計画面）上のSOSボタンをタップすると、登録先へ現在のGPS位置情報を含むメッセージが即座に送信されます。水上での万が一に備えて、練習前に必ず設定しておくことをお勧めします。</p>
+                <p><strong>注意：</strong>SOS送信にはiPhoneのメール・メッセージアプリを使用します。位置情報の取得にはRowPilotへの位置情報権限付与が必要です。</p>
             </div>
         </div>
 
@@ -87,9 +157,27 @@
                 <span class="faq-arrow">▼</span>
             </div>
             <div class="faq-a">
-                TideView 上部の地点名をタップするとリストが開きます。全国 249 地点から都道府県・港名で検索・選択でき、タップした瞬間にそのポイントの潮汐グラフへ切り替わります。よく使う練習拠点はお気に入り登録が便利です。
+                <p>TideView上部の地点名をタップするとリストが開きます。全国249地点から都道府県・港名で検索・選択でき、タップした瞬間にそのポイントの潮汐グラフへ切り替わります。よく使う練習拠点はお気に入り登録が便利です。</p>
             </div>
         </div>
+
+        <div class="faq-item" id="faq-rowmode">
+            <div class="faq-q">
+                <span>RowModeのストローク検出がうまく動きません</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>Settingsタブの「センサー感度」でモーションの検出しきい値を調整してください。ストロークの力強さやiPhoneの取り付け方向によって最適な値が変わります。</p>
+                <ul>
+                    <li>感度が高すぎる場合：しきい値を上げる（ノイズによる誤検出を減らす）</li>
+                    <li>感度が低すぎる場合：しきい値を下げる（弱いストロークも検出）</li>
+                </ul>
+                <p>iPhoneをボートのラックや艇体に直接固定すると精度が向上します。</p>
+            </div>
+        </div>
+
+        <!-- カテゴリ: 課金 -->
+        <div class="faq-category-label">サブスクリプション</div>
 
         <div class="faq-item" id="faq-cancel">
             <div class="faq-q">
@@ -97,9 +185,34 @@
                 <span class="faq-arrow">▼</span>
             </div>
             <div class="faq-a">
-                iPhone の「設定」→ 上部の Apple ID →「サブスクリプション」→「RowPilot」→「サブスクリプションをキャンセルする」の順で操作してください。次の請求日前にキャンセルすれば、その月の残り期間は引き続き利用できます。
+                <p>iPhoneの「設定」→ 上部のApple ID →「サブスクリプション」→「RowPilot」→「サブスクリプションをキャンセルする」の順で操作してください。</p>
+                <p>次の請求日前にキャンセルすれば、その月の残り期間は引き続きご利用いただけます。解約後にデータが失われることはありません。</p>
             </div>
         </div>
+
+        <div class="faq-item" id="faq-restore-purchase">
+            <div class="faq-q">
+                <span>購入を復元するには？（機種変更・再インストール後）</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>アプリ内の「Settings」→「サブスクリプション」→「購入を復元」をタップしてください。同じApple IDでサインインしていれば、過去の購入が自動的に認識されます。</p>
+                <p>復元できない場合は、iPhoneの「設定」→「App Store」→ サインインしているApple IDが正しいか確認してください。</p>
+            </div>
+        </div>
+
+        <div class="faq-item" id="faq-family">
+            <div class="faq-q">
+                <span>ファミリー共有でプランを共有できますか？</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>現時点ではApp Storeのファミリー共有には対応していません。チームで利用したい場合は、Team・MAX・Organizationプランのマネージャー共有機能をご利用ください。顧問1名がプランを購入し、メンバーにマネージャーモードを共有できます。</p>
+            </div>
+        </div>
+
+        <!-- カテゴリ: その他 -->
+        <div class="faq-category-label">その他</div>
 
         <div class="faq-item" id="faq-donation">
             <div class="faq-q">
@@ -107,9 +220,21 @@
                 <span class="faq-arrow">▼</span>
             </div>
             <div class="faq-a">
-                App Store 手数料（30% または 15%）・税金・最低限のサーバー維持費を除いた収益を、開発者が年に一度まとめて高知県ローイング協会へ正式に寄付します。寄付金はボート用具の整備や、ジュニア・ユース選手の活動支援に役立てられます。
+                <p>App Store手数料（30%または15%）・税金・最低限のサーバー維持費を除いた収益を、開発者が年に一度まとめて高知県ローイング協会へ正式に寄付します。寄付金はボート用具の整備や、ジュニア・ユース選手の活動支援に役立てられます。</p>
             </div>
         </div>
+
+        <div class="faq-item" id="faq-opensource">
+            <div class="faq-q">
+                <span>オープンソースとのことですが、どこで見られますか？</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>ソースコードはGitHubで公開しています：<a href="https://github.com/Aho0526/RowPilot" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: none;">github.com/Aho0526/RowPilot</a></p>
+                <p>プライバシー保護の実装が正しく行われているかどうか、誰でも技術的に検証できます。なお、著作権は開発者に帰属し、無断での二次利用は禁じています。</p>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -147,10 +272,17 @@ document.querySelectorAll('.faq-item').forEach(item => {
     item.querySelector('.faq-q').addEventListener('click', () => {
         const isOpen = item.classList.toggle('open');
         const ans = item.querySelector('.faq-a');
-        ans.style.display = isOpen ? 'block' : 'none';
+        ans.style.maxHeight = isOpen ? ans.scrollHeight + 'px' : '0';
+        ans.style.opacity = isOpen ? '1' : '0';
     });
 });
-document.querySelectorAll('.faq-a').forEach(a => a.style.display = 'none');
+// init: all closed
+document.querySelectorAll('.faq-a').forEach(a => {
+    a.style.maxHeight = '0';
+    a.style.opacity = '0';
+    a.style.overflow = 'hidden';
+    a.style.transition = 'max-height 0.35s ease, opacity 0.25s ease';
+});
 </script>
 </body>
 </html>
