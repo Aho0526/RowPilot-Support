@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News &amp; Updates — RowPilot</title>
+    <meta name="description" content="Latest news, update history, and important notices for RowPilot.">
+    <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <link rel="stylesheet" href="../../css/style.css">
+</head>
+
+<body>
+
+    <header>
+        <div class="nav-wrap">
+            <a href="../index.html" class="logo" id="nav-logo">
+                <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                <span class="logo-text">RowPilot</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="../index.html#features">Features</a></li>
+                <li><a href="../index.html#premium">Plans</a></li>
+                <li><a href="#" class="active">Updates</a></li>
+                <li><a href="../support/index.html">Support</a></li>
+                <li><a href="../privacy-policy/index.html">Privacy</a></li>
+                <li><a href="../terms/index.html">Terms</a></li>
+                <li><a href="../../news/index.html" class="lang-switch">JP</a></li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <nav class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-inner">
+            <a href="../index.html">Home</a>
+            <a href="../index.html#features">Features</a>
+            <a href="../index.html#premium">Plans</a>
+            <div class="mobile-menu-divider"></div>
+            <a href="#" class="active">Updates</a>
+            <a href="../support/index.html">Support</a>
+            <a href="../privacy-policy/index.html">Privacy Policy</a>
+            <a href="../terms/index.html">Terms of Use</a>
+            <div class="mobile-menu-divider"></div>
+            <a href="../../news/index.html" class="lang-switch-mobile">日本語 (JP)</a>
+        </div>
+    </nav>
+
+    <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
+        <div class="policy-hero">
+            <div class="policy-badge">News &amp; Updates</div>
+            <h1>News &amp; Updates</h1>
+            <p class="policy-lead">
+                Find the latest updates, important announcements, and specification changes for RowPilot.
+            </p>
+        </div>
+
+        <div class="policy-content">
+            <div class="policy-permission-list">
+                <!-- News Item 1 -->
+                <div class="policy-permission-item" style="cursor: pointer;" onclick="location.href='team-migration-policy.html'">
+                    <div class="policy-permission-header" style="justify-content: space-between; align-items: center; width: 100%;">
+                        <div>
+                            <span class="policy-updated" style="margin-right: 1rem; font-weight: 600;">July 4, 2026</span>
+                            <span class="policy-perm-badge policy-perm-badge-cloud" style="background: rgba(255, 179, 71, 0.12); color: var(--gold); border: 1px solid rgba(255, 179, 71, 0.2);">Important</span>
+                        </div>
+                    </div>
+                    <strong style="display: block; font-size: 1.15rem; margin-top: 0.5rem; margin-bottom: 0.5rem; color: var(--text);">Functional Restrictions &amp; Auto-Cleanup on Team Plan Migration</strong>
+                    <p style="margin-bottom: 0;">An auto-cleanup and functional restriction flow has been implemented to manage team limits and prevent unauthorized data usage when subscription plans are downgraded or expired. Learn about detail rules and grace periods.</p>
+                    <div style="margin-top: 1rem; text-align: right;">
+                        <span style="color: var(--accent); font-weight: 600; font-size: 0.9rem;">Read Details →</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-inner">
+            <a href="../index.html" class="footer-logo">
+                <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                RowPilot
+            </a>
+            <div class="footer-links">
+                <a href="../index.html">Home</a>
+                <a href="../index.html#features">Features</a>
+                <a href="../index.html#premium">Plans</a>
+                <a href="../support/index.html">Support</a>
+                <a href="../privacy-policy/index.html">Privacy Policy</a>
+                <a href="../terms/index.html">Terms of Use</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        const toggle = document.getElementById('nav-toggle');
+        const mMenu = document.getElementById('mobile-menu');
+        toggle.addEventListener('click', () => {
+            const open = mMenu.classList.toggle('open');
+            toggle.classList.toggle('open', open);
+        });
+        mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            mMenu.classList.remove('open'); toggle.classList.remove('open');
+        }));
+    </script>
+</body>
+
+</html>

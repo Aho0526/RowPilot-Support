@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>サポート &amp; FAQ — RowPilot</title>
+    <meta name="description"
+        content="RowPilotのサポートページ。Concept2 PM5の接続トラブル、クラウド同期、SOS機能、サブスクリプションの解約・復元など、よくある質問に回答しています。">
+    <link rel="icon" href="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+    <header>
+        <div class="nav-wrap">
+            <a href="../index.html" class="logo" id="nav-logo">
+                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                <span class="logo-text">RowPilot</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="../index.html#features">機能</a></li>
+                <li><a href="../index.html#premium">プラン</a></li>
+                <li><a href="../news/index.html">お知らせ</a></li>
+                <li><a href="#" class="active">サポート</a></li>
+                <li><a href="../privacy-policy/index.html">プライバシー</a></li>
+                <li><a href="../terms/index.html">利用規約</a></li>
+                <li><a href="../en/support/index.html" class="lang-switch">EN</a></li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="メニュー">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <nav class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-inner">
+            <a href="../index.html">Home</a>
+            <a href="../index.html#features">機能</a>
+            <a href="../index.html#premium">プラン</a>
+            <div class="mobile-menu-divider"></div>
+            <a href="../news/index.html">お知らせ</a>
+            <a href="#" class="active">サポート</a>
+            <a href="../privacy-policy/index.html">プライバシーポリシー</a>
+            <a href="../terms/index.html">利用規約</a>
+            <div class="mobile-menu-divider"></div>
+            <a href="../en/support/index.html" class="lang-switch-mobile">English (EN)</a>
+        </div>
+    </nav>
+
+    <!-- Early Access Banner -->
+    <div class="early-access-banner" id="early-access-banner">
+        <div class="early-access-inner">
+            <div class="early-access-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                    </path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <div class="early-access-text">
+                <strong>現在のビルドは開発中です</strong>
+                <span>予期しない動作・不具合が残っている可能性があります。何か気になる点があれば、すぐにメールでお知らせください。あなたの報告がアプリを良くします。</span>
+            </div>
+            <a href="mailto:rowpilot.jp@gmail.com" class="early-access-btn" id="banner-report-btn">不具合を報告する</a>
+        </div>
+    </div>
+
+    <!-- Contact -->
+    <div class="contact-wrap animate-fade-up" style="animation: fadeUp 0.7s both;">
+        <div class="contact-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="feather feather-mail">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+        </div>
+        <h1>サポート窓口</h1>
+        <p>バグの報告・機能リクエスト・使い方のご質問など、何でもお気軽にどうぞ。<br>できる限り早く返信します。</p>
+        <a href="mailto:rowpilot.jp@gmail.com" class="contact-email-link" id="contact-email">rowpilot.jp@gmail.com</a>
+        <p class="contact-note">高知県ローイング協会への寄贈・協賛に関するご相談もこちらから。</p>
+    </div>
+
+    <!-- FAQ -->
+    <div class="container">
+        <div class="faq-sec">
+            <div class="sec-header">
+                <span class="sec-label">FAQ</span>
+                <h2>よくある質問</h2>
+                <p>困ったときにまずここを確認してみてください。</p>
+            </div>
+
+            <!-- カテゴリ: 接続 -->
+            <div class="faq-category-label">Bluetooth &amp; 接続</div>
+
+            <div class="faq-item" id="faq-pm5">
+                <div class="faq-q">
+                    <span>Concept2 PM5 と Bluetooth 接続できません</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>以下の手順を順番に試してみてください：</p>
+                    <ol>
+                        <li>PM5 モニターのメニューから <strong>「Connect」</strong> を選択し、無線通信を ON にします。</li>
+                        <li>iPhoneの「設定」→「プライバシーとセキュリティ」→「Bluetooth」でRowPilotに権限が付与されているか確認します。</li>
+                        <li>練習タブでBluetoothスキャンを開始すると、PM5がデバイス一覧に表示されます。</li>
+                        <li>接続が安定しない場合は、周囲の他のBluetooth機器を一時的にオフにするか距離を置いてください。</li>
+                        <li>PM5のファームウェアが最新バージョンか確認してください（v178.037以降のファームウェアバージョンのみ確認済です）。</li>
+                    </ol>
+                    <p>上記で解決しない場合はメールにてお問い合わせください。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-multi-pm5">
+                <div class="faq-q">
+                    <span>複数台のエルゴを同時に接続するには？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>複数台同時接続は個人でManagerプランに属するか、顧問などが契約するTeam・MAX・Organizationプランにて「Manager」ロールが管理者により与えられたユーザーがご利用いただける機能です（最大10台まで）。なお、Free・ProプランでもPM5との1対1接続は利用できます。
+                    </p>
+                    <p>各PM5で個別にBluetooth接続をオンにした後、RowPilotの練習タブでスキャンを開始すると複数台が一覧に表示されます。接続したい台数分を順番にタップして接続してください。同一メニューを全台に一括送信することも可能です。
+                    </p>
+                </div>
+            </div>
+
+            <!-- カテゴリ: データ・バックアップ -->
+            <div class="faq-category-label">データ &amp; バックアップ</div>
+
+            <div class="faq-item" id="faq-icloud">
+                <div class="faq-q">
+                    <span>データはどこに保存されますか？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>RowPilotのデータはデバイス内ストレージと個人のiCloudアカウントに自動的に保存されます。Team以上のプランでチーム同期を有効にしている場合は、チームの数値データが外部のサーバー（Cloudflare
+                        D1）にも保存されます。
+                    </p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-restore">
+                <div class="faq-q">
+                    <span>機種変更後にデータを引き継ぐには？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>RowPilotはデータの保存に主にデバイス内ストレージを使用しており、iCloud同期をOFFにした状態でアプリをアンインストールした場合、データは削除されてしまいます。しかし、iCloud同期をONにしたままであれば、次の機種で同じAppleIDを用いてログインすることによって引き継ぎが可能になります。
+                    </p>
+                    <p>なお、iPhone↔︎Android間のデータの移行は現在サポートしていません。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-data-delete">
+                <div class="faq-q">
+                    <span>記録したデータを削除したい</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>個別のトレーニング記録は、アプリ内の履歴画面でスワイプで削除できます。</p>
+                    <p>すべてのデータを完全に削除したい場合は、アプリ内の設定→「全てのワークアウトを消去」を押してください。</p>
+                    <p>（同期サーバーにアップロードされたチームデータの削除については、アプリ内の設定画面よりチームデータを削除してください。）</p>
+                </div>
+            </div>
+
+            <!-- カテゴリ: 機能 -->
+            <div class="faq-category-label">機能の使い方</div>
+
+            <div class="faq-item" id="faq-sos">
+                <div class="faq-q">
+                    <span>SOS 機能の設定・使い方を教えてください</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p><strong>事前設定：</strong>「Settings」タブ →「SOS連絡先設定」から送信先のメールまたは電話番号を事前登録します。</p>
+                    <p><strong>使い方：</strong>RowMode（GPSレート計画面）上のSOSボタンをタップすると、登録先へ現在のGPS位置情報を含むメッセージが即座に送信されます。水上での万が一に備えて、練習前に必ず設定しておくことをお勧めします。
+                    </p>
+                    <p><strong>注意：</strong>SOS送信にはiPhoneのメール・メッセージアプリを使用します。位置情報の取得にはRowPilotへの位置情報権限付与が必要です。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-tide">
+                <div class="faq-q">
+                    <span>潮汐データの表示地点を変えたい</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>最も近い気象庁の観測地点の潮汐データを自動で表示します。観測地点の変更はできません。</p>
+                    <p>機能が必要だと考えられる場合、こちら側で対応しますのでご連絡ください。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-rowmode">
+                <div class="faq-q">
+                    <span>RowModeのストローク検出がうまく動きません</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>一度他のレート計アプリを試してみてください。それでも検出できない場合は端末の加速度センサーや漕ぎが弱い可能性があります。</p>
+                    <p>もしもあまりに反応しない場合、一度連絡ください。</p>
+                </div>
+            </div>
+
+            <!-- カテゴリ: 課金 -->
+            <div class="faq-category-label">サブスクリプション</div>
+
+            <div class="faq-item" id="faq-team-migration">
+                <div class="faq-q">
+                    <span>チームプランを変更・解約（ダウングレード）するとデータはどうなりますか？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>プラン移行に伴い、データの不正利用防止およびリソース管理のための自動整理フローと一部の機能制限が適用されます。</p>
+                    <p>移行後のプランにおけるメンバー上限数を超過した場合は30日間の猶予期間が、チーム機能を持たないプラン（Pro/Free）へ移行した場合は14日間の猶予期間ののちにチーム機能の「停止（閲覧のみ）」および1ヶ月後のデータ削除予約が適用されます。
+                    </p>
+                    <p>詳細な制限事項や解除方法については、以下のお知らせページをご確認ください：</p>
+                    <p><a href="../news/team-migration-policy.html"
+                            style="color: var(--accent); text-decoration: none; font-weight: 600;">チームプラン変更に伴う自動整理と機能制限について（詳細）
+                            →</a></p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-cancel">
+                <div class="faq-q">
+                    <span>プレミアムプランを解約するには？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>iPhoneの「設定」→ 上部のApple ID →「サブスクリプション」→「RowPilot」→「サブスクリプションをキャンセルする」の順で操作してください。</p>
+                    <p>次の請求日前にキャンセルすれば、その月の残り期間は引き続きご利用いただけます。解約後にデータが失われることはありません。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-restore-purchase">
+                <div class="faq-q">
+                    <span>購入を復元するには？（機種変更・再インストール後）</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>アプリ内の「設定」→「RowPilot Premium」→「Restore」をタップしてください。同じApple IDでサインインしていれば、過去の購入が自動的に認識されます。</p>
+                    <p>復元できない場合は、iPhoneの「設定」→「App Store」→ サインインしているApple IDが正しいか確認してください。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-family">
+                <div class="faq-q">
+                    <span>ファミリー共有でプランを共有できますか？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>App
+                        Storeのファミリー共有には対応していません。チームで利用したい場合は、Team・MAX・Organizationプランのマネージャー共有機能をご利用ください。顧問1名がプランを購入し、メンバーにマネージャーモードを共有できます。
+                    </p>
+                </div>
+            </div>
+
+            <!-- カテゴリ: その他 -->
+            <div class="faq-category-label">その他</div>
+
+            <div class="faq-item" id="faq-donation">
+                <div class="faq-q">
+                    <span>収益はどのように高知県ローイング協会に届くの？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>AppStore手数料（15%）・税金・最低限のサーバー維持費を除いた収益を、開発者が年に一度まとめて高知県ローイング協会へ寄付します。寄付金はボート用具の整備や、ジュニア・ユース選手の活動支援に役立てられます。
+                    </p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-opensource">
+                <div class="faq-q">
+                    <span>オープンソースとのことですが、どこで見られますか？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>ソースコードはGitHubで公開しています：<a href="https://github.com/Aho0526/RowPilot" target="_blank"
+                            rel="noopener noreferrer"
+                            style="color: var(--accent); text-decoration: none;">github.com/Aho0526/RowPilot</a></p>
+                    <p>データ管理やアプリ動作の透明性を確保するために公開しています。なお、著作権は開発者に帰属し、無断での二次利用は禁じています。</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-inner">
+            <a href="../index.html" class="footer-logo">
+                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                RowPilot
+            </a>
+            <div class="footer-links">
+                <a href="../index.html">Home</a>
+                <a href="../index.html#features">機能</a>
+                <a href="../index.html#premium">プラン</a>
+                <a href="#">サポート</a>
+                <a href="../privacy-policy/index.html">プライバシーポリシー</a>
+                <a href="../terms/index.html">利用規約</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        // Hamburger
+        const toggle = document.getElementById('nav-toggle');
+        const mMenu = document.getElementById('mobile-menu');
+        toggle.addEventListener('click', () => {
+            const open = mMenu.classList.toggle('open');
+            toggle.classList.toggle('open', open);
+        });
+        mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            mMenu.classList.remove('open'); toggle.classList.remove('open');
+        }));
+
+        // FAQ accordion
+        document.querySelectorAll('.faq-item').forEach(item => {
+            item.querySelector('.faq-q').addEventListener('click', () => {
+                const isOpen = item.classList.toggle('open');
+                const ans = item.querySelector('.faq-a');
+                ans.style.maxHeight = isOpen ? ans.scrollHeight + 'px' : '0';
+                ans.style.opacity = isOpen ? '1' : '0';
+            });
+        });
+        // init: all closed
+        document.querySelectorAll('.faq-a').forEach(a => {
+            a.style.maxHeight = '0';
+            a.style.opacity = '0';
+            a.style.overflow = 'hidden';
+            a.style.transition = 'max-height 0.35s ease, opacity 0.25s ease';
+        });
+    </script>
+</body>
+
+</html>

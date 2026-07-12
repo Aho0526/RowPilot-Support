@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プライバシーポリシー — RowPilot</title>
+    <meta name="description" content="RowPilotのプライバシーポリシー。位置情報・Bluetooth・クラウド同期・購入処理など、アプリが扱うすべてのデータと保護方針を詳しく説明しています。">
+    <link rel="icon" href="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+    <header>
+        <div class="nav-wrap">
+            <a href="../index.html" class="logo" id="nav-logo">
+                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                <span class="logo-text">RowPilot</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="../index.html#features">機能</a></li>
+                <li><a href="../index.html#premium">プラン</a></li>
+                <li><a href="../news/index.html">お知らせ</a></li>
+                <li><a href="../support/index.html">サポート</a></li>
+                <li><a href="#" class="active">プライバシー</a></li>
+                <li><a href="../terms/index.html">利用規約</a></li>
+                <li><a href="../en/privacy-policy/index.html" class="lang-switch">EN</a></li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="メニュー">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <nav class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-inner">
+            <a href="../index.html">Home</a>
+            <a href="../index.html#features">機能</a>
+            <a href="../index.html#premium">プラン</a>
+            <div class="mobile-menu-divider"></div>
+            <a href="../news/index.html">お知らせ</a>
+            <a href="../support/index.html">サポート</a>
+            <a href="#" class="active">プライバシーポリシー</a>
+            <a href="../terms/index.html">利用規約</a>
+            <div class="mobile-menu-divider"></div>
+            <a href="../en/privacy-policy/index.html" class="lang-switch-mobile">English (EN)</a>
+        </div>
+    </nav>
+
+    <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
+        <div class="policy-hero">
+            <div class="policy-badge">Privacy Policy</div>
+            <h1>プライバシーポリシー</h1>
+            <p class="policy-lead">
+                RowPilotは、データの扱い方をシンプルに保つことを基本に設計されています。このページでは、アプリが利用する権限・データの種類・保存場所・第三者への共有方針について説明します。</p>
+            <p class="policy-updated">最終更新日: 2026年6月28日</p>
+        </div>
+
+        <nav class="policy-toc">
+            <p class="policy-toc-title">目次</p>
+            <ol>
+                <li><a href="#section-1">開発者のデータアクセスについて</a></li>
+                <li><a href="#section-2">取得する権限とその目的</a></li>
+                <li><a href="#section-3">データの保存場所と管理</a></li>
+                <li><a href="#section-4">ユーザー間のデータ共有</a></li>
+                <li><a href="#section-5">チームプランのサーバー同期</a></li>
+                <li><a href="#section-6">購入・決済処理について</a></li>
+                <li><a href="#section-7">第三者サービスとの連携</a></li>
+                <li><a href="#section-8">本ポリシーの変更について</a></li>
+                <li><a href="#section-9">準拠法および管轄</a></li>
+                <li><a href="#section-10">お問い合わせ・透明性の確保</a></li>
+            </ol>
+        </nav>
+
+        <div class="policy-content">
+
+            <h2 id="section-1">1. 開発者のデータアクセスについて</h2>
+            <p>RowPilotはオンデバイス処理を基本設計としており、ユーザーのトレーニングデータや設定等はデバイス内またはユーザー自身のクラウド領域で管理されます。</p>
+            <p>トレーニング記録・位置情報・設定情報・連絡先は、デバイス内（ローカルストレージ）での保管を基本としています。チーム同期機能を除き、開発者が閲覧できるサーバーへの自動送信は行いません。</p>
+            <div class="policy-callout policy-callout-green">
+                <span class="policy-callout-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="feather feather-lock">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                </span>
+                <span>RowPilotのソースコードはオープンソースとしてGitHubで公開されており、実装の透明性を確保しています。</span>
+            </div>
+
+            <h2 id="section-2">2. 取得する権限とその目的</h2>
+            <p>RowPilotは以下の権限をiOSから要求します。それぞれの権限は明記した目的以外には使用しません。</p>
+
+            <div class="policy-permission-list">
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="feather feather-map-pin">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                        </span>
+                        <div>
+                            <strong>位置情報（GPS）</strong>
+                            <!-- <span class="policy-perm-badge policy-perm-badge-local">ローカル処理</span> -->
+                        </div>
+                    </div>
+                    <p>RowModeでのスピード算出・移動軌跡記録、およびSOS機能での緊急メッセージ作成に使用します。GPS座標は練習セッション中のみ取得され、バックグラウンドでの常時追跡は行いません。</p>
+                    <ul>
+                        <li>取得タイミング：RowModeの練習セッション中のみ</li>
+                        <li>保存先：デバイス内</li>
+                        <li>SOS送信時：SMSを通じた事前に設定した緊急連絡先への直接送信</li>
+                    </ul>
+                </div>
+
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="feather feather-bluetooth">
+                                <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline>
+                            </svg>
+                        </span>
+                        <div>
+                            <strong>Bluetooth</strong>
+                            <!-- <span class="policy-perm-badge policy-perm-badge-local">デバイス間通信</span> -->
+                        </div>
+                    </div>
+                    <p>Concept2 PM5エルゴメーターとの無線接続に使用します。通信はユーザーのiPhoneとPM5デバイスの間で完結します。</p>
+                    <ul>
+                        <li>接続先：Concept2 PM5のみ</li>
+                        <li>取得データ：距離・タイム・ストロークレート・ペース等のトレーニング数値</li>
+                    </ul>
+                </div>
+
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="feather feather-activity">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </span>
+                        <div>
+                            <strong>モーション・フィットネスセンサー</strong>
+                            <!-- <span class="policy-perm-badge policy-perm-badge-local">ローカル処理</span> -->
+                        </div>
+                    </div>
+                    <p>RowModeでのストロークレート検出に使用します。センサーデータは計測処理にのみ利用されます。</p>
+                    <ul>
+                        <li>取得タイミング：RowModeの練習セッション中のみ</li>
+                    </ul>
+                </div>
+
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="feather feather-cloud">
+                                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <strong>クラウド同期</strong>
+                            <!-- <span class="policy-perm-badge policy-perm-badge-cloud">チームプランのみ</span> -->
+                        </div>
+                    </div>
+                    <p>Team以上のプランでチームが作成され、そこに加入したユーザーがチーム同期を有効にした場合、チームのトレーニング数値データが開発者の管理する外部サーバー（Cloudflare
+                        D1）に保存されます。「保存されるデータ」の詳細は第5節をご参照ください。</p>
+                    <ul>
+                        <li>対象ユーザー：Team・MAX・Organizationのチームに所属するユーザー</li>
+                        <li>保存内容：トレーニング数値統計およびアプリ内ユーザーID</li>
+                    </ul>
+                </div>
+
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="feather feather-alert-triangle">
+                                <path
+                                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                </path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                        </span>
+                        <div>
+                            <strong>SOS連絡先</strong>
+                            <!--<span class="policy-perm-badge policy-perm-badge-local">ローカル管理</span>-->
+                        </div>
+                    </div>
+                    <p>ユーザーが手動登録した緊急連絡先（メール・電話番号）はデバイス内に保存されます。SOSメッセージの送信はSMSを使用します。</p>
+                </div>
+            </div>
+
+            <h2 id="section-3">3. データの保存場所と管理</h2>
+            <p>RowPilotが扱うデータの保存場所は以下の通りです：</p>
+            <div class="policy-table-wrap">
+                <table class="policy-table">
+                    <thead>
+                        <tr>
+                            <th>データの種類</th>
+                            <th>保存場所</th>
+                            <th>開発者アクセス</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>トレーニング記録（水上）</td>
+                            <td>デバイス内</td>
+                            <td class="td-no">不可</td>
+                        </tr>
+                        <tr>
+                            <td>トレーニング記録（エルゴ）</td>
+                            <td>デバイス内</td>
+                            <td class="td-no">不可</td>
+                        </tr>
+                        <tr>
+                            <td>GPS軌跡・位置座標</td>
+                            <td>デバイス内</td>
+                            <td class="td-no">不可</td>
+                        </tr>
+                        <tr>
+                            <td>SOS連絡先</td>
+                            <td>デバイス内</td>
+                            <td class="td-no">不可</td>
+                        </tr>
+                        <tr>
+                            <td>アプリ設定</td>
+                            <td>デバイス内</td>
+                            <td class="td-no">不可</td>
+                        </tr>
+                        <tr>
+                            <td>チーム管理データ（Team以上）</td>
+                            <td>Cloudflare D1（数値のみ）</td>
+                            <td class="td-partial">数値のみ※</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p style="font-size:0.8rem; color: var(--text-3);">※
+                チームプランの同期サーバーに保存されるのはトレーニングの数値（距離・タイム・レート等）のみです。GPS座標・移動軌跡が含まれることはありません。詳細は第5節をご参照ください。</p>
+
+            <h2 id="section-4">4. ユーザー間のデータ共有</h2>
+            <p>RowPilotには、トレーニングデータをユーザー間で共有する機能があります。共有はAppleの<strong>AirDrop（デバイス同士のP2P直接通信）</strong>を通じて行われます。仲介サーバーを経由しないため、第三者のサーバーに余分なデータが保管されることはありません。
+            </p>
+            <p>AirDropの通信はAppleが提供するエンドツーエンド暗号化で保護されており、共有を受けるかどうかはユーザーが毎回明示的に承認します。</p>
+
+            <h2 id="section-5">5. チームプランのサーバー同期</h2>
+            <p>Team・MAX・Organizationプランでは、複数メンバーのデータを同期するために開発者が管理する外部サーバー（Cloudflare D1）を使用します。</p>
+            <p><strong>サーバーに記録されるデータ：</strong></p>
+            <ul>
+                <li>トレーニングの数値（距離・タイム・レート・ペース・パワー等）</li>
+                <li>チームメンバーの識別情報（アプリ内のユーザーIDのみ。氏名・メールアドレスは含まれません）</li>
+            </ul>
+            <p><strong>サーバーに記録されないデータ：</strong></p>
+            <ul>
+                <li>GPS座標・移動軌跡（水上練習の位置情報）</li>
+                <li>SOS連絡先</li>
+                <li>Apple IDやメールアドレス等の個人識別情報</li>
+            </ul>
+
+
+            <h2 id="section-6">6. 購入・決済処理について</h2>
+            <p>RowPilot Premiumの定期購読はAppleのStoreKit 2を通じて処理されます。</p>
+            <ul>
+                <li>決済情報（クレジットカード番号等）はAppleが保護・管理しており、開発者には一切共有されません</li>
+                <li>開発者が受け取るのは「購入が成立したかどうか」の情報のみです</li>
+                <li>購読の管理・解約はApp Storeのサブスクリプション設定から行えます</li>
+                <li>アプリ内課金に関するご不満・返金についてはAppleサポートへお問い合わせください</li>
+            </ul>
+
+            <h2 id="section-7">7. 第三者サービスとの連携</h2>
+            <p>現時点でRowPilotが使用する第三者サービスは以下の通りです：</p>
+            <div class="policy-permission-list">
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path
+                                    d="M2 12c.6.5 1.2 1 2.5 1 1.3 0 2.5-2 5-2 2.5 0 3.7 2 5 2 1.3 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+                            </svg>
+                        </span>
+                        <div>
+                            <strong>気象庁 潮汐データ API</strong>
+                            <!-- <span class="policy-perm-badge policy-perm-badge-local">読み取りのみ</span> -->
+                        </div>
+                    </div>
+                    <p>潮位タブの潮汐グラフ表示のため、気象庁が公開している潮汐予測データを取得します。このAPI呼び出しにユーザーの個人情報は一切含まれません。</p>
+                </div>
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="feather feather-database">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
+                                <path d="M3 12A9 3 0 0 0 21 12"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <strong>Cloudflare, Inc. (Cloudflare D1)</strong>
+                            <!-- <span class="policy-perm-badge policy-perm-badge-cloud">同期サーバー</span> -->
+                        </div>
+                    </div>
+                    <p>Team・MAX・Organizationプランにおけるチームデータ同期のため、Cloudflare社のD1（サーバーレスデータベース）を使用します。同期されるデータの詳細については第5節をご参照ください。
+                    </p>
+                </div>
+                <div class="policy-permission-item">
+                    <div class="policy-permission-header">
+                        <span class="policy-permission-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="feather feather-share-2">
+                                <circle cx="18" cy="5" r="3"></circle>
+                                <circle cx="6" cy="12" r="3"></circle>
+                                <circle cx="18" cy="19" r="3"></circle>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                            </svg>
+                        </span>
+                        <div>
+                            <strong>Strava 連携（準備中）</strong>
+                            <!-- <span class="policy-perm-badge policy-perm-badge-cloud">開発中</span> -->
+                        </div>
+                    </div>
+                    <p>将来的にStravaとのトレーニングデータ連携機能を提供予定です。この機能は明示的なユーザー認証（OAuth）が必要で、ユーザーの同意なしにデータが連携されることはありません。実装時には本ポリシーを更新します。
+                    </p>
+                </div>
+            </div>
+            <p>広告SDKや行動追跡のための外部ライブラリ（Google Analytics、Firebase Analytics等）は使用していません。ユーザーの行動データの追跡・分析は行っていません。</p>
+
+            <h2 id="section-8">8. 本ポリシーの変更について</h2>
+            <p>RowPilotの機能追加や法令の変更に伴い、本プライバシーポリシーを更新することがあります。</p>
+            <ul>
+                <li>変更の際はページ上部の「最終更新日」を更新します</li>
+                <li>ユーザーのデータ取り扱いに大きな影響を与える変更の場合は、アプリ内通知またはサポートページにてお知らせします</li>
+                <li>変更後も継続してアプリをご利用いただくことで、変更後のポリシーに同意したものとみなします</li>
+            </ul>
+
+            <h2 id="section-9">9. 準拠法および管轄</h2>
+            <p>本プライバシーポリシーは日本国法に準拠し、解釈されます。本ポリシーに関して争いが生じた場合は、開発者の住所地を管轄する裁判所を第一審の専属合意管轄裁判所とします。</p>
+
+            <h2 id="section-10">10. お問い合わせ・透明性の確保</h2>
+            <p>本ポリシーやデータの取り扱いに関するご質問、バグ報告等は以下よりご連絡ください：</p>
+            <div class="policy-contact-block">
+                <div class="policy-contact-item">
+                    <span class="policy-contact-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="feather feather-mail">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+                            </path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                    </span>
+                    <div>
+                        <div class="policy-contact-label">メール（推奨）</div>
+                        <a href="mailto:rowpilot.jp@gmail.com" class="policy-contact-link">rowpilot.jp@gmail.com</a>
+                    </div>
+                </div>
+                <div class="policy-contact-item">
+                    <span class="policy-contact-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="feather feather-github">
+                            <path
+                                d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22">
+                            </path>
+                        </svg>
+                    </span>
+                    <div>
+                        <div class="policy-contact-label">GitHub Issues</div>
+                        <a href="https://github.com/Aho0526/RowPilot" target="_blank" rel="noopener noreferrer"
+                            class="policy-contact-link">github.com/Aho0526/RowPilot</a>
+                    </div>
+                </div>
+            </div>
+            <p>RowPilotはデータ処理の透明性を確保するため、アプリのソースコードをオープンソースとして公開しています。具体的な動作について確認したい場合は、GitHubリポジトリをご参照ください。</p>
+            <p style="font-size: 0.82rem; color: var(--text-3); margin-top: 1rem;">※
+                公開しているソースコードの著作権はすべて開発者に帰属します。セキュリティの検証および開発プロセスの透明性確保を目的として公開しており、無断での複製・改変・再配布・および類似アプリの作成などの二次利用は固く禁じます。
+            </p>
+
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-inner">
+            <a href="../index.html" class="footer-logo">
+                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                RowPilot
+            </a>
+            <div class="footer-links">
+                <a href="../index.html">Home</a>
+                <a href="../index.html#features">機能</a>
+                <a href="../index.html#premium">プラン</a>
+                <a href="../support/index.html">サポート</a>
+                <a href="#">プライバシーポリシー</a>
+                <a href="../terms/index.html">利用規約</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        const toggle = document.getElementById('nav-toggle');
+        const mMenu = document.getElementById('mobile-menu');
+        toggle.addEventListener('click', () => {
+            const open = mMenu.classList.toggle('open');
+            toggle.classList.toggle('open', open);
+        });
+        mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            mMenu.classList.remove('open'); toggle.classList.remove('open');
+        }));
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RowPilot — On the water, on the erg. All in this single app.</title>
+  <meta name="description" content="Developed by an active rower. RowPilot is an all-in-one rowing app for both indoor and outdoor training, featuring GPS stroke rate meter, tide forecasts, and Concept2 PM5 connectivity.">
+  <link rel="icon" href="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+  <!-- ── HEADER ─────────────────────────────── -->
+  <header>
+    <div class="nav-wrap">
+      <a href="#" class="logo" id="nav-logo">
+        <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+        <span class="logo-text">RowPilot</span>
+      </a>
+
+      <!-- Desktop links -->
+      <ul class="nav-links" id="nav-links">
+        <li><a href="#" class="active">Home</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#premium">Plans</a></li>
+        <li><a href="news/index.html">Updates</a></li>
+        <li><a href="support/index.html">Support</a></li>
+        <li><a href="privacy-policy/index.html">Privacy</a></li>
+        <li><a href="terms/index.html">Terms</a></li>
+        <li><a href="../index.html" class="lang-switch">JP</a></li>
+      </ul>
+
+      <!-- Hamburger -->
+      <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile drawer -->
+  <nav class="mobile-menu" id="mobile-menu">
+    <div class="mobile-menu-inner">
+      <a href="#" class="active" id="mm-home">Home</a>
+      <a href="#features" id="mm-features">Features</a>
+      <a href="#premium" id="mm-premium">Plans</a>
+      <div class="mobile-menu-divider"></div>
+      <a href="news/index.html">Updates</a>
+      <a href="support/index.html">Support</a>
+      <a href="privacy-policy/index.html">Privacy Policy</a>
+      <a href="terms/index.html">Terms of Use</a>
+      <div class="mobile-menu-divider"></div>
+      <a href="../index.html" class="lang-switch-mobile">日本語 (JP)</a>
+    </div>
+  </nav>
+
+  <!-- ── HERO ───────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-eyebrow">iOS App Built by an Active Rower</div>
+    <h1><span class="text-nowrap">On the Water,</span><span class="text-nowrap">On the Erg.</span><br><span
+        class="text-nowrap">All in One</span><span class="text-nowrap">App.</span></h1>
+    <p class="hero-sub">What started as a simple solution to a shortage of GPS stroke rate meters in our club has evolved into a comprehensive rowing app featuring tide forecasts, Concept2 PM5 integration, and multi-erg synchronization.</p>
+    <div class="hero-cta">
+      <a href="#features" class="btn btn-primary" id="hero-cta-feat">View Features</a>
+      <a href="#story" class="btn btn-ghost" id="hero-cta-story">Developer Story</a>
+    </div>
+    <div class="jp-limit-card">
+      <div class="jp-limit-card-icon">⚠️</div>
+      <div class="jp-limit-card-text">
+        <strong>Available Only in Japan</strong>
+        <span>RowPilot is currently distributed exclusively on the App Store in Japan. Additionally, features like tide forecasts and weather data are optimized only for locations within Japan.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FEATURES ───────────────────────────── -->
+  <section id="features" class="features-sec">
+    <div class="container">
+      <div class="sec-header">
+        <span class="sec-label">Features</span>
+        <h2>What RowPilot Can Do</h2>
+        <p>Covering all features needed for both on-water and ergometer training. Elevate both rowers and managers with a single app.</p>
+      </div>
+      <div class="features-grid">
+
+        <div class="feat-card" id="feat-home">
+          <div class="feat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </div>
+          <h3>Home Screen</h3>
+          <p>Weather, tide times, rigging settings, monthly total distance, and recent sessions at a glance. Features a global search to find any data across the app instantly.</p>
+        </div>
+
+        <div class="feat-card" id="feat-rowmode">
+          <div class="feat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+          </div>
+          <h3>RowMode</h3>
+          <p>High-precision stroke rate (SPM) automatic calculation via the iPhone's built-in accelerometer and GPS tracking. The UI automatically optimizes based on device orientation.</p>
+        </div>
+
+        <div class="feat-card" id="feat-practice">
+          <div class="feat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+          </div>
+          <h3>PM5 Connectivity (Practice Tab)</h3>
+          <p>Bluetooth connection to Concept2 rowing ergometers (PM5). Supports workout menu synchronization (send/receive) and multi-erg training. (Requires Manager plan or above)</p>
+        </div>
+
+        <div class="feat-card" id="feat-rigging">
+          <div class="feat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="9" x2="19" y2="9"></line>
+              <rect x="3" y="5" width="18" height="14" rx="2" ry="2"></rect>
+              <line x1="9" y1="9" x2="9" y2="13"></line>
+              <line x1="15" y1="9" x2="15" y2="13"></line>
+              <line x1="12" y1="9" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <h3>Rigging Management</h3>
+          <p>Record boat and oar settings down to the millimeter. Built-in vector drawings linked with SwiftUI move dynamically based on input values, visualizing your setup intuitively.</p>
+        </div>
+
+        <div class="feat-card" id="feat-tide">
+          <div class="feat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M2 6c.6.5 1.2 1 2.5 1C5.8 7 7 5 9.5 5c2.5 0 3.7 2 5 2 1.3 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 12c.6.5 1.2 1 2.5 1 1.3 0 2.5-2 5-2 2.5 0 3.7 2 5 2 1.3 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 18c.6.5 1.2 1 2.5 1 1.3 0 2.5-2 5-2 2.5 0 3.7 2 5 2 1.3 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+            </svg>
+          </div>
+          <h3>Tide & Weather Forecasts</h3>
+          <p>Based on the Japan Meteorological Agency's predictions, the app automatically identifies the nearest observatory from 239 locations across Japan based on GPS to show tide graphs. Weather conditions like wind speed and direction, critical for rowing, are also retrieved.</p>
+        </div>
+
+        <div class="feat-card" id="feat-settings">
+          <div class="feat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <h3>Emergency SOS</h3>
+          <p>Instantly send your current location (with a map link) to registered emergency contacts in case of a capsize or injury.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── MANAGER MODE UNIQUE FEATURE ───────────────────────────── -->
+  <section class="manager-feature-sec" id="manager-mode">
+    <div class="container">
+      <div class="manager-feature-wrap">
+        <div class="manager-feature-text">
+          <span class="sec-label">Exclusive Strength</span>
+          <h2>The Unrivaled Power of RowPilot<br><span class="highlight-text">"Manager Mode"</span></h2>
+          <p class="lead-text">
+            Dramatically change ergometer practices for rowing clubs and teams. Batch-transmit training menus to up to 10 Concept2 PM5s via Bluetooth and monitor their progress in real-time from a single device.
+          </p>
+          <div class="feature-bullets">
+            <div class="bullet-item">
+              <div class="bullet-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <div>
+                <h4>Batch Transmission & Two-Way Sync</h4>
+                <p>Send target distance, time, calories, or interval menus to all connected PM5 ergs in an instant.</p>
+              </div>
+            </div>
+            <div class="bullet-item">
+              <div class="bullet-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="9" y1="3" x2="9" y2="21"></line>
+                  <line x1="15" y1="3" x2="15" y2="21"></line>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="3" y1="15" x2="21" y2="15"></line>
+                </svg>
+              </div>
+              <div>
+                <h4>Real-Time Monitoring Dashboard</h4>
+                <p>Monitor everyone's current pace, split, stroke rate, and heart rate on a single screen.<br>Also shows estimated completion times during workouts.</p>
+              </div>
+            </div>
+            <div class="bullet-item">
+              <div class="bullet-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+              </div>
+              <div>
+                <h4>Race View to Ignite Competition (MAX Plan Exclusive)</h4>
+                <p>Display relative boat positions based on distance to visualize the race in real-time.<br>Current rankings and time gaps are instantly updated.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="manager-feature-visual">
+          <div class="manager-feature-visual-grid">
+            <!-- 一斉送信デモ -->
+            <div class="visual-card-video">
+              <div class="card-header">
+                <div class="card-header-left">
+                  <span class="dot active-orange"></span>
+                  <span>Demo: Batch Transmission</span>
+                </div>
+              </div>
+              <div class="video-container">
+                <video src="../pictures/SimultaneousTransmission.MP4" autoplay loop muted playsinline></video>
+              </div>
+              <div class="video-caption">
+                <span>Send workout menus and start tracking on all connected ergs simultaneously</span>
+              </div>
+            </div>
+
+            <!-- レースビューデモ -->
+            <div class="visual-card-video">
+              <div class="card-header">
+                <div class="card-header-left">
+                  <span class="dot active-purple"></span>
+                  <span>Demo: Race View</span>
+                </div>
+              </div>
+              <div class="video-container">
+                <video src="../pictures/RaceView.MP4" autoplay loop muted playsinline></video>
+              </div>
+              <div class="video-caption">
+                <span>Display virtual boat positions based on distance to visualize competition</span>
+                <span class="badge-max">MAX Plan or Above</span>
+              </div>
+            </div>
+
+            <div class="video-disclaimer">
+              * The videos show test sessions during development. Actual app behavior may vary.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ── PREMIUM ─────────────────────────────── -->
+    <section id="premium" class="premium-sec">
+      <div class="container">
+        <div class="sec-header">
+          <span class="sec-label">Plans</span>
+          <h2>Choose the Plan<br>That Fits Your Team</h2>
+          <p>Start for free. Upgrade as your team grows.</p>
+        </div>
+        <div class="plans-grid">
+
+          <!-- Free -->
+          <div class="plan-card" id="plan-free">
+            <div class="plan-card-top">
+              <div class="plan-name">Free</div>
+              <div class="plan-price">¥0 JPY<span>/month</span></div>
+              <p class="plan-tagline">To try out the app</p>
+            </div>
+            <ul class="plan-features">
+              <li class="feat-yes">GPS tracking & real-time SPM display</li>
+              <li class="feat-yes">Tide forecasts & weather graphs</li>
+              <li class="feat-yes">Unlimited session history</li>
+              <li class="feat-yes">PM5 connection (1-on-1, record workouts)</li>
+              <li class="feat-yes">Emergency SOS transmission</li>
+              <li class="feat-no">ForceCurve & workout transmission</li>
+              <li class="feat-no">Manager mode</li>
+            </ul>
+            <button class="plan-btn" data-plan="free">View Details</button>
+          </div>
+
+          <!-- Pro -->
+          <div class="plan-card" id="plan-pro">
+            <div class="plan-card-top">
+              <div class="plan-name">Pro</div>
+              <div class="plan-price">¥600 JPY<span>/month</span></div>
+              <p class="plan-tagline">For advanced individual rowers</p>
+            </div>
+            <ul class="plan-features">
+              <li class="feat-yes">All Free features</li>
+              <li class="feat-yes">ForceCurve graph display</li>
+              <li class="feat-yes">PM5 workout send & receive (two-way)</li>
+              <li class="feat-yes">Crew management</li>
+              <li class="feat-soon">Strava synchronization (Coming Soon)</li>
+              <li class="feat-no">Manager mode</li>
+            </ul>
+            <button class="plan-btn" data-plan="pro">View Details</button>
+          </div>
+
+          <!-- Manager -->
+          <div class="plan-card" id="plan-manager">
+            <div class="plan-card-top">
+              <div class="plan-name">Manager</div>
+              <div class="plan-price">¥900 JPY<span>/month</span></div>
+              <p class="plan-tagline">For managers & coaches</p>
+            </div>
+            <ul class="plan-features">
+              <li class="feat-yes">All Free features</li>
+              <li class="feat-yes">Connect up to 10 PM5 ergs simultaneously</li>
+              <li class="feat-yes">Batch menu transmission & sync</li>
+              <li class="feat-yes">Share progress data with rowers</li>
+              <li class="feat-no">Team management features</li>
+              <li class="feat-no">Race View</li>
+            </ul>
+            <button class="plan-btn" data-plan="manager">View Details</button>
+          </div>
+
+          <!-- Team -->
+          <div class="plan-card" id="plan-team">
+            <div class="plan-card-top">
+              <div class="plan-name">Team</div>
+              <div class="plan-price">¥3,000 JPY<span>/month</span></div>
+              <p class="plan-tagline">For small clubs & school teams</p>
+            </div>
+            <ul class="plan-features">
+              <li class="feat-yes">All Manager features</li>
+              <li class="feat-yes">Grant manager access to up to 3 users</li>
+              <li class="feat-yes">Team management up to 30 members</li>
+              <li class="feat-yes">Cloud synchronization (Cloudflare D1)</li>
+              <li class="feat-no">Admin access control</li>
+              <li class="feat-no">Race View</li>
+            </ul>
+            <button class="plan-btn" data-plan="team">View Details</button>
+          </div>
+
+          <!-- MAX -->
+          <div class="plan-card" id="plan-max">
+            <div class="plan-card-top">
+              <div class="plan-name">MAX</div>
+              <div class="plan-price">¥5,000 JPY<span>/month</span></div>
+              <p class="plan-tagline">For mid-sized school teams & clubs</p>
+            </div>
+            <ul class="plan-features">
+              <li class="feat-yes">All Team features</li>
+              <li class="feat-yes">Grant manager access to up to 5 users</li>
+              <li class="feat-yes">Grant admin access to up to 3 users</li>
+              <li class="feat-yes">Team management up to 50 members</li>
+              <li class="feat-yes">Race View unlocked</li>
+            </ul>
+            <button class="plan-btn" data-plan="max">View Details</button>
+          </div>
+
+          <!-- Organization -->
+          <div class="plan-card" id="plan-org">
+            <div class="plan-card-top">
+              <div class="plan-name">Organization</div>
+              <div class="plan-price">¥8,000 JPY<span>/month</span></div>
+              <p class="plan-tagline">For large clubs & organizations</p>
+            </div>
+            <ul class="plan-features">
+              <li class="feat-yes">All MAX features</li>
+              <li class="feat-yes">Grant manager access to up to 10 users</li>
+              <li class="feat-yes">Grant admin access to up to 7 users</li>
+              <li class="feat-yes">Team management up to 200 members</li>
+              <li class="feat-soon">Event management tools (Coming Soon)</li>
+            </ul>
+            <button class="plan-btn" data-plan="org">View Details</button>
+          </div>
+
+        </div>
+        <p class="plans-note">* Purchases can only be made via in-app subscriptions (App Store). Direct sales are not available on this website.</p>
+        <p class="plans-note">To help you focus on training, no advertisements are displayed regardless of the subscription plan.</p>
+      </div>
+    </section>
+
+    <!-- ── STORY ───────────────────────────────── -->
+    <section id="story" class="story-sec">
+      <div class="container">
+        <div class="story-wrap">
+          <h2>The Story Behind RowPilot</h2>
+          <div class="story-body">
+            <p>
+              A severe shortage of GPS stroke rate meters in our club—that was the starting point of development. Commercial units are expensive, and equipping everyone in the crew is difficult. Then I realized we could use the smartphones that everyone already owns. From that spark of inspiration, a one-year development journey began.
+            </p>
+            <p>Initially, we planned a simple measurement app, but requests like "I want to see tide info in the app" or "I want to sync erg data" kept piling up. Before we knew it, it had evolved into an integrated app covering both on-water and off-water training.</p>
+            <div class="story-quote">
+              "Connecting to Concept2 PM5 via Bluetooth was a real challenge. I hit a wall that couldn't be resolved even after discussing it with AI for days. Ready to give up, I sent an email to Concept2 headquarters, and their engineer, Ryan, kindly helped me out. Ultimately, we succeeded in sending synchronized workouts to 9 ergs and establishing stable two-way communication on 8 of them."
+            </div>
+            <p>Part of the revenue is donated to the Kochi Rowing Association. I sincerely hope that this app, built by a high school student together with AI, can contribute to raising the bar of the rowing community.
+            </p>
+          </div>
+          <div class="story-footer">
+            <div class="dev-info">
+              <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="developer icon">
+              <div>
+                <div class="dev-name">Kaito Nakahira</div>
+                <div class="dev-role">RowPilot Developer</div>
+              </div>
+            </div>
+            <div class="donate-tag">
+              Part of the revenue is donated to the<br><strong>Kochi Rowing Association</strong> through the developer.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FOOTER ──────────────────────────────── -->
+    <footer>
+      <div class="footer-inner">
+        <a href="#" class="footer-logo">
+          <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+          RowPilot
+        </a>
+        <div class="footer-links">
+          <a href="#">Home</a>
+          <a href="#features">Features</a>
+          <a href="#premium">Plans</a>
+          <a href="support/index.html">Support</a>
+          <a href="privacy-policy/index.html">Privacy Policy</a>
+          <a href="terms/index.html">Terms of Use</a>
+        </div>
+        <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+      </div>
+    </footer>
+
+    <!-- ── PLAN DETAIL MODAL ───────────────────── -->
+    <div class="overlay" id="plan-overlay">
+      <div class="modal" id="plan-modal">
+        <button class="modal-close-btn" id="modal-close">&times;</button>
+        <div class="modal-plan-name" id="m-name"></div>
+        <div class="modal-plan-price" id="m-price"></div>
+        <div class="modal-plan-desc" id="m-desc"></div>
+        <ul class="modal-list" id="m-feats"></ul>
+        <div id="m-note" class="modal-note">* This plan can only be subscribed to via the RowPilot app (App Store subscription). Direct billing is not supported on this website.
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ─ Hamburger ─────────────────────────────
+      const toggle = document.getElementById('nav-toggle');
+      const mMenu = document.getElementById('mobile-menu');
+
+      toggle.addEventListener('click', () => {
+        const open = mMenu.classList.toggle('open');
+        toggle.classList.toggle('open', open);
+      });
+
+      // Close on link click
+      mMenu.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => {
+          mMenu.classList.remove('open');
+          toggle.classList.remove('open');
+        });
+      });
+
+      // ─ Plan modal ────────────────────────────
+      const plans = {
+        free: {
+          name: 'RowPilot Free', price: '¥0 JPY (Free)',
+          desc: 'A free plan to get you started. Download and begin training right away.',
+          feats: ['GPS tracking & real-time SPM display', 'Tide forecasts & weather graphs', 'Unlimited session history', 'PM5 connection (1-on-1, record workouts)', 'Emergency SOS transmission']
+        },
+        pro: {
+          name: 'RowPilot Pro', price: '¥600 JPY / month',
+          desc: 'For advanced individual rowers who want to analyze their records deeply.',
+          feats: ['All Free features', 'ForceCurve graph (visualize stroke force curve)', 'PM5 menu transmission (two-way)', 'Crew management', 'Strava synchronization (Coming Soon)']
+        },
+        manager: {
+          name: 'RowPilot Manager', price: '¥900 JPY / month',
+          desc: 'For managers and coaches who want to streamline erg practices. Connect to up to 10 PM5 ergs simultaneously via Bluetooth.',
+          feats: ['All Free features', 'Connect up to 10 PM5 ergs simultaneously', 'Batch menu transmission & sync start', 'Real-time progress monitoring dashboard', 'Share progress data with rowers']
+        },
+        team: {
+          name: 'RowPilot Team', price: '¥3,000 JPY / month',
+          desc: 'For small clubs and school teams. Share manager mode access and manage your team data.',
+          feats: ['All Manager features', 'Grant manager access to up to 3 users', 'Team management up to 30 members', 'Cloud synchronization (Cloudflare D1)']
+        },
+        max: {
+          name: 'RowPilot MAX', price: '¥5,000 JPY / month',
+          desc: 'For mid-sized school teams and clubs. Add competition to your practices with Race View.',
+          feats: ['All Team features', 'Grant manager access to up to 5 users', 'Grant admin access to up to 3 users', 'Team management up to 50 members', 'Race View unlocked']
+        },
+        org: {
+          name: 'RowPilot Organization', price: '¥8,000 JPY / month',
+          desc: 'The ultimate plan for large clubs and organizations. Supports massive team coordination.',
+          feats: ['All MAX features', 'Grant manager access to up to 10 users', 'Grant admin access to up to 7 users', 'Team management up to 200 members', 'Event management tools (Coming Soon)']
+        }
+      };
+
+      const overlay = document.getElementById('plan-overlay');
+
+      document.querySelectorAll('.plan-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const p = plans[btn.dataset.plan];
+          if (!p) return;
+          document.getElementById('m-name').textContent = p.name;
+          document.getElementById('m-price').textContent = p.price;
+          document.getElementById('m-desc').textContent = p.desc;
+          const ul = document.getElementById('m-feats');
+          ul.innerHTML = '';
+          p.feats.forEach(f => { const li = document.createElement('li'); li.textContent = f; ul.appendChild(li); });
+          const note = document.getElementById('m-note');
+          if (btn.dataset.plan === 'free') {
+            note.textContent = 'This plan is completely free. Simply download RowPilot from the App Store and start using it immediately.';
+          } else {
+            note.textContent = '* This plan can only be subscribed to via the RowPilot app (App Store subscription). Direct billing is not supported on this website.';
+          }
+          overlay.classList.add('open');
+        });
+      });
+
+      const closeModal = () => overlay.classList.remove('open');
+      document.getElementById('modal-close').addEventListener('click', closeModal);
+      overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    </script>
+</body>
+
+</html>

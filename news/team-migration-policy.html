@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チームプラン変更時の自動整理と機能制限について — RowPilot</title>
+    <meta name="description" content="RowPilotのチームプラン変更に伴う機能制限および自動整理仕様に関する詳細説明ページ。">
+    <link rel="icon" href="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        /* チーム移行ポリシー専用スタイル */
+        .flow-card {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flow-card h2 {
+            font-family: var(--font-h);
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+        }
+
+        .flow-card h2 .icon {
+            font-size: 1.5rem;
+        }
+
+        .flow-card>p {
+            color: var(--text-2);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+
+        /* タイムラインUI */
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+            margin: 1.5rem 0 0.5rem 0.5rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent) 0%, var(--accent-2) 100%);
+            opacity: 0.25;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-item:last-child {
+            margin-bottom: 0;
+            background: none;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -2rem;
+            top: 4px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+            border: 3px solid var(--bg-2);
+            transition: transform var(--t);
+        }
+
+        .timeline-item:hover .timeline-dot {
+            transform: scale(1.2);
+        }
+
+        .timeline-badge {
+            display: inline-block;
+            padding: 0.25rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            background: rgba(77, 203, 255, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(77, 203, 255, 0.2);
+            margin-bottom: 0.6rem;
+        }
+
+        .timeline-item h3 {
+            font-family: var(--font-h);
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+            color: var(--text);
+        }
+
+        .timeline-item p {
+            color: var(--text-2);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="nav-wrap">
+            <a href="../index.html" class="logo" id="nav-logo">
+                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                <span class="logo-text">RowPilot</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="../index.html#features">機能</a></li>
+                <li><a href="../index.html#premium">プラン</a></li>
+                <li><a href="../news/index.html" class="active">お知らせ</a></li>
+                <li><a href="../support/index.html">サポート</a></li>
+                <li><a href="../privacy-policy/index.html">プライバシー</a></li>
+                <li><a href="../terms/index.html">利用規約</a></li>
+                <li><a href="../en/news/team-migration-policy.html" class="lang-switch">EN</a></li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="メニュー">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <nav class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-inner">
+            <a href="../index.html">Home</a>
+            <a href="../index.html#features">機能</a>
+            <a href="../index.html#premium">プラン</a>
+            <div class="mobile-menu-divider"></div>
+            <a href="../news/index.html" class="active">お知らせ</a>
+            <a href="../support/index.html">サポート</a>
+            <a href="../privacy-policy/index.html">プライバシーポリシー</a>
+            <a href="../terms/index.html">利用規約</a>
+            <div class="mobile-menu-divider"></div>
+            <a href="../en/news/team-migration-policy.html" class="lang-switch-mobile">English (EN)</a>
+        </div>
+    </nav>
+
+    <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
+        <div class="policy-hero">
+            <div class="policy-badge">Important Notice</div>
+            <h1>チームプラン変更に伴う機能制限<br>および自動整理仕様について</h1>
+            <p class="policy-lead">
+                v1.0.1より、以前は明確でなかった、チーム作成後にサブスクリプションプランを変更（ダウングレードや未更新による失効など）した際の挙動が明確になりました。<br>不正な利用継続を防ぎ、適切にサービス枠を管理するための制御フローが正式に導入されました。
+            </p>
+            <p class="policy-updated">適用日: 2026年7月4日</p>
+            <p class="policy-updated">実装日: 2026年7月7日(v1.0.1(ビルド2))</p>
+        </div>
+
+        <div class="policy-content">
+            <p>RowPilotでは、チーム機能が含まれているプラン（Team, MAX,
+                Organization）の契約内容の変更が行われた際に、以下のような自動同期および制限・自動整理フローが適用されます。移行されるプランに応じて、必要な手続きや猶予期間が異なりますのでご確認ください。</p>
+
+            <!-- 1. 上位のチームプランへの移行 -->
+            <div class="flow-card">
+                <h2>1. 上位のチームプランへの移行（例: Team → MAX / Org）</h2>
+                <p>より多くのメンバーに対応したプランに移行した場合、以下の通り自動でプラン変更が反映されます。</p>
+
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-badge">即時同期</div>
+                        <h3>プラン枠の自動同期と上限数拡大</h3>
+                        <p>チームの契約状態がバックグラウンドで自動的に同期され、メンバー追加可能上限数が新しいプランの規定上限値に即座に拡大されます。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 下位のチームプランへの移行 -->
+            <div class="flow-card">
+                <h2>2. 下位のチームプランへの移行（例: Org → MAX / Team）</h2>
+                <p>メンバー上限がより少ないチームプランへ変更した際に、移行時点で既存のメンバー数が新しいプランの上限を超過している場合は、以下の調整・自動整理フローが適用されます。</p>
+
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-badge">Day 1 〜 Day 30</div>
+                        <h3>1ヶ月（30日間）の猶予期間と警告表示</h3>
+                        <p>移行完了と同時に30日間の猶予期間がスタートします。猶予期間中、チーム管理画面の上部に警告バナーが表示され、自動削除の対象候補となるメンバー（追加日時が新しい超過メンバー）の横に<strong>「削除予定」</strong>の警告ラベルが明示されます。
+                        </p>
+                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">※ 「Day
+                            1」はプラン変更手続きを行った日ではなく、<strong>現在のプランの契約期間が終了し、新しいプランへ移行完了した日</strong>を指します。契約期間終了までは引き続き元のメンバー上限が適用されます。
+                        </p>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-badge">猶予期間中</div>
+                        <h3>管理者による手動調整（メンバー整理）</h3>
+                        <p>管理者（オーナー）は猶予期間中に、手動で不要なメンバーをキックして削減調整を行えます。メンバー数が新しい上限内に収まることで、警告および自動削減予約は自動的に解除されます。</p>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-dot" style="background: var(--gold); box-shadow: 0 0 12px var(--gold);">
+                        </div>
+                        <div class="timeline-badge"
+                            style="background: rgba(255, 179, 71, 0.1); color: var(--gold); border: 1px solid rgba(255, 179, 71, 0.2);">
+                            Day 30 以降のアクセス時</div>
+                        <h3>超過メンバーの自動除外（削除）</h3>
+                        <p>期日までにメンバー数が上限以下に収まらなかった場合、期限後のチームアクセス時に、超過しているメンバー（作成日時の新しい超過分）が自動的にチームから除外（削除）されます。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. チーム機能を持たないプランへの移行 -->
+            <div class="flow-card">
+                <h2>3. チーム機能を持たないプランへの移行（例: Org → Pro / Free）</h2>
+                <p>チーム作成機能のない個人向けプラン（Pro）や無料プラン（Free）へ移行、またはサブスクリプションが失効した場合は、以下の通りデータの保護とアーカイブ移行措置が適用されます。</p>
+
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-badge">Day 1 〜 Day 30</div>
+                        <h3>30日間のアーカイブ猶予期間</h3>
+                        <p>プラン移行の検知後、30日間のアーカイブ猶予期間が設定されます。この期間内であれば、新規練習記録のアップロードを含め、すべてのチーム機能を引き続き制限なくご利用いただけます。</p>
+                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">※ 「Day
+                            1」はプラン変更手続きを行った日ではなく、<strong>現在のチームプランの契約期間（有効期限）が終了し、実際に新しいプランへ切り替わった（または失効した）日</strong>を指します。契約期間終了までは引き続き元のプランの機能をご利用いただけます。
+                        </p>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-dot" style="background: #ff7f7f; box-shadow: 0 0 12px #ff7f7f;"></div>
+                        <div class="timeline-badge"
+                            style="background: rgba(255, 127, 127, 0.1); color: #ff7f7f; border: 1px solid rgba(255, 127, 127, 0.2);">
+                            Day 30 以降</div>
+                        <h3>「アーカイブ（閲覧のみ）」状態の適用</h3>
+                        <p>30日間の猶予期間が終了すると、チームは「アーカイブ（閲覧のみ）」状態となります。</p>
+                        <p>これに伴い、オーナーを除くチームメンバー全員の権限が強制的に<strong>viewer（閲覧のみ）</strong>に変更されます。</p>
+
+                        <div class="policy-callout"
+                            style="background: rgba(255, 127, 127, 0.03); border: 1px solid rgba(255, 127, 127, 0.15); color: #ff7f7f; margin: 1rem 0 0 0; padding: 1rem;">
+                            <span class="policy-callout-icon" style="color: #ff7f7f; margin-top: 0.1rem;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="feather feather-alert-triangle">
+                                    <path
+                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                    </path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                            </span>
+                            <span style="font-size: 0.85rem; line-height: 1.5; display: block;">
+                                <strong>アーカイブ中の制限事項：</strong><br>
+                                •
+                                新規ワークアウト（練習記録）のアップロードがブロックされ、画面上に「このチームはアーカイブ（停止中）されています。チーム管理者に確認してください。」という案内が表示されます。<br>
+                                • チーム名変更、招待コードの再生成、メンバー承認、ロール変更など一切の管理操作がロック（非活性化）されます。<br>
+                                • <strong>チームデータは削除されません：</strong> 以前の仕様と異なり、期限が切れてもチームやデータは削除されず、過去の練習記録の閲覧はいつでも可能です。
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p
+                style="margin-top: 2rem; padding: 1.25rem; background: rgba(77, 203, 255, 0.05); border: 1px solid rgba(77, 203, 255, 0.15); border-radius: 12px; font-size: 0.925rem; line-height: 1.6; color: var(--text);">
+                <strong>アーカイブ状態の解除について：</strong><br>
+                30日間の猶予期間中またはアーカイブ移行後に、再度チーム作成機能を持つプランに再登録またはチームプランへの移行を行った場合、チームのアーカイブ状態は自動的に解除され、通常通り再度ご利用いただけるようになります。
+            </p>
+
+            <h2 style="margin-top: 3rem;">お問い合わせ</h2>
+            <p>本仕様変更に関するご質問や、プラン変更に伴うデータの取り扱いについてご不明な点がございましたら、サポート窓口（<a
+                    href="mailto:rowpilot.jp@gmail.com">rowpilot.jp@gmail.com</a>）までお気軽にお問い合わせください。</p>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-inner">
+            <a href="../index.html" class="footer-logo">
+                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                RowPilot
+            </a>
+            <div class="footer-links">
+                <a href="../index.html">Home</a>
+                <a href="../index.html#features">機能</a>
+                <a href="../index.html#premium">プラン</a>
+                <a href="../support/index.html">サポート</a>
+                <a href="../privacy-policy/index.html">プライバシーポリシー</a>
+                <a href="../terms/index.html">利用規約</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        const toggle = document.getElementById('nav-toggle');
+        const mMenu = document.getElementById('mobile-menu');
+        toggle.addEventListener('click', () => {
+            const open = mMenu.classList.toggle('open');
+            toggle.classList.toggle('open', open);
+        });
+        mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            mMenu.classList.remove('open'); toggle.classList.remove('open');
+        }));
+    </script>
+</body>
+
+</html>
