@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="main.js?v=10" defer></script>
+<link rel="stylesheet" href="style.css?v=2">
+<title>ハコゲーム</title>
+<div class="cloud cloud-1"></div>
+<div class="cloud cloud-2"></div>
+<div class="cloud cloud-3"></div>
+
+<h1>ハコゲーム</h1>
+<p class="subtitle">BLOCK PLACEMENT PUZZILE</p>
+
+<div class="game-wrapper">
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<div class="controls">
+    <button class="btn btn-reset" id="resetBtn">リセット</button>
+    <button class="btn btn-start" id="startBtn">スタート</button>
+</div>
+
+<div class="status-wrap">
+    <div class="status-bar" id="statusBar">
+        <span class="status-place">ブロックを配置しろ</span>
+    </div>
+</div>
+<div class="hint" id="hintText">ブロックを配置　/　もう一度クリックで削除</div>
+
+</html>

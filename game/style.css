@@ -1,0 +1,253 @@
+body {
+    background: linear-gradient(180deg, #5c94fc 0%, #5c94fc 60%, #8bbcff 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+    position: relative;
+}
+
+.cloud {
+    position: fixed;
+    background: white;
+    border-radius: 50px;
+    opacity: 0.88;
+    animation: cloudDrift linear infinite;
+}
+
+.cloud::before,
+.cloud::after {
+    content: '';
+    position: absolute;
+    background: white;
+    border-radius: 50%
+}
+
+.cloud-1 {
+    width: 120px;
+    height: 38px;
+    top: 8%;
+    left: -140px;
+    animation-duration: 30s;
+    animation-delay: 0s;
+}
+
+.cloud-1::before {
+    width: 58px;
+    height: 54px;
+    top: -28px;
+    left: 18px;
+}
+
+.cloud-1::after {
+    width: 44px;
+    height: 38px;
+    top: -22px;
+    left: 54px;
+}
+
+.cloud-2 {
+    width: 88px;
+    height: 28px;
+    top: 20%;
+    left: -110px;
+    animation-duration: 22s;
+    animation-delay: -9s;
+}
+
+.cloud-2::before {
+    width: 44px;
+    height: 40px;
+    top: -22px;
+    left: 14px;
+}
+
+.cloud-2::after {
+    width: 34px;
+    height: 30px;
+    top: -17px;
+    left: 40px;
+}
+
+.cloud-3 {
+    width: 100px;
+    height: 34px;
+    top: 4%;
+    left: -120px;
+    animation-duration: 38s;
+    animation-delay: -18s;
+}
+
+.cloud-3::before {
+    width: 50px;
+    height: 46px;
+    top: -24px;
+    left: 17px;
+}
+
+.cloud-3::after {
+    width: 38px;
+    height: 34px;
+    top: -19px;
+    left: 49px;
+}
+
+@keyframes cloudDrift {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(calc(100vw + 220px));
+    }
+}
+
+h1 {
+    font-size: 1.8rem;
+    color: #fff;
+    text-shadow: 4px 4px 0 #c84c0c, 2px -2px 0 #c84c0c, -2px 2px 0 #c84c0c;
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+}
+
+.subtitle {
+    font-size: 0.6rem;
+    color: #ffe060;
+    text-shadow: 2px 2px 0 #a06000;
+    letter-spacing: 0.15em;
+    margin-bottom: 16px;
+}
+
+.game-wrapper {
+    position: relative;
+    display: inline-block;
+    box-shadow: 0 8px 0 #00000040, 0 12px 0 #00000020;
+    max-width: 95vw;
+}
+
+#gameCanvas {
+    display: block;
+    width: 744px;
+    max-width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    cursor: crosshair;
+}
+
+.controls {
+    display: flex;
+    gap: 14px;
+    margin-top: 16px;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.75rem;
+    padding: 12px 24px;
+    border: none;
+    cursor: pointer;
+    border-radius: 3px;
+    letter-spacing: 0.04em;
+    transition: transform 0.07s, box-shadow 0.07s;
+    outline: none;
+}
+
+.btn-start {
+    background: #4caf28;
+    color: #fff;
+    box-shadow: 0 6px 0 #2a7010, inset 0 2px 0 rgba(255, 255, 255, 0.3);
+    text-shadow: 2px 2px 0 #1a5000;
+    border: 3px solid #1a5000;
+}
+
+.btn-start:hover:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 4px 0 #2a7010;
+}
+
+.btn-start:active:not(:disabled) {
+    transform: translateY(6px);
+    box-shadow: 0 0 0 #2a7010;
+}
+
+.btn-start:disabled {
+    background: #888;
+    box-shadow: 0 6px 0 #444;
+    border-color: #333;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-reset {
+    background: #e83030;
+    color: #fff;
+    box-shadow: 0 6px 0 #901010, inset 0 2px 0 rgba(255, 255, 255, 0.3);
+    text-shadow: 2px 2px 0 #600000;
+    border: 3px solid #600000;
+}
+
+.btn-reset:hover {
+    transform: translateY(2px);
+    box-shadow: 0 4px 0 #901010;
+}
+
+.btn-reset:active {
+    transform: translateY(6px);
+    box-shadow: 0 0 0 #901010;
+}
+
+.status-wrap {
+    background: #000;
+    border: 4px solid #fff;
+    border-radius: 4px;
+    padding: 12px 24px;
+    margin-top: 12px;
+    min-width: 480px;
+    text-align: center;
+    box-shadow: 4px 4px 0 #333;
+}
+
+.status-bar {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    min-height: 20px;
+}
+
+.status-place {
+    color: #ffe060;
+}
+
+.status-run {
+    color: #4cff4c;
+}
+
+.status-clear {
+    color: #ffe060;
+    animation: blink 0.4s stop-end infinite;
+}
+
+.status-fail {
+    color: #ff5050;
+    animation: blink 0.4s stop-end infinite;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+.hint {
+    font-size: 0.55rem;
+    color: #fff;
+    text-shadow: 1px 1px 0 #0000a0;
+    margin-top: 8px;
+    text-align: center;
+    letter-spacing: 0.04em;
+    opacity: 0.8;
+}
