@@ -43,6 +43,7 @@ let hintText;
 
 let grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
 let phase = 'place';
+let actionHistory = [];
 
 function makeMan() {
     return {
@@ -288,10 +289,149 @@ function render() {
     }
 }
 
-//MARK:- Game Logic
+//MARK:- Route Solver & Simulation
+function solveRoute() {
+    const keyframes = [];
+    let curX = -1.5;
+    let curY = ROWS - 1; // row 4 (bottom)
+    let curTime = 0;
+
+    // 開始地点
+    keyframes.push({ x: curX, y: curY, type: 'walk', time: curTime });
+
+    // c = -1 : 土管 → col0 への移行も含めてシミュレート
+    for (let c = -1; c < COLS; c++) {
+        const nextCol = c + 1;
+        const curKfIdx = keyframes.length - 1;
+
+        // ── ゴール到達 ──────────────────────────────────────────
+        if (nextCol === COLS) {
+            if (curY === GOAL_ROW) {
+                // クリア
+                keyframes[curKfIdx].type = 'walk';
+                curTime += (COLS - 0.5 + 0.15 - curX) / WALK_SPEED * 16.67;
+                curX = COLS - 0.5 + 0.15;
+                keyframes.push({ x: curX, y: curY, type: 'done', time: curTime });
+                return keyframes;
+            } else {
+                // 右端から奈落落下
+                keyframes[curKfIdx].type = 'walk';
+                curTime += (COLS - curX) / WALK_SPEED * 16.67;
+                curX = COLS;
+                keyframes.push({ x: curX, y: curY, type: 'fall', time: curTime });
+                curTime += (ROWS - curY) * 150;
+                curY = ROWS;
+                keyframes.push({ x: curX, y: curY, type: 'fail', time: curTime });
+                return keyframes;
+            }
+        }
+
+        // ────────────────────────────────────────────────────────
+        // キャラクターは「1マス」として扱う（足元 = curY のみ）
+        // 衝突判定: 進行先 (nextCol, curY) にブロックがあるか
+        // ────────────────────────────────────────────────────────
+        const blockAhead = getBlock(nextCol, curY);
+
+        if (blockAhead) {
+            // ── 壁あり → ジャンプ試行 ─────────────────────────
+            const jumpY = curY - 1;
+
+            // 上方向の範囲外 (グリッド上端を超える)
+            const outOfTop = jumpY < 0;
+            // ジャンプ先のマスにブロックがある (頭がめり込む)
+            const jumpBlocked = !outOfTop && getBlock(nextCol, jumpY);
+            // 今いる列の真上にブロックがある (頭をぶつけてジャンプできない)
+            // c >= 0 のときのみチェック (土管エリア c=-1 は天井なし)
+            const ceilBlocked = (c >= 0) && getBlock(c, curY - 1);
+
+            if (outOfTop || jumpBlocked || ceilBlocked) {
+                // ── クラッシュ演出 ────────────────────────────
+                if (curX < 0) {
+                    // 土管内でクラッシュ確定 → まずグリッド入口(x=0)まで歩く
+                    keyframes[curKfIdx].type = 'walk';
+                    curTime += (0 - curX) / WALK_SPEED * 16.67;
+                    curX = 0;
+                    // グリッド内で少し進んでから止まる
+                    keyframes.push({ x: curX, y: curY, type: 'crash', time: curTime });
+                    const cd = Math.min(0.35, nextCol - 0.05);
+                    curTime += cd / WALK_SPEED * 16.67;
+                    curX = cd;
+                    keyframes.push({ x: curX, y: curY, type: 'fail', time: curTime });
+                } else {
+                    keyframes[curKfIdx].type = 'crash';
+                    const cd = Math.min(0.4, nextCol - curX - 0.05);
+                    curTime += Math.max(cd, 0.05) / WALK_SPEED * 16.67;
+                    curX = Math.min(curX + Math.max(cd, 0.05), nextCol - 0.02);
+                    keyframes.push({ x: curX, y: curY, type: 'fail', time: curTime });
+                }
+                return keyframes;
+            }
+
+            // ジャンプ成功
+            keyframes[curKfIdx].type = 'jump';
+            curTime += (nextCol - curX) / JUMP_SPEED * 16.67;
+            curX = nextCol;
+            curY = jumpY;
+            keyframes.push({ x: curX, y: curY, type: 'walk', time: curTime });
+            continue;
+        }
+
+        // ── 壁なし → 歩行 or 落下 ──────────────────────────────
+        const hasFloor = getBlock(nextCol, curY + 1) || (curY + 1 >= ROWS);
+
+        if (hasFloor) {
+            // 足場あり → 歩く
+            keyframes[curKfIdx].type = 'walk';
+            curTime += (nextCol - curX) / WALK_SPEED * 16.67;
+            curX = nextCol;
+            keyframes.push({ x: curX, y: curY, type: 'walk', time: curTime });
+            continue;
+        }
+
+        // 足場なし → 落下先を探す
+        let landY = -1;
+        for (let y = curY + 1; y < ROWS; y++) {
+            if (getBlock(nextCol, y + 1) || (y + 1 >= ROWS)) {
+                landY = y;
+                break;
+            }
+        }
+
+        if (landY === -1) {
+            // 着地点なし → 奈落落下
+            keyframes[curKfIdx].type = 'walk';
+            curTime += (nextCol - curX) / WALK_SPEED * 16.67;
+            curX = nextCol;
+            keyframes.push({ x: curX, y: curY, type: 'fall', time: curTime });
+            curTime += (ROWS - curY) * 150;
+            curY = ROWS;
+            keyframes.push({ x: curX, y: curY, type: 'fail', time: curTime });
+            return keyframes;
+        }
+
+        // 歩いてから落下
+        keyframes[curKfIdx].type = 'walk';
+        curTime += (nextCol - curX) / WALK_SPEED * 16.67;
+        curX = nextCol;
+        keyframes.push({ x: curX, y: curY, type: 'fall', time: curTime });
+        curTime += (landY - curY) * 120;
+        curY = landY;
+        keyframes.push({ x: curX, y: curY, type: 'walk', time: curTime });
+        continue;
+    }
+
+    keyframes[keyframes.length - 1].type = 'fail';
+    return keyframes;
+}
+
+let currentRoute = [];
+let routeStartTime = null;
+
 function startRun() {
     phase = 'run';
-    man = makeMan();
+    man = makeMan(); // Ensure man object is freshly initialized
+    currentRoute = solveRoute();
+    routeStartTime = null;
     prevTime = null;
     animate();
 }
@@ -299,88 +439,63 @@ function startRun() {
 function step(ts) {
     if (phase !== 'run') return;
 
-    if (prevTime === null) prevTime = ts;
-    const dt = Math.min((ts - prevTime) / 16.67, 3);
-
-    man.walkCycle += 0.15 * dt;
-
-    //MARK:- WALK
-    if (man.state === 'walk') {
-        const aheadCol = Math.floor(man.x) + 1;
-        const walkAtFeet = getBlock(aheadCol, man.y);
-
-        if (walkAtFeet) {
-            const wallAboveFeet = getBlock(aheadCol, man.y - 1);
-            if (!wallAboveFeet) {
-                man.state = 'jump';
-                man.jumping = true;
-                man.jumpTarget = {
-                    x: aheadCol,
-                    y: man.y - 1
-                };
-            } else {
-                phase = 'fail';
-                render(); showFail(); return;
-            }
-        } else {
-            man.x += WALK_SPEED * dt;
-            //Gravity while walking
-            const targetRow = standingRow(man.x);
-            if (targetRow > man.y) {
-                man.y = Math.min(man.y + WALK_SPEED * dt * 5, targetRow);
-            }
-        }
+    const currentTime = ts || performance.now();
+    if (routeStartTime === null) {
+        routeStartTime = currentTime;
     }
-    //MARK:- JUMP
-    else if (man.state === 'jump') {
-        const tx = man.jumpTarget.x;
-        const ty = man.jumpTarget.y;
-        const dx = tx - man.x;
-        const speed = JUMP_SPEED * dt;
-
-        if (Math.abs(dx) < speed * 1.1) {
-            man.x = tx;
-            man.y = ty;
-            man.state = 'walk';
-            man.jumping = false;
-
-            const tRow = standingRow(man.x);
-            if (tRow > man.y)
-                man.y = tRow;
-        } else {
-            man.x += Math.sign(dx) * speed;
-            man.y += (ty - man.y) * 0.16 * dt;
-        }
+    const elapsed = Math.max(0, currentTime - routeStartTime);
+    
+    // Find keyframe index using a robust index scan
+    let idx = 0;
+    while (idx < currentRoute.length - 1 && currentRoute[idx + 1].time <= elapsed) {
+        idx++;
     }
-
-    // Border limit & Goal collision detection
-    const currentR = Math.round(man.y);
-    const limitX = COLS - 0.5 - (9 / CELL); // Character body right edge touching the grid boundary (approx 4.34)
-
-    if (currentR === GOAL_ROW) {
-        if (man.x >= limitX) {
-            // Collision with Goal block
-            man.x = limitX + 0.15; // Let body merge slightly into the Goal block
-            man.state = 'done';
+    
+    let prevKf = currentRoute[idx];
+    let nextKf = (idx < currentRoute.length - 1) ? currentRoute[idx + 1] : null;
+    
+    if (nextKf === null) {
+        man.x = prevKf.x;
+        man.y = prevKf.y;
+        man.state = (prevKf.type === 'done' || prevKf.type === 'clear') ? 'done' : 'fail';
+        
+        if (prevKf.type === 'done' || prevKf.type === 'clear') {
             phase = 'clear';
-            render(); showClear(); return;
-        }
-    } else {
-        // Prevent character from walking outside the grid (falling) on non-goal rows
-        // Trigger GameOver when reaching the edge on non-goal rows
-        if (man.x >= limitX) {
-            man.x = limitX;
+            render();
+            showClear();
+        } else {
             phase = 'fail';
-            render(); showFail(); return;
+            render();
+            showFail();
         }
+        return;
     }
-
-    if (man.y >= ROWS - 0.2) {
-        phase = 'fail'; render(); showFail(); return;
+    
+    const denom = nextKf.time - prevKf.time;
+    const ratio = denom > 0 ? (elapsed - prevKf.time) / denom : 0;
+    
+    man.x = prevKf.x + (nextKf.x - prevKf.x) * ratio;
+    
+    if (prevKf.type === 'jump') {
+        man.y = prevKf.y + (nextKf.y - prevKf.y) * ratio - 4 * 0.5 * ratio * (1 - ratio);
+        man.state = 'jump';
+    } else if (prevKf.type === 'fall') {
+        man.y = prevKf.y + (nextKf.y - prevKf.y) * ratio;
+        man.state = 'jump'; // use jump pose while falling
+    } else if (prevKf.type === 'crash') {
+        man.y = prevKf.y + (nextKf.y - prevKf.y) * ratio;
+        man.state = 'walk';
+    } else {
+        man.y = prevKf.y + (nextKf.y - prevKf.y) * ratio;
+        man.state = 'walk';
     }
+    
+    man.walkCycle += 0.15;
+    
     render();
     animId = requestAnimationFrame(step);
 }
+
 function animate() {
     animId = requestAnimationFrame(step);
 }
@@ -426,6 +541,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const row = Math.floor((my - GY) / CELL);
         if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
             grid[row][col] = !grid[row][col];
+            actionHistory.push({ row, col });
             render();
         }
     });
@@ -450,33 +566,65 @@ window.addEventListener('DOMContentLoaded', () => {
 
     canvas.addEventListener('mouseleave', () => { if (phase === 'place') render(); });
 
-    startBtn.addEventListener('click', () => {
+    function triggerStart() {
         if (phase !== 'place') return;
         startBtn.disabled = true;
         statusBar.innerHTML = '<span class="status-run"> GO GO GO!!</span>';
         hintText.textContent = '';
         startRun();
-    });
+    }
 
-    resetBtn.addEventListener('click', () => {
+    function triggerReset() {
         if (animId) { cancelAnimationFrame(animId); animId = null; }
         grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+        actionHistory = [];
         phase = 'place';
         man = makeMan();
         startBtn.disabled = false;
         statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
         hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
         render();
-    });
+    }
+
+    startBtn.addEventListener('click', triggerStart);
+    resetBtn.addEventListener('click', triggerReset);
 
     // Keyboard input
     window.addEventListener('keydown', e => {
-        if (phase !== 'place') return;
         const key = e.key.toLowerCase();
+
+        // Hotkey controls
+        if (e.key === 'Shift') {
+            triggerReset();
+            e.preventDefault();
+            return;
+        }
+        if (e.key === 'Enter') {
+            if (phase === 'place') {
+                triggerStart();
+                e.preventDefault();
+            }
+            return;
+        }
+        if (e.key === 'Backspace') {
+            if (phase === 'place') {
+                if (actionHistory.length > 0) {
+                    const lastAction = actionHistory.pop();
+                    grid[lastAction.row][lastAction.col] = !grid[lastAction.row][lastAction.col];
+                    render();
+                }
+                e.preventDefault();
+            }
+            return;
+        }
+
+        if (phase !== 'place') return;
+
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
                 if (KEY_MAP[r][c] === key) {
                     grid[r][c] = !grid[r][c];
+                    actionHistory.push({ row: r, col: c });
                     render();
                     e.preventDefault();
                     return;
