@@ -62,6 +62,10 @@
     </div>
 
     <div class="header-right">
+      <div id="email-notification-setting" class="email-setting">
+        <label id="email-setting-label" for="email-setting-input">通知先:</label>
+        <input type="email" id="email-setting-input" placeholder="メールアドレスを入力">
+      </div>
       <span id="role-badge" class="role-badge role-badge--student">生徒モード</span>
     </div>
   </header>
@@ -73,14 +77,35 @@
 
     <!-- ── 左パネル: エッセイ ──────────────────────────────────── -->
     <section class="panel panel-essay" aria-label="エッセイ">
-      <div class="panel-header">
-        <h2 class="panel-title">エッセイ</h2>
-        <div class="panel-meta">
+      <div class="panel-header" style="justify-content: flex-start; gap: 15px;">
+        <h2 class="panel-title" style="margin-right: auto;">エッセイ</h2>
+        <div class="panel-tabs" style="display: flex; gap: 4px;">
+          <button id="btn-panel-edit" class="panel-tab panel-tab--active">編集</button>
+          <button id="btn-panel-diff" class="panel-tab">履歴・差分</button>
+        </div>
+        <div class="panel-meta" id="essay-meta-info">
           <span id="char-count" class="char-count">0 字</span>
           <span id="save-status" class="save-status status--saved">保存済み</span>
         </div>
       </div>
       <div class="panel-body panel-body--editor">
+        <!-- 差分コントロールバー (履歴モードの時のみ表示) -->
+        <div id="diff-controls-bar" class="diff-controls-bar" style="display: none;">
+          <select id="diff-version-select" class="banner-select" style="max-width: 140px;"></select>
+          <select id="diff-compare-select" class="banner-select">
+            <option value="prev">この版での変更 (前バージョン比)</option>
+            <option value="current">この版からの変更 (現在の下書き比)</option>
+          </select>
+          <div class="banner-btn-group">
+            <button id="btn-view-raw" class="diff-sub-btn">原文</button>
+            <button id="btn-view-diff" class="diff-sub-btn active">差分</button>
+          </div>
+          <div class="banner-btn-group">
+            <button id="btn-diff-split" class="diff-sub-btn active">Split</button>
+            <button id="btn-diff-unified" class="diff-sub-btn">Unified</button>
+          </div>
+        </div>
+
         <textarea
           id="essay-textarea"
           class="essay-textarea"
@@ -88,7 +113,7 @@
           spellcheck="false"
           aria-label="エッセイ本文"
         ></textarea>
-        <div id="essay-diff" class="essay-diff" hidden></div>
+        <div id="essay-diff" class="essay-diff" style="display: none;"></div>
       </div>
     </section>
 
@@ -176,33 +201,7 @@
         レビュー提出
       </button>
     </div>
-
-    <div class="toolbar-right">
-      <button id="btn-history" class="toolbar-btn toolbar-btn--secondary">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/>
-        </svg>
-        履歴
-      </button>
-    </div>
   </footer>
-
-  <!-- ================================================================
-       履歴モーダル
-  ================================================================ -->
-  <div id="history-overlay" class="history-overlay" role="dialog" aria-modal="true" aria-labelledby="history-modal-title">
-    <div class="history-modal">
-      <div class="history-modal-header">
-        <h2 id="history-modal-title" class="history-modal-title">レビュー履歴</h2>
-        <button id="history-close" class="history-close" aria-label="閉じる">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <ul id="history-list" class="history-list"></ul>
-    </div>
-  </div>
 
   <!-- ================================================================
        スクリプト

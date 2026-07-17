@@ -41,8 +41,8 @@ export const saveEssay = (essayId, content) =>
   request('PATCH', `/essays/${essayId}`, { content });
 
 /** レビュー依頼（バージョン作成） */
-export const requestReview = (essayId) =>
-  request('POST', `/essays/${essayId}/versions`);
+export const requestReview = (essayId, teacherEmail) =>
+  request('POST', `/essays/${essayId}/versions`, { teacherEmail });
 
 /** バージョン一覧取得 */
 export const getVersions = (essayId) =>
@@ -63,5 +63,5 @@ export const updateReview = (reviewId, { markdown_comment, items }) =>
   request('PATCH', `/reviews/${reviewId}`, { markdown_comment, items });
 
 /** レビュー提出確定 */
-export const submitReview = (reviewId) =>
-  request('POST', `/reviews/${reviewId}/submit`);
+export const submitReview = (reviewId, studentEmail) =>
+  request('POST', `/reviews/${reviewId}/submit`, { studentEmail });

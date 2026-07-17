@@ -83,6 +83,11 @@ function switchMode(mode) {
 function applyMode(mode, { initial = false } = {}) {
   const isTeacher = mode === 'teacher';
 
+  // メールラベル・プレースホルダーの更新
+  if (window._app_updateEmailLabel) {
+    window._app_updateEmailLabel(isTeacher);
+  }
+
   // ボタンの active 状態
   $('#btn-mode-student').classList.toggle('mode-btn--active', !isTeacher);
   $('#btn-mode-teacher').classList.toggle('mode-btn--active', isTeacher);
@@ -213,24 +218,12 @@ function initModules() {
   });
 }
 
-// ================================================================
-// ツールバー
-// ================================================================
 function setupToolbar() {
   // レビュー依頼ボタン（生徒）
   $('#btn-request-review')?.addEventListener('click', handleRequestReview);
 
   // レビュー提出ボタン（先生）
   $('#btn-submit-review')?.addEventListener('click', handleSubmitReview);
-
-  // 履歴ボタン
-  $('#btn-history')?.addEventListener('click', openHistory);
-
-  // 履歴モーダルを閉じる
-  $('#history-close')?.addEventListener('click', closeHistory);
-  $('#history-overlay')?.addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) closeHistory();
-  });
 }
 
 function updateToolbarVisibility(isTeacher) {
@@ -272,8 +265,11 @@ async function handleRequestReview() {
   btn.disabled = true;
   btn.textContent = '依頼中...';
 
+  // 生徒が設定した「先生のメールアドレス」を取得して通知用に渡す
+  const teacherEmail = localStorage.getItem('notification_email') ?? '';
+
   try {
-    const result = await requestReview(ESSAY_ID);
+    const result = await requestReview(ESSAY_ID, teacherEmail);
     state.currentReview = {
       id: result.reviewId,
       submitted_at: null,
@@ -313,11 +309,14 @@ async function handleSubmitReview() {
   btn.disabled = true;
   btn.textContent = '提出中...';
 
+  // 先生が設定した「生徒のメールアドレス」を取得して通知用に渡す
+  const studentEmail = localStorage.getItem('notification_email') ?? '';
+
   try {
     // コメントを先に保存
     await window._comments?.forceSave();
 
-    await submitReview(state.currentReview.id);
+    await submitReview(state.currentReview.id, studentEmail);
     state.currentReview.submitted_at = new Date().toISOString();
 
     window._checklist.setInteractive(false);
@@ -334,226 +333,217 @@ async function handleSubmitReview() {
 }
 
 // ================================================================
-// 履歴
+// 通知メール設定（LocalStorage 保存）
 // ================================================================
-async function openHistory() {
-  const overlay = $('#history-overlay');
-  const list = $('#history-list');
-  if (!overlay || !list) return;
+function setupEmailSetting() {
+  const input = $('#email-setting-input');
+  const label = $('#email-setting-label');
+  if (!input) return;
 
-  list.innerHTML = '<li class="history-loading">読み込み中...</li>';
-  overlay.classList.add('visible');
+  // 保存済みの通知先メールアドレスをロード
+  const savedEmail = localStorage.getItem('notification_email') ?? '';
+  input.value = savedEmail;
+
+  // ロールに応じたラベルとプレースホルダーの設定
+  const updateEmailLabel = (isTeacher) => {
+    if (label) label.textContent = isTeacher ? '生徒のメアド:' : '先生のメアド:';
+    if (input) input.placeholder = isTeacher ? '生徒のメールアドレス' : '先生のメールアドレス';
+  };
+
+  updateEmailLabel(state.mode === 'teacher');
+
+  // 入力されたら即保存
+  input.addEventListener('input', (e) => {
+    localStorage.setItem('notification_email', e.target.value.trim());
+  });
+
+  // グローバルに切り替えメソッドを登録（applyModeから更新するため）
+  window._app_updateEmailLabel = updateEmailLabel;
+}
+
+// ================================================================
+// 左パネルタブ切替 (編集 / 履歴・差分)
+// ================================================================
+function initLeftPanelTabs() {
+  const btnEdit = $('#btn-panel-edit');
+  const btnDiff = $('#btn-panel-diff');
+  const textarea = $('#essay-textarea');
+  const diffDiv = $('#essay-diff');
+  const controlsBar = $('#diff-controls-bar');
+  const metaInfo = $('#essay-meta-info');
+
+  if (!btnEdit || !btnDiff) return;
+
+  // 【編集タブ】クリック時
+  btnEdit.addEventListener('click', () => {
+    btnEdit.classList.add('panel-tab--active');
+    btnDiff.classList.remove('panel-tab--active');
+    if (textarea) textarea.style.display = '';
+    if (diffDiv) diffDiv.style.display = 'none';
+    if (controlsBar) controlsBar.style.display = 'none';
+    if (metaInfo) metaInfo.style.display = '';
+
+    // 履歴表示モード解除、通常エディタに戻る
+    window._historyMode = false;
+    window._editor.setContent(state.essay.current_content);
+    window._editor.setReadOnly(state.mode === 'teacher');
+
+    // 直近のチェックリスト・コメント状態に戻す
+    if (state.currentReview) {
+      window._checklist.setItemMap(state.currentReview.itemMap ?? {});
+      window._checklist.setInteractive(state.mode === 'teacher' && !state.currentReview.submitted_at);
+      window._comments.setContent(state.currentReview.markdown_comment, state.currentReview.submitted_at);
+      window._comments.setEditable(state.mode === 'teacher');
+    } else {
+      window._checklist.setItemMap({});
+      window._checklist.setInteractive(false);
+      window._comments.setContent('', null);
+      window._comments.setEditable(false);
+    }
+  });
+
+  // 【履歴・差分タブ】クリック時
+  btnDiff.addEventListener('click', async () => {
+    btnEdit.classList.remove('panel-tab--active');
+    btnDiff.classList.add('panel-tab--active');
+    if (textarea) textarea.style.display = 'none';
+    if (diffDiv) diffDiv.style.display = 'block';
+    if (controlsBar) controlsBar.style.display = 'flex';
+    if (metaInfo) metaInfo.style.display = 'none';
+
+    window._historyMode = true;
+    window._editor.setReadOnly(true);
+
+    // バージョン選択プルダウンの読み込み・更新
+    await refreshDiffVersionSelect();
+  });
+}
+
+// ================================================================
+// バージョン選択プルダウン制御
+// ================================================================
+async function refreshDiffVersionSelect() {
+  const select = $('#diff-version-select');
+  const diffDiv = $('#essay-diff');
+  if (!select || !diffDiv) return;
 
   try {
     const versions = await getVersions(ESSAY_ID);
     state.versions = versions;
+
     if (versions.length === 0) {
-      list.innerHTML = '<li class="history-empty">まだレビュー依頼はありません</li>';
+      select.innerHTML = '<option value="">履歴なし</option>';
+      diffDiv.innerHTML = '<p class="cm-empty" style="padding: 24px;">まだ履歴（レビュー依頼）はありません。</p>';
       return;
     }
 
-    list.innerHTML = '';
+    select.innerHTML = '';
     versions.forEach((v, i) => {
-      const li = document.createElement('li');
-      li.className = 'history-item';
-
       const num = versions.length - i;
-      const date = new Date(v.created_at).toLocaleString('ja-JP');
-      const status = v.submitted_at
-        ? `<span class="history-badge history-badge--done">添削済み</span>`
-        : `<span class="history-badge history-badge--pending">添削待ち</span>`;
-
-      li.innerHTML = `
-        <div class="history-item-header">
-          <span class="history-num">バージョン ${num}</span>
-          ${status}
-        </div>
-        <div class="history-date">${date}</div>
-        ${v.markdown_comment ? `<div class="history-comment">${escapeHtml(v.markdown_comment.slice(0, 80))}…</div>` : ''}
-      `;
-
-      li.addEventListener('click', () => loadHistoryVersion(v));
-      list.appendChild(li);
+      const date = new Date(v.created_at).toLocaleDateString('ja-JP', {
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      const option = document.createElement('option');
+      option.value = v.id;
+      option.textContent = `v${num} (${date})`;
+      select.appendChild(option);
     });
+
+    // 初期状態で一番最新のバージョンを選択して表示
+    await selectDiffVersion(parseInt(select.value, 10));
   } catch (e) {
-    list.innerHTML = `<li class="history-error">読み込みに失敗しました: ${e.message}</li>`;
+    console.error('Failed to load version select:', e);
+    diffDiv.innerHTML = '<p class="cm-empty" style="padding: 24px; color: var(--color-danger)">履歴の読み込みに失敗しました。</p>';
   }
 }
 
-function closeHistory() {
-  $('#history-overlay')?.classList.remove('visible');
-  // 履歴表示を解除して現在の下書きに戻る
-  if (window._historyMode) {
-    window._historyMode = false;
-    window._editor.setContent(state.essay.current_content);
-    window._editor.setReadOnly(state.mode === 'teacher');
-    $('#history-banner')?.remove();
+async function selectDiffVersion(versionId) {
+  if (!versionId) return;
 
-    // エディタとDiff表示をリセット
-    const textarea = $('#essay-textarea');
-    const diffDiv = $('#essay-diff');
-    if (textarea) textarea.style.display = '';
-    if (diffDiv) diffDiv.style.display = 'none';
-  }
-}
-
-// ── 高度な GitHub 風差分 UI 制御 ────────────────────────────
-
-// 差分表示設定のデフォルト値
-window._diffCompareType = 'prev';    // 'prev' (前バージョン比) | 'current' (現在の下書き比)
-window._diffViewType    = 'split';   // 'split' (左右分割) | 'unified' (単一統合)
-window._viewMode        = 'diff';    // 'diff' (差分表示) | 'raw' (原文表示)
-
-window._app_renderDiff = () => {
-  const diffDiv = $('#essay-diff');
-  if (!diffDiv) return;
-
-  // 比較元のテキストを決定
-  let baseContent = '';
-  if (window._diffCompareType === 'prev') {
-    baseContent = window._historyPrevContent || '';
-  } else {
-    baseContent = window._currentDraftContent || '';
-  }
-
-  // 比較先のテキスト
-  const targetContent = window._historyContent || '';
-
-  // 差分計算と行アライメントの実行
-  const diffResults = diffLines(baseContent, targetContent);
-  const alignedRows = alignDiffLines(diffResults);
-
-  // 指定レイアウトでHTMLを出力
-  if (window._diffViewType === 'split') {
-    diffDiv.innerHTML = renderSplitHtml(alignedRows);
-  } else {
-    diffDiv.innerHTML = renderUnifiedHtml(alignedRows);
-  }
-};
-
-window._app_setViewMode = (mode) => {
-  window._viewMode = mode;
-  const textarea = $('#essay-textarea');
-  const diffDiv = $('#essay-diff');
-  const typeGroup = $('#diff-view-type-group');
-  const compareSelect = $('#diff-compare-select');
-  const btnRaw = $('#btn-view-raw');
-  const btnDiff = $('#btn-view-diff');
-
-  if (mode === 'raw') {
-    textarea.style.display = 'block';
-    diffDiv.style.display = 'none';
-    if (typeGroup) typeGroup.style.display = 'none';
-    if (compareSelect) compareSelect.style.display = 'none';
-    btnRaw?.classList.add('active');
-    btnDiff?.classList.remove('active');
-  } else {
-    textarea.style.display = 'none';
-    diffDiv.style.display = 'block';
-    if (typeGroup) typeGroup.style.display = '';
-    if (compareSelect) compareSelect.style.display = '';
-    btnRaw?.classList.remove('active');
-    btnDiff?.classList.add('active');
-    window._app_renderDiff();
-  }
-};
-
-window._app_setCompareType = (type) => {
-  window._diffCompareType = type;
-  window._app_renderDiff();
-};
-
-window._app_setViewType = (type) => {
-  window._diffViewType = type;
-  const btnSplit = $('#btn-diff-split');
-  const btnUnified = $('#btn-diff-unified');
-
-  if (type === 'split') {
-    btnSplit?.classList.add('active');
-    btnUnified?.classList.remove('active');
-  } else {
-    btnSplit?.classList.remove('active');
-    btnUnified?.classList.add('active');
-  }
-  window._app_renderDiff();
-};
-
-async function loadHistoryVersion(version) {
-  closeHistory();
   try {
-    const v = await getVersion(ESSAY_ID, version.id);
+    const v = await getVersion(ESSAY_ID, versionId);
     window._historyContent = v.content;
     window._currentDraftContent = state.essay.current_content;
-    window._historyMode = true;
 
-    // 前のバージョンを探索してそのコンテンツを取得
+    // 前のバージョンを検索して比較元（Base）にする
     let prevContent = '';
-    let versionNum = 1;
     if (state.versions) {
-      const idx = state.versions.findIndex(ver => ver.id === version.id);
-      if (idx !== -1) {
-        versionNum = state.versions.length - idx;
-        if (idx + 1 < state.versions.length) {
-          const prevVer = state.versions[idx + 1];
-          const prevV = await getVersion(ESSAY_ID, prevVer.id);
-          prevContent = prevV.content;
-        }
+      const idx = state.versions.findIndex(ver => ver.id === versionId);
+      if (idx !== -1 && idx + 1 < state.versions.length) {
+        const prevVer = state.versions[idx + 1];
+        const prevV = await getVersion(ESSAY_ID, prevVer.id);
+        prevContent = prevV.content;
       }
     }
     window._historyPrevContent = prevContent;
 
-    // 原文表示用のエディタ設定
-    window._editor.setContent(v.content);
-    window._editor.setReadOnly(true);
+    // 差分の描画
+    window._app_renderDiff();
 
-    // 履歴表示中のバナー
-    let banner = $('#history-banner');
-    if (!banner) {
-      banner = document.createElement('div');
-      banner.id = 'history-banner';
-      banner.className = 'history-banner';
-      document.querySelector('.app-header')?.after(banner);
-    }
-    const date = new Date(version.created_at).toLocaleString('ja-JP');
-    banner.innerHTML = `
-      <span style="font-weight:600;margin-right:10px;">バージョン ${versionNum}（${date}）</span>
-      <div style="display:inline-flex; gap:6px; align-items:center; margin-right:15px;">
-        <select id="diff-compare-select" class="banner-select" style="padding: 2px 6px; font-size:12px; border-radius:var(--radius-sm); border:1px solid var(--color-warning);" onchange="window._app_setCompareType(this.value)">
-          <option value="prev">この版での変更 (前バージョン比)</option>
-          <option value="current">この版からの変更 (現在の下書き比)</option>
-        </select>
-      </div>
-      <div style="display:inline-flex; gap:6px; margin-right:15px;">
-        <button id="btn-view-raw" onclick="window._app_setViewMode('raw')">原文</button>
-        <button id="btn-view-diff" class="active" onclick="window._app_setViewMode('diff')">差分</button>
-      </div>
-      <div id="diff-view-type-group" style="display:inline-flex; gap:6px; margin-right:15px;">
-        <button id="btn-diff-split" class="active" onclick="window._app_setViewType('split')">Split</button>
-        <button id="btn-diff-unified" onclick="window._app_setViewType('unified')">Unified</button>
-      </div>
-      <button onclick="window._app_closeHistory()" style="margin-left:auto;">現在の下書きに戻る</button>
-    `;
-
-    // デフォルトの表示モードを適用
-    window._app_setViewMode(window._viewMode);
-
-    // チェックリスト・コメントも反映
-    if (version.review_id) {
-      const review = await getReview(version.id);
-      if (review) {
-        window._checklist.setItemMap(review.itemMap ?? {});
-        window._comments.setContent(review.markdown_comment, review.submitted_at);
-        window._checklist.setInteractive(false);
-        window._comments.setEditable(false);
+    // 選択されたバージョン当時のチェックリストと先生コメントも同期反映
+    const idx = state.versions.findIndex(ver => ver.id === versionId);
+    if (idx !== -1) {
+      const version = state.versions[idx];
+      if (version.review_id) {
+        const review = await getReview(version.id);
+        if (review) {
+          window._checklist.setItemMap(review.itemMap ?? {});
+          window._comments.setContent(review.markdown_comment, review.submitted_at);
+        } else {
+          window._checklist.setItemMap({});
+          window._comments.setContent('', null);
+        }
+      } else {
+        window._checklist.setItemMap({});
+        window._comments.setContent('', null);
       }
     }
+    // 過去履歴の表示中は常に閲覧専用にする
+    window._checklist.setInteractive(false);
+    window._comments.setEditable(false);
+
   } catch (e) {
-    alert(`バージョンの読み込みに失敗しました: ${e.message}`);
+    console.error('Failed to select version:', e);
   }
 }
 
-// グローバルにバインド
-window._app_closeHistory = closeHistory;
+// ── 差分オプションコントロール初期化 ──────────────────────────
+function setupDiffControls() {
+  const select = $('#diff-version-select');
+  if (select) {
+    select.addEventListener('change', (e) => {
+      selectDiffVersion(parseInt(e.target.value, 10));
+    });
+  }
+
+  const compareSelect = $('#diff-compare-select');
+  if (compareSelect) {
+    compareSelect.addEventListener('change', (e) => {
+      window._app_setCompareType(e.target.value);
+    });
+  }
+
+  // 原文/差分トグルのイベント
+  const btnRaw = $('#btn-view-raw');
+  const btnDiff = $('#btn-view-diff');
+  if (btnRaw && btnDiff) {
+    btnRaw.addEventListener('click', () => window._app_setViewMode('raw'));
+    btnDiff.addEventListener('click', () => window._app_setViewMode('diff'));
+  }
+
+  // Split/Unifiedトグルのイベント
+  const btnSplit = $('#btn-diff-split');
+  const btnUnified = $('#btn-diff-unified');
+  if (btnSplit && btnUnified) {
+    btnSplit.addEventListener('click', () => window._app_setViewType('split'));
+    btnUnified.addEventListener('click', () => window._app_setViewType('unified'));
+  }
+}
+
+
 
 // ================================================================
 // パネルリサイズ

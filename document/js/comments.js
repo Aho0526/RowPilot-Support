@@ -123,32 +123,36 @@ export class Comments {
   _updateState() {
     const submitted = this._submitted;
     const editable  = this._editable;
+    const tabsEl    = this.container.querySelector('.cm-tabs');
 
-    if (submitted) {
-      // 提出済み: 常にプレビュー表示・編集不可
-      this._textarea.readOnly = true;
-      this._switchTab('preview');
-      this._setNotice('添削が提出されました。');
-    } else if (editable) {
-      // 先生モード: 編集可能
-      this._textarea.readOnly = false;
-      this._switchTab('edit');
+    if (editable) {
+      // 先生モード: タブを表示し、状態に応じて表示切り替え
+      if (tabsEl) tabsEl.style.display = '';
       this._clearNotice();
-      const meta = this.getReviewMeta();
-      if (!meta?.reviewId) {
-        this._setNotice('⚠️ 生徒が「レビュー依頼」を送ると、コメントが保存されます。', 'warning');
+
+      if (submitted) {
+        this._textarea.readOnly = true;
+        this._switchTab('preview');
+        this._setNotice('添削が提出されました。');
+      } else {
+        this._textarea.readOnly = false;
+        this._switchTab(this._currentTab || 'edit');
+        const meta = this.getReviewMeta();
+        if (!meta?.reviewId) {
+          this._setNotice('⚠️ 生徒が「レビュー依頼」を送ると、コメントが保存されます。', 'warning');
+        }
       }
     } else {
-      // 生徒モード: 読み取り専用
+      // 生徒モード: タブを非表示にし、プレビュー（Markdown）のみを強制表示
+      if (tabsEl) tabsEl.style.display = 'none';
       this._textarea.readOnly = true;
-      // コメントがあればプレビュー、なければ edit タブ（空欄を表示）
-      if (this._textarea.value.trim()) {
-        this._renderPreview();
-        this._switchTab('preview');
-      } else {
-        this._switchTab('edit');
+      this._clearNotice();
+      this._switchTab('preview');
+
+      // 空白時の表示調整
+      if (!this._textarea.value.trim()) {
+        this._preview.innerHTML = '<p class="cm-empty">先生からのコメントはまだありません。</p>';
       }
-      this._setNotice('先生モードでコメントを入力できます。', 'info');
     }
   }
 
