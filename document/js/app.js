@@ -15,6 +15,12 @@ import {
   updateReview,
   submitReview,
 } from './api.js';
+import {
+  diffLines,
+  alignDiffLines,
+  renderUnifiedHtml,
+  renderSplitHtml,
+} from './diff.js';
 
 // ================================================================
 // 定数
@@ -340,6 +346,7 @@ async function openHistory() {
 
   try {
     const versions = await getVersions(ESSAY_ID);
+    state.versions = versions;
     if (versions.length === 0) {
       list.innerHTML = '<li class="history-empty">まだレビュー依頼はありません</li>';
       return;
@@ -390,83 +397,85 @@ function closeHistory() {
   }
 }
 
-// LCS差分アルゴリズム
-function diffTexts(oldText, newText) {
-  const s1 = oldText || '';
-  const s2 = newText || '';
-  const memo = Array.from({ length: s1.length + 1 }, () => Array(s2.length + 1).fill(0));
+// ── 高度な GitHub 風差分 UI 制御 ────────────────────────────
 
-  for (let i = 1; i <= s1.length; i++) {
-    for (let j = 1; j <= s2.length; j++) {
-      if (s1[i - 1] === s2[j - 1]) {
-        memo[i][j] = memo[i - 1][j - 1] + 1;
-      } else {
-        memo[i][j] = Math.max(memo[i - 1][j], memo[i][j - 1]);
-      }
-    }
+// 差分表示設定のデフォルト値
+window._diffCompareType = 'prev';    // 'prev' (前バージョン比) | 'current' (現在の下書き比)
+window._diffViewType    = 'split';   // 'split' (左右分割) | 'unified' (単一統合)
+window._viewMode        = 'diff';    // 'diff' (差分表示) | 'raw' (原文表示)
+
+window._app_renderDiff = () => {
+  const diffDiv = $('#essay-diff');
+  if (!diffDiv) return;
+
+  // 比較元のテキストを決定
+  let baseContent = '';
+  if (window._diffCompareType === 'prev') {
+    baseContent = window._historyPrevContent || '';
+  } else {
+    baseContent = window._currentDraftContent || '';
   }
 
-  let i = s1.length;
-  let j = s2.length;
-  const result = [];
+  // 比較先のテキスト
+  const targetContent = window._historyContent || '';
 
-  while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && s1[i - 1] === s2[j - 1]) {
-      result.push({ type: 'equal', text: s1[i - 1] });
-      i--;
-      j--;
-    } else if (j > 0 && (i === 0 || memo[i][j - 1] >= memo[i - 1][j])) {
-      result.push({ type: 'insert', text: s2[j - 1] });
-      j--;
-    } else {
-      result.push({ type: 'delete', text: s1[i - 1] });
-      i--;
-    }
+  // 差分計算と行アライメントの実行
+  const diffResults = diffLines(baseContent, targetContent);
+  const alignedRows = alignDiffLines(diffResults);
+
+  // 指定レイアウトでHTMLを出力
+  if (window._diffViewType === 'split') {
+    diffDiv.innerHTML = renderSplitHtml(alignedRows);
+  } else {
+    diffDiv.innerHTML = renderUnifiedHtml(alignedRows);
   }
+};
 
-  result.reverse();
-
-  const merged = [];
-  for (const item of result) {
-    const last = merged[merged.length - 1];
-    if (last && last.type === item.type) {
-      last.text += item.text;
-    } else {
-      merged.push({ ...item });
-    }
-  }
-  return merged;
-}
-
-window._app_toggleDiffMode = (showDiff) => {
+window._app_setViewMode = (mode) => {
+  window._viewMode = mode;
   const textarea = $('#essay-textarea');
   const diffDiv = $('#essay-diff');
-  const btnRaw = $('#btn-raw-mode');
-  const btnDiff = $('#btn-diff-mode');
-  if (!textarea || !diffDiv) return;
+  const typeGroup = $('#diff-view-type-group');
+  const compareSelect = $('#diff-compare-select');
+  const btnRaw = $('#btn-view-raw');
+  const btnDiff = $('#btn-view-diff');
 
-  if (showDiff) {
-    textarea.style.display = 'none';
-    diffDiv.style.display = 'block';
-    btnRaw?.classList.remove('active');
-    btnDiff?.classList.add('active');
-
-    const diff = diffTexts(window._historyContent, window._currentDraftContent);
-    diffDiv.innerHTML = diff.map(item => {
-      if (item.type === 'insert') {
-        return `<ins class="diff-ins">${escapeHtml(item.text)}</ins>`;
-      } else if (item.type === 'delete') {
-        return `<del class="diff-del">${escapeHtml(item.text)}</del>`;
-      } else {
-        return escapeHtml(item.text);
-      }
-    }).join('');
-  } else {
+  if (mode === 'raw') {
     textarea.style.display = 'block';
     diffDiv.style.display = 'none';
+    if (typeGroup) typeGroup.style.display = 'none';
+    if (compareSelect) compareSelect.style.display = 'none';
     btnRaw?.classList.add('active');
     btnDiff?.classList.remove('active');
+  } else {
+    textarea.style.display = 'none';
+    diffDiv.style.display = 'block';
+    if (typeGroup) typeGroup.style.display = '';
+    if (compareSelect) compareSelect.style.display = '';
+    btnRaw?.classList.remove('active');
+    btnDiff?.classList.add('active');
+    window._app_renderDiff();
   }
+};
+
+window._app_setCompareType = (type) => {
+  window._diffCompareType = type;
+  window._app_renderDiff();
+};
+
+window._app_setViewType = (type) => {
+  window._diffViewType = type;
+  const btnSplit = $('#btn-diff-split');
+  const btnUnified = $('#btn-diff-unified');
+
+  if (type === 'split') {
+    btnSplit?.classList.add('active');
+    btnUnified?.classList.remove('active');
+  } else {
+    btnSplit?.classList.remove('active');
+    btnUnified?.classList.add('active');
+  }
+  window._app_renderDiff();
 };
 
 async function loadHistoryVersion(version) {
@@ -477,7 +486,23 @@ async function loadHistoryVersion(version) {
     window._currentDraftContent = state.essay.current_content;
     window._historyMode = true;
 
-    // エディタに過去の内容を設定（原文表示用）
+    // 前のバージョンを探索してそのコンテンツを取得
+    let prevContent = '';
+    let versionNum = 1;
+    if (state.versions) {
+      const idx = state.versions.findIndex(ver => ver.id === version.id);
+      if (idx !== -1) {
+        versionNum = state.versions.length - idx;
+        if (idx + 1 < state.versions.length) {
+          const prevVer = state.versions[idx + 1];
+          const prevV = await getVersion(ESSAY_ID, prevVer.id);
+          prevContent = prevV.content;
+        }
+      }
+    }
+    window._historyPrevContent = prevContent;
+
+    // 原文表示用のエディタ設定
     window._editor.setContent(v.content);
     window._editor.setReadOnly(true);
 
@@ -491,16 +516,26 @@ async function loadHistoryVersion(version) {
     }
     const date = new Date(version.created_at).toLocaleString('ja-JP');
     banner.innerHTML = `
-      <span>過去バージョンを表示中（${date}）</span>
-      <div style="display:inline-flex; gap:6px;">
-        <button id="btn-raw-mode" class="active" onclick="window._app_toggleDiffMode(false)">原文</button>
-        <button id="btn-diff-mode" onclick="window._app_toggleDiffMode(true)">現在との差分</button>
+      <span style="font-weight:600;margin-right:10px;">バージョン ${versionNum}（${date}）</span>
+      <div style="display:inline-flex; gap:6px; align-items:center; margin-right:15px;">
+        <select id="diff-compare-select" class="banner-select" style="padding: 2px 6px; font-size:12px; border-radius:var(--radius-sm); border:1px solid var(--color-warning);" onchange="window._app_setCompareType(this.value)">
+          <option value="prev">この版での変更 (前バージョン比)</option>
+          <option value="current">この版からの変更 (現在の下書き比)</option>
+        </select>
       </div>
-      <button onclick="window._app_closeHistory()">現在の下書きに戻る</button>
+      <div style="display:inline-flex; gap:6px; margin-right:15px;">
+        <button id="btn-view-raw" onclick="window._app_setViewMode('raw')">原文</button>
+        <button id="btn-view-diff" class="active" onclick="window._app_setViewMode('diff')">差分</button>
+      </div>
+      <div id="diff-view-type-group" style="display:inline-flex; gap:6px; margin-right:15px;">
+        <button id="btn-diff-split" class="active" onclick="window._app_setViewType('split')">Split</button>
+        <button id="btn-diff-unified" onclick="window._app_setViewType('unified')">Unified</button>
+      </div>
+      <button onclick="window._app_closeHistory()" style="margin-left:auto;">現在の下書きに戻る</button>
     `;
 
-    // デフォルトで差分モードを表示
-    window._app_toggleDiffMode(true);
+    // デフォルトの表示モードを適用
+    window._app_setViewMode(window._viewMode);
 
     // チェックリスト・コメントも反映
     if (version.review_id) {

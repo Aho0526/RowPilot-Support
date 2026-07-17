@@ -1085,34 +1085,134 @@ details[open] .req-summary::before {
   background: var(--color-text-muted);
 }
 
-/* ── Diff Styles ────────────────────────────────────────────── */
+/* ── Diff Styles (GitHub PR Style) ─────────────────────────── */
 .essay-diff {
   flex: 1;
   width: 100%;
   height: 100%;
-  padding: 20px 24px;
-  font-family: var(--font-sans);
-  font-size: 14.5px;
-  line-height: 1.85;
-  color: var(--color-text-primary);
-  background: var(--color-surface);
+  padding: 0;
+  background: var(--color-bg);
   overflow-y: auto;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.diff-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.diff-tr {
+  border-bottom: none;
+}
+
+/* 行番号 */
+.diff-td-ln {
+  width: 44px;
+  min-width: 44px;
+  text-align: right;
+  padding: 1px 10px 1px 4px;
+  color: var(--color-text-muted);
+  background: #f8f9fa;
+  border-right: 1px solid var(--color-border-light);
+  user-select: none;
+  font-size: 11.5px;
+}
+
+/* コード領域 */
+.diff-td-code {
+  padding: 1px 12px;
   white-space: pre-wrap;
   word-break: break-all;
+  vertical-align: top;
+  position: relative;
 }
 
-.diff-ins {
-  background-color: var(--color-success-bg);
-  color: var(--color-success);
-  text-decoration: none;
-  border-bottom: 1.5px solid var(--color-success);
+/* 記号マーカー */
+.diff-marker {
+  display: inline-block;
+  width: 14px;
+  user-select: none;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  margin-right: 4px;
 }
 
-.diff-del {
-  background-color: var(--color-danger-bg);
-  color: var(--color-danger);
+/* 変化なし行 */
+.diff-tr-normal {
+  color: var(--color-text-primary);
+}
+.diff-tr-normal:hover {
+  background: #f1f2f4;
+}
+
+/* 削除行 */
+.diff-tr-delete, .diff-td-ln-delete, .diff-td-code-delete {
+  background-color: #ffebe9;
+  color: #c93b3b;
+}
+.diff-tr-delete:hover, .diff-tr:hover .diff-td-code-delete {
+  background-color: #ffd8d4;
+}
+.diff-td-ln-delete {
+  background-color: #ffd8d4;
+  border-right-color: #ffb8b0;
+}
+
+/* 追加行 */
+.diff-tr-insert, .diff-td-ln-insert, .diff-td-code-insert {
+  background-color: #dafbe1;
+  color: #1a7f37;
+}
+.diff-tr-insert:hover, .diff-tr:hover .diff-td-code-insert {
+  background-color: #ccffd8;
+}
+.diff-td-ln-insert {
+  background-color: #ccffd8;
+  border-right-color: #a6f5b8;
+}
+
+/* スプリット表示用の空余白 */
+.diff-td-ln-empty, .diff-td-code-empty {
+  background-color: #fafbfc;
+  border-right-color: var(--color-border-light);
+}
+
+/* 文字単位の細部ハイライト */
+.diff-char-del {
+  background-color: #ffb8b0;
+  color: #8c1a1a;
   text-decoration: line-through;
-  opacity: 0.85;
+  border-radius: var(--radius-sm);
+  padding: 0 2px;
+}
+
+.diff-char-ins {
+  background-color: #acf2bd;
+  color: #0b5322;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  padding: 0 2px;
+  border-bottom: 1.5px solid #1a7f37;
+}
+
+/* 左右分割テーブル用設定 */
+.diff-table-split {
+  table-layout: fixed;
+}
+.diff-table-split td.diff-td-code {
+  width: 50%;
+  border-right: 1px solid var(--color-border-light);
+}
+.diff-table-split td.diff-td-code:last-child {
+  border-right: none;
 }
 
 /* ================================================================
