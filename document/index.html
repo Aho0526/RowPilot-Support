@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>課題論文 添削支援 — RowPilot</title>
+  <title>課題論文添削</title>
   <meta name="description" content="課題論文の添削・レビューを効率化する支援ツール">
   <meta name="robots" content="noindex, nofollow">
 
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;600&display=swap"
+    rel="stylesheet">
 
   <!-- Marked.js (Markdown パーサー) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -31,9 +34,10 @@
   <header class="app-header">
     <div class="header-left">
       <a href="/" class="header-logo" aria-label="RowPilot ホームへ">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
       </a>
       <span class="header-separator" aria-hidden="true">/</span>
@@ -47,14 +51,21 @@
       <!-- モード切替 -->
       <div class="mode-toggle" role="group" aria-label="表示モード切替">
         <button id="btn-mode-student" class="mode-btn mode-btn--active" aria-pressed="true">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
           </svg>
           生徒モード
         </button>
         <button id="btn-mode-teacher" class="mode-btn" aria-pressed="false">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
           先生モード
         </button>
@@ -86,6 +97,8 @@
         <div class="panel-meta" id="essay-meta-info">
           <span id="char-count" class="char-count">0 字</span>
           <span id="save-status" class="save-status status--saved">保存済み</span>
+          <span id="last-request-time" class="last-request-time"
+            style="font-size: 11px; color: var(--color-text-muted);"></span>
         </div>
       </div>
       <div class="panel-body panel-body--editor">
@@ -106,13 +119,9 @@
           </div>
         </div>
 
-        <textarea
-          id="essay-textarea"
-          class="essay-textarea"
-          placeholder="ここにエッセイを入力してください。&#10;&#10;①〜④ の合計が 1,200字以内です。"
-          spellcheck="false"
-          aria-label="エッセイ本文"
-        ></textarea>
+        <textarea id="essay-textarea" class="essay-textarea"
+          placeholder="ここにエッセイを入力してください。&#10;&#10;①〜④ の合計が 1,200字以内です。" spellcheck="false"
+          aria-label="エッセイ本文"></textarea>
         <div id="essay-diff" class="essay-diff" style="display: none;"></div>
       </div>
     </section>
@@ -187,16 +196,19 @@
     <div class="toolbar-left">
       <!-- 生徒: レビュー依頼 -->
       <button id="btn-request-review" class="toolbar-btn toolbar-btn--primary">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="22" y1="2" x2="11" y2="13" />
+          <polygon points="22 2 15 22 11 13 2 9 22 2" />
         </svg>
         レビュー依頼
       </button>
 
       <!-- 先生: レビュー提出 -->
       <button id="btn-submit-review" class="toolbar-btn toolbar-btn--primary" style="display:none">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="20 6 9 17 4 12"/>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12" />
         </svg>
         レビュー提出
       </button>
@@ -208,4 +220,5 @@
   ================================================================ -->
   <script type="module" src="js/app.js"></script>
 </body>
+
 </html>

@@ -199,6 +199,9 @@ async function loadEssay() {
     const titleEl = $('#essay-title');
     if (titleEl) titleEl.textContent = state.essay.title;
 
+    // 最終提出時間の表示更新
+    updateLastRequestTime();
+
     showLoading(false);
   } catch (e) {
     console.error('Failed to load essay:', e);
@@ -291,6 +294,13 @@ async function handleRequestReview() {
     return;
   }
 
+  // 前回提出時のバージョン内容と比較し、変更があるかチェック
+  const latestContent = state.currentVersion?.content ?? '';
+  if (content.trim() === latestContent.trim()) {
+    alert('前回提出した内容から変更がありません。1文字以上変更してから依頼してください。');
+    return;
+  }
+
   if (!confirm('現在の内容でレビューを依頼しますか？\nこの操作で新しいバージョンが作成されます。')) return;
 
   btn.disabled = true;
@@ -301,18 +311,25 @@ async function handleRequestReview() {
 
   try {
     const result = await requestReview(ESSAY_ID, teacherEmail);
+    const nowIso = new Date().toISOString();
     state.currentReview = {
       id: result.reviewId,
       submitted_at: null,
       markdown_comment: '',
       itemMap: {},
     };
-    state.currentVersion = { id: result.versionId, review_id: result.reviewId };
+    state.currentVersion = {
+      id: result.versionId,
+      review_id: result.reviewId,
+      content: content,
+      created_at: nowIso
+    };
 
     window._checklist.setItemMap({});
     window._comments.setContent('', null);
 
     applyMode(state.mode);
+    updateLastRequestTime();
     alert('レビューを依頼しました！先生の添削をお待ちください。');
   } catch (e) {
     console.error('Review request failed:', e);
@@ -722,6 +739,23 @@ function initResizablePanels() {
 function showLoading(show) {
   const el = $('#loading-overlay');
   if (el) el.hidden = !show;
+}
+
+function updateLastRequestTime() {
+  const el = $('#last-request-time');
+  if (!el) return;
+
+  if (state.currentVersion?.created_at) {
+    const date = new Date(state.currentVersion.created_at).toLocaleString('ja-JP', {
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    el.textContent = `最終提出: ${date}`;
+  } else {
+    el.textContent = '';
+  }
 }
 
 function showError(message) {
