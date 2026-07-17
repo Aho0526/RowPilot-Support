@@ -1,0 +1,19 @@
+name            = "document-worker"
+main            = "src/index.js"
+compatibility_date = "2024-07-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ── D1 Database ────────────────────────────────────────────────
+# wrangler d1 create document-db を実行した後、
+# 出力された database_id をここに貼り付けてください
+[[d1_databases]]
+binding       = "DB"
+database_name = "document-db"
+database_id   = "f04b1ff7-2f36-40b2-8838-372db4bcb341"
+
+# ── Routes ────────────────────────────────────────────────────
+# rowpilot.jp の Cloudflare ゾーンで /document/api/* を
+# この Worker にルーティングします
+[[routes]]
+pattern   = "rowpilot.jp/document/api/*"
+zone_name = "rowpilot.jp"
