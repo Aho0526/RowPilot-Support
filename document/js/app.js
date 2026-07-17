@@ -53,6 +53,15 @@ async function init() {
   // データ取得
   await loadEssay();
 
+  // メール通知設定
+  setupEmailSetting();
+
+  // 左パネルタブ（編集 / 履歴・差分）初期化
+  initLeftPanelTabs();
+
+  // 差分コントロールのイベント設定
+  setupDiffControls();
+
   // モードに応じた初期化
   applyMode(state.mode, { initial: true });
 
@@ -97,8 +106,30 @@ function applyMode(mode, { initial = false } = {}) {
   badge.textContent = isTeacher ? '先生モード' : '生徒モード';
   badge.className = `role-badge role-badge--${mode}`;
 
+  // 履歴・差分タブは先生モードのみ表示
+  const btnPanelDiff = $('#btn-panel-diff');
+  if (btnPanelDiff) {
+    btnPanelDiff.style.display = isTeacher ? '' : 'none';
+  }
+
+  // 生徒モードに切り替えたとき、差分タブが開いていたら編集タブに強制リセット
+  if (!isTeacher) {
+    const btnPanelEdit = $('#btn-panel-edit');
+    const textarea = $('#essay-textarea');
+    const diffDiv = $('#essay-diff');
+    const controlsBar = $('#diff-controls-bar');
+    const metaInfo = $('#essay-meta-info');
+    btnPanelEdit?.classList.add('panel-tab--active');
+    btnPanelDiff?.classList.remove('panel-tab--active');
+    if (textarea) textarea.style.display = '';
+    if (diffDiv) diffDiv.style.display = 'none';
+    if (controlsBar) controlsBar.style.display = 'none';
+    if (metaInfo) metaInfo.style.display = '';
+    window._historyMode = false;
+  }
+
   // エディタ
-  if (window._editor) {
+  if (window._editor && !window._historyMode) {
     window._editor.setReadOnly(isTeacher);
   }
 
@@ -266,7 +297,7 @@ async function handleRequestReview() {
   btn.textContent = '依頼中...';
 
   // 生徒が設定した「先生のメールアドレス」を取得して通知用に渡す
-  const teacherEmail = localStorage.getItem('notification_email') ?? '';
+  const teacherEmail = window._app_getNotificationEmail ? window._app_getNotificationEmail() : '';
 
   try {
     const result = await requestReview(ESSAY_ID, teacherEmail);
@@ -310,7 +341,7 @@ async function handleSubmitReview() {
   btn.textContent = '提出中...';
 
   // 先生が設定した「生徒のメールアドレス」を取得して通知用に渡す
-  const studentEmail = localStorage.getItem('notification_email') ?? '';
+  const studentEmail = window._app_getNotificationEmail ? window._app_getNotificationEmail() : '';
 
   try {
     // コメントを先に保存
@@ -340,25 +371,34 @@ function setupEmailSetting() {
   const label = $('#email-setting-label');
   if (!input) return;
 
-  // 保存済みの通知先メールアドレスをロード
-  const savedEmail = localStorage.getItem('notification_email') ?? '';
-  input.value = savedEmail;
+  // モード別のLocalStorageキー
+  const getKey = (isTeacher) => isTeacher ? 'notification_email_teacher' : 'notification_email_student';
 
-  // ロールに応じたラベルとプレースホルダーの設定
+  // ロールに応じてラベル・値・プレースホルダーをすべて切り替える
   const updateEmailLabel = (isTeacher) => {
     if (label) label.textContent = isTeacher ? '生徒のメアド:' : '先生のメアド:';
-    if (input) input.placeholder = isTeacher ? '生徒のメールアドレス' : '先生のメールアドレス';
+    if (input) {
+      input.placeholder = isTeacher ? '生徒のメールアドレス' : '先生のメールアドレス';
+      // 切り替え後のモードに対応した保存値を読み込む
+      input.value = localStorage.getItem(getKey(isTeacher)) ?? '';
+    }
   };
 
   updateEmailLabel(state.mode === 'teacher');
 
-  // 入力されたら即保存
+  // 入力されたら現在のモードのキーで即保存
   input.addEventListener('input', (e) => {
-    localStorage.setItem('notification_email', e.target.value.trim());
+    const isTeacher = state.mode === 'teacher';
+    localStorage.setItem(getKey(isTeacher), e.target.value.trim());
   });
 
   // グローバルに切り替えメソッドを登録（applyModeから更新するため）
   window._app_updateEmailLabel = updateEmailLabel;
+  // 送信時に現在モードのメールアドレスを取得するヘルパーも登録
+  window._app_getNotificationEmail = () => {
+    const isTeacher = state.mode === 'teacher';
+    return localStorage.getItem(getKey(isTeacher)) ?? '';
+  };
 }
 
 // ================================================================
@@ -453,7 +493,8 @@ async function refreshDiffVersionSelect() {
     });
 
     // 初期状態で一番最新のバージョンを選択して表示
-    await selectDiffVersion(parseInt(select.value, 10));
+    const firstId = select.value;
+    if (firstId) await selectDiffVersion(firstId);
   } catch (e) {
     console.error('Failed to load version select:', e);
     diffDiv.innerHTML = '<p class="cm-empty" style="padding: 24px; color: var(--color-danger)">履歴の読み込みに失敗しました。</p>';
@@ -461,17 +502,19 @@ async function refreshDiffVersionSelect() {
 }
 
 async function selectDiffVersion(versionId) {
-  if (!versionId) return;
+  // versionId は文字列または数値どちらでも対応
+  const vid = String(versionId);
+  if (!vid || vid === 'NaN' || vid === '') return;
 
   try {
-    const v = await getVersion(ESSAY_ID, versionId);
+    const v = await getVersion(ESSAY_ID, vid);
     window._historyContent = v.content;
-    window._currentDraftContent = state.essay.current_content;
+    window._currentDraftContent = state.essay?.current_content ?? '';
 
     // 前のバージョンを検索して比較元（Base）にする
     let prevContent = '';
     if (state.versions) {
-      const idx = state.versions.findIndex(ver => ver.id === versionId);
+      const idx = state.versions.findIndex(ver => String(ver.id) === vid);
       if (idx !== -1 && idx + 1 < state.versions.length) {
         const prevVer = state.versions[idx + 1];
         const prevV = await getVersion(ESSAY_ID, prevVer.id);
@@ -484,7 +527,7 @@ async function selectDiffVersion(versionId) {
     window._app_renderDiff();
 
     // 選択されたバージョン当時のチェックリストと先生コメントも同期反映
-    const idx = state.versions.findIndex(ver => ver.id === versionId);
+    const idx = state.versions ? state.versions.findIndex(ver => String(ver.id) === vid) : -1;
     if (idx !== -1) {
       const version = state.versions[idx];
       if (version.review_id) {
@@ -507,6 +550,8 @@ async function selectDiffVersion(versionId) {
 
   } catch (e) {
     console.error('Failed to select version:', e);
+    const diffDiv = $('#essay-diff');
+    if (diffDiv) diffDiv.innerHTML = `<p class="cm-empty" style="padding: 24px; color: var(--color-danger)">バージョン読み込みエラー: ${e.message}</p>`;
   }
 }
 
@@ -515,7 +560,7 @@ function setupDiffControls() {
   const select = $('#diff-version-select');
   if (select) {
     select.addEventListener('change', (e) => {
-      selectDiffVersion(parseInt(e.target.value, 10));
+      selectDiffVersion(e.target.value);
     });
   }
 
@@ -544,9 +589,68 @@ function setupDiffControls() {
 }
 
 
+// ================================================================
+// 差分表示制御（GitHub PR 風）
+// ================================================================
+
+// デフォルト設定
+window._diffCompareType = 'prev';  // 'prev' | 'current'
+window._diffViewType    = 'split'; // 'split' | 'unified'
+window._viewMode        = 'diff';  // 'diff'  | 'raw'
+
+window._app_renderDiff = () => {
+  const diffDiv = $('#essay-diff');
+  if (!diffDiv) return;
+
+  const baseContent = window._diffCompareType === 'prev'
+    ? (window._historyPrevContent || '')
+    : (window._currentDraftContent || '');
+  const targetContent = window._historyContent || '';
+
+  const diffResults  = diffLines(baseContent, targetContent);
+  const alignedRows  = alignDiffLines(diffResults);
+
+  diffDiv.innerHTML = window._diffViewType === 'split'
+    ? renderSplitHtml(alignedRows)
+    : renderUnifiedHtml(alignedRows);
+};
+
+window._app_setViewMode = (mode) => {
+  window._viewMode = mode;
+  const textarea      = $('#essay-textarea');
+  const diffDiv       = $('#essay-diff');
+  const btnRaw        = $('#btn-view-raw');
+  const btnDiff       = $('#btn-view-diff');
+
+  if (mode === 'raw') {
+    if (textarea) textarea.style.display = 'block';
+    if (diffDiv)  diffDiv.style.display  = 'none';
+    btnRaw?.classList.add('active');
+    btnDiff?.classList.remove('active');
+  } else {
+    if (textarea) textarea.style.display = 'none';
+    if (diffDiv)  diffDiv.style.display  = 'block';
+    btnRaw?.classList.remove('active');
+    btnDiff?.classList.add('active');
+    window._app_renderDiff();
+  }
+};
+
+window._app_setCompareType = (type) => {
+  window._diffCompareType = type;
+  window._app_renderDiff();
+};
+
+window._app_setViewType = (type) => {
+  window._diffViewType = type;
+  $('#btn-diff-split')?.classList.toggle('active', type === 'split');
+  $('#btn-diff-unified')?.classList.toggle('active', type === 'unified');
+  window._app_renderDiff();
+};
 
 // ================================================================
 // パネルリサイズ
+
 // ================================================================
 function initResizablePanels() {
   const main = document.querySelector('.app-main');
