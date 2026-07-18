@@ -139,6 +139,7 @@ function applyMode(mode, { initial = false } = {}) {
   // チェックリスト
   if (window._checklist) {
     window._checklist.setInteractive(isTeacher && hasReview && !submitted);
+    window._checklist.setMode(isTeacher);
   }
 
   // チェックリストのヒント表示

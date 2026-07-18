@@ -115,22 +115,66 @@ export class Checklist {
     return total > 0 ? checked / total : 0;
   }
 
+  /** モードに応じた表示切り替え（生徒: 設問テキスト / 先生: 審査チェックリスト） */
+  setMode(isTeacher) {
+    this._isTeacher = isTeacher;
+    if (this._promptBoxEl) this._promptBoxEl.style.display = isTeacher ? 'none' : 'block';
+    if (this._evalBoxEl) this._evalBoxEl.style.display = isTeacher ? 'block' : 'none';
+  }
+
   // ── プライベート ────────────────────────────────────────────
 
   _render() {
     this.container.innerHTML = '';
+
+    // 生徒用設問プロンプト表示エリア
+    this._promptBoxEl = document.createElement('div');
+    this._promptBoxEl.className = 'cl-prompt-box';
+    this._promptBoxEl.innerHTML = `
+      <div class="cl-prompt-title">設問・課題内容</div>
+      <div class="cl-prompt-intro">
+        あなたが日常生活や学校生活の中で実際に体験した、情報技術に関する具体的な出来事を１つ挙げ、それをきっかけに関心を持った情報学分野の技術について、以下の①～⑤に回答してください。①～④の文字数は計 1,200 字以内とします。
+      </div>
+      <div class="cl-prompt-items">
+        <div class="cl-prompt-item">
+          <div class="cl-prompt-num">①</div>
+          <div class="cl-prompt-text">その出来事がいつ・どこで・どのように起きたかを具体的に述べ、なぜその技術に関心を持ったかを説明してください。</div>
+        </div>
+        <div class="cl-prompt-item">
+          <div class="cl-prompt-num">②</div>
+          <div class="cl-prompt-text">その技術の現状（手法・活用例・課題）を各種資料*を参照しながら分析してください。参照した資料を選んだ理由も簡潔に述べてください。</div>
+        </div>
+        <div class="cl-prompt-item">
+          <div class="cl-prompt-num">③</div>
+          <div class="cl-prompt-text">その技術が今後 10～20 年でどう発展するかを、①②を踏まえ理由も添えて論じてください。</div>
+        </div>
+        <div class="cl-prompt-item">
+          <div class="cl-prompt-num">④</div>
+          <div class="cl-prompt-text">あなたが将来研究者・開発者として関わると仮定し、その技術についてどのようなものをどのように研究・開発していきたいと思うかを述べてください。</div>
+        </div>
+        <div class="cl-prompt-item">
+          <div class="cl-prompt-num">⑤</div>
+          <div class="cl-prompt-text">④で構想した研究・開発について、想定するシステムや手法の全体像を 1 枚の図で示してください。ただし、図は紙に手書きで作成し、そのスキャンデータを提出してください。</div>
+        </div>
+      </div>
+    `;
+    this.container.appendChild(this._promptBoxEl);
+
+    // 先生用評価チェックリストエリア
+    this._evalBoxEl = document.createElement('div');
+    this._evalBoxEl.className = 'cl-eval-box';
 
     // 全体進捗バー
     const progressWrap = document.createElement('div');
     progressWrap.className = 'cl-progress-wrap';
     progressWrap.innerHTML = `
       <div class="cl-progress-label">
-        <span>進捗</span>
+        <span>審査進捗</span>
         <span class="cl-progress-count"></span>
       </div>
       <div class="cl-progress-bar"><div class="cl-progress-fill"></div></div>
     `;
-    this.container.appendChild(progressWrap);
+    this._evalBoxEl.appendChild(progressWrap);
 
     // セクションを描画
     CHECKLIST.forEach((section) => {
@@ -185,8 +229,10 @@ export class Checklist {
       });
 
       sectionEl.appendChild(items);
-      this.container.appendChild(sectionEl);
+      this._evalBoxEl.appendChild(sectionEl);
     });
+
+    this.container.appendChild(this._evalBoxEl);
   }
 
   _updateCheckboxes() {
