@@ -587,12 +587,13 @@ async function refreshDiffVersionSelect() {
     select.innerHTML = '';
     versions.forEach((v, i) => {
       const num = versions.length - i;
-      const date = new Date(v.created_at).toLocaleDateString('ja-JP', {
+      const d = parseDate(v.created_at);
+      const date = (d && !isNaN(d.getTime())) ? d.toLocaleDateString('ja-JP', {
         month: 'numeric',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-      });
+      }) : '';
       const option = document.createElement('option');
       option.value = v.id;
       option.textContent = `v${num} (${date})`;
@@ -831,21 +832,32 @@ function showLoading(show) {
   if (el) el.hidden = !show;
 }
 
+function parseDate(dateStr) {
+  if (!dateStr) return null;
+  const str = String(dateStr).trim();
+  const isoStr = str.replace(' ', 'T') + (str.includes('T') || str.endsWith('Z') ? '' : 'Z');
+  const d = new Date(isoStr);
+  return isNaN(d.getTime()) ? new Date(str) : d;
+}
+
 function updateLastRequestTime() {
   const el = $('#last-request-time');
   if (!el) return;
 
   if (state.currentVersion?.created_at) {
-    const date = new Date(state.currentVersion.created_at).toLocaleString('ja-JP', {
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-    el.textContent = `最終提出: ${date}`;
-  } else {
-    el.textContent = '';
+    const d = parseDate(state.currentVersion.created_at);
+    if (d && !isNaN(d.getTime())) {
+      const date = d.toLocaleString('ja-JP', {
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      el.textContent = `最終提出: ${date}`;
+      return;
+    }
   }
+  el.textContent = '';
 }
 
 function showError(message) {
