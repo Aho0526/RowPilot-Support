@@ -70,6 +70,9 @@ async function init() {
 
   // パネルリサイズ
   initResizablePanels();
+
+  // リアルタイム自動同期 (3秒ごとの定期同期＆タブ・フォーカス復帰時同期)
+  startLiveSync();
 }
 
 // ================================================================
@@ -216,6 +219,92 @@ async function loadReview(versionId) {
     state.currentReview = review;
   } catch (e) {
     console.error('Failed to load review:', e);
+  }
+}
+
+// ================================================================
+// リアルタイム自動同期（他端末・他タブとのライブ同期）
+// ================================================================
+let isSyncing = false;
+
+function startLiveSync() {
+  // 3秒ごとのバックグラウンド同期
+  setInterval(syncLatestData, 3000);
+
+  // タブ復帰・ウィンドウフォーカス時にも即時同期
+  window.addEventListener('focus', syncLatestData);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      syncLatestData();
+    }
+  });
+}
+
+async function syncLatestData() {
+  // すでに同期中、または履歴・差分閲覧モード中の場合は同期をスキップ
+  if (isSyncing || window._historyMode) return;
+  isSyncing = true;
+
+  try {
+    const data = await getEssay(ESSAY_ID);
+    const serverEssay = data.essay;
+    const serverLatestVersion = data.latestVersion;
+
+    // 1. エディタ本文の同期 (生徒が入力中でない場合のみ反映)
+    const textarea = $('#essay-textarea');
+    const isEditingTextarea = document.activeElement === textarea;
+
+    if (serverEssay && serverEssay.current_content !== state.essay?.current_content) {
+      state.essay = serverEssay;
+      if (!isEditingTextarea && window._editor) {
+        window._editor.setContent(serverEssay.current_content);
+      }
+    }
+
+    // 2. バージョン＆レビュー状態の同期
+    const versionIdChanged = serverLatestVersion?.id !== state.currentVersion?.id;
+    state.currentVersion = serverLatestVersion;
+
+    if (serverLatestVersion?.review_id) {
+      const serverReview = await getReview(serverLatestVersion.id);
+
+      const commentTextarea = document.querySelector('.cm-textarea');
+      const isEditingComment = document.activeElement === commentTextarea;
+
+      const reviewStateChanged =
+        versionIdChanged ||
+        serverReview?.submitted_at !== state.currentReview?.submitted_at ||
+        JSON.stringify(serverReview?.itemMap) !== JSON.stringify(state.currentReview?.itemMap) ||
+        (!isEditingComment && serverReview?.markdown_comment !== state.currentReview?.markdown_comment);
+
+      if (reviewStateChanged) {
+        state.currentReview = serverReview;
+
+        if (window._checklist) {
+          window._checklist.setItemMap(serverReview?.itemMap ?? {});
+        }
+
+        if (window._comments && !isEditingComment) {
+          window._comments.setContent(
+            serverReview?.markdown_comment,
+            serverReview?.submitted_at
+          );
+        }
+
+        applyMode(state.mode);
+        updateLastRequestTime();
+      }
+    } else if (state.currentReview !== null) {
+      state.currentReview = null;
+      window._checklist?.setItemMap({});
+      window._comments?.setContent('', null);
+      applyMode(state.mode);
+      updateLastRequestTime();
+    }
+  } catch (e) {
+    console.debug('Live sync debug:', e);
+  } finally {
+    isSyncing = false;
   }
 }
 
