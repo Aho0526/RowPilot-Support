@@ -131,7 +131,7 @@ export class Checklist {
     this._promptBoxEl = document.createElement('div');
     this._promptBoxEl.className = 'cl-prompt-box';
     this._promptBoxEl.innerHTML = `
-      <div class="cl-prompt-title">設問・課題内容</div>
+      <div class="cl-prompt-title">条件</div>
       <div class="cl-prompt-intro">
         あなたが日常生活や学校生活の中で実際に体験した、情報技術に関する具体的な出来事を１つ挙げ、それをきっかけに関心を持った情報学分野の技術について、以下の①～⑤に回答してください。①～④の文字数は計 1,200 字以内とします。
       </div>
