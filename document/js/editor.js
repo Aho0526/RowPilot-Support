@@ -27,6 +27,7 @@ export class Editor {
     this._lastSavedContent = '';
     this._readOnly = false;
 
+    this._setupHighlighter();
     this._bindEvents();
   }
 
@@ -37,6 +38,7 @@ export class Editor {
     this.textarea.value = content ?? '';
     this._lastSavedContent = this.textarea.value;
     this._updateCount();
+    this._renderHighlight();
   }
 
   /** 読み取り専用モード切替 */
@@ -58,6 +60,44 @@ export class Editor {
   }
 
   // ── プライベート ────────────────────────────────────────────
+
+  _setupHighlighter() {
+    if (!this.textarea) return;
+    this.backdrop = document.createElement('div');
+    this.backdrop.className = 'editor-backdrop';
+
+    const parent = this.textarea.parentNode;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'editor-wrapper';
+
+    parent.insertBefore(wrapper, this.textarea);
+    wrapper.appendChild(this.backdrop);
+    wrapper.appendChild(this.textarea);
+
+    const syncScroll = () => {
+      if (this.backdrop && this.textarea) {
+        this.backdrop.scrollTop = this.textarea.scrollTop;
+        this.backdrop.scrollLeft = this.textarea.scrollLeft;
+      }
+    };
+
+    this.textarea.addEventListener('scroll', syncScroll);
+    this.textarea.addEventListener('input', () => {
+      this._renderHighlight();
+      syncScroll();
+    });
+
+    this._renderHighlight();
+  }
+
+  _renderHighlight() {
+    if (!this.backdrop || !this.textarea) return;
+    const val = this.textarea.value || '';
+    const escaped = escapeHtml(val);
+    const highlighted = escaped.replace(/(^|[^:])\/\/(.*)$/gm, '$1<span class="editor-comment">//$2</span>')
+      + (val.endsWith('\n') ? '<br>&nbsp;' : '');
+    this.backdrop.innerHTML = highlighted;
+  }
 
   _bindEvents() {
     this.textarea.addEventListener('input', () => {
@@ -123,4 +163,13 @@ export class Editor {
     this.statusEl.textContent = text;
     this.statusEl.className = `save-status ${cls}`;
   }
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
