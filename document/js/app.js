@@ -118,13 +118,13 @@ function applyMode(mode, { initial = false } = {}) {
   // 生徒モードに切り替えたとき、差分タブが開いていたら編集タブに強制リセット
   if (!isTeacher) {
     const btnPanelEdit = $('#btn-panel-edit');
-    const textarea = $('#essay-textarea');
+    const editorWrapper = document.querySelector('.editor-wrapper') || $('#essay-textarea');
     const diffDiv = $('#essay-diff');
     const controlsBar = $('#diff-controls-bar');
     const metaInfo = $('#essay-meta-info');
     btnPanelEdit?.classList.add('panel-tab--active');
     btnPanelDiff?.classList.remove('panel-tab--active');
-    if (textarea) textarea.style.display = '';
+    if (editorWrapper) editorWrapper.style.display = 'flex';
     if (diffDiv) diffDiv.style.display = 'none';
     if (controlsBar) controlsBar.style.display = 'none';
     if (metaInfo) metaInfo.style.display = '';
@@ -639,6 +639,11 @@ async function selectDiffVersion(versionId) {
     window._historyContent = v.content;
     window._currentDraftContent = state.essay?.current_content ?? '';
 
+    // 原文モード選択中であればエディタ内容をそのバージョンのテキストに更新
+    if (window._viewMode === 'raw' && window._editor) {
+      window._editor.setContent(v.content);
+    }
+
     // 前のバージョンを検索して比較元（Base）にする
     let prevContent = '';
     if (state.versions) {
@@ -745,19 +750,24 @@ window._app_renderDiff = () => {
 
 window._app_setViewMode = (mode) => {
   window._viewMode = mode;
-  const textarea      = $('#essay-textarea');
+  const editorWrapper = document.querySelector('.editor-wrapper') || $('#essay-textarea');
   const diffDiv       = $('#essay-diff');
   const btnRaw        = $('#btn-view-raw');
   const btnDiff       = $('#btn-view-diff');
 
   if (mode === 'raw') {
-    if (textarea) textarea.style.display = 'block';
-    if (diffDiv)  diffDiv.style.display  = 'none';
+    if (editorWrapper) editorWrapper.style.display = 'flex';
+    if (diffDiv)       diffDiv.style.display       = 'none';
     btnRaw?.classList.add('active');
     btnDiff?.classList.remove('active');
+
+    // 原文表示時は選択されているバージョンのテキストをエディタにセット
+    if (window._historyContent && window._editor) {
+      window._editor.setContent(window._historyContent);
+    }
   } else {
-    if (textarea) textarea.style.display = 'none';
-    if (diffDiv)  diffDiv.style.display  = 'block';
+    if (editorWrapper) editorWrapper.style.display = 'none';
+    if (diffDiv)       diffDiv.style.display       = 'block';
     btnRaw?.classList.remove('active');
     btnDiff?.classList.add('active');
     window._app_renderDiff();
