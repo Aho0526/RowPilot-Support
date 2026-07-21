@@ -109,21 +109,38 @@ function applyMode(mode, { initial = false } = {}) {
   badge.textContent = isTeacher ? '先生モード' : '生徒モード';
   badge.className = `role-badge role-badge--${mode}`;
 
-  // 履歴・差分タブは先生モードのみ表示
+  // 先生モード: 「編集」タブは非表示・「履歴・差分」タブのみ表示
+  // 生徒モード: 「編集」タブのみ表示・「履歴・差分」タブは非表示
+  const btnPanelEdit = $('#btn-panel-edit');
   const btnPanelDiff = $('#btn-panel-diff');
-  if (btnPanelDiff) {
-    btnPanelDiff.style.display = isTeacher ? '' : 'none';
-  }
+  if (btnPanelEdit) btnPanelEdit.style.display = isTeacher ? 'none' : '';
+  if (btnPanelDiff) btnPanelDiff.style.display = isTeacher ? '' : 'none';
 
-  // 生徒モードに切り替えたとき、差分タブが開いていたら編集タブに強制リセット
-  if (!isTeacher) {
-    const btnPanelEdit = $('#btn-panel-edit');
+  if (isTeacher) {
+    // 先生モードに切り替えたとき: 強制的に履歴・差分タブをアクティブにする
+    btnPanelEdit?.classList.remove('panel-tab--active');
+    btnPanelDiff?.classList.add('panel-tab--active');
+    // 差分コントロールと差分エリアを初期状態（非表示）にリセット
+    // 実際の表示は下の「エディタ」ブロックで制御
     const editorWrapper = document.querySelector('.editor-wrapper') || $('#essay-textarea');
     const diffDiv = $('#essay-diff');
     const controlsBar = $('#diff-controls-bar');
     const metaInfo = $('#essay-meta-info');
+    // 先生モード初期表示: 差分コントロールバーは非表示（タブクリックで出す）
+    // エディタ本体（提出バージョン）を表示
+    if (editorWrapper) editorWrapper.style.display = 'flex';
+    if (diffDiv) diffDiv.style.display = 'none';
+    if (controlsBar) controlsBar.style.display = 'none';
+    if (metaInfo) metaInfo.style.display = '';
+    window._historyMode = false;
+  } else {
+    // 生徒モードに切り替えたとき: 編集タブに強制リセット
     btnPanelEdit?.classList.add('panel-tab--active');
     btnPanelDiff?.classList.remove('panel-tab--active');
+    const editorWrapper = document.querySelector('.editor-wrapper') || $('#essay-textarea');
+    const diffDiv = $('#essay-diff');
+    const controlsBar = $('#diff-controls-bar');
+    const metaInfo = $('#essay-meta-info');
     if (editorWrapper) editorWrapper.style.display = 'flex';
     if (diffDiv) diffDiv.style.display = 'none';
     if (controlsBar) controlsBar.style.display = 'none';
@@ -542,7 +559,8 @@ function initLeftPanelTabs() {
   btnEdit.addEventListener('click', () => {
     btnEdit.classList.add('panel-tab--active');
     btnDiff.classList.remove('panel-tab--active');
-    if (textarea) textarea.style.display = '';
+    const editorWrapperEdit = document.querySelector('.editor-wrapper') || textarea;
+    if (editorWrapperEdit) editorWrapperEdit.style.display = 'flex';
     if (diffDiv) diffDiv.style.display = 'none';
     if (controlsBar) controlsBar.style.display = 'none';
     if (metaInfo) metaInfo.style.display = '';
@@ -573,15 +591,21 @@ function initLeftPanelTabs() {
   btnDiff.addEventListener('click', async () => {
     btnEdit.classList.remove('panel-tab--active');
     btnDiff.classList.add('panel-tab--active');
-    if (textarea) textarea.style.display = 'none';
-    if (diffDiv) diffDiv.style.display = 'block';
+    // editorWrapper を必ず非表示にする（原文と差分が同時表示されるバグを防ぐ）
+    const editorWrapperDiff = document.querySelector('.editor-wrapper') || textarea;
+    if (editorWrapperDiff) editorWrapperDiff.style.display = 'none';
+    if (diffDiv) diffDiv.style.display = 'none'; // _app_setViewModeで制御する
     if (controlsBar) controlsBar.style.display = 'flex';
     if (metaInfo) metaInfo.style.display = 'none';
 
     window._historyMode = true;
     window._editor.setReadOnly(true);
+    // viewMode を 'diff' に必ず初期化（初回クリック時や後の切り替えで原文が見えてしまう問題を防ぐ）
+    window._viewMode = 'diff';
+    $('#btn-view-diff')?.classList.add('active');
+    $('#btn-view-raw')?.classList.remove('active');
 
-    // バージョン選択プルダウンの読み込み・更新
+    // バージョン選択プルダウンの読み込み・差分レンダリング
     await refreshDiffVersionSelect();
   });
 }
@@ -623,6 +647,10 @@ async function refreshDiffVersionSelect() {
     // 初期状態で一番最新のバージョンを選択して表示
     const firstId = select.value;
     if (firstId) await selectDiffVersion(firstId);
+    // 差分表示エリアを必ず block にする（viewMode が 'diff' の場合のみ）
+    if (window._viewMode !== 'raw') {
+      window._app_setViewMode('diff');
+    }
   } catch (e) {
     console.error('Failed to load version select:', e);
     diffDiv.innerHTML = '<p class="cm-empty" style="padding: 24px; color: var(--color-danger)">履歴の読み込みに失敗しました。</p>';
