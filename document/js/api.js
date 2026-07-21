@@ -18,11 +18,20 @@ const API_BASE = (() => {
 async function request(method, path, body = null) {
   const opts = {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    cache: 'no-store',
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+    },
   };
   if (body !== null) opts.body = JSON.stringify(body);
 
-  const res = await fetch(`${API_BASE}${path}`, opts);
+  // タイムスタンプパラメータを付与してブラウザ/CDNキャッシュを完全バイパス
+  const separator = path.includes('?') ? '&' : '?';
+  const url = `${API_BASE}${path}${separator}_t=${Date.now()}`;
+
+  const res = await fetch(url, opts);
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || `HTTP ${res.status}`);

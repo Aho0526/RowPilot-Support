@@ -53,6 +53,14 @@ app.use('/document/api/*', cors({
   maxAge: 86400,
 }));
 
+// ── Cache-Control (キャッシュ無効化) ───────────────────────────
+app.use('/document/api/*', async (c, next) => {
+  await next();
+  c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  c.header('Pragma', 'no-cache');
+  c.header('Expires', '0');
+});
+
 // ── Utility: JSON エラーレスポンス ────────────────────────────
 const err = (c, status, message) => c.json({ error: message }, status);
 

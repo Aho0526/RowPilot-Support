@@ -235,8 +235,8 @@ async function loadReview(versionId) {
 let isSyncing = false;
 
 function startLiveSync() {
-  // 3秒ごとのバックグラウンド同期
-  setInterval(syncLatestData, 3000);
+  // 1.5秒ごとの高速リアルタイム同期（Google Docs風）
+  setInterval(syncLatestData, 1500);
 
   // タブ復帰・ウィンドウフォーカス時にも即時同期
   window.addEventListener('focus', syncLatestData);
@@ -256,6 +256,8 @@ async function syncLatestData() {
     const data = await getEssay(ESSAY_ID);
     const serverEssay = data.essay;
     const serverLatestVersion = data.latestVersion;
+
+    const versionIdChanged = serverLatestVersion?.id !== state.currentVersion?.id;
 
     // 1. エディタ本文の同期
     const textarea = $('#essay-textarea');
@@ -278,7 +280,6 @@ async function syncLatestData() {
     }
 
     // 2. バージョン＆レビュー状態の同期
-    const versionIdChanged = serverLatestVersion?.id !== state.currentVersion?.id;
     state.currentVersion = serverLatestVersion;
 
     if (serverLatestVersion?.review_id) {
