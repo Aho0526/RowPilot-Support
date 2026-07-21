@@ -102,7 +102,9 @@ export class Editor {
 
   _updateCount() {
     if (!this.countEl) return;
-    const len = this.textarea.value.length;
+    // スペース（半角・全角）および改行を除外してカウント
+    const textWithoutSpaces = (this.textarea.value || '').replace(/\s/g, '');
+    const len = textWithoutSpaces.length;
     this.countEl.textContent = `${len.toLocaleString()} 字`;
     this.countEl.classList.toggle('count--over', len > 1200);
   }
