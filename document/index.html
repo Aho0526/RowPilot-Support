@@ -18,7 +18,7 @@
   <!-- Marked.js (Markdown パーサー) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/app.css?v=20260721_2159">
 </head>
 
 <body>
@@ -106,23 +106,24 @@
         <div id="diff-controls-bar" class="diff-controls-bar" style="display: none;">
           <select id="diff-version-select" class="banner-select" style="max-width: 140px;"></select>
           <select id="diff-compare-select" class="banner-select">
-            <option value="prev">この版での変更 (前バージョン比)</option>
-            <option value="current">この版からの変更 (現在の下書き比)</option>
+            <option value="prev">前のバージョンと比較</option>
+            <option value="current">現在の下書きと比較</option>
           </select>
-          <div class="banner-btn-group">
-            <button id="btn-view-raw" class="diff-sub-btn">原文</button>
-            <button id="btn-view-diff" class="diff-sub-btn active">差分</button>
+          <div class="diff-view-mode-toggle" style="margin-left: auto; display: flex; gap: 4px;">
+            <button id="btn-view-diff" class="btn-sm active">差分</button>
+            <button id="btn-view-raw" class="btn-sm">原文</button>
           </div>
-          <div class="banner-btn-group">
-            <button id="btn-diff-split" class="diff-sub-btn active">Split</button>
-            <button id="btn-diff-unified" class="diff-sub-btn">Unified</button>
+          <div class="diff-type-toggle" style="display: flex; gap: 4px;">
+            <button id="btn-diff-split" class="btn-sm active">Split</button>
+            <button id="btn-diff-unified" class="btn-sm">Unified</button>
           </div>
         </div>
 
-        <textarea id="essay-textarea" class="essay-textarea"
-          placeholder="ここにエッセイを入力してください。&#10;&#10;①〜④ の合計が 1,200字以内です。" spellcheck="false"
-          aria-label="エッセイ本文"></textarea>
+        <!-- 差分レンダリング用コンテナ -->
         <div id="essay-diff" class="essay-diff" style="display: none;"></div>
+
+        <textarea id="essay-textarea" class="essay-textarea" placeholder="ここにエッセイを入力してください..."
+          spellcheck="false"></textarea>
       </div>
     </section>
 
@@ -145,14 +146,11 @@
     <div class="panel-divider" aria-hidden="true" data-divider="1"></div>
 
     <!-- ── 右パネル: コメント ─────────────────────────────────── -->
-    <section class="panel panel-comments" aria-label="先生のコメント">
+    <section class="panel panel-comments" aria-label="先生からのコメント">
       <div class="panel-header">
-        <h2 class="panel-title">コメント</h2>
-        <div class="panel-meta">
-          <span class="hint-text">Markdown 対応</span>
-        </div>
+        <h2 class="panel-title">先生からのコメント</h2>
       </div>
-      <div class="panel-body panel-body--scroll">
+      <div class="panel-body">
         <div id="comments-container" class="comments-container"></div>
       </div>
     </section>
@@ -164,6 +162,9 @@
   ================================================================ -->
   <footer class="app-toolbar">
     <div class="toolbar-left">
+      <span class="hint-text text-muted">編集内容は自動的に保存されます</span>
+    </div>
+    <div class="toolbar-right">
       <!-- 生徒: レビュー依頼 -->
       <button id="btn-request-review" class="toolbar-btn toolbar-btn--primary">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -182,13 +183,15 @@
         </svg>
         レビュー提出
       </button>
+
+      <span id="app-build-tag" class="app-build-tag" style="font-size: 11px; color: var(--color-text-muted); opacity: 0.8; margin-left: 12px; font-variant-numeric: tabular-nums;">v1.3 (2026.07.21 21:59)</span>
     </div>
   </footer>
 
   <!-- ================================================================
        スクリプト
   ================================================================ -->
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=20260721_2159"></script>
 </body>
 
 </html>
