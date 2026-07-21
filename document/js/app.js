@@ -133,6 +133,10 @@ function applyMode(mode, { initial = false } = {}) {
 
   // エディタ
   if (window._editor && !window._historyMode) {
+    const displayContent = isTeacher
+      ? (state.currentVersion?.content ?? state.essay?.current_content ?? '')
+      : (state.essay?.current_content ?? '');
+    window._editor.setContent(displayContent);
     window._editor.setReadOnly(isTeacher);
   }
 
@@ -188,8 +192,11 @@ async function loadEssay() {
     // モジュール初期化（初回のみ）
     initModules();
 
-    // コンテンツ反映
-    window._editor.setContent(state.essay.current_content);
+    // コンテンツ反映 (先生モードは依頼バージョン、生徒モードは最新下書き)
+    const displayContent = (state.mode === 'teacher')
+      ? (state.currentVersion?.content ?? state.essay?.current_content ?? '')
+      : (state.essay?.current_content ?? '');
+    window._editor.setContent(displayContent);
 
     if (state.currentReview) {
       window._checklist.setItemMap(state.currentReview.itemMap ?? {});
@@ -250,14 +257,23 @@ async function syncLatestData() {
     const serverEssay = data.essay;
     const serverLatestVersion = data.latestVersion;
 
-    // 1. エディタ本文の同期 (生徒が入力中でない場合のみ反映)
+    // 1. エディタ本文の同期
     const textarea = $('#essay-textarea');
     const isEditingTextarea = document.activeElement === textarea;
 
-    if (serverEssay && serverEssay.current_content !== state.essay?.current_content) {
+    if (state.mode === 'student') {
+      if (serverEssay && serverEssay.current_content !== state.essay?.current_content) {
+        state.essay = serverEssay;
+        if (!isEditingTextarea && window._editor && !window._historyMode) {
+          window._editor.setContent(serverEssay.current_content);
+        }
+      }
+    } else {
+      // 先生モード: 生徒が提出済みの固定スナップショットを表示
       state.essay = serverEssay;
-      if (!isEditingTextarea && window._editor) {
-        window._editor.setContent(serverEssay.current_content);
+      if (versionIdChanged && window._editor && !window._historyMode) {
+        const teacherDisplay = serverLatestVersion?.content ?? serverEssay?.current_content ?? '';
+        window._editor.setContent(teacherDisplay);
       }
     }
 
@@ -532,7 +548,10 @@ function initLeftPanelTabs() {
 
     // 履歴表示モード解除、通常エディタに戻る
     window._historyMode = false;
-    window._editor.setContent(state.essay.current_content);
+    const displayContent = (state.mode === 'teacher')
+      ? (state.currentVersion?.content ?? state.essay?.current_content ?? '')
+      : (state.essay?.current_content ?? '');
+    window._editor.setContent(displayContent);
     window._editor.setReadOnly(state.mode === 'teacher');
 
     // 直近のチェックリスト・コメント状態に戻す
