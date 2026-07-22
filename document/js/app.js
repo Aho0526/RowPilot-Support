@@ -109,37 +109,39 @@ function applyMode(mode, { initial = false } = {}) {
   badge.textContent = isTeacher ? '先生モード' : '生徒モード';
   badge.className = `role-badge role-badge--${mode}`;
 
-  // タブボタン制御:
+  // 先生モード: 「編集」タブは非表示・「履歴・差分」タブのみ表示
   // 生徒モード: 「編集」タブのみ表示・「履歴・差分」タブは非表示
-  // 先生モード: 「本文（提出版）」タブと「履歴・差分」タブの両方を表示
   const btnPanelEdit = $('#btn-panel-edit');
   const btnPanelDiff = $('#btn-panel-diff');
-  if (btnPanelEdit) {
-    btnPanelEdit.style.display = '';
-    btnPanelEdit.textContent = isTeacher ? '本文（提出版）' : '編集';
-  }
-  if (btnPanelDiff) {
-    btnPanelDiff.style.display = isTeacher ? '' : 'none';
-  }
+  if (btnPanelEdit) btnPanelEdit.style.display = isTeacher ? 'none' : '';
+  if (btnPanelDiff) btnPanelDiff.style.display = isTeacher ? '' : 'none';
 
-  const editorWrapper = document.querySelector('.editor-wrapper') || $('#essay-textarea');
-  const diffDiv = $('#essay-diff');
-  const controlsBar = $('#diff-controls-bar');
-  const metaInfo = $('#essay-meta-info');
+  // 共通ヘルパー: editorWrapper を確実に取得（_setupHighlighter実行後に生成される）
+  const getEditorWrapper = () =>
+    document.querySelector('.editor-wrapper') || $('#essay-textarea');
 
   if (isTeacher) {
-    // 先生モード切替時の初期表示: デフォルトは「本文（提出版）」タブをアクティブにする
-    btnPanelEdit?.classList.add('panel-tab--active');
-    btnPanelDiff?.classList.remove('panel-tab--active');
+    // 先生モードでは履歴・差分タブをアクティブ状態にするが、
+    // 初期は原文（エディタ）を表示し、差分コントロールは非表示
+    btnPanelEdit?.classList.remove('panel-tab--active');
+    btnPanelDiff?.classList.add('panel-tab--active');
+    const editorWrapper = getEditorWrapper();
+    const diffDiv = $('#essay-diff');
+    const controlsBar = $('#diff-controls-bar');
+    const metaInfo = $('#essay-meta-info');
     if (editorWrapper) editorWrapper.style.display = 'flex';
     if (diffDiv) diffDiv.style.display = 'none';
     if (controlsBar) controlsBar.style.display = 'none';
     if (metaInfo) metaInfo.style.display = '';
     window._historyMode = false;
   } else {
-    // 生徒モード切替時: 「編集」タブをアクティブにする
+    // 生徒モードに切り替えたとき: 編集タブに強制リセット
     btnPanelEdit?.classList.add('panel-tab--active');
     btnPanelDiff?.classList.remove('panel-tab--active');
+    const editorWrapper = getEditorWrapper();
+    const diffDiv = $('#essay-diff');
+    const controlsBar = $('#diff-controls-bar');
+    const metaInfo = $('#essay-meta-info');
     if (editorWrapper) editorWrapper.style.display = 'flex';
     if (diffDiv) diffDiv.style.display = 'none';
     if (controlsBar) controlsBar.style.display = 'none';
@@ -147,13 +149,18 @@ function applyMode(mode, { initial = false } = {}) {
     window._historyMode = false;
   }
 
-  // エディタ内容のセット
+  // エディタ（先生モードでは readOnly、コンテンツは提出バージョンを表示）
   if (window._editor && !window._historyMode) {
     const displayContent = isTeacher
       ? (state.currentVersion?.content ?? state.essay?.current_content ?? '')
       : (state.essay?.current_content ?? '');
     window._editor.setContent(displayContent);
     window._editor.setReadOnly(isTeacher);
+    // editorWrapper が非表示になっていたら flex に戻す（先生モード切替直後の表示保証）
+    if (!window._historyMode) {
+      const ew = document.querySelector('.editor-wrapper') || $('#essay-textarea');
+      if (ew && ew.style.display === 'none') ew.style.display = 'flex';
+    }
   }
 
   const submitted = state.currentReview?.submitted_at;
@@ -599,10 +606,8 @@ function initLeftPanelTabs() {
 
     window._historyMode = true;
     window._editor.setReadOnly(true);
-    // viewMode を 'diff' に必ず初期化（初回クリック時や後の切り替えで原文が見えてしまう問題を防ぐ）
+    // viewMode を 'diff' に必ず初期化（初回クリック時に原文が見えてしまう問題を防ぐ）
     window._viewMode = 'diff';
-    $('#btn-view-diff')?.classList.add('active');
-    $('#btn-view-raw')?.classList.remove('active');
 
     // バージョン選択プルダウンの読み込み・差分レンダリング
     await refreshDiffVersionSelect();
@@ -731,15 +736,7 @@ function setupDiffControls() {
     });
   }
 
-  // 原文/差分トグルのイベント
-  const btnRaw = $('#btn-view-raw');
-  const btnDiff = $('#btn-view-diff');
-  if (btnRaw && btnDiff) {
-    btnRaw.addEventListener('click', () => window._app_setViewMode('raw'));
-    btnDiff.addEventListener('click', () => window._app_setViewMode('diff'));
-  }
-
-  // Split/Unifiedトグルのイベント
+  // 分割表示/統合表示トグルのイベント
   const btnSplit = $('#btn-diff-split');
   const btnUnified = $('#btn-diff-unified');
   if (btnSplit && btnUnified) {
@@ -779,15 +776,10 @@ window._app_setViewMode = (mode) => {
   window._viewMode = mode;
   const editorWrapper = document.querySelector('.editor-wrapper') || $('#essay-textarea');
   const diffDiv       = $('#essay-diff');
-  const btnRaw        = $('#btn-view-raw');
-  const btnDiff       = $('#btn-view-diff');
 
   if (mode === 'raw') {
     if (editorWrapper) editorWrapper.style.display = 'flex';
     if (diffDiv)       diffDiv.style.display       = 'none';
-    btnRaw?.classList.add('active');
-    btnDiff?.classList.remove('active');
-
     // 原文表示時は選択されているバージョンのテキストをエディタにセット
     if (window._historyContent && window._editor) {
       window._editor.setContent(window._historyContent);
@@ -795,8 +787,6 @@ window._app_setViewMode = (mode) => {
   } else {
     if (editorWrapper) editorWrapper.style.display = 'none';
     if (diffDiv)       diffDiv.style.display       = 'block';
-    btnRaw?.classList.remove('active');
-    btnDiff?.classList.add('active');
     window._app_renderDiff();
   }
 };

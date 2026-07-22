@@ -18,7 +18,7 @@
   <!-- Marked.js (Markdown パーサー) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-  <link rel="stylesheet" href="css/app.css?v=20260722_1800">
+  <link rel="stylesheet" href="css/app.css?v=20260722_1805">
 </head>
 
 <body>
@@ -109,13 +109,9 @@
             <option value="prev">前のバージョンと比較</option>
             <option value="current">現在の下書きと比較</option>
           </select>
-          <div class="diff-view-mode-toggle" style="margin-left: auto; display: flex; gap: 4px;">
-            <button id="btn-view-diff" class="btn-sm active">差分</button>
-            <button id="btn-view-raw" class="btn-sm">原文</button>
-          </div>
-          <div class="diff-type-toggle" style="display: flex; gap: 4px;">
-            <button id="btn-diff-split" class="btn-sm active">Split</button>
-            <button id="btn-diff-unified" class="btn-sm">Unified</button>
+          <div class="diff-type-toggle" style="margin-left: auto; display: flex; gap: 4px;">
+            <button id="btn-diff-split" class="btn-sm active">分割表示</button>
+            <button id="btn-diff-unified" class="btn-sm">統合表示</button>
           </div>
         </div>
 
@@ -184,14 +180,14 @@
         レビュー提出
       </button>
 
-      <span id="app-build-tag" class="app-build-tag" style="font-size: 11px; color: var(--color-text-muted); opacity: 0.8; margin-left: 12px; font-variant-numeric: tabular-nums;">v1.5 (2026.07.22 18:00)</span>
+      <span id="app-build-tag" class="app-build-tag" style="font-size: 11px; color: var(--color-text-muted); opacity: 0.8; margin-left: 12px; font-variant-numeric: tabular-nums;">v1.5 (2026.07.22 18:05)</span>
     </div>
   </footer>
 
   <!-- ================================================================
        スクリプト
   ================================================================ -->
-  <script type="module" src="js/app.js?v=20260722_1800"></script>
+  <script type="module" src="js/app.js?v=20260722_1805"></script>
 </body>
 
 </html>

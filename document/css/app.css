@@ -506,14 +506,11 @@ a:hover { text-decoration: underline; }
   box-sizing: border-box;
 }
 
-/* // コメント箇所の装飾（カーソルズレ防止のため文字サイズ・文字幅は100%保持、文字色と背景で強調） */
+/* // コメント箇所の装飾（文字サイズはそのまま・文字色を薄く・斜体のみ） */
 .editor-comment {
-  color: #708090;
-  font-size: inherit;
-  font-style: normal;
-  opacity: 0.8;
-  background: rgba(112, 128, 144, 0.1);
-  border-radius: 2px;
+  color: #7a919e;
+  font-style: italic;
+  opacity: 0.82;
 }
 
 .essay-textarea::placeholder {
