@@ -396,6 +396,34 @@ a:hover { text-decoration: underline; }
   box-shadow: var(--shadow-sm);
 }
 
+/* 分割表示/統合表示ボタン */
+.btn-sm {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn-sm:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-hover, var(--color-border));
+}
+
+.btn-sm.active {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+}
+
 /* ── Email Setting (Notification) ───────────────────────────── */
 .email-setting {
   display: inline-flex;

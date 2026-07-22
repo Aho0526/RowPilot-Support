@@ -121,10 +121,10 @@ function applyMode(mode, { initial = false } = {}) {
     document.querySelector('.editor-wrapper') || $('#essay-textarea');
 
   if (isTeacher) {
-    // 先生モードでは履歴・差分タブをアクティブ状態にするが、
-    // 初期は原文（エディタ）を表示し、差分コントロールは非表示
+    // 先生モード初期状態: 原文（エッセイ）を表示。差分タブはまだアクティブにしない。
+    // 「履歴・差分」ボタンをクリックしたときにだけ差分へ遷移する。
     btnPanelEdit?.classList.remove('panel-tab--active');
-    btnPanelDiff?.classList.add('panel-tab--active');
+    btnPanelDiff?.classList.remove('panel-tab--active');
     const editorWrapper = getEditorWrapper();
     const diffDiv = $('#essay-diff');
     const controlsBar = $('#diff-controls-bar');
@@ -149,7 +149,7 @@ function applyMode(mode, { initial = false } = {}) {
     window._historyMode = false;
   }
 
-  // エディタ（先生モードでは readOnly、コンテンツは提出バージョンを表示）
+  // エディタ（先生モードでは readOnly・提出バージョンを表示、生徒は最新下書き）
   if (window._editor && !window._historyMode) {
     const displayContent = isTeacher
       ? (state.currentVersion?.content ?? state.essay?.current_content ?? '')
