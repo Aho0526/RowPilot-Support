@@ -109,38 +109,37 @@ function applyMode(mode, { initial = false } = {}) {
   badge.textContent = isTeacher ? '先生モード' : '生徒モード';
   badge.className = `role-badge role-badge--${mode}`;
 
-  // 先生モード: 「編集」タブは非表示・「履歴・差分」タブのみ表示
+  // タブボタン制御:
   // 生徒モード: 「編集」タブのみ表示・「履歴・差分」タブは非表示
+  // 先生モード: 「本文（提出版）」タブと「履歴・差分」タブの両方を表示
   const btnPanelEdit = $('#btn-panel-edit');
   const btnPanelDiff = $('#btn-panel-diff');
-  if (btnPanelEdit) btnPanelEdit.style.display = isTeacher ? 'none' : '';
-  if (btnPanelDiff) btnPanelDiff.style.display = isTeacher ? '' : 'none';
+  if (btnPanelEdit) {
+    btnPanelEdit.style.display = '';
+    btnPanelEdit.textContent = isTeacher ? '本文（提出版）' : '編集';
+  }
+  if (btnPanelDiff) {
+    btnPanelDiff.style.display = isTeacher ? '' : 'none';
+  }
+
+  const editorWrapper = document.querySelector('.editor-wrapper') || $('#essay-textarea');
+  const diffDiv = $('#essay-diff');
+  const controlsBar = $('#diff-controls-bar');
+  const metaInfo = $('#essay-meta-info');
 
   if (isTeacher) {
-    // 先生モードに切り替えたとき: 強制的に履歴・差分タブをアクティブにする
-    btnPanelEdit?.classList.remove('panel-tab--active');
-    btnPanelDiff?.classList.add('panel-tab--active');
-    // 差分コントロールと差分エリアを初期状態（非表示）にリセット
-    // 実際の表示は下の「エディタ」ブロックで制御
-    const editorWrapper = document.querySelector('.editor-wrapper') || $('#essay-textarea');
-    const diffDiv = $('#essay-diff');
-    const controlsBar = $('#diff-controls-bar');
-    const metaInfo = $('#essay-meta-info');
-    // 先生モード初期表示: 差分コントロールバーは非表示（タブクリックで出す）
-    // エディタ本体（提出バージョン）を表示
+    // 先生モード切替時の初期表示: デフォルトは「本文（提出版）」タブをアクティブにする
+    btnPanelEdit?.classList.add('panel-tab--active');
+    btnPanelDiff?.classList.remove('panel-tab--active');
     if (editorWrapper) editorWrapper.style.display = 'flex';
     if (diffDiv) diffDiv.style.display = 'none';
     if (controlsBar) controlsBar.style.display = 'none';
     if (metaInfo) metaInfo.style.display = '';
     window._historyMode = false;
   } else {
-    // 生徒モードに切り替えたとき: 編集タブに強制リセット
+    // 生徒モード切替時: 「編集」タブをアクティブにする
     btnPanelEdit?.classList.add('panel-tab--active');
     btnPanelDiff?.classList.remove('panel-tab--active');
-    const editorWrapper = document.querySelector('.editor-wrapper') || $('#essay-textarea');
-    const diffDiv = $('#essay-diff');
-    const controlsBar = $('#diff-controls-bar');
-    const metaInfo = $('#essay-meta-info');
     if (editorWrapper) editorWrapper.style.display = 'flex';
     if (diffDiv) diffDiv.style.display = 'none';
     if (controlsBar) controlsBar.style.display = 'none';
@@ -148,7 +147,7 @@ function applyMode(mode, { initial = false } = {}) {
     window._historyMode = false;
   }
 
-  // エディタ
+  // エディタ内容のセット
   if (window._editor && !window._historyMode) {
     const displayContent = isTeacher
       ? (state.currentVersion?.content ?? state.essay?.current_content ?? '')
