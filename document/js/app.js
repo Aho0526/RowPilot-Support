@@ -109,21 +109,25 @@ function applyMode(mode, { initial = false } = {}) {
   badge.textContent = isTeacher ? '先生モード' : '生徒モード';
   badge.className = `role-badge role-badge--${mode}`;
 
-  // 先生モード: 「編集」タブは非表示・「履歴・差分」タブのみ表示
-  // 生徒モード: 「編集」タブのみ表示・「履歴・差分」タブは非表示
+  // 先生モード: 「編集」タブを「原文」に変更して表示、「履歴・差分」タブも表示
+  // 生徒モード: 「編集」タブを表示、「履歴・差分」タブは非表示
   const btnPanelEdit = $('#btn-panel-edit');
   const btnPanelDiff = $('#btn-panel-diff');
-  if (btnPanelEdit) btnPanelEdit.style.display = isTeacher ? 'none' : '';
-  if (btnPanelDiff) btnPanelDiff.style.display = isTeacher ? '' : 'none';
+  if (btnPanelEdit) {
+    btnPanelEdit.textContent = isTeacher ? '原文' : '編集';
+    btnPanelEdit.style.display = '';
+  }
+  if (btnPanelDiff) {
+    btnPanelDiff.style.display = isTeacher ? '' : 'none';
+  }
 
   // 共通ヘルパー: editorWrapper を確実に取得（_setupHighlighter実行後に生成される）
   const getEditorWrapper = () =>
     document.querySelector('.editor-wrapper') || $('#essay-textarea');
 
   if (isTeacher) {
-    // 先生モード初期状態: 原文（エッセイ）を表示。差分タブはまだアクティブにしない。
-    // 「履歴・差分」ボタンをクリックしたときにだけ差分へ遷移する。
-    btnPanelEdit?.classList.remove('panel-tab--active');
+    // 先生モード初期状態: 「原文」タブをアクティブにし、原文を表示。
+    btnPanelEdit?.classList.add('panel-tab--active');
     btnPanelDiff?.classList.remove('panel-tab--active');
     const editorWrapper = getEditorWrapper();
     const diffDiv = $('#essay-diff');
