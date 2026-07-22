@@ -46,6 +46,9 @@ export class Editor {
     this._readOnly = enabled;
     this.textarea.readOnly = enabled;
     this.textarea.classList.toggle('editor--readonly', enabled);
+    if (this.textarea.parentNode) {
+      this.textarea.parentNode.classList.toggle('editor-wrapper--readonly', enabled);
+    }
   }
 
   /** 現在のコンテンツを取得 */

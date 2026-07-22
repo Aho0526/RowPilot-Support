@@ -548,8 +548,12 @@ a:hover { text-decoration: underline; }
 }
 
 .essay-textarea.editor--readonly {
-  background: var(--color-surface) !important;
+  background: transparent !important;
   cursor: default;
+}
+
+.editor-wrapper.editor-wrapper--readonly {
+  background: var(--color-surface);
 }
 
 /* 文字数カウント */
