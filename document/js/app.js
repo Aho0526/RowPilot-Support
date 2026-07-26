@@ -494,6 +494,112 @@ function initModules() {
   });
 }
 
+// ================================================================
+// UIユーティリティ: トースト通知 & 確認モーダル
+// ================================================================
+
+/** トースト通知を画面下部に一時表示 */
+function showToast(message, type = 'info', duration = 3000) {
+  const existing = document.getElementById('app-toast');
+  if (existing) existing.remove();
+
+  const colors = {
+    info:    { bg: 'var(--color-accent)',  text: '#fff' },
+    success: { bg: 'var(--color-success)', text: '#fff' },
+    error:   { bg: 'var(--color-danger)',  text: '#fff' },
+    warning: { bg: 'var(--color-warning)', text: '#1a1a2e' },
+  };
+  const c = colors[type] || colors.info;
+
+  const toast = document.createElement('div');
+  toast.id = 'app-toast';
+  toast.textContent = message;
+  Object.assign(toast.style, {
+    position: 'fixed',
+    bottom: '64px',
+    left: '50%',
+    transform: 'translateX(-50%) translateY(20px)',
+    background: c.bg,
+    color: c.text,
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '13.5px',
+    fontWeight: '600',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+    zIndex: '9999',
+    opacity: '0',
+    transition: 'opacity 0.2s ease, transform 0.2s ease',
+    maxWidth: '480px',
+    textAlign: 'center',
+  });
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+  });
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(10px)';
+    setTimeout(() => toast.remove(), 250);
+  }, duration);
+}
+
+/**
+ * ページ内確認モーダルを表示。OKなら onConfirm を呼ぶ。
+ * native confirm の代替（ポップアップブロッカー回避）
+ */
+function showConfirmModal(message, onConfirm, { okLabel = 'OK', cancelLabel = 'キャンセル', danger = false } = {}) {
+  const overlay = document.createElement('div');
+  overlay.id = 'app-confirm-overlay';
+  Object.assign(overlay.style, {
+    position: 'fixed', inset: '0',
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: '9998',
+    backdropFilter: 'blur(4px)',
+  });
+
+  const box = document.createElement('div');
+  Object.assign(box.style, {
+    background: 'var(--color-surface)',
+    borderRadius: '12px',
+    padding: '28px 32px',
+    maxWidth: '400px',
+    width: '90%',
+    boxShadow: '0 8px 40px rgba(0,0,0,0.3)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+  });
+
+  const msg = document.createElement('p');
+  msg.textContent = message;
+  msg.style.cssText = 'margin: 0; font-size: 14px; line-height: 1.6; color: var(--color-text-primary); white-space: pre-wrap;';
+
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display: flex; gap: 12px; justify-content: flex-end;';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = cancelLabel;
+  cancelBtn.style.cssText = 'padding: 8px 20px; border-radius: 6px; border: 1px solid var(--color-border); background: transparent; color: var(--color-text-primary); font-size: 13px; cursor: pointer;';
+  cancelBtn.onclick = () => overlay.remove();
+
+  const okBtn = document.createElement('button');
+  okBtn.textContent = okLabel;
+  okBtn.style.cssText = `padding: 8px 20px; border-radius: 6px; border: none; background: ${danger ? 'var(--color-danger)' : 'var(--color-accent)'}; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;`;
+  okBtn.onclick = () => { overlay.remove(); onConfirm(); };
+
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(okBtn);
+  box.appendChild(msg);
+  box.appendChild(btnRow);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  // オーバーレイクリックでキャンセル
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+}
+
 function setupToolbar() {
   // レビュー依頼ボタン（生徒）
   $('#btn-request-review')?.addEventListener('click', handleRequestReview);
@@ -532,57 +638,61 @@ async function handleRequestReview() {
 
   const content = window._editor?.getContent() ?? '';
   if (!content.trim()) {
-    alert('エッセイを入力してからレビューを依頼してください。');
+    showToast('エッセイを入力してからレビューを依頼してください。', 'warning', 4000);
     return;
   }
 
   // 前回提出時のバージョン内容と比較し、変更があるかチェック
   const latestContent = state.currentVersion?.content ?? '';
   if (content.trim() === latestContent.trim()) {
-    alert('前回提出した内容から変更がありません。1文字以上変更してから依頼してください。');
+    showToast('前回提出した内容から変更がありません。1文字以上変更してから依頼してください。', 'warning', 4000);
     return;
   }
 
-  if (!confirm('現在の内容でレビューを依頼しますか？\nこの操作で新しいバージョンが作成されます。')) return;
+  showConfirmModal(
+    '現在の内容でレビューを依頼しますか？\nこの操作で新しいバージョンが作成されます。',
+    async () => {
+      btn.disabled = true;
+      btn.textContent = '依頼中...';
 
-  btn.disabled = true;
-  btn.textContent = '依頼中...';
+      // 生徒が設定した「先生のメールアドレス」を取得して通知用に渡す
+      const teacherEmail = window._app_getNotificationEmail ? window._app_getNotificationEmail() : '';
 
-  // 生徒が設定した「先生のメールアドレス」を取得して通知用に渡す
-  const teacherEmail = window._app_getNotificationEmail ? window._app_getNotificationEmail() : '';
+      try {
+        const result = await requestReview(ESSAY_ID, teacherEmail);
+        const nowIso = new Date().toISOString();
+        const initReview = {
+          id: result.reviewId,
+          submitted_at: null,
+          markdown_comment: '',
+          teacher_name: '',
+          itemMap: {},
+        };
+        state.reviews = [initReview];
+        state.currentReview = initReview;
+        state.selectedReviewIdForStudent = null;
 
-  try {
-    const result = await requestReview(ESSAY_ID, teacherEmail);
-    const nowIso = new Date().toISOString();
-    const initReview = {
-      id: result.reviewId,
-      submitted_at: null,
-      markdown_comment: '',
-      teacher_name: '',
-      itemMap: {},
-    };
-    state.reviews = [initReview];
-    state.currentReview = initReview;
-    state.selectedReviewIdForStudent = null;
-    
-    state.currentVersion = {
-      id: result.versionId,
-      review_id: result.reviewId,
-      content: content,
-      created_at: nowIso
-    };
+        state.currentVersion = {
+          id: result.versionId,
+          review_id: result.reviewId,
+          content: content,
+          created_at: nowIso
+        };
 
-    refreshChecklistAndComments();
-    applyMode(state.mode);
-    updateLastRequestTime();
-    alert('レビューを依頼しました！先生の添削をお待ちください。');
-  } catch (e) {
-    console.error('Review request failed:', e);
-    alert(`レビュー依頼に失敗しました: ${e.message}`);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'レビュー依頼';
-  }
+        refreshChecklistAndComments();
+        applyMode(state.mode);
+        updateLastRequestTime();
+        showToast('レビューを依頼しました！先生の添削をお待ちください。', 'success', 4000);
+      } catch (e) {
+        console.error('Review request failed:', e);
+        showToast(`レビュー依頼に失敗しました: ${e.message}`, 'error', 5000);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'レビュー依頼';
+      }
+    },
+    { okLabel: 'レビューを依頼する' }
+  );
 }
 
 // ================================================================
@@ -593,36 +703,41 @@ async function handleSubmitReview() {
   if (!btn || !state.currentReview?.id) return;
 
   if (state.currentReview.submitted_at) {
-    alert('このレビューは既に提出済みです。');
+    showToast('このレビューは既に提出済みです。', 'warning', 3000);
     return;
   }
 
-  if (!confirm('レビューを提出しますか？\n提出後は編集できなくなります。')) return;
+  showConfirmModal(
+    'レビューを提出しますか？\n提出後は編集できなくなります。',
+    async () => {
+      btn.disabled = true;
+      btn.textContent = '提出中...';
 
-  btn.disabled = true;
-  btn.textContent = '提出中...';
+      // 先生が設定した「生徒のメールアドレス」を取得して通知用に渡す
+      const studentEmail = window._app_getNotificationEmail ? window._app_getNotificationEmail() : '';
 
-  // 先生が設定した「生徒のメールアドレス」を取得して通知用に渡す
-  const studentEmail = window._app_getNotificationEmail ? window._app_getNotificationEmail() : '';
+      try {
+        // コメントを先に保存
+        await window._comments?.forceSave();
 
-  try {
-    // コメントを先に保存
-    await window._comments?.forceSave();
+        await submitReview(state.currentReview.id, studentEmail);
+        state.currentReview.submitted_at = new Date().toISOString();
 
-    await submitReview(state.currentReview.id, studentEmail);
-    state.currentReview.submitted_at = new Date().toISOString();
+        refreshChecklistAndComments();
+        applyMode(state.mode);
 
-    refreshChecklistAndComments();
-    applyMode(state.mode);
-
-    btn.textContent = '提出済み';
-    alert('レビューを提出しました！');
-  } catch (e) {
-    console.error('Submit failed:', e);
-    alert(`提出に失敗しました: ${e.message}`);
-    btn.disabled = false;
-    btn.textContent = 'レビュー提出';
-  }
+        btn.disabled = true;
+        btn.textContent = '提出済み';
+        showToast('レビューを提出しました！', 'success', 4000);
+      } catch (e) {
+        console.error('Submit failed:', e);
+        showToast(`提出に失敗しました: ${e.message}`, 'error', 5000);
+        btn.disabled = false;
+        btn.textContent = 'レビュー提出';
+      }
+    },
+    { okLabel: '提出する', danger: true }
+  );
 }
 
 // ================================================================
