@@ -96,6 +96,15 @@ export class Checklist {
     this._render();
   }
 
+  /** インタラクティブモードの切替 */
+  setInteractive(enabled) {
+    this._interactive = enabled;
+    this.container.querySelectorAll('.cl-checkbox').forEach((cb) => {
+      cb.disabled = !enabled;
+    });
+    this.container.classList.toggle('cl--interactive', enabled);
+  }
+
   _build() {
     this.container.innerHTML = `
       <!-- 条件トグラー -->
