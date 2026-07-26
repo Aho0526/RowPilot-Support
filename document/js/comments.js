@@ -88,7 +88,7 @@ export class Comments {
     }
   }
 
-  /** 先生モード用表示: 添削切り替え・編集UI */
+  /** 先生モード用表示: 名前入力 + コメント入力 */
   _renderTeacherView() {
     const activeReview = this._reviews.find(r => r.id === this._activeReviewId)
       || this._reviews[0];
@@ -106,24 +106,10 @@ export class Comments {
     this._lastSavedComment = activeReview.markdown_comment || '';
     this._lastSavedName = activeReview.teacher_name || '';
 
-    // セレクトボックスのオプション生成
-    const selectOptions = this._reviews.map((r, index) => {
-      const name = r.teacher_name ? `${r.teacher_name}先生` : `添削者 ${index + 1} (名前未設定)`;
-      const status = r.submitted_at ? ' [提出済]' : ' [下書き]';
-      return `<option value="${r.id}" ${r.id === activeReview.id ? 'selected' : ''}>${name}${status}</option>`;
-    }).join('');
-
     const isSubmitted = !!activeReview.submitted_at;
 
     this._contentEl.innerHTML = `
       <div class="cm-header" style="padding: 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--color-border-light);">
-        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
-          <label style="font-size: 12px; font-weight: 600; min-width: 60px;">添削の選択:</label>
-          <select class="cm-teacher-select banner-select" style="flex: 1; padding: 4px; font-size: 12px;">
-            ${selectOptions}
-          </select>
-          <button class="cm-add-teacher-btn btn-sm">＋ 追加</button>
-        </div>
         <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
           <label style="font-size: 12px; font-weight: 600; min-width: 60px;">先生の名前:</label>
           <input type="text" class="cm-teacher-name-input" value="${escapeHtml(activeReview.teacher_name || '')}" placeholder="先生の名前を入力（空欄OK）" style="flex: 1; padding: 6px 10px; font-size: 12px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg);" ${isSubmitted ? 'readonly' : ''}>
@@ -144,16 +130,6 @@ export class Comments {
     `;
 
     // イベントバインド
-    const select = this._contentEl.querySelector('.cm-teacher-select');
-    select.addEventListener('change', (e) => {
-      this.onReviewSelect(parseInt(e.target.value));
-    });
-
-    const addBtn = this._contentEl.querySelector('.cm-add-teacher-btn');
-    addBtn.addEventListener('click', () => {
-      this.onAddReview();
-    });
-
     const nameInput = this._contentEl.querySelector('.cm-teacher-name-input');
     nameInput.addEventListener('input', () => {
       this._setStatus('editing');

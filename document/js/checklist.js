@@ -166,51 +166,28 @@ export class Checklist {
   }
 
   _render() {
-    // 1. タブの描画（生徒モード用）
     const isTeacher = this._isTeacher;
     const submittedReviews = this._reviews.filter(r => !!r.submitted_at);
 
-    if (!isTeacher && submittedReviews.length > 0) {
-      this._tabsContainer.style.display = 'block';
-      this._tabsEl.innerHTML = `
-        <button class="cl-tab btn-sm ${this._activeReviewId === null ? 'active' : ''}" data-id="overview" style="font-size: 11.5px; padding: 4px 10px;">Overview</button>
-        ${submittedReviews.map(r => {
-          const name = r.teacher_name ? `${r.teacher_name}先生` : '先生 (名無し)';
-          return `<button class="cl-tab btn-sm ${this._activeReviewId === r.id ? 'active' : ''}" data-id="${r.id}" style="font-size: 11.5px; padding: 4px 10px;">${escapeHtml(name)}</button>`;
-        }).join('')}
-      `;
+    // タブは常に非表示（生徒モードでもOverview固定）
+    this._tabsContainer.style.display = 'none';
 
-      // タブのイベント登録
-      this._tabsEl.querySelectorAll('.cl-tab').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const idVal = btn.dataset.id;
-          const targetId = idVal === 'overview' ? null : parseInt(idVal);
-          this.onReviewSelect(targetId);
-        });
-      });
-    } else {
-      this._tabsContainer.style.display = 'none';
-    }
+    // 生徒モードでは常にOverview表示（個別タブ切り替えなし）
+    const isOverview = !isTeacher;
 
-    // 2. 選択されている対象（またはOverview）に応じて進捗とチェックリストを描画
-    const isOverview = !isTeacher && this._activeReviewId === null;
-    
     // 進捗バータイトル更新
     if (isTeacher) {
       this._progressTitleText.textContent = '添削のチェック進捗';
-    } else if (isOverview) {
-      this._progressTitleText.textContent = '全体クリア率 (Overview)';
     } else {
-      const activeR = this._reviews.find(r => r.id === this._activeReviewId);
-      const name = activeR?.teacher_name ? `${activeR.teacher_name}先生` : '先生';
-      this._progressTitleText.textContent = `${name}のチェック結果`;
+      this._progressTitleText.textContent = '先生の評価 (Overview)';
     }
 
-    // 3. チェックリスト本文の構築
+    // チェックリスト本文の構築
     this._listContainer.innerHTML = '';
 
+    // 先生モードの場合のみ activeReview を使う（Overview時はnull）
     let activeReview = null;
-    if (!isOverview) {
+    if (isTeacher) {
       activeReview = this._reviews.find(r => r.id === this._activeReviewId) || this._reviews[0];
     }
     const itemMap = activeReview?.itemMap ?? {};
