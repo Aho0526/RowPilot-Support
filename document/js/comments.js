@@ -41,13 +41,24 @@ export class Comments {
    * @param {number|null} activeReviewId
    */
   setContent(reviews, activeReviewId) {
+    const prevActiveId = this._activeReviewId;
     this._reviews = reviews || [];
     this._activeReviewId = activeReviewId;
+
+    // 先生モードで入力中（フォーカスあり）かつアクティブIDも変わっていない場合はレンダーしない
+    if (this._editable && prevActiveId === activeReviewId) {
+      const focused = document.activeElement;
+      const isEditingComment = focused && this.container.contains(focused) &&
+        (focused.matches('.cm-textarea') || focused.matches('.cm-teacher-name-input'));
+      if (isEditingComment) return;
+    }
+
     this._render();
   }
 
   /** 編集可否（先生モードかどうか）をセット */
   setEditable(enabled) {
+    if (this._editable === enabled) return; // 変化なければスキップ
     this._editable = enabled;
     this._render();
   }

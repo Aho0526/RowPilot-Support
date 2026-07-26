@@ -229,6 +229,37 @@ function refreshChecklistAndComments() {
   }
 }
 
+/**
+ * チェックリストのヒント（添削可能/提出済み等）と setInteractive だけ更新する軽量ヘルパー。
+ * syncLatestData から呼ぶ用（applyMode 全体を呼ぶより軽量）
+ */
+function updateChecklistHint() {
+  const isTeacher = state.mode === 'teacher';
+  const submitted = state.currentReview?.submitted_at;
+  const hasReview = !!state.currentReview?.id;
+
+  if (window._checklist) {
+    window._checklist.setInteractive(isTeacher && hasReview && !submitted);
+  }
+
+  const hintEl = $('#checklist-mode-hint');
+  if (hintEl) {
+    if (isTeacher) {
+      if (!hasReview) {
+        hintEl.innerHTML = '<span class="hint-text text-warning" style="color:var(--color-warning);font-weight:600">⚠️ レビュー依頼がありません</span>';
+      } else if (submitted) {
+        hintEl.innerHTML = '<span class="hint-text">提出済み（閲覧のみ）</span>';
+      } else {
+        hintEl.innerHTML = '<span class="hint-text text-success" style="color:var(--color-success);font-weight:600">添削可能</span>';
+      }
+    } else {
+      hintEl.innerHTML = '<span class="hint-text">閲覧のみ</span>';
+    }
+  }
+
+  updateToolbarVisibility(isTeacher);
+}
+
 // ================================================================
 // データ読み込み
 // ================================================================
@@ -367,7 +398,7 @@ async function syncLatestData() {
         }
 
         refreshChecklistAndComments();
-        applyMode(state.mode);
+        updateChecklistHint();
         updateLastRequestTime();
       }
     } else if (state.reviews && state.reviews.length > 0) {
@@ -375,7 +406,7 @@ async function syncLatestData() {
       state.currentReview = null;
       state.selectedReviewIdForStudent = null;
       refreshChecklistAndComments();
-      applyMode(state.mode);
+      updateChecklistHint();
       updateLastRequestTime();
     }
   } catch (e) {

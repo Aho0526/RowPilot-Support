@@ -325,7 +325,7 @@ export class Checklist {
           cb.style.marginTop = '3px';
 
           cb.addEventListener('change', () => {
-            this._itemMap[item.key] = cb.checked;
+            itemMap[item.key] = cb.checked;
             this.onToggle(item.key, cb.checked);
           });
 
