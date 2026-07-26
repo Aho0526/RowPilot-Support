@@ -1,7 +1,7 @@
 /**
- * comments.js — コメントパネルモジュール（修正版）
- * - 生徒モード: コメントを読み取り専用で表示
- * - 先生モード: Markdown 編集・プレビュー切替・自動保存
+ * comments.js — コメントパネルモジュール
+ * - 生徒モード: 全先生のコメントを一覧で表示
+ * - 先生モード: 添削者切り替え・新規添削追加・コメント自動保存・添削者名自動保存
  */
 
 import { updateReview } from './api.js';
@@ -16,169 +16,190 @@ const renderMarkdown = (text) => {
 const escapeHtml = (str) =>
   String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-const AUTOSAVE_DELAY_MS = 2000;
+const AUTOSAVE_DELAY_MS = 1500;
 
-// ================================================================
-// Comments クラス
-// ================================================================
 export class Comments {
-  /**
-   * @param {HTMLElement} container
-   * @param {object} options
-   * @param {function(): object|null} options.getReviewMeta  { reviewId, submittedAt } を返す
-   */
-  constructor(container, { getReviewMeta } = {}) {
+  constructor(container, { onReviewSelect, onAddReview, onSaveReview } = {}) {
     this.container = container;
-    this.getReviewMeta = getReviewMeta ?? (() => null);
+    this.onReviewSelect = onReviewSelect ?? (() => {});
+    this.onAddReview = onAddReview ?? (() => {});
+    this.onSaveReview = onSaveReview ?? (() => {});
 
-    this._timer      = null;
-    this._lastSaved  = '';
-    this._editable   = false;
-    this._submitted  = false;
+    this._timer = null;
+    this._lastSavedComment = '';
+    this._lastSavedName = '';
+    this._editable = false;
+    this._reviews = [];
+    this._activeReviewId = null;
 
     this._build();
   }
 
-  // ── 公開API ─────────────────────────────────────────────────
-
-  /** コメント内容をセット（サーバーから取得したデータを渡す） */
-  setContent(markdown, submittedAt) {
-    this._textarea.value = markdown ?? '';
-    this._lastSaved      = this._textarea.value;
-    this._submitted      = !!submittedAt;
-    this._renderPreview();
-    this._updateState();
+  /**
+   * レビューデータをセット
+   * @param {Array} reviews
+   * @param {number|null} activeReviewId
+   */
+  setContent(reviews, activeReviewId) {
+    this._reviews = reviews || [];
+    this._activeReviewId = activeReviewId;
+    this._render();
   }
 
-  /**
-   * 編集可否をセット
-   * true  = 先生モード（入力可）
-   * false = 生徒モード（読み取り専用）
-   */
+  /** 編集可否（先生モードかどうか）をセット */
   setEditable(enabled) {
     this._editable = enabled;
-    this._updateState();
+    this._render();
   }
 
-  /** 現在のコメント内容を取得 */
+  /** 現在の編集中のコメント内容を取得 */
   getContent() {
-    return this._textarea.value;
+    const textarea = this.container.querySelector('.cm-textarea');
+    return textarea ? textarea.value : '';
   }
 
-  /** 手動保存（await 可能） */
+  /** 手動保存 */
   async forceSave() {
     clearTimeout(this._timer);
     await this._save();
   }
 
-  // ── プライベート ────────────────────────────────────────────
-
   _build() {
-    this.container.innerHTML = `
-      <div class="cm-header">
-        <div class="cm-tabs" role="tablist">
-          <button class="cm-tab cm-tab--active" data-tab="edit" role="tab" aria-selected="true">編集</button>
-          <button class="cm-tab" data-tab="preview" role="tab" aria-selected="false">プレビュー</button>
+    this.container.innerHTML = `<div class="cm-dynamic-content" style="display: flex; flex-direction: column; height: 100%;"></div>`;
+    this._contentEl = this.container.querySelector('.cm-dynamic-content');
+  }
+
+  _render() {
+    if (this._editable) {
+      this._renderTeacherView();
+    } else {
+      this._renderStudentView();
+    }
+  }
+
+  /** 先生モード用表示: 添削切り替え・編集UI */
+  _renderTeacherView() {
+    const activeReview = this._reviews.find(r => r.id === this._activeReviewId)
+      || this._reviews[0];
+
+    if (!activeReview) {
+      this._contentEl.innerHTML = `
+        <div class="cm-notice cm-notice--warning" style="margin: 16px;">
+          ⚠️ 生徒が「レビュー依頼」を送信すると、添削を開始できます。
         </div>
-        <span class="cm-status" aria-live="polite"></span>
+      `;
+      return;
+    }
+
+    this._activeReviewId = activeReview.id;
+    this._lastSavedComment = activeReview.markdown_comment || '';
+    this._lastSavedName = activeReview.teacher_name || '';
+
+    // セレクトボックスのオプション生成
+    const selectOptions = this._reviews.map((r, index) => {
+      const name = r.teacher_name ? `${r.teacher_name}先生` : `添削者 ${index + 1} (名前未設定)`;
+      const status = r.submitted_at ? ' [提出済]' : ' [下書き]';
+      return `<option value="${r.id}" ${r.id === activeReview.id ? 'selected' : ''}>${name}${status}</option>`;
+    }).join('');
+
+    const isSubmitted = !!activeReview.submitted_at;
+
+    this._contentEl.innerHTML = `
+      <div class="cm-header" style="padding: 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--color-border-light);">
+        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+          <label style="font-size: 12px; font-weight: 600; min-width: 60px;">添削の選択:</label>
+          <select class="cm-teacher-select banner-select" style="flex: 1; padding: 4px; font-size: 12px;">
+            ${selectOptions}
+          </select>
+          <button class="cm-add-teacher-btn btn-sm">＋ 追加</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+          <label style="font-size: 12px; font-weight: 600; min-width: 60px;">先生の名前:</label>
+          <input type="text" class="cm-teacher-name-input" value="${escapeHtml(activeReview.teacher_name || '')}" placeholder="先生の名前を入力（空欄OK）" style="flex: 1; padding: 6px 10px; font-size: 12px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-bg);" ${isSubmitted ? 'readonly' : ''}>
+        </div>
+        <span class="cm-status" aria-live="polite" style="font-size: 11px; color: var(--color-text-muted);"></span>
       </div>
-      <div class="cm-body">
+      <div class="cm-body" style="flex: 1; display: flex; flex-direction: column; padding: 12px;">
         <textarea
           class="cm-textarea"
-          placeholder="先生モードでコメントを入力できます（Markdown 対応）&#10;&#10;例:&#10;## ② 現状分析について&#10;参考文献の選定理由をもう少し詳しく書くとよいです。"
+          placeholder="先生のコメントをこちらに入力してください...（自動保存されます）"
           spellcheck="false"
           aria-label="レビューコメント"
-        ></textarea>
-        <div class="cm-preview" aria-live="polite"></div>
+          style="flex: 1; width: 100%; min-height: 200px; padding: 12px; font-family: var(--font-sans); font-size: 13.5px; line-height: 1.6; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); resize: none; color: var(--color-text-primary);"
+          ${isSubmitted ? 'readonly' : ''}
+        >${escapeHtml(activeReview.markdown_comment || '')}</textarea>
       </div>
-      <div class="cm-notice"></div>
+      ${isSubmitted ? `<div class="cm-notice cm-notice--default" style="margin: 0 12px 12px 12px; font-size:12px;">この添削は提出済みです（編集不可）</div>` : ''}
     `;
 
-    this._textarea  = this.container.querySelector('.cm-textarea');
-    this._preview   = this.container.querySelector('.cm-preview');
-    this._statusEl  = this.container.querySelector('.cm-status');
-    this._noticeEl  = this.container.querySelector('.cm-notice');
-
-    // タブ切替
-    this.container.querySelectorAll('.cm-tab').forEach((tab) => {
-      tab.addEventListener('click', () => {
-        if (!this._editable && !this._submitted) return;
-        this._switchTab(tab.dataset.tab);
-      });
+    // イベントバインド
+    const select = this._contentEl.querySelector('.cm-teacher-select');
+    select.addEventListener('change', (e) => {
+      this.onReviewSelect(parseInt(e.target.value));
     });
 
-    // 入力時の自動保存
-    this._textarea.addEventListener('input', () => {
-      if (this._editable && !this._submitted) {
-        this._setStatus('editing');
-        this._scheduleAutoSave();
-      }
+    const addBtn = this._contentEl.querySelector('.cm-add-teacher-btn');
+    addBtn.addEventListener('click', () => {
+      this.onAddReview();
     });
 
-    // 初期状態は編集タブ表示
-    this._currentTab = 'edit';
+    const nameInput = this._contentEl.querySelector('.cm-teacher-name-input');
+    nameInput.addEventListener('input', () => {
+      this._setStatus('editing');
+      this._scheduleAutoSave();
+    });
+
+    const textarea = this._contentEl.querySelector('.cm-textarea');
+    textarea.addEventListener('input', () => {
+      this._setStatus('editing');
+      this._scheduleAutoSave();
+    });
+
+    this._statusEl = this._contentEl.querySelector('.cm-status');
   }
 
-  /** モード・提出状態に応じて UI を更新 */
-  _updateState() {
-    const submitted = this._submitted;
-    const editable  = this._editable;
-    const tabsEl    = this.container.querySelector('.cm-tabs');
+  /** 生徒モード用表示: 提出された全先生のコメントをカード形式で縦並び表示 */
+  _renderStudentView() {
+    // 提出済みのレビューのみをフィルタ
+    const submittedReviews = this._reviews.filter(r => !!r.submitted_at);
 
-    if (editable) {
-      // 先生モード: タブを表示し、状態に応じて表示切り替え
-      if (tabsEl) tabsEl.style.display = '';
-      this._clearNotice();
-
-      if (submitted) {
-        this._textarea.readOnly = true;
-        this._switchTab('preview');
-        this._setNotice('添削が提出されました。');
-      } else {
-        this._textarea.readOnly = false;
-        this._switchTab(this._currentTab || 'edit');
-        const meta = this.getReviewMeta();
-        if (!meta?.reviewId) {
-          this._setNotice('⚠️ 生徒が「レビュー依頼」を送ると、コメントが保存されます。', 'warning');
-        }
-      }
-    } else {
-      // 生徒モード: タブを非表示にし、プレビュー（Markdown）のみを強制表示
-      if (tabsEl) tabsEl.style.display = 'none';
-      this._textarea.readOnly = true;
-      this._clearNotice();
-      this._switchTab('preview');
-
-      // 空白時の表示調整
-      if (!this._textarea.value.trim()) {
-        this._preview.innerHTML = '<p class="cm-empty">先生からのコメントはまだありません。</p>';
-      }
+    if (submittedReviews.length === 0) {
+      this._contentEl.innerHTML = `
+        <div style="padding: 24px; text-align: center; color: var(--color-text-muted);">
+          <p class="cm-empty">先生からのコメントはまだありません。</p>
+        </div>
+      `;
+      return;
     }
-  }
 
-  _switchTab(tab) {
-    this._currentTab = tab;
-    const tabs = this.container.querySelectorAll('.cm-tab');
-    tabs.forEach((t) => {
-      const active = t.dataset.tab === tab;
-      t.classList.toggle('cm-tab--active', active);
-      t.setAttribute('aria-selected', String(active));
-    });
+    const cards = submittedReviews.map((r, index) => {
+      const name = r.teacher_name ? `${r.teacher_name}先生` : `先生 ${index + 1}`;
+      const commentHtml = renderMarkdown(r.markdown_comment);
+      const timeStr = r.submitted_at ? new Date(r.submitted_at.replace(' ', 'T')).toLocaleString('ja-JP', {
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) : '';
 
-    if (tab === 'preview') {
-      this._renderPreview();
-      this._textarea.style.display = 'none';
-      this._preview.style.display  = '';
-    } else {
-      this._textarea.style.display = '';
-      this._preview.style.display  = 'none';
-    }
-  }
+      return `
+        <div class="cm-card" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px; margin: 12px; box-shadow: var(--shadow-sm);">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 8px; margin-bottom: 12px;">
+            <span style="font-weight: 600; font-size: 14px; color: var(--color-accent);">${escapeHtml(name)}からのアドバイス</span>
+            <span style="font-size: 11px; color: var(--color-text-muted);">${timeStr}</span>
+          </div>
+          <div class="cm-card-body" style="font-size: 13.5px; line-height: 1.6; color: var(--color-text-primary); white-space: pre-wrap;">
+            ${commentHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
 
-  _renderPreview() {
-    const html = renderMarkdown(this._textarea.value);
-    this._preview.innerHTML = html
-      || '<p class="cm-empty">コメントはまだありません</p>';
+    this._contentEl.innerHTML = `
+      <div style="display: flex; flex-direction: column; height: 100%; overflow-y: auto;">
+        ${cards}
+      </div>
+    `;
   }
 
   _scheduleAutoSave() {
@@ -187,23 +208,34 @@ export class Comments {
   }
 
   async _save() {
-    if (!this._editable || this._submitted) return;
-    const meta = this.getReviewMeta();
-    if (!meta?.reviewId) return;  // レビューがまだ作成されていない
+    if (!this._editable || !this._activeReviewId) return;
 
-    const content = this._textarea.value;
-    if (content === this._lastSaved) {
+    const nameInput = this._contentEl.querySelector('.cm-teacher-name-input');
+    const textarea = this._contentEl.querySelector('.cm-textarea');
+    if (!nameInput || !textarea) return;
+
+    const teacherName = nameInput.value;
+    const comment = textarea.value;
+
+    if (teacherName === this._lastSavedName && comment === this._lastSavedComment) {
       this._setStatus('saved');
       return;
     }
 
     this._setStatus('saving');
     try {
-      await updateReview(meta.reviewId, { markdown_comment: content });
-      this._lastSaved = content;
+      await updateReview(this._activeReviewId, {
+        teacher_name: teacherName,
+        markdown_comment: comment
+      });
+      this._lastSavedName = teacherName;
+      this._lastSavedComment = comment;
       this._setStatus('saved');
+
+      // 親コンポーネント(app.js)にセーブ完了を通知して状態を同期させる
+      this.onSaveReview(this._activeReviewId, teacherName, comment);
     } catch (e) {
-      console.error('Comment save failed:', e);
+      console.error('Auto save failed:', e);
       this._setStatus('error');
     }
   }
@@ -211,25 +243,12 @@ export class Comments {
   _setStatus(state) {
     if (!this._statusEl) return;
     const labels = {
-      editing: '編集中...',
+      editing: '入力中...',
       saving:  '保存中...',
-      saved:   '保存済み',
+      saved:   '自動保存済み',
       error:   '保存失敗',
     };
     this._statusEl.textContent = labels[state] ?? '';
     this._statusEl.className = `cm-status cm-status--${state}`;
-  }
-
-  _setNotice(text, type = 'default') {
-    if (!this._noticeEl) return;
-    this._noticeEl.textContent = text;
-    this._noticeEl.className = `cm-notice cm-notice--${type}`;
-    this._noticeEl.hidden = false;
-  }
-
-  _clearNotice() {
-    if (!this._noticeEl) return;
-    this._noticeEl.textContent = '';
-    this._noticeEl.hidden = true;
   }
 }

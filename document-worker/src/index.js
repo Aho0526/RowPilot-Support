@@ -61,6 +61,24 @@ app.use('/document/api/*', async (c, next) => {
   c.header('Expires', '0');
 });
 
+// ── Database Migration (起動時自動マイグレーション) ──────────────
+app.use('/document/api/*', async (c, next) => {
+  const db = c.env.DB;
+  if (db) {
+    try {
+      const check = await db.prepare("PRAGMA table_info(reviews)").all();
+      const hasTeacherName = check.results.some(col => col.name === 'teacher_name');
+      if (!hasTeacherName) {
+        await db.prepare("ALTER TABLE reviews ADD COLUMN teacher_name TEXT DEFAULT ''").run();
+        console.log("Successfully migrated reviews table: added teacher_name column");
+      }
+    } catch (e) {
+      console.warn("Migration check skipped or failed:", e);
+    }
+  }
+  await next();
+});
+
 // ── Utility: JSON エラーレスポンス ────────────────────────────
 const err = (c, status, message) => c.json({ error: message }, status);
 
@@ -227,35 +245,66 @@ app.get('/document/api/essays/:id/versions/:vid', async (c) => {
 
 /**
  * GET /document/api/reviews?version_id=:id
- * 指定バージョンのレビュー取得（チェック項目含む）
+ * 指定バージョンの全レビュー取得（チェック項目含む）
  */
 app.get('/document/api/reviews', async (c) => {
   const db = c.env.DB;
   const versionId = c.req.query('version_id');
   if (!versionId) return err(c, 400, 'version_id is required');
 
-  const review = await db.prepare(
-    `SELECT * FROM reviews WHERE version_id = ? ORDER BY created_at DESC LIMIT 1`
-  ).bind(versionId).first();
+  const reviews = await db.prepare(
+    `SELECT * FROM reviews WHERE version_id = ? ORDER BY created_at ASC`
+  ).bind(versionId).all();
 
-  if (!review) return c.json(null);
+  const results = [];
+  for (const review of reviews.results) {
+    const items = await db.prepare(
+      `SELECT checklist_key, checked FROM review_items WHERE review_id = ?`
+    ).bind(review.id).all();
 
-  const items = await db.prepare(
-    `SELECT checklist_key, checked FROM review_items WHERE review_id = ?`
-  ).bind(review.id).all();
-
-  // checked を Boolean に変換
-  const itemMap = {};
-  for (const row of items.results) {
-    itemMap[row.checklist_key] = row.checked === 1;
+    const itemMap = {};
+    for (const row of items.results) {
+      itemMap[row.checklist_key] = row.checked === 1;
+    }
+    results.push({ ...review, itemMap });
   }
 
-  return c.json({ ...review, itemMap });
+  return c.json(results);
+});
+
+/**
+ * POST /document/api/reviews
+ * 新しいレビュー（添削者）の追加
+ */
+app.post('/document/api/reviews', async (c) => {
+  const db = c.env.DB;
+  let body;
+  try {
+    body = await c.req.json();
+  } catch {
+    return err(c, 400, 'Invalid JSON');
+  }
+
+  const { version_id, teacher_name } = body;
+  if (!version_id) return err(c, 400, 'version_id is required');
+
+  const result = await db.prepare(
+    `INSERT INTO reviews (version_id, teacher_name, markdown_comment, created_at)
+     VALUES (?, ?, '', datetime('now'))`
+  ).bind(version_id, teacher_name || '').run();
+
+  return c.json({
+    id: result.meta.last_row_id,
+    version_id,
+    teacher_name: teacher_name || '',
+    markdown_comment: '',
+    itemMap: {}
+  }, 201);
 });
 
 /**
  * PATCH /document/api/reviews/:id
- * レビュー更新（コメント + チェック項目）
+ * レビュー更新（添削者名 + コメント + チェック項目）
  * 提出済みの場合は 403 を返す
  */
 app.patch('/document/api/reviews/:id', async (c) => {
@@ -275,6 +324,14 @@ app.patch('/document/api/reviews/:id', async (c) => {
   }
 
   const stmts = [];
+
+  // 添削者名更新
+  if (typeof body.teacher_name === 'string') {
+    stmts.push(
+      db.prepare(`UPDATE reviews SET teacher_name = ? WHERE id = ?`)
+        .bind(body.teacher_name, reviewId)
+    );
+  }
 
   // コメント更新
   if (typeof body.markdown_comment === 'string') {

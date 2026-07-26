@@ -11,6 +11,7 @@ import {
   getVersions,
   getVersion,
   getReview,
+  createReview,
   requestReview,
   updateReview,
   submitReview,
@@ -35,7 +36,9 @@ const state = {
   mode: localStorage.getItem(MODE_KEY) ?? 'student',  // 'student' | 'teacher'
   essay: null,
   currentVersion: null,
-  currentReview: null,   // { id, submitted_at, markdown_comment, itemMap }
+  currentReview: null,   // 編集・表示対象のアクティブなレビュー
+  reviews: [],           // 現在表示中バージョンの全レビュー配列
+  selectedReviewIdForStudent: null, // 生徒モードで選択されているレビューID（null=Overview）
 };
 
 // ================================================================
@@ -162,7 +165,7 @@ function applyMode(mode, { initial = false } = {}) {
     window._editor.setReadOnly(isTeacher);
     // editorWrapper が非表示になっていたら flex に戻す（先生モード切替直後の表示保証）
     if (!window._historyMode) {
-      const ew = document.querySelector('.editor-wrapper') || $('#essay-textarea');
+      const ew = getEditorWrapper();
       if (ew && ew.style.display === 'none') ew.style.display = 'flex';
     }
   }
@@ -173,7 +176,6 @@ function applyMode(mode, { initial = false } = {}) {
   // チェックリスト
   if (window._checklist) {
     window._checklist.setInteractive(isTeacher && hasReview && !submitted);
-    window._checklist.setMode(isTeacher);
   }
 
   // チェックリストのヒント表示
@@ -197,8 +199,34 @@ function applyMode(mode, { initial = false } = {}) {
     window._comments.setEditable(isTeacher);
   }
 
+  // 評価データ・コメントの再描画
+  refreshChecklistAndComments();
+
   // ツールバーボタン表示切替
   updateToolbarVisibility(isTeacher);
+}
+
+/**
+ * チェックリストとコメントを現在の選択に合わせて再描画するヘルパー
+ */
+function refreshChecklistAndComments() {
+  const isTeacher = state.mode === 'teacher';
+
+  if (window._checklist) {
+    if (isTeacher) {
+      window._checklist.setReviews(state.reviews, state.currentReview?.id, true);
+    } else {
+      window._checklist.setReviews(state.reviews, state.selectedReviewIdForStudent, false);
+    }
+  }
+
+  if (window._comments) {
+    if (isTeacher) {
+      window._comments.setContent(state.reviews, state.currentReview?.id);
+    } else {
+      window._comments.setContent(state.reviews, null);
+    }
+  }
 }
 
 // ================================================================
@@ -225,13 +253,8 @@ async function loadEssay() {
       : (state.essay?.current_content ?? '');
     window._editor.setContent(displayContent);
 
-    if (state.currentReview) {
-      window._checklist.setItemMap(state.currentReview.itemMap ?? {});
-      window._comments.setContent(
-        state.currentReview.markdown_comment,
-        state.currentReview.submitted_at
-      );
-    }
+    // チェックリストとコメントを描画
+    refreshChecklistAndComments();
 
     // タイトル表示
     const titleEl = $('#essay-title');
@@ -249,10 +272,17 @@ async function loadEssay() {
 
 async function loadReview(versionId) {
   try {
-    const review = await getReview(versionId);
-    state.currentReview = review;
+    const reviews = await getReview(versionId);
+    state.reviews = reviews || [];
+    
+    if (state.mode === 'teacher') {
+      state.currentReview = state.reviews[0] || null;
+    } else {
+      state.currentReview = null;
+      state.selectedReviewIdForStudent = null; // デフォルトはOverview
+    }
   } catch (e) {
-    console.error('Failed to load review:', e);
+    console.error('Failed to load reviews:', e);
   }
 }
 
@@ -306,42 +336,45 @@ async function syncLatestData() {
       }
     }
 
-    // 2. バージョン＆レビュー状態の同期
+    // 2. バージョン＆複数レビュー状態の同期
     state.currentVersion = serverLatestVersion;
 
     if (serverLatestVersion?.review_id) {
-      const serverReview = await getReview(serverLatestVersion.id);
+      // サーバーからそのバージョンの全レビューを取得
+      const serverReviews = await getReview(serverLatestVersion.id);
 
       const commentTextarea = document.querySelector('.cm-textarea');
       const isEditingComment = document.activeElement === commentTextarea;
 
-      const reviewStateChanged =
+      // 編集中のレビュー内容が変わったか、あるいは全体のレビュー数が変わったかを検知
+      const reviewsChanged =
         versionIdChanged ||
-        serverReview?.submitted_at !== state.currentReview?.submitted_at ||
-        JSON.stringify(serverReview?.itemMap) !== JSON.stringify(state.currentReview?.itemMap) ||
-        (!isEditingComment && serverReview?.markdown_comment !== state.currentReview?.markdown_comment);
+        state.reviews?.length !== serverReviews?.length ||
+        JSON.stringify(state.reviews) !== JSON.stringify(serverReviews);
 
-      if (reviewStateChanged) {
-        state.currentReview = serverReview;
+      if (reviewsChanged) {
+        state.reviews = serverReviews || [];
 
-        if (window._checklist) {
-          window._checklist.setItemMap(serverReview?.itemMap ?? {});
+        // 状態を同期
+        if (state.mode === 'teacher') {
+          const prevActiveId = state.currentReview?.id;
+          state.currentReview = serverReviews.find(r => r.id === prevActiveId) || serverReviews[0] || null;
+        } else {
+          // 生徒モード：選択されていた先生IDがあれば保持、無ければ null (Overview)
+          const prevSelectedId = state.selectedReviewIdForStudent;
+          state.selectedReviewIdForStudent = serverReviews.some(r => r.id === prevSelectedId) ? prevSelectedId : null;
+          state.currentReview = null;
         }
 
-        if (window._comments && !isEditingComment) {
-          window._comments.setContent(
-            serverReview?.markdown_comment,
-            serverReview?.submitted_at
-          );
-        }
-
+        refreshChecklistAndComments();
         applyMode(state.mode);
         updateLastRequestTime();
       }
-    } else if (state.currentReview !== null) {
+    } else if (state.reviews && state.reviews.length > 0) {
+      state.reviews = [];
       state.currentReview = null;
-      window._checklist?.setItemMap({});
-      window._comments?.setContent('', null);
+      state.selectedReviewIdForStudent = null;
+      refreshChecklistAndComments();
       applyMode(state.mode);
       updateLastRequestTime();
     }
@@ -372,17 +405,61 @@ function initModules() {
         await updateReview(state.currentReview.id, {
           items: [{ key, checked }],
         });
+        // ローカルステートも同期
+        if (state.currentReview.itemMap) {
+          state.currentReview.itemMap[key] = checked;
+        }
       } catch (e) {
         console.error('Checklist update failed:', e);
       }
     },
+    onReviewSelect: (reviewId) => {
+      // 生徒モードでの個別レビュー選択（またはOverview=null選択）
+      state.selectedReviewIdForStudent = reviewId;
+      refreshChecklistAndComments();
+    }
   });
 
   // コメント
   window._comments = new Comments($('#comments-container'), {
-    getReviewMeta: () => state.currentReview
-      ? { reviewId: state.currentReview.id, submittedAt: state.currentReview.submitted_at }
-      : null,
+    onReviewSelect: (reviewId) => {
+      // 先生モードでの編集対象レビューの切り替え
+      const rev = state.reviews.find(r => r.id === reviewId);
+      if (rev) {
+        state.currentReview = rev;
+        refreshChecklistAndComments();
+        // ツールバーのボタン表示状態も再評価
+        updateToolbarVisibility(state.mode === 'teacher');
+      }
+    },
+    onAddReview: async () => {
+      // 新しい先生の添削を追加
+      if (!state.currentVersion?.id) return;
+      try {
+        showLoading(true);
+        const newRev = await createReview(state.currentVersion.id);
+        state.reviews.push(newRev);
+        state.currentReview = newRev;
+        refreshChecklistAndComments();
+        updateToolbarVisibility(state.mode === 'teacher');
+        showLoading(false);
+      } catch (e) {
+        console.error('Failed to create new review:', e);
+        showLoading(false);
+      }
+    },
+    onSaveReview: (reviewId, name, comment) => {
+      // 自動保存されたテキストを state に即時同期
+      const rev = state.reviews.find(r => r.id === reviewId);
+      if (rev) {
+        rev.teacher_name = name;
+        rev.markdown_comment = comment;
+      }
+      if (state.currentReview && state.currentReview.id === reviewId) {
+        state.currentReview.teacher_name = name;
+        state.currentReview.markdown_comment = comment;
+      }
+    }
   });
 }
 
@@ -446,12 +523,17 @@ async function handleRequestReview() {
   try {
     const result = await requestReview(ESSAY_ID, teacherEmail);
     const nowIso = new Date().toISOString();
-    state.currentReview = {
+    const initReview = {
       id: result.reviewId,
       submitted_at: null,
       markdown_comment: '',
+      teacher_name: '',
       itemMap: {},
     };
+    state.reviews = [initReview];
+    state.currentReview = initReview;
+    state.selectedReviewIdForStudent = null;
+    
     state.currentVersion = {
       id: result.versionId,
       review_id: result.reviewId,
@@ -459,9 +541,7 @@ async function handleRequestReview() {
       created_at: nowIso
     };
 
-    window._checklist.setItemMap({});
-    window._comments.setContent('', null);
-
+    refreshChecklistAndComments();
     applyMode(state.mode);
     updateLastRequestTime();
     alert('レビューを依頼しました！先生の添削をお待ちください。');
@@ -501,8 +581,8 @@ async function handleSubmitReview() {
     await submitReview(state.currentReview.id, studentEmail);
     state.currentReview.submitted_at = new Date().toISOString();
 
-    window._checklist.setInteractive(false);
-    window._comments.setEditable(false);
+    refreshChecklistAndComments();
+    applyMode(state.mode);
 
     btn.textContent = '提出済み';
     alert('レビューを提出しました！');
@@ -584,17 +664,18 @@ function initLeftPanelTabs() {
     window._editor.setReadOnly(state.mode === 'teacher');
 
     // 直近のチェックリスト・コメント状態に戻す
-    if (state.currentReview) {
-      window._checklist.setItemMap(state.currentReview.itemMap ?? {});
-      window._checklist.setInteractive(state.mode === 'teacher' && !state.currentReview.submitted_at);
-      window._comments.setContent(state.currentReview.markdown_comment, state.currentReview.submitted_at);
-      window._comments.setEditable(state.mode === 'teacher');
+    if (state.mode === 'teacher') {
+      const prevActiveId = state.currentReview?.id;
+      state.currentReview = state.reviews.find(r => r.id === prevActiveId) || state.reviews[0] || null;
     } else {
-      window._checklist.setItemMap({});
-      window._checklist.setInteractive(false);
-      window._comments.setContent('', null);
-      window._comments.setEditable(false);
+      state.selectedReviewIdForStudent = null;
+      state.currentReview = null;
     }
+
+    window._checklist.setInteractive(state.mode === 'teacher' && state.currentReview && !state.currentReview.submitted_at);
+    window._comments.setEditable(state.mode === 'teacher');
+    
+    refreshChecklistAndComments();
   });
 
   // 【履歴・差分タブ】クリック時
@@ -700,17 +781,16 @@ async function selectDiffVersion(versionId) {
     if (idx !== -1) {
       const version = state.versions[idx];
       if (version.review_id) {
-        const review = await getReview(version.id);
-        if (review) {
-          window._checklist.setItemMap(review.itemMap ?? {});
-          window._comments.setContent(review.markdown_comment, review.submitted_at);
-        } else {
-          window._checklist.setItemMap({});
-          window._comments.setContent('', null);
-        }
+        const reviews = await getReview(version.id);
+        state.reviews = reviews || [];
+        state.currentReview = null;
+        state.selectedReviewIdForStudent = null; // デフォルトOverview
+        refreshChecklistAndComments();
       } else {
-        window._checklist.setItemMap({});
-        window._comments.setContent('', null);
+        state.reviews = [];
+        state.currentReview = null;
+        state.selectedReviewIdForStudent = null;
+        refreshChecklistAndComments();
       }
     }
     // 過去履歴の表示中は常に閲覧専用にする

@@ -67,9 +67,13 @@ export const getVersion = (essayId, versionId) =>
 export const getReview = (versionId) =>
   request('GET', `/reviews?version_id=${versionId}`);
 
-/** レビュー更新（コメント + チェック項目） */
-export const updateReview = (reviewId, { markdown_comment, items }) =>
-  request('PATCH', `/reviews/${reviewId}`, { markdown_comment, items });
+/** レビュー新規作成（添削者の追加） */
+export const createReview = (versionId, teacherName = '') =>
+  request('POST', '/reviews', { version_id: versionId, teacher_name: teacherName });
+
+/** レビュー更新（添削者名 + コメント + チェック項目） */
+export const updateReview = (reviewId, { teacher_name, markdown_comment, items }) =>
+  request('PATCH', `/reviews/${reviewId}`, { teacher_name, markdown_comment, items });
 
 /** レビュー提出確定 */
 export const submitReview = (reviewId, studentEmail) =>
