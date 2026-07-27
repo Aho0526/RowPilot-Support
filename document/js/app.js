@@ -66,9 +66,6 @@ async function init() {
   // データ取得
   await loadEssay();
 
-  // メール通知設定
-  setupEmailSetting();
-
   // 左パネルタブ（編集 / 履歴・差分）初期化
   initLeftPanelTabs();
 
@@ -107,11 +104,6 @@ function switchMode(mode) {
 
 function applyMode(mode, { initial = false } = {}) {
   const isTeacher = mode === 'teacher';
-
-  // メールラベル・プレースホルダーの更新
-  if (window._app_updateEmailLabel) {
-    window._app_updateEmailLabel(isTeacher);
-  }
 
   // ボタンの active 状態
   $('#btn-mode-student').classList.toggle('mode-btn--active', !isTeacher);
@@ -723,11 +715,8 @@ async function handleRequestReview() {
       btn.disabled = true;
       btn.textContent = '依頼中...';
 
-      // 生徒が設定した「先生のメールアドレス」を取得して通知用に渡す
-      const teacherEmail = window._app_getNotificationEmail ? window._app_getNotificationEmail() : '';
-
       try {
-        const result = await requestReview(ESSAY_ID, teacherEmail);
+        const result = await requestReview(ESSAY_ID);
         const nowIso = new Date().toISOString();
 
         // バージョン作成のみ（レビューは先生が端末ごとに POST /reviews で作成）
@@ -780,14 +769,11 @@ async function handleSubmitReview() {
       btn.disabled = true;
       btn.textContent = '提出中...';
 
-      // 先生が設定した「生徒のメールアドレス」を取得して通知用に渡す
-      const studentEmail = window._app_getNotificationEmail ? window._app_getNotificationEmail() : '';
-
       try {
         // コメントを先に保存
         await window._comments?.forceSave();
 
-        await submitReview(state.currentReview.id, studentEmail);
+        await submitReview(state.currentReview.id);
         state.currentReview.submitted_at = new Date().toISOString();
 
         // 提出完了後はこのバージョンのローカルドラフトをクリア
@@ -812,43 +798,7 @@ async function handleSubmitReview() {
   );
 }
 
-// ================================================================
-// 通知メール設定（LocalStorage 保存）
-// ================================================================
-function setupEmailSetting() {
-  const input = $('#email-setting-input');
-  const label = $('#email-setting-label');
-  if (!input) return;
 
-  // モード別のLocalStorageキー
-  const getKey = (isTeacher) => isTeacher ? 'notification_email_teacher' : 'notification_email_student';
-
-  // ロールに応じてラベル・値・プレースホルダーをすべて切り替える
-  const updateEmailLabel = (isTeacher) => {
-    if (label) label.textContent = isTeacher ? '生徒のメアド:' : '先生のメアド:';
-    if (input) {
-      input.placeholder = isTeacher ? '生徒のメールアドレス' : '先生のメールアドレス';
-      // 切り替え後のモードに対応した保存値を読み込む
-      input.value = localStorage.getItem(getKey(isTeacher)) ?? '';
-    }
-  };
-
-  updateEmailLabel(state.mode === 'teacher');
-
-  // 入力されたら現在のモードのキーで即保存
-  input.addEventListener('input', (e) => {
-    const isTeacher = state.mode === 'teacher';
-    localStorage.setItem(getKey(isTeacher), e.target.value.trim());
-  });
-
-  // グローバルに切り替えメソッドを登録（applyModeから更新するため）
-  window._app_updateEmailLabel = updateEmailLabel;
-  // 送信時に現在モードのメールアドレスを取得するヘルパーも登録
-  window._app_getNotificationEmail = () => {
-    const isTeacher = state.mode === 'teacher';
-    return localStorage.getItem(getKey(isTeacher)) ?? '';
-  };
-}
 
 // ================================================================
 // 左パネルタブ切替 (編集 / 履歴・差分)

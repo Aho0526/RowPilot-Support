@@ -50,6 +50,7 @@ export const CHECKLIST = [
     id: 'section5',
     title: '⑤ 全体像の図（手書きスキャン）',
     description: '④の研究・開発構想を表した図（紙に手書きしたスキャンデータ）',
+    optional: true, // 現在は評価対象外（提出省略可）
     items: [
       { key: '5_figure',         label: '手書きの図が提出されているか' },
       { key: '5_figure_quality', label: '④の構想の全体像を適切に表しているか' },
@@ -65,7 +66,7 @@ export const CHECKLIST = [
   },
 ];
 
-export const ALL_KEYS = CHECKLIST.flatMap((s) => s.items.map((i) => i.key));
+export const ALL_KEYS = CHECKLIST.filter(s => !s.optional).flatMap((s) => s.items.map((i) => i.key));
 
 const escapeHtml = (str) =>
   String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -225,8 +226,11 @@ export class Checklist {
       sectionEl.style.marginBottom = '20px';
       sectionEl.style.padding = '12px';
       sectionEl.style.borderRadius = 'var(--radius-md)';
-      sectionEl.style.border = '1px solid var(--color-border-light)';
+      sectionEl.style.border = section.optional ? '1px dashed var(--color-border)' : '1px solid var(--color-border-light)';
       sectionEl.style.background = 'var(--color-bg)';
+      if (section.optional) {
+        sectionEl.style.opacity = '0.7';
+      }
 
       // 進捗カウントの計算
       let sectionChecked = 0;
@@ -242,14 +246,18 @@ export class Checklist {
         sectionChecked = section.items.filter(item => itemMap[item.key] === true).length;
       }
 
+      const badgeHtml = section.optional
+        ? `<span style="font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--color-surface-2); color: var(--color-text-muted); font-weight: normal;">現在は省略可</span>`
+        : `<span style="font-size: 11px; padding: 2px 6px; border-radius: 10px; background: var(--color-surface-2); color: var(--color-text-secondary); font-weight: bold;">
+            ${sectionChecked}/${section.items.length}
+          </span>`;
+
       sectionEl.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <span style="font-weight: 600; font-size: 13.5px; color: var(--color-text-primary);">${section.title}</span>
-          <span style="font-size: 11px; padding: 2px 6px; border-radius: 10px; background: var(--color-surface-2); color: var(--color-text-secondary); font-weight: bold;">
-            ${sectionChecked}/${section.items.length}
-          </span>
+          <span style="font-weight: 600; font-size: 13.5px; color: var(--color-text-primary); ${section.optional ? 'text-decoration: line-through;' : ''}">${section.title}</span>
+          ${badgeHtml}
         </div>
-        <p style="font-size: 11.5px; color: var(--color-text-muted); margin-bottom: 10px;">${section.description}</p>
+        <p style="font-size: 11.5px; color: var(--color-text-muted); margin-bottom: 10px; ${section.optional ? 'text-decoration: line-through;' : ''}">${section.description}</p>
         <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;"></ul>
       `;
 
@@ -289,7 +297,7 @@ export class Checklist {
             <span style="display: inline-block; font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 4px; color: ${color}; background: ${bg}; min-width: 32px; text-align: center; margin-top:2px;">
               ${percentage}%
             </span>
-            <span style="flex: 1; color: var(--color-text-primary); line-height: 1.4;">${item.label} <small style="color: var(--color-text-muted); margin-left:4px;">(${checkedCount}/${submittedReviews.length}人)</small></span>
+            <span style="flex: 1; color: var(--color-text-primary); line-height: 1.4; ${section.optional ? 'text-decoration: line-through;' : ''}">${item.label} <small style="color: var(--color-text-muted); margin-left:4px;">(${checkedCount}/${submittedReviews.length}人)</small></span>
           `;
         } else {
           // 通常表示時：チェックボックス
@@ -311,6 +319,9 @@ export class Checklist {
           span.style.flex = '1';
           span.style.color = isChecked ? 'var(--color-text-primary)' : 'var(--color-text-secondary)';
           span.style.lineHeight = '1.4';
+          if (section.optional) {
+            span.style.textDecoration = 'line-through';
+          }
 
           label.appendChild(cb);
           label.appendChild(span);

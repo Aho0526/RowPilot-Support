@@ -50,8 +50,8 @@ export const saveEssay = (essayId, content) =>
   request('PATCH', `/essays/${essayId}`, { content });
 
 /** レビュー依頼（バージョン作成） */
-export const requestReview = (essayId, teacherEmail) =>
-  request('POST', `/essays/${essayId}/versions`, { teacherEmail });
+export const requestReview = (essayId) =>
+  request('POST', `/essays/${essayId}/versions`, {});
 
 /** バージョン一覧取得 */
 export const getVersions = (essayId) =>
@@ -87,5 +87,5 @@ export const updateReview = (reviewId, { teacher_name, markdown_comment, items }
   request('PATCH', `/reviews/${reviewId}`, { teacher_name, markdown_comment, items });
 
 /** レビュー提出確定 */
-export const submitReview = (reviewId, studentEmail) =>
-  request('POST', `/reviews/${reviewId}/submit`, { studentEmail });
+export const submitReview = (reviewId) =>
+  request('POST', `/reviews/${reviewId}/submit`, {});

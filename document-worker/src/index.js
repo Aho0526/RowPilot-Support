@@ -8,43 +8,6 @@ import { cors } from 'hono/cors';
 
 const app = new Hono();
 
-// ── Email Notification Helper ─────────────────────────────────
-async function sendNotificationEmail(env, to, subject, bodyText) {
-  const apiKey = env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.log(`[Email Notification Skipped (RESEND_API_KEY missing)] To: ${to}\nSubject: ${subject}\nBody: ${bodyText}`);
-    return;
-  }
-
-  const fromEmail = env.RESEND_FROM_EMAIL || 'RowPilot 添削支援 <onboarding@resend.dev>';
-  
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [to],
-        subject: subject,
-        text: bodyText,
-        html: `<p>${bodyText.replace(/\n/g, '<br>')}</p><p><a href="https://rowpilot.jp/document/">RowPilot 添削支援を開く</a></p>`
-      })
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error('Failed to send email via Resend API:', errText);
-    } else {
-      console.log(`Email sent successfully to ${to}`);
-    }
-  } catch (err) {
-    console.error('Error sending email:', err);
-  }
-}
-
 // ── CORS ──────────────────────────────────────────────────────
 app.use('/document/api/*', cors({
   origin: (origin) => origin || '*',
@@ -196,16 +159,6 @@ app.post('/document/api/essays/:id/versions', async (c) => {
   ).bind(essayId, essay.current_content).run();
 
   const versionId = result.meta.last_row_id;
-
-  // メール通知送信処理 (バックグラウンド実行)
-  const teacherEmail = body.teacherEmail;
-  if (teacherEmail && teacherEmail.trim()) {
-    const subject = '【要添削】生徒から新しいレビュー依頼が届きました';
-    const bodyText = `生徒から課題論文のレビュー依頼（バージョン作成）が届きました。
-
-内容を確認し、チェックリストとコメントを入力して添削を提出してください。`;
-    c.executionCtx.waitUntil(sendNotificationEmail(c.env, teacherEmail, subject, bodyText));
-  }
 
   return c.json({ versionId }, 201);
 });
@@ -422,16 +375,6 @@ app.post('/document/api/reviews/:id/submit', async (c) => {
   await db.prepare(
     `UPDATE reviews SET submitted_at = datetime('now') WHERE id = ?`
   ).bind(reviewId).run();
-
-  // メール通知送信処理 (バックグラウンド実行)
-  const studentEmail = body.studentEmail;
-  if (studentEmail && studentEmail.trim()) {
-    const subject = '【添削完了】先生からレビューが届きました';
-    const bodyText = `先生による課題論文の添削が提出されました。
-
-RowPilot 添削支援を開いて、先生のコメントとチェック結果を確認してください。`;
-    c.executionCtx.waitUntil(sendNotificationEmail(c.env, studentEmail, subject, bodyText));
-  }
 
   return c.json({ success: true });
 });
