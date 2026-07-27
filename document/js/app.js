@@ -889,7 +889,8 @@ async function refreshDiffVersionSelect() {
     versions.forEach((v, i) => {
       const num = versions.length - i;
       const d = parseDate(v.created_at);
-      const date = (d && !isNaN(d.getTime())) ? d.toLocaleDateString('ja-JP', {
+      const date = (d && !isNaN(d.getTime())) ? d.toLocaleString('ja-JP', {
+        timeZone: 'Asia/Tokyo',
         month: 'numeric',
         day: 'numeric',
         hour: '2-digit',
@@ -1133,10 +1134,12 @@ function showLoading(show) {
 
 function parseDate(dateStr) {
   if (!dateStr) return null;
-  const str = String(dateStr).trim();
-  const isoStr = str.replace(' ', 'T') + (str.includes('T') || str.endsWith('Z') ? '' : 'Z');
-  const d = new Date(isoStr);
-  return isNaN(d.getTime()) ? new Date(str) : d;
+  let str = String(dateStr).trim();
+  if (!str.endsWith('Z') && !str.includes('+')) {
+    str = str.replace(' ', 'T') + 'Z';
+  }
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 function updateLastRequestTime() {
@@ -1147,6 +1150,7 @@ function updateLastRequestTime() {
     const d = parseDate(state.currentVersion.created_at);
     if (d && !isNaN(d.getTime())) {
       const date = d.toLocaleString('ja-JP', {
+        timeZone: 'Asia/Tokyo',
         month: 'numeric',
         day: 'numeric',
         hour: '2-digit',

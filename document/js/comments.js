@@ -16,6 +16,28 @@ const renderMarkdown = (text) => {
 const escapeHtml = (str) =>
   String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+const parseUtcDate = (dateStr) => {
+  if (!dateStr) return null;
+  let str = String(dateStr).trim();
+  if (!str.endsWith('Z') && !str.includes('+')) {
+    str = str.replace(' ', 'T') + 'Z';
+  }
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+};
+
+const formatDateJST = (dateStr) => {
+  const d = parseUtcDate(dateStr);
+  if (!d) return '';
+  return d.toLocaleString('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
 const AUTOSAVE_DELAY_MS = 1500;
 
 export class Comments {
@@ -229,9 +251,7 @@ export class Comments {
     const cards = otherReviews.map((r, index) => {
       const name = r.teacher_name ? `${r.teacher_name}先生` : `先生 ${index + 1}`;
       const commentHtml = renderMarkdown(r.markdown_comment);
-      const timeStr = r.submitted_at ? new Date(r.submitted_at.replace(' ', 'T')).toLocaleString('ja-JP', {
-        month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'
-      }) : '';
+      const timeStr = formatDateJST(r.submitted_at);
       return `
         <div style="background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); padding: 12px; margin-bottom: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -268,12 +288,7 @@ export class Comments {
     const cards = submittedReviews.map((r, index) => {
       const name = r.teacher_name ? `${r.teacher_name}先生` : `先生 ${index + 1}`;
       const commentHtml = renderMarkdown(r.markdown_comment);
-      const timeStr = r.submitted_at ? new Date(r.submitted_at.replace(' ', 'T')).toLocaleString('ja-JP', {
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }) : '';
+      const timeStr = formatDateJST(r.submitted_at);
 
       return `
         <div class="cm-card" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px; margin: 12px; box-shadow: var(--shadow-sm);">
