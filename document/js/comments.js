@@ -55,6 +55,7 @@ export class Comments {
     this._reviews = [];
     this._activeReviewId = null;
     this._pendingDraft = null; // 旧バージョンの未提出ドラフト引き継ぎ用
+    this._hasVersionRequest = false; // 生徒がレビュー依頼を送ったか否か
 
     this._build();
   }
@@ -63,11 +64,13 @@ export class Comments {
    * レビューデータをセット
    * @param {Array} reviews
    * @param {number|null} activeReviewId
+   * @param {boolean} hasVersionRequest 生徒がレビュー依頼を送ったか否か（バージョンあり = true）
    */
-  setContent(reviews, activeReviewId) {
+  setContent(reviews, activeReviewId, hasVersionRequest = false) {
     const prevActiveId = this._activeReviewId;
     this._reviews = reviews || [];
     this._activeReviewId = activeReviewId;
+    this._hasVersionRequest = hasVersionRequest;
 
     // 先生モードで入力中（フォーカスあり）かつアクティブIDも変わっていない場合はレンダーしない
     if (this._editable && prevActiveId === activeReviewId) {
@@ -128,8 +131,8 @@ export class Comments {
     const myReview = this._reviews.find(r => r.is_mine) || null;
     const otherReviews = this._reviews.filter(r => !r.is_mine && r.submitted_at);
 
-    // レビュー依頼なし
-    if (this._reviews.length === 0 && !myReview) {
+    // レビュー依頼なし（バージョン自体がまだない）
+    if (!this._hasVersionRequest && this._reviews.length === 0) {
       this._contentEl.innerHTML = `
         <div class="cm-notice cm-notice--warning" style="margin: 16px;">
           ⚠️ 生徒が「レビュー依頼」を送信すると、添削を開始できます。
@@ -138,7 +141,7 @@ export class Comments {
       return;
     }
 
-    // マイレビューがまだなく、依頼は存在する（他端末の先生は入ったが自分はまだ）
+    // バージョンはあるがマイレビューがまだない（依頼あり・添削未開始）
     if (!myReview) {
       this._contentEl.innerHTML = `
         <div class="cm-notice cm-notice--info" style="margin: 16px; padding: 16px; border-radius: 8px; background: var(--color-surface); border: 1px solid var(--color-border);">

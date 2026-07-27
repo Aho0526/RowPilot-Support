@@ -233,7 +233,8 @@ function refreshChecklistAndComments() {
   if (window._comments) {
     if (isTeacher) {
       // 先生モードは全レビューを渡し、is_mine フラグで自分のものを識別させる
-      window._comments.setContent(state.reviews, state.currentReview?.id);
+      // 第3引数: バージョン（レビュー依頼）が存在するかを渡す
+      window._comments.setContent(state.reviews, state.currentReview?.id, !!state.currentVersion?.id);
     } else {
       window._comments.setContent(state.reviews, null);
     }
