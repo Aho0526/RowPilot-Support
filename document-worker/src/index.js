@@ -67,10 +67,19 @@ app.use('/document/api/*', async (c, next) => {
   if (db) {
     try {
       const check = await db.prepare("PRAGMA table_info(reviews)").all();
-      const hasTeacherName = check.results.some(col => col.name === 'teacher_name');
-      if (!hasTeacherName) {
-        await db.prepare("ALTER TABLE reviews ADD COLUMN teacher_name TEXT DEFAULT ''").run();
-        console.log("Successfully migrated reviews table: added teacher_name column");
+      const cols = check.results.map(col => col.name);
+
+      const stmts = [];
+      if (!cols.includes('teacher_name')) {
+        stmts.push(db.prepare("ALTER TABLE reviews ADD COLUMN teacher_name TEXT DEFAULT ''"));
+        console.log("Migration: adding teacher_name column");
+      }
+      if (!cols.includes('device_id')) {
+        stmts.push(db.prepare("ALTER TABLE reviews ADD COLUMN device_id TEXT NOT NULL DEFAULT ''"));
+        console.log("Migration: adding device_id column");
+      }
+      if (stmts.length > 0) {
+        await db.batch(stmts);
       }
     } catch (e) {
       console.warn("Migration check skipped or failed:", e);
@@ -107,15 +116,26 @@ app.get('/document/api/essays/:id', async (c) => {
 
   // 最新のバージョン（レビュー依頼済みスナップショット）を取得
   const latestVersion = await db.prepare(
-    `SELECT ev.*, r.id AS review_id, r.submitted_at, r.markdown_comment
+    `SELECT ev.*
      FROM essay_versions ev
-     LEFT JOIN reviews r ON r.version_id = ev.id
      WHERE ev.essay_id = ?
      ORDER BY ev.created_at DESC
      LIMIT 1`
   ).bind(id).first();
 
-  return c.json({ essay, latestVersion: latestVersion ?? null });
+  // そのバージョンに紐づく最初のレビューIDを取得（後方互換用）
+  let latestVersionWithReview = null;
+  if (latestVersion) {
+    const firstReview = await db.prepare(
+      `SELECT id FROM reviews WHERE version_id = ? ORDER BY created_at ASC LIMIT 1`
+    ).bind(latestVersion.id).first();
+    latestVersionWithReview = {
+      ...latestVersion,
+      review_id: firstReview?.id ?? null,
+    };
+  }
+
+  return c.json({ essay, latestVersion: latestVersionWithReview ?? null });
 });
 
 /**
@@ -151,6 +171,8 @@ app.patch('/document/api/essays/:id', async (c) => {
 /**
  * POST /document/api/essays/:id/versions
  * レビュー依頼 — 現在の下書きをスナップショットとして保存
+ * 注意: 個別レビューはフロントエンドが device_id を持って POST /reviews で作成する。
+ *       バージョン作成時にデフォルトレビューは生成しない（複数先生対応のため）。
  */
 app.post('/document/api/essays/:id/versions', async (c) => {
   const db = c.env.DB;
@@ -175,12 +197,6 @@ app.post('/document/api/essays/:id/versions', async (c) => {
 
   const versionId = result.meta.last_row_id;
 
-  // 空のレビュードラフトをあわせて作成（先生がすぐ編集できるよう）
-  const reviewResult = await db.prepare(
-    `INSERT INTO reviews (version_id, markdown_comment, created_at)
-     VALUES (?, '', datetime('now'))`
-  ).bind(versionId).run();
-
   // メール通知送信処理 (バックグラウンド実行)
   const teacherEmail = body.teacherEmail;
   if (teacherEmail && teacherEmail.trim()) {
@@ -191,10 +207,7 @@ app.post('/document/api/essays/:id/versions', async (c) => {
     c.executionCtx.waitUntil(sendNotificationEmail(c.env, teacherEmail, subject, bodyText));
   }
 
-  return c.json({
-    versionId,
-    reviewId: reviewResult.meta.last_row_id,
-  }, 201);
+  return c.json({ versionId }, 201);
 });
 
 /**
@@ -210,11 +223,10 @@ app.get('/document/api/essays/:id/versions', async (c) => {
        ev.id,
        ev.essay_id,
        ev.created_at,
-       r.id          AS review_id,
-       r.submitted_at,
-       r.markdown_comment
+       (SELECT id FROM reviews WHERE version_id = ev.id ORDER BY created_at ASC LIMIT 1) AS review_id,
+       (SELECT submitted_at FROM reviews WHERE version_id = ev.id ORDER BY created_at ASC LIMIT 1) AS submitted_at,
+       (SELECT markdown_comment FROM reviews WHERE version_id = ev.id ORDER BY created_at ASC LIMIT 1) AS markdown_comment
      FROM essay_versions ev
-     LEFT JOIN reviews r ON r.version_id = ev.id
      WHERE ev.essay_id = ?
      ORDER BY ev.created_at DESC`
   ).bind(essayId).all();
@@ -244,12 +256,14 @@ app.get('/document/api/essays/:id/versions/:vid', async (c) => {
 // ================================================================
 
 /**
- * GET /document/api/reviews?version_id=:id
+ * GET /document/api/reviews?version_id=:id[&device_id=:did]
  * 指定バージョンの全レビュー取得（チェック項目含む）
+ * device_id を渡すと、該当端末のレビューを my_review フラグ付きで返す
  */
 app.get('/document/api/reviews', async (c) => {
   const db = c.env.DB;
   const versionId = c.req.query('version_id');
+  const deviceId = c.req.query('device_id') || '';
   if (!versionId) return err(c, 400, 'version_id is required');
 
   const reviews = await db.prepare(
@@ -266,7 +280,11 @@ app.get('/document/api/reviews', async (c) => {
     for (const row of items.results) {
       itemMap[row.checklist_key] = row.checked === 1;
     }
-    results.push({ ...review, itemMap });
+    results.push({
+      ...review,
+      itemMap,
+      is_mine: deviceId !== '' && review.device_id === deviceId,
+    });
   }
 
   return c.json(results);
@@ -275,6 +293,7 @@ app.get('/document/api/reviews', async (c) => {
 /**
  * POST /document/api/reviews
  * 新しいレビュー（添削者）の追加
+ * device_id ごとに1バージョンにつき1つのみ作成可能
  */
 app.post('/document/api/reviews', async (c) => {
   const db = c.env.DB;
@@ -285,20 +304,42 @@ app.post('/document/api/reviews', async (c) => {
     return err(c, 400, 'Invalid JSON');
   }
 
-  const { version_id, teacher_name } = body;
+  const { version_id, teacher_name, device_id } = body;
   if (!version_id) return err(c, 400, 'version_id is required');
 
+  // device_id が指定されている場合、同一バージョンへの重複作成をチェック
+  if (device_id) {
+    const existing = await db.prepare(
+      `SELECT id FROM reviews WHERE version_id = ? AND device_id = ?`
+    ).bind(version_id, device_id).first();
+    if (existing) {
+      // 既存のレビューをそのまま返す（チェック項目含む）
+      const items = await db.prepare(
+        `SELECT checklist_key, checked FROM review_items WHERE review_id = ?`
+      ).bind(existing.id).all();
+      const itemMap = {};
+      for (const row of items.results) {
+        itemMap[row.checklist_key] = row.checked === 1;
+      }
+      const rev = await db.prepare('SELECT * FROM reviews WHERE id = ?').bind(existing.id).first();
+      return c.json({ ...rev, itemMap, is_mine: true }, 200);
+    }
+  }
+
   const result = await db.prepare(
-    `INSERT INTO reviews (version_id, teacher_name, markdown_comment, created_at)
-     VALUES (?, ?, '', datetime('now'))`
-  ).bind(version_id, teacher_name || '').run();
+    `INSERT INTO reviews (version_id, teacher_name, device_id, markdown_comment, created_at)
+     VALUES (?, ?, ?, '', datetime('now'))`
+  ).bind(version_id, teacher_name || '', device_id || '').run();
 
   return c.json({
     id: result.meta.last_row_id,
     version_id,
     teacher_name: teacher_name || '',
+    device_id: device_id || '',
     markdown_comment: '',
-    itemMap: {}
+    submitted_at: null,
+    itemMap: {},
+    is_mine: true,
   }, 201);
 });
 

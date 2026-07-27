@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS reviews (
   version_id       INTEGER NOT NULL REFERENCES essay_versions(id) ON DELETE CASCADE,
   markdown_comment TEXT    NOT NULL DEFAULT '',
   submitted_at     TEXT,           -- NULL = 下書き中, 値あり = 提出済み
-  created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
+  created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+  device_id        TEXT    NOT NULL DEFAULT ''  -- 端末識別子（1端末につき1レビュー）
 );
 
 -- チェックリスト項目（キーごとに checked 状態を記録）

@@ -63,13 +63,24 @@ export const getVersion = (essayId, versionId) =>
 
 // ── Reviews ──────────────────────────────────────────────────────
 
-/** バージョンに紐づくレビュー取得 */
-export const getReview = (versionId) =>
-  request('GET', `/reviews?version_id=${versionId}`);
+/**
+ * バージョンに紐づくレビュー取得
+ * @param {number} versionId
+ * @param {string} [deviceId] 指定すると is_mine フラグが付与される
+ */
+export const getReview = (versionId, deviceId = '') => {
+  const q = deviceId ? `version_id=${versionId}&device_id=${encodeURIComponent(deviceId)}` : `version_id=${versionId}`;
+  return request('GET', `/reviews?${q}`);
+};
 
-/** レビュー新規作成（添削者の追加） */
-export const createReview = (versionId, teacherName = '') =>
-  request('POST', '/reviews', { version_id: versionId, teacher_name: teacherName });
+/**
+ * レビュー新規作成（端末識別付き）
+ * @param {number} versionId
+ * @param {string} [teacherName]
+ * @param {string} [deviceId]
+ */
+export const createReview = (versionId, teacherName = '', deviceId = '') =>
+  request('POST', '/reviews', { version_id: versionId, teacher_name: teacherName, device_id: deviceId });
 
 /** レビュー更新（添削者名 + コメント + チェック項目） */
 export const updateReview = (reviewId, { teacher_name, markdown_comment, items }) =>

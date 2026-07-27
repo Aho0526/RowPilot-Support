@@ -22,6 +22,13 @@ import {
   renderUnifiedHtml,
   renderSplitHtml,
 } from './diff.js';
+import {
+  getDeviceId,
+  saveDraftLocally,
+  loadDraftLocally,
+  clearDraftLocally,
+  cleanupOldDrafts,
+} from './device.js';
 
 // ================================================================
 // 定数
@@ -36,10 +43,13 @@ const state = {
   mode: localStorage.getItem(MODE_KEY) ?? 'student',  // 'student' | 'teacher'
   essay: null,
   currentVersion: null,
-  currentReview: null,   // 編集・表示対象のアクティブなレビュー
+  currentReview: null,   // 編集・表示対象のアクティブなレビュー（先生モード: 自端末のレビュー）
   reviews: [],           // 現在表示中バージョンの全レビュー配列
   selectedReviewIdForStudent: null, // 生徒モードで選択されているレビューID（null=Overview）
 };
+
+// 端末識別子（ブラウザ起動時に確定）
+const DEVICE_ID = getDeviceId();
 
 // ================================================================
 // DOM 要素
@@ -170,8 +180,12 @@ function applyMode(mode, { initial = false } = {}) {
     }
   }
 
-  const submitted = state.currentReview?.submitted_at;
-  const hasReview = !!state.currentReview?.id;
+  // 先生モードの場合は自端末のレビュー(is_mine)を基準にする
+  const myReview = isTeacher ? (state.reviews.find(r => r.is_mine) || state.currentReview) : state.currentReview;
+  const submitted = myReview?.submitted_at;
+  const hasReview = !!myReview?.id;
+  // レビュー依頼がある（他先生でもいい）
+  const hasAnyRequest = state.reviews.length > 0 || (state.currentVersion?.id != null);
 
   // チェックリスト
   if (window._checklist) {
@@ -182,8 +196,10 @@ function applyMode(mode, { initial = false } = {}) {
   const hintEl = $('#checklist-mode-hint');
   if (hintEl) {
     if (isTeacher) {
-      if (!hasReview) {
+      if (!hasAnyRequest) {
         hintEl.innerHTML = '<span class="hint-text text-warning" style="color:var(--color-warning);font-weight:600">⚠️ レビュー依頼がありません</span>';
+      } else if (!hasReview) {
+        hintEl.innerHTML = '<span class="hint-text text-warning" style="color:var(--color-warning);font-weight:600">✏️ 添削を始めるにはコメント欄から「添削を始める」をクリック</span>';
       } else if (submitted) {
         hintEl.innerHTML = '<span class="hint-text">提出済み（閲覧のみ）</span>';
       } else {
@@ -214,7 +230,9 @@ function refreshChecklistAndComments() {
 
   if (window._checklist) {
     if (isTeacher) {
-      window._checklist.setReviews(state.reviews, state.currentReview?.id, true);
+      // 先生モードのチェックリストは自分のレビュー(is_mine)のみを対象にする
+      const myReviewId = state.reviews.find(r => r.is_mine)?.id ?? state.currentReview?.id;
+      window._checklist.setReviews(state.reviews, myReviewId, true);
     } else {
       window._checklist.setReviews(state.reviews, state.selectedReviewIdForStudent, false);
     }
@@ -222,6 +240,7 @@ function refreshChecklistAndComments() {
 
   if (window._comments) {
     if (isTeacher) {
+      // 先生モードは全レビューを渡し、is_mine フラグで自分のものを識別させる
       window._comments.setContent(state.reviews, state.currentReview?.id);
     } else {
       window._comments.setContent(state.reviews, null);
@@ -235,8 +254,10 @@ function refreshChecklistAndComments() {
  */
 function updateChecklistHint() {
   const isTeacher = state.mode === 'teacher';
-  const submitted = state.currentReview?.submitted_at;
-  const hasReview = !!state.currentReview?.id;
+  const myReview = isTeacher ? (state.reviews.find(r => r.is_mine) || state.currentReview) : state.currentReview;
+  const submitted = myReview?.submitted_at;
+  const hasReview = !!myReview?.id;
+  const hasAnyRequest = state.reviews.length > 0 || (state.currentVersion?.id != null);
 
   if (window._checklist) {
     window._checklist.setInteractive(isTeacher && hasReview && !submitted);
@@ -245,8 +266,10 @@ function updateChecklistHint() {
   const hintEl = $('#checklist-mode-hint');
   if (hintEl) {
     if (isTeacher) {
-      if (!hasReview) {
+      if (!hasAnyRequest) {
         hintEl.innerHTML = '<span class="hint-text text-warning" style="color:var(--color-warning);font-weight:600">⚠️ レビュー依頼がありません</span>';
+      } else if (!hasReview) {
+        hintEl.innerHTML = '<span class="hint-text text-warning" style="color:var(--color-warning);font-weight:600">✏️ 添削を始めるにはコメント欄から「添削を始める」をクリック</span>';
       } else if (submitted) {
         hintEl.innerHTML = '<span class="hint-text">提出済み（閲覧のみ）</span>';
       } else {
@@ -303,11 +326,12 @@ async function loadEssay() {
 
 async function loadReview(versionId) {
   try {
-    const reviews = await getReview(versionId);
+    const reviews = await getReview(versionId, DEVICE_ID);
     state.reviews = reviews || [];
     
     if (state.mode === 'teacher') {
-      state.currentReview = state.reviews[0] || null;
+      // 自端末のレビューを currentReview に設定（is_mine フラグで特定）
+      state.currentReview = state.reviews.find(r => r.is_mine) || null;
     } else {
       state.currentReview = null;
       state.selectedReviewIdForStudent = null; // デフォルトはOverview
@@ -368,11 +392,25 @@ async function syncLatestData() {
     }
 
     // 2. バージョン＆複数レビュー状態の同期
+    const prevVersionId = state.currentVersion?.id;
     state.currentVersion = serverLatestVersion;
 
-    if (serverLatestVersion?.review_id) {
-      // サーバーからそのバージョンの全レビューを取得
-      const serverReviews = await getReview(serverLatestVersion.id);
+    // バージョンが新しくなった場合（生徒が次のレビュー依頼を送った）
+    if (versionIdChanged && prevVersionId && state.mode === 'teacher') {
+      // 旧バージョンで入力中だったコメントをローカルに退避
+      const nameInput = document.querySelector('.cm-teacher-name-input');
+      const textarea = document.querySelector('.cm-textarea');
+      const draftName = nameInput ? nameInput.value : (state.currentReview?.teacher_name || '');
+      const draftComment = textarea ? textarea.value : (state.currentReview?.markdown_comment || '');
+
+      if (draftName || draftComment) {
+        saveDraftLocally(prevVersionId, { teacherName: draftName, comment: draftComment });
+      }
+    }
+
+    if (serverLatestVersion) {
+      // サーバーからそのバージョンの全レビューを取得（device_id 付き）
+      const serverReviews = await getReview(serverLatestVersion.id, DEVICE_ID);
 
       const commentTextarea = document.querySelector('.cm-textarea');
       const isEditingComment = document.activeElement === commentTextarea;
@@ -388,8 +426,19 @@ async function syncLatestData() {
 
         // 状態を同期
         if (state.mode === 'teacher') {
-          const prevActiveId = state.currentReview?.id;
-          state.currentReview = serverReviews.find(r => r.id === prevActiveId) || serverReviews[0] || null;
+          // 自端末のレビューを is_mine フラグで特定
+          const myReview = serverReviews.find(r => r.is_mine) || null;
+          state.currentReview = myReview;
+
+          // バージョンが変わった場合は旧バージョンのドラフトを引き継ぎ確認
+          if (versionIdChanged && prevVersionId) {
+            const oldDraft = loadDraftLocally(prevVersionId);
+            if (oldDraft && window._comments && !myReview?.submitted_at) {
+              window._comments.setPendingDraft(oldDraft);
+            }
+            // 1世代前以外の古いドラフトをクリーンアップ
+            cleanupOldDrafts(prevVersionId);
+          }
         } else {
           // 生徒モード：選択されていた先生IDがあれば保持、無ければ null (Overview)
           const prevSelectedId = state.selectedReviewIdForStudent;
@@ -464,13 +513,22 @@ function initModules() {
       }
     },
     onAddReview: async () => {
-      // 新しい先生の添削を追加
+      // 自端末のレビューを作成（device_id で紐づけ）
       if (!state.currentVersion?.id) return;
       try {
         showLoading(true);
-        const newRev = await createReview(state.currentVersion.id);
-        state.reviews.push(newRev);
-        state.currentReview = newRev;
+        const newRev = await createReview(state.currentVersion.id, '', DEVICE_ID);
+        // is_mine を付与して登録
+        const revWithMine = { ...newRev, is_mine: true };
+        // 既存の同IDがなければ追加
+        if (!state.reviews.find(r => r.id === revWithMine.id)) {
+          state.reviews.push(revWithMine);
+        } else {
+          // 既存エントリを更新
+          const idx = state.reviews.findIndex(r => r.id === revWithMine.id);
+          if (idx !== -1) state.reviews[idx] = revWithMine;
+        }
+        state.currentReview = revWithMine;
         refreshChecklistAndComments();
         updateToolbarVisibility(state.mode === 'teacher');
         showLoading(false);
@@ -490,6 +548,11 @@ function initModules() {
         state.currentReview.teacher_name = name;
         state.currentReview.markdown_comment = comment;
       }
+    },
+    onDraftRestore: (draft) => {
+      // 旧バージョンのドラフトを引き継いだ後にローカルキャッシュをクリア
+      const prevVersionId = state.currentVersion ? state.currentVersion.id - 1 : null;
+      if (prevVersionId) clearDraftLocally(prevVersionId);
     }
   });
 }
@@ -616,9 +679,14 @@ function updateToolbarVisibility(isTeacher) {
   if (btnSubmit)  btnSubmit.style.display  = isTeacher ? '' : 'none';
 
   if (btnSubmit) {
-    if (state.currentReview?.submitted_at) {
+    // 先生モードの提出ボタンは自端末のレビューがある場合のみ有効
+    const myRev = state.reviews.find(r => r.is_mine) || state.currentReview;
+    if (myRev?.submitted_at) {
       btnSubmit.disabled = true;
       btnSubmit.textContent = '提出済み';
+    } else if (!myRev?.id) {
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = '添削未開始';
     } else {
       btnSubmit.disabled = false;
       btnSubmit.textContent = 'レビュー提出';
@@ -661,20 +729,14 @@ async function handleRequestReview() {
       try {
         const result = await requestReview(ESSAY_ID, teacherEmail);
         const nowIso = new Date().toISOString();
-        const initReview = {
-          id: result.reviewId,
-          submitted_at: null,
-          markdown_comment: '',
-          teacher_name: '',
-          itemMap: {},
-        };
-        state.reviews = [initReview];
-        state.currentReview = initReview;
+
+        // バージョン作成のみ（レビューは先生が端末ごとに POST /reviews で作成）
+        state.reviews = [];
+        state.currentReview = null;
         state.selectedReviewIdForStudent = null;
 
         state.currentVersion = {
           id: result.versionId,
-          review_id: result.reviewId,
           content: content,
           created_at: nowIso
         };
@@ -700,12 +762,17 @@ async function handleRequestReview() {
 // ================================================================
 async function handleSubmitReview() {
   const btn = $('#btn-submit-review');
-  if (!btn || !state.currentReview?.id) return;
+  // is_mine のレビューを優先して参照
+  const myRev = state.reviews.find(r => r.is_mine) || state.currentReview;
+  if (!btn || !myRev?.id) return;
 
-  if (state.currentReview.submitted_at) {
+  if (myRev.submitted_at) {
     showToast('このレビューは既に提出済みです。', 'warning', 3000);
     return;
   }
+
+  // state.currentReview を確実に myRev に同期させる
+  state.currentReview = myRev;
 
   showConfirmModal(
     'レビューを提出しますか？\n提出後は編集できなくなります。',
@@ -722,6 +789,11 @@ async function handleSubmitReview() {
 
         await submitReview(state.currentReview.id, studentEmail);
         state.currentReview.submitted_at = new Date().toISOString();
+
+        // 提出完了後はこのバージョンのローカルドラフトをクリア
+        if (state.currentVersion?.id) {
+          clearDraftLocally(state.currentVersion.id);
+        }
 
         refreshChecklistAndComments();
         applyMode(state.mode);
