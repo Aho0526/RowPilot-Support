@@ -990,12 +990,14 @@ function setupDiffControls() {
     });
   }
 
-  // 分割表示/統合表示トグルのイベント
+  // 分割表示/統合表示/原文トグルのイベント
   const btnSplit = $('#btn-diff-split');
   const btnUnified = $('#btn-diff-unified');
-  if (btnSplit && btnUnified) {
+  const btnOriginal = $('#btn-diff-original');
+  if (btnSplit && btnUnified && btnOriginal) {
     btnSplit.addEventListener('click', () => window._app_setViewType('split'));
     btnUnified.addEventListener('click', () => window._app_setViewType('unified'));
+    btnOriginal.addEventListener('click', () => window._app_setViewType('original'));
   }
 }
 
@@ -1051,10 +1053,15 @@ window._app_setCompareType = (type) => {
 };
 
 window._app_setViewType = (type) => {
-  window._diffViewType = type;
+  if (type === 'original') {
+    window._app_setViewMode('raw');
+  } else {
+    window._diffViewType = type;
+    window._app_setViewMode('diff');
+  }
   $('#btn-diff-split')?.classList.toggle('active', type === 'split');
   $('#btn-diff-unified')?.classList.toggle('active', type === 'unified');
-  window._app_renderDiff();
+  $('#btn-diff-original')?.classList.toggle('active', type === 'original');
 };
 
 // ================================================================
