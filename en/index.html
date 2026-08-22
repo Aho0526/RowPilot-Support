@@ -295,7 +295,7 @@
           <div class="plan-card" id="plan-pro">
             <div class="plan-card-top">
               <div class="plan-name">Pro</div>
-              <div class="plan-price">¥600 JPY<span>/month</span></div>
+              <div class="plan-price">¥200 JPY<span>/month</span></div>
               <p class="plan-tagline">For advanced individual rowers</p>
             </div>
             <ul class="plan-features">
@@ -313,7 +313,7 @@
           <div class="plan-card" id="plan-manager">
             <div class="plan-card-top">
               <div class="plan-name">Manager</div>
-              <div class="plan-price">¥900 JPY<span>/month</span></div>
+              <div class="plan-price">¥500 JPY<span>/month</span></div>
               <p class="plan-tagline">For managers & coaches</p>
             </div>
             <ul class="plan-features">
@@ -331,7 +331,7 @@
           <div class="plan-card" id="plan-team">
             <div class="plan-card-top">
               <div class="plan-name">Team</div>
-              <div class="plan-price">¥3,000 JPY<span>/month</span></div>
+              <div class="plan-price">¥1,000 JPY<span>/month</span></div>
               <p class="plan-tagline">For small clubs & school teams</p>
             </div>
             <ul class="plan-features">
@@ -349,7 +349,7 @@
           <div class="plan-card" id="plan-max">
             <div class="plan-card-top">
               <div class="plan-name">MAX</div>
-              <div class="plan-price">¥5,000 JPY<span>/month</span></div>
+              <div class="plan-price">¥3,000 JPY<span>/month</span></div>
               <p class="plan-tagline">For mid-sized school teams & clubs</p>
             </div>
             <ul class="plan-features">
@@ -362,12 +362,13 @@
             <button class="plan-btn" data-plan="max">View Details</button>
           </div>
 
-          <!-- Organization -->
-          <div class="plan-card" id="plan-org">
+          <!-- Organization (Discontinued) -->
+          <div class="plan-card" id="plan-org" style="opacity: 0.55; pointer-events: none; position: relative;">
+            <div style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,127,127,0.15); color: #ff7f7f; border: 1px solid rgba(255,127,127,0.3); border-radius: 8px; padding: 0.2rem 0.65rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;">Discontinued</div>
             <div class="plan-card-top">
               <div class="plan-name">Organization</div>
-              <div class="plan-price">¥8,000 JPY<span>/month</span></div>
-              <p class="plan-tagline">For large clubs & organizations</p>
+              <div class="plan-price" style="text-decoration: line-through;">¥8,000 JPY<span>/month</span></div>
+              <p class="plan-tagline">For large clubs &amp; organizations</p>
             </div>
             <ul class="plan-features">
               <li class="feat-yes">All MAX features</li>
@@ -376,7 +377,7 @@
               <li class="feat-yes">Team management up to 200 members</li>
               <li class="feat-soon">Event management tools (Coming Soon)</li>
             </ul>
-            <button class="plan-btn" data-plan="org">View Details</button>
+            <button class="plan-btn" data-plan="org" disabled>This plan is discontinued</button>
           </div>
 
         </div>

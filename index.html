@@ -22,7 +22,7 @@
 
       <!-- Desktop links -->
       <ul class="nav-links" id="nav-links">
-        <li><a href="#" class="active">Home</a></li>
+        <li><a href="#" class="active">ホーム</a></li>
         <li><a href="#features">機能</a></li>
         <li><a href="#premium">プラン</a></li>
         <li><a href="news/index.html">お知らせ</a></li>
@@ -42,7 +42,7 @@
   <!-- Mobile drawer -->
   <nav class="mobile-menu" id="mobile-menu">
     <div class="mobile-menu-inner">
-      <a href="#" class="active" id="mm-home">Home</a>
+      <a href="#" class="active" id="mm-home">ホーム</a>
       <a href="#features" id="mm-features">機能</a>
       <a href="#premium" id="mm-premium">プラン</a>
       <div class="mobile-menu-divider"></div>
@@ -290,7 +290,7 @@
           <div class="plan-card" id="plan-pro">
             <div class="plan-card-top">
               <div class="plan-name">Pro</div>
-              <div class="plan-price">¥600<span>/月</span></div>
+              <div class="plan-price">¥200<span>/月</span></div>
               <p class="plan-tagline">個人の上級者向け</p>
             </div>
             <ul class="plan-features">
@@ -308,7 +308,7 @@
           <div class="plan-card" id="plan-manager">
             <div class="plan-card-top">
               <div class="plan-name">Manager</div>
-              <div class="plan-price">¥900<span>/月</span></div>
+              <div class="plan-price">¥500<span>/月</span></div>
               <p class="plan-tagline">マネージャー・顧問向け</p>
             </div>
             <ul class="plan-features">
@@ -326,7 +326,7 @@
           <div class="plan-card" id="plan-team">
             <div class="plan-card-top">
               <div class="plan-name">Team</div>
-              <div class="plan-price">¥3,000<span>/月</span></div>
+              <div class="plan-price">¥1,000<span>/月</span></div>
               <p class="plan-tagline">部活・小規模団体向け</p>
             </div>
             <ul class="plan-features">
@@ -344,7 +344,7 @@
           <div class="plan-card" id="plan-max">
             <div class="plan-card-top">
               <div class="plan-name">MAX</div>
-              <div class="plan-price">¥5,000<span>/月</span></div>
+              <div class="plan-price">¥3,000<span>/月</span></div>
               <p class="plan-tagline">部活・中規模団体向け</p>
             </div>
             <ul class="plan-features">
@@ -357,11 +357,14 @@
             <button class="plan-btn" data-plan="max">このプランの詳細</button>
           </div>
 
-          <!-- Organization -->
-          <div class="plan-card" id="plan-org">
+          <!-- Organization（廃止予定） -->
+          <div class="plan-card" id="plan-org" style="opacity: 0.55; pointer-events: none; position: relative;">
+            <div
+              style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,127,127,0.15); color: #ff7f7f; border: 1px solid rgba(255,127,127,0.3); border-radius: 8px; padding: 0.2rem 0.65rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;">
+              廃止予定</div>
             <div class="plan-card-top">
               <div class="plan-name">Organization</div>
-              <div class="plan-price">¥8,000<span>/月</span></div>
+              <div class="plan-price" style="text-decoration: line-through;">¥8,000<span>/月</span></div>
               <p class="plan-tagline">大規模団体・クラブ向け</p>
             </div>
             <ul class="plan-features">
@@ -371,7 +374,7 @@
               <li class="feat-yes">200人までのチーム管理</li>
               <li class="feat-soon">イベント管理ツール（準備中）</li>
             </ul>
-            <button class="plan-btn" data-plan="org">このプランの詳細</button>
+            <button class="plan-btn" data-plan="org" disabled>このプランは廃止予定です</button>
           </div>
 
         </div>
@@ -423,7 +426,7 @@
           RowPilot
         </a>
         <div class="footer-links">
-          <a href="#">Home</a>
+          <a href="#">ホーム</a>
           <a href="#features">機能</a>
           <a href="#premium">プラン</a>
           <a href="support/index.html">サポート</a>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Pricing Revision — RowPilot</title>
+    <meta name="description"
+        content="RowPilot is significantly reducing monthly subscription prices across all plans and discontinuing the Organization plan.">
+    <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <style>
+        .flow-card {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flow-card h2 {
+            font-family: var(--font-h);
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+        }
+
+        .flow-card>p {
+            color: var(--text-2);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+
+        .price-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .price-table th {
+            background: rgba(77, 203, 255, 0.08);
+            color: var(--accent);
+            font-weight: 700;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            letter-spacing: 0.03em;
+        }
+
+        .price-table td {
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-2);
+            vertical-align: middle;
+        }
+
+        .price-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .price-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .price-old {
+            color: var(--text-2);
+            opacity: 0.6;
+            font-size: 0.9em;
+        }
+
+        .price-new {
+            color: #f1f5f9;
+            font-weight: 700;
+            font-size: 1.0em;
+        }
+
+        .badge-down {
+            display: inline-block;
+            padding: 0.18rem 0.55rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: rgba(77, 203, 255, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(77, 203, 255, 0.2);
+            margin-left: 0.4rem;
+        }
+
+        .badge-discontinued {
+            display: inline-block;
+            padding: 0.18rem 0.55rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: rgba(255, 127, 127, 0.1);
+            color: #ff7f7f;
+            border: 1px solid rgba(255, 127, 127, 0.2);
+            margin-left: 0.4rem;
+        }
+
+        .org-row td {
+            opacity: 0.55;
+        }
+
+        .org-row td:first-child {
+            opacity: 1;
+        }
+
+        .plan-label {
+            font-weight: 700;
+            color: var(--text);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="nav-wrap">
+            <a href="../index.html" class="logo" id="nav-logo">
+                <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                <span class="logo-text">RowPilot</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="../index.html#features">Features</a></li>
+                <li><a href="../index.html#premium">Plans</a></li>
+                <li><a href="../news/index.html" class="active">Updates</a></li>
+                <li><a href="../support/index.html">Support</a></li>
+                <li><a href="../privacy-policy/index.html">Privacy</a></li>
+                <li><a href="../terms/index.html">Terms</a></li>
+                <li><a href="../../news/pricing-revision.html" class="lang-switch">JP</a></li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <nav class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-inner">
+            <a href="../index.html">Home</a>
+            <a href="../index.html#features">Features</a>
+            <a href="../index.html#premium">Plans</a>
+            <div class="mobile-menu-divider"></div>
+            <a href="../news/index.html" class="active">Updates</a>
+            <a href="../support/index.html">Support</a>
+            <a href="../privacy-policy/index.html">Privacy Policy</a>
+            <a href="../terms/index.html">Terms of Use</a>
+            <div class="mobile-menu-divider"></div>
+            <a href="../../news/pricing-revision.html" class="lang-switch-mobile">日本語 (JP)</a>
+        </div>
+    </nav>
+
+    <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
+        <div class="policy-hero">
+            <div class="policy-badge">Important Notice</div>
+            <h1>Subscription Pricing Revision</h1>
+            <p class="policy-lead">
+                We are significantly reducing monthly subscription prices across all plans to make RowPilot more
+                accessible. The Organization plan will also be discontinued.
+            </p>
+            <p class="policy-updated">Effective Date: &nbsp;(To be announced)</p>
+            <p class="policy-updated">Published: August 22, 2026</p>
+        </div>
+
+        <div class="policy-content">
+            <p>Thank you for using RowPilot. We are pleased to announce the following revision to our monthly
+                subscription pricing.</p>
+
+            <!-- Pricing Overview -->
+            <div class="flow-card">
+                <h2>Pricing Overview</h2>
+                <p>Monthly subscription fees will be significantly reduced across all plans. The Organization plan will
+                    be discontinued.</p>
+
+                <table class="price-table">
+                    <thead>
+                        <tr>
+                            <th>Plan</th>
+                            <th>Current Price</th>
+                            <th>New Price</th>
+                            <th>Change</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="plan-label">Free</span></td>
+                            <td>¥0 JPY / month</td>
+                            <td class="price-new">¥0 JPY / month</td>
+                            <td>No change</td>
+                        </tr>
+                        <tr>
+                            <td><span class="plan-label">Pro</span></td>
+                            <td><span class="price-old">¥600 JPY</span> / month</td>
+                            <td class="price-new">¥200 JPY / month</td>
+                            <td><span class="badge-down">↓ ¥400 JPY off</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="plan-label">Manager</span></td>
+                            <td><span class="price-old">¥900 JPY</span> / month</td>
+                            <td class="price-new">¥500 JPY / month</td>
+                            <td><span class="badge-down">↓ ¥400 JPY off</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="plan-label">Team</span></td>
+                            <td><span class="price-old">¥3,000 JPY</span> / month</td>
+                            <td class="price-new">¥1,000 JPY / month</td>
+                            <td><span class="badge-down">↓ ¥2,000 JPY off</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="plan-label">MAX</span></td>
+                            <td><span class="price-old">¥5,000 JPY</span> / month</td>
+                            <td class="price-new">¥3,000 JPY / month</td>
+                            <td><span class="badge-down">↓ ¥2,000 JPY off</span></td>
+                        </tr>
+                        <tr class="org-row">
+                            <td><span class="plan-label">Organization</span></td>
+                            <td><span class="price-old">¥8,000 JPY</span> / month</td>
+                            <td style="color: #ff7f7f; font-weight: 700;">Discontinued</td>
+                            <td><span class="badge-discontinued">Discontinued</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Organization Plan Discontinuation -->
+            <div class="flow-card">
+                <h2>Organization Plan Discontinuation</h2>
+                <p>The Organization plan will be discontinued as part of this revision. Further details regarding the
+                    transition for existing Organization plan subscribers will be communicated after the effective date
+                    is confirmed.</p>
+                <div class="policy-callout"
+                    style="background: rgba(255, 179, 71, 0.04); border: 1px solid rgba(255, 179, 71, 0.18); color: var(--gold);">
+                    <span class="policy-callout-icon" style="color: var(--gold); margin-top: 0.1rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                    </span>
+                    <span style="font-size: 0.85rem; line-height: 1.5; display: block;">
+                        <strong>For current Organization plan subscribers:</strong><br>
+                        Detailed migration guidance, including the impact on your existing subscription, will be
+                        provided separately once the effective date is determined. Migration to the MAX plan is being
+                        considered as the primary transition path.
+                    </span>
+                </div>
+            </div>
+
+            <!-- Background -->
+            <div class="flow-card">
+                <h2>Background</h2>
+                <p>RowPilot aims to be an app that athletes, coaches, and teams of all levels can use without financial
+                    barriers. This price reduction was implemented with the goal of lowering the cost of entry and
+                    contributing to the growth of the rowing community and the improvement of training environments.</p>
+                <p>We appreciate your continued support of RowPilot.</p>
+            </div>
+
+            <h2 style="margin-top: 3rem;">Contact</h2>
+            <p>If you have any questions regarding this announcement, please feel free to contact our support team at <a
+                    href="mailto:rowpilot.jp@gmail.com" style="color: #7dd3fc; text-decoration: underline;">rowpilot.jp@gmail.com</a>.</p>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-inner">
+            <a href="../index.html" class="footer-logo">
+                <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                RowPilot
+            </a>
+            <div class="footer-links">
+                <a href="../index.html">Home</a>
+                <a href="../index.html#features">Features</a>
+                <a href="../index.html#premium">Plans</a>
+                <a href="../support/index.html">Support</a>
+                <a href="../privacy-policy/index.html">Privacy Policy</a>
+                <a href="../terms/index.html">Terms of Use</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        const toggle = document.getElementById('nav-toggle');
+        const mMenu = document.getElementById('mobile-menu');
+        toggle.addEventListener('click', () => {
+            const open = mMenu.classList.toggle('open');
+            toggle.classList.toggle('open', open);
+        });
+        mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            mMenu.classList.remove('open'); toggle.classList.remove('open');
+        }));
+    </script>
+</body>
+
+</html>
