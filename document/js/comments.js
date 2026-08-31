@@ -114,7 +114,7 @@ export class Comments {
   }
 
   _build() {
-    this.container.innerHTML = `<div class="cm-dynamic-content" style="display: flex; flex-direction: column; height: 100%;"></div>`;
+    this.container.innerHTML = `<div class="cm-dynamic-content"></div>`;
     this._contentEl = this.container.querySelector('.cm-dynamic-content');
   }
 
@@ -197,17 +197,17 @@ export class Comments {
         <span class="cm-status" aria-live="polite" style="font-size: 11px; color: var(--color-text-muted);"></span>
       </div>
       ${draftBanner}
-      <div class="cm-body" style="flex: 1; display: flex; flex-direction: column; padding: 12px;">
+      <div class="cm-body" style="display: flex; flex-direction: column; padding: 12px; flex-shrink: 0;">
         <textarea
           class="cm-textarea"
           placeholder="先生のコメントをこちらに入力してください...（自動保存されます）"
           spellcheck="false"
           aria-label="レビューコメント"
-          style="flex: 1; width: 100%; min-height: 200px; padding: 12px; font-family: var(--font-sans); font-size: 13.5px; line-height: 1.6; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); resize: none; color: var(--color-text-primary);"
+          style="width: 100%; min-height: 200px; height: 220px; padding: 12px; font-family: var(--font-sans); font-size: 13.5px; line-height: 1.6; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg); resize: vertical; color: var(--color-text-primary);"
           ${isSubmitted ? 'readonly' : ''}
         >${escapeHtml(myReview.markdown_comment || '')}</textarea>
       </div>
-      ${isSubmitted ? `<div class="cm-notice cm-notice--default" style="margin: 0 12px 12px 12px; font-size:12px;">この添削は提出済みです（編集不可）</div>` : ''}
+      ${isSubmitted ? `<div class="cm-notice cm-notice--default" style="margin: 0 12px 12px 12px; font-size:12px; flex-shrink: 0;">この添削は提出済みです（編集不可）</div>` : ''}
       ${this._renderOtherReviewsSection(otherReviews)}
     `;
 
@@ -267,7 +267,7 @@ export class Comments {
     }).join('');
 
     return `
-      <div style="margin: 0 12px 12px 12px; padding-top: 12px; border-top: 1px solid var(--color-border-light);">
+      <div style="margin: 0 12px 12px 12px; padding-top: 12px; border-top: 1px solid var(--color-border-light); flex-shrink: 0;">
         <p style="font-size: 11px; font-weight: 600; color: var(--color-text-muted); margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.05em;">他の先生のレビュー</p>
         ${cards}
       </div>

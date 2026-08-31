@@ -482,8 +482,11 @@ a:hover { text-decoration: underline; }
   flex-direction: column;
 }
 
-.panel-comments .panel-body--scroll {
+.panel-body--comments {
+  display: flex;
+  flex-direction: column;
   padding: 0;
+  overflow: hidden;
 }
 
 .panel-body--editor {
@@ -873,10 +876,9 @@ a:hover { text-decoration: underline; }
 
 /* ボディ（テキストエリア / プレビュー） */
 .cm-body {
-  flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
+  flex: none;
 }
 
 /* テキストエリア */
