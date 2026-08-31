@@ -307,7 +307,7 @@ export class Comments {
     }).join('');
 
     this._contentEl.innerHTML = `
-      <div style="display: flex; flex-direction: column; height: 100%; overflow-y: auto;">
+      <div style="display: flex; flex-direction: column; min-height: 100%;">
         ${cards}
       </div>
     `;
