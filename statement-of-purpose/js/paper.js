@@ -323,6 +323,11 @@ export class PaperManager {
       });
     }
 
+    // 学科名が未設定の場合のフォールバック（未入力で印刷時に消えるのを確実に防ぐ）
+    if (!data.dept) {
+      data.dept = '情報システム';
+    }
+
     // セクション本文とコメント（// ...）の分離関数
     const extractBodyAndComments = (rawSecText) => {
       if (!rawSecText) return { body: '', commentText: '', rawComments: [] };
