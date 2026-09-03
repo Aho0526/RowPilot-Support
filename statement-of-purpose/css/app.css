@@ -1693,30 +1693,30 @@ details[open] .req-summary::before {
 
 .sop-section-overlay-1 {
   top: 35.21%;
-  left: 5.17%;
-  width: 90.79%;
-  height: 13.05%;
+  left: 5.53%;
+  width: 90.00%;
+  height: 10.78%;
 }
 
 .sop-section-overlay-2 {
   top: 50.52%;
-  left: 5.17%;
-  width: 90.79%;
-  height: 12.83%;
+  left: 5.53%;
+  width: 90.00%;
+  height: 10.71%;
 }
 
 .sop-section-overlay-3 {
   top: 65.61%;
-  left: 5.17%;
-  width: 90.79%;
-  height: 12.83%;
+  left: 5.53%;
+  width: 90.00%;
+  height: 10.81%;
 }
 
 .sop-section-overlay-4 {
   top: 80.70%;
-  left: 5.17%;
-  width: 90.79%;
-  height: 12.83%;
+  left: 5.53%;
+  width: 90.00%;
+  height: 10.77%;
 }
 
 /* コメント・ヒント用うっすら表示ガイド（文字入力で即座に非表示） */
@@ -1726,11 +1726,11 @@ details[open] .req-summary::before {
   left: 0;
   width: 100%;
   height: 100%;
-  padding: 3px 8px;
+  padding: 7px 6px 0 6px;
   box-sizing: border-box;
   font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
-  font-size: 14.5px;
-  line-height: 28.8px;
+  font-size: 14px;
+  line-height: 24.26px;
   color: #64748b;
   opacity: 0.55;
   pointer-events: none; /* クリックを透過してtextareaに直接フォーカス */
@@ -1758,10 +1758,10 @@ details[open] .req-summary::before {
   outline: none;
   resize: none;
   font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
-  font-size: 14.5px;
-  line-height: 28.8px;
+  font-size: 14px;
+  line-height: 24.26px;
   color: #0f172a;
-  padding: 3px 8px;
+  padding: 7px 6px 0 6px;
   box-sizing: border-box;
   overflow: hidden;
   transition: background-color 0.15s ease, border-color 0.15s ease;
@@ -1901,6 +1901,12 @@ details[open] .req-summary::before {
   .sop-overlay-textarea::placeholder {
     color: transparent !important;
     opacity: 0 !important;
+  }
+
+  .sop-overlay-textarea {
+    font-size: 10.5pt !important;
+    line-height: 18.15pt !important;
+    padding: 5.1pt 4.5pt 0 4.5pt !important;
   }
 
   .sop-comment-guide {
