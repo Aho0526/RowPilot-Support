@@ -340,8 +340,8 @@ async function loadReview(versionId) {
 let isSyncing = false;
 
 function startLiveSync() {
-  // 1.5秒ごとの高速リアルタイム同期（Google Docs風）
-  setInterval(syncLatestData, 1500);
+  // 30秒ごとの自動同期
+  setInterval(syncLatestData, 30000);
 
   // タブ復帰・ウィンドウフォーカス時にも即時同期
   window.addEventListener('focus', syncLatestData);

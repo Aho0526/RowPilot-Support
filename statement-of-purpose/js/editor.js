@@ -37,7 +37,12 @@ export class Editor {
   setContent(content) {
     this.textarea.value = content ?? '';
     this._lastSavedContent = this.textarea.value;
-    this._updateCount();
+    if (window._paper) {
+      window._paper.syncMasterToPaper();
+      window._paper.updateTotalCharCount();
+    } else {
+      this._updateCount();
+    }
     this._renderHighlight();
   }
 
@@ -144,6 +149,10 @@ export class Editor {
   }
 
   _updateCount() {
+    if (window._paper) {
+      window._paper.updateTotalCharCount();
+      return;
+    }
     if (!this.countEl) return;
     // 1. // 以降のコメント（http:// などのURL中の // は除く）を改行まで除外
     const textWithoutComments = (this.textarea.value || '').replace(/(^|[^:])\/\/.*$/gm, '$1');

@@ -5,6 +5,7 @@
 
 import { Editor }   from './editor.js';
 import { Comments } from './comments.js';
+import { PaperManager } from './paper.js';
 import {
   getEssay,
   getReview,
@@ -86,13 +87,20 @@ function applyMode(mode, { initial = false } = {}) {
   badge.textContent = isTeacher ? '先生モード' : '生徒モード';
   badge.className = `role-badge role-badge--${mode}`;
 
-  // エディタ
+  // エディタ（文字のみ）
   if (window._editor) {
     const displayContent = isTeacher
       ? (state.currentVersion?.content ?? state.essay?.current_content ?? '')
       : (state.essay?.current_content ?? '');
     window._editor.setContent(displayContent);
     window._editor.setReadOnly(isTeacher);
+  }
+
+  // 清書用紙マネージャー
+  if (window._paper) {
+    window._paper.setReadOnly(isTeacher);
+    window._paper.syncMasterToPaper();
+    window._paper.updateTotalCharCount();
   }
 
   // コメント
@@ -136,6 +144,14 @@ async function loadEssay() {
       ? (state.currentVersion?.content ?? state.essay?.current_content ?? '')
       : (state.essay?.current_content ?? '');
     window._editor.setContent(displayContent);
+
+    // 用紙ビューに初期テキストをパースして流し込む
+    if (window._paper) {
+      window._paper.syncMasterToPaper();
+      window._paper.updateTotalCharCount();
+    }
+
+    refreshComments();
 
     refreshComments();
 
@@ -198,6 +214,10 @@ async function syncLatestData() {
         state.essay = serverEssay;
         if (!isEditingTextarea && window._editor) {
           window._editor.setContent(serverEssay.current_content);
+          if (window._paper && window._paper.currentMode === 'paper') {
+            window._paper.syncMasterToPaper();
+            window._paper.updateTotalCharCount();
+          }
         }
       }
     } else {
@@ -205,6 +225,10 @@ async function syncLatestData() {
       if (versionIdChanged && window._editor) {
         const teacherDisplay = serverLatestVersion?.content ?? serverEssay?.current_content ?? '';
         window._editor.setContent(teacherDisplay);
+        if (window._paper) {
+          window._paper.syncMasterToPaper();
+          window._paper.updateTotalCharCount();
+        }
       }
     }
 
@@ -272,13 +296,29 @@ async function syncLatestData() {
 // モジュール初期化（DOM要素とバインド）
 // ================================================================
 function initModules() {
-  // エディタ
+  // エディタ（文字のみ）
   window._editor = new Editor(
     $('#sop-textarea'),
     $('#save-status'),
     $('#char-count'),
     { essayId: ESSAY_ID }
   );
+
+  // 清書用紙マネージャー
+  window._paper = new PaperManager({
+    masterTextarea: $('#sop-textarea'),
+    onContentChange: () => {
+      // 用紙側で入力があったら自動保存タイマーをトリガー
+      window._editor?._scheduleAutoSave();
+    },
+    onCountUpdate: (count) => {
+      const countEl = $('#char-count');
+      if (countEl) {
+        countEl.textContent = `${count.toLocaleString()} 字`;
+        countEl.classList.toggle('count--over', count > 800);
+      }
+    }
+  });
 
   // コメント
   window._comments = new Comments($('#comments-container'), {

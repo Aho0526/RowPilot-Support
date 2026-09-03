@@ -1541,3 +1541,362 @@ details[open] .req-summary::before {
     min-height: 280px;
   }
 }
+
+/* ================================================================
+   清書ビュー（公式PDFオーバーレイ & ピクセルパーフェクト用紙スタイル）
+   ================================================================ */
+
+/* A4 用紙シート（公式PDF背景オーバーレイ） */
+.sop-paper-sheet {
+  width: 794px;
+  height: 1123px;
+  min-width: 794px;
+  min-height: 1123px;
+  max-width: 794px;
+  max-height: 1123px;
+  position: relative;
+  background-color: #ffffff;
+  background-image: url('../img/official-form.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center top;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.16), 0 2px 8px rgba(15, 23, 42, 0.08);
+  border-radius: 2px;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+  user-select: none;
+}
+
+/* オーバーレイ入力フィールド共通 */
+.sop-overlay-input {
+  position: absolute;
+  box-sizing: border-box;
+  background: transparent;
+  border: 1px solid transparent;
+  outline: none;
+  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+  font-size: 14px;
+  color: #111827;
+  padding: 0 6px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  user-select: text;
+}
+
+.sop-overlay-input:focus {
+  background: rgba(37, 99, 235, 0.05);
+  border-color: rgba(37, 99, 235, 0.4);
+  border-radius: 2px;
+}
+
+.sop-overlay-input[readonly] {
+  cursor: default;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+/* 受付番号 */
+.sop-field-receipt {
+  top: 4.34%;
+  left: 75.64%;
+  width: 19.12%;
+  height: 2.85%;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+/* フリガナ */
+.sop-field-furigana {
+  top: 13.90%;
+  left: 14.73%;
+  width: 30.91%;
+  height: 2.97%;
+  font-size: 13px;
+}
+
+/* 氏名 */
+.sop-field-name {
+  top: 16.94%;
+  left: 14.73%;
+  width: 30.91%;
+  height: 4.39%;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* 学校名 */
+.sop-field-school {
+  top: 17.50%;
+  left: 52.00%;
+  width: 23.00%;
+  height: 3.50%;
+  font-size: 13px;
+}
+
+/* 高校学科名 */
+.sop-field-highschool-dept {
+  top: 17.50%;
+  left: 81.50%;
+  width: 14.50%;
+  height: 3.50%;
+  font-size: 13px;
+}
+
+/* 入学者選抜名 */
+.sop-field-exam-type {
+  top: 22.75%;
+  left: 31.87%;
+  width: 64.07%;
+  height: 3.37%;
+  font-size: 13.5px;
+}
+
+/* 志望学部 */
+.sop-field-faculty {
+  top: 26.15%;
+  left: 15.62%;
+  width: 10.00%;
+  height: 3.35%;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 志望学科 */
+.sop-field-dept {
+  top: 26.15%;
+  left: 50.43%;
+  width: 19.00%;
+  height: 3.35%;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* コース */
+.sop-field-course {
+  top: 26.15%;
+  left: 74.50%;
+  width: 18.00%;
+  height: 3.35%;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* 設問コンテナ（絶対配置） */
+.sop-section-overlay {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.sop-section-overlay-1 {
+  top: 35.21%;
+  left: 5.17%;
+  width: 90.79%;
+  height: 13.05%;
+}
+
+.sop-section-overlay-2 {
+  top: 50.52%;
+  left: 5.17%;
+  width: 90.79%;
+  height: 12.83%;
+}
+
+.sop-section-overlay-3 {
+  top: 65.61%;
+  left: 5.17%;
+  width: 90.79%;
+  height: 12.83%;
+}
+
+.sop-section-overlay-4 {
+  top: 80.70%;
+  left: 5.17%;
+  width: 90.79%;
+  height: 12.83%;
+}
+
+/* 設問テキストエリア（公式PDFの5行点線と完全一致） */
+.sop-overlay-textarea {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  outline: none;
+  resize: none;
+  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+  font-size: 14.5px;
+  line-height: 28.8px;
+  color: #0f172a;
+  padding: 3px 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  user-select: text;
+}
+
+.sop-overlay-textarea:focus {
+  background: rgba(37, 99, 235, 0.04);
+  border-color: rgba(37, 99, 235, 0.35);
+  border-radius: 2px;
+}
+
+.sop-overlay-textarea[readonly] {
+  cursor: default;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+/* 印刷ボタン */
+.btn-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-print:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+/* ================================================================
+   印刷スタイル（@media print）
+   A4 1枚完結（2ページ目突入を厳密に防止）
+   ================================================================ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: hidden !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .app-header,
+  .app-toolbar,
+  .panel-comments,
+  .panel-divider,
+  .panel-header,
+  .loading-overlay,
+  #view-text-container {
+    display: none !important;
+  }
+
+  .app-main {
+    position: static !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    overflow: hidden !important;
+  }
+
+  .panel-sop {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .panel-body,
+  .sop-paper-scroll-wrap {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    overflow: hidden !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    display: block !important;
+  }
+
+  .sop-paper-sheet {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-width: 210mm !important;
+    min-height: 297mm !important;
+    max-width: 210mm !important;
+    max-height: 297mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    overflow: hidden !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .sop-overlay-input,
+  .sop-overlay-textarea {
+    border-color: transparent !important;
+    background: transparent !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .sop-overlay-input::placeholder,
+  .sop-overlay-textarea::placeholder {
+    color: transparent !important;
+    opacity: 0 !important;
+  }
+}
+
+/* 用紙スクロールラッパー */
+.sop-paper-scroll-wrap {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #eaedf2;
+  padding: 24px 16px 40px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  box-sizing: border-box;
+}
+
+/* 文字のみラッパー */
+.sop-text-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  display: flex;
+}
+
+
+

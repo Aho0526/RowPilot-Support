@@ -21,8 +21,6 @@ async function request(method, path, body = null) {
     cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
     },
   };
   if (body !== null) opts.body = JSON.stringify(body);

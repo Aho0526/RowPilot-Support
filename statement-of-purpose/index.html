@@ -8,17 +8,17 @@
   <meta name="description" content="志願理由書の添削・レビューを効率化する支援ツール">
   <meta name="robots" content="noindex, nofollow">
 
-  <!-- Google Fonts: Inter + Noto Sans JP -->
+  <!-- Google Fonts: Inter + Noto Sans JP + Noto Serif JP (清書用明朝) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;600&family=Noto+Serif+JP:wght@400;500;600;700&display=swap"
     rel="stylesheet">
 
   <!-- Marked.js (Markdown パーサー) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-  <link rel="stylesheet" href="css/app.css?v=1.0_09031900">
+  <link rel="stylesheet" href="css/app.css?v=2.0_09032045">
 </head>
 
 <body>
@@ -79,18 +79,72 @@
 
     <!-- 左パネル: 志願理由書 -->
     <section class="panel panel-sop" aria-label="志願理由書">
-      <div class="panel-header" style="justify-content: flex-start; gap: 15px;">
-        <h2 class="panel-title" style="margin-right: auto;">志願理由書</h2>
-        <div class="panel-meta" id="sop-meta-info">
+      <div class="panel-header" style="justify-content: flex-start; gap: 10px;">
+        <h2 class="panel-title" style="margin-right: 4px;">志願理由書</h2>
+        
+        <!-- ビュー切り替えタブ -->
+        <div class="panel-tabs" role="tablist" aria-label="表示ビュー切替">
+          <button id="btn-view-paper" class="panel-tab panel-tab--active" role="tab" aria-selected="true" title="実際の志願理由書用紙に直接入力・閲覧">
+            📄 清書ビュー
+          </button>
+          <button id="btn-view-text" class="panel-tab" role="tab" aria-selected="false" title="シンプルなテキストエディタ">
+            📝 文字のみ
+          </button>
+        </div>
+
+        <div class="panel-meta" id="sop-meta-info" style="margin-left: auto;">
           <span id="char-count" class="char-count">0 字</span>
           <span id="save-status" class="save-status status--saved">保存済み</span>
           <span id="last-request-time" class="last-request-time"
             style="font-size: 11px; color: var(--color-text-muted);"></span>
+          <button id="btn-print-sop" class="btn-print" title="A4印刷・PDFとして保存" aria-label="印刷">
+            🖨️ 印刷
+          </button>
         </div>
       </div>
       <div class="panel-body panel-body--editor">
-        <textarea id="sop-textarea" class="essay-textarea" placeholder="ここに志願理由書を入力してください..."
-          spellcheck="false"></textarea>
+        <!-- 1. 清書ビュー（公式PDF用紙スタイル） -->
+        <div id="view-paper-container" class="sop-paper-scroll-wrap">
+          <div class="sop-paper-sheet" id="sop-paper-sheet">
+            <!-- 公式PDFの上に重ねる入力フィールド群 -->
+            <input type="text" id="sop-input-receipt" class="sop-overlay-input sop-field-receipt" maxlength="12" aria-label="受付番号">
+            
+            <input type="text" id="sop-input-furigana" class="sop-overlay-input sop-field-furigana" placeholder="ふりがな" aria-label="フリガナ">
+            <input type="text" id="sop-input-name" class="sop-overlay-input sop-field-name" placeholder="氏名" aria-label="氏名">
+            
+            <input type="text" id="sop-input-school" class="sop-overlay-input sop-field-school" placeholder="出身高校名" aria-label="学校名">
+            <input type="text" id="sop-input-highschool-dept" class="sop-overlay-input sop-field-highschool-dept" placeholder="普通科など" aria-label="高校学科名">
+            
+            <input type="text" id="sop-input-exam-type" class="sop-overlay-input sop-field-exam-type" placeholder="選抜名（例: 学校推薦型選抜（指定校制）〔一般入学〕）" aria-label="入学者選抜名">
+            
+            <input type="text" id="sop-input-faculty" class="sop-overlay-input sop-field-faculty" placeholder="工" aria-label="志望学部">
+            <input type="text" id="sop-input-dept" class="sop-overlay-input sop-field-dept" placeholder="情報システム" aria-label="志望学科">
+            <input type="text" id="sop-input-course" class="sop-overlay-input sop-field-course" placeholder="コース名" aria-label="コース名">
+            
+            <!-- 4つの設問入力欄（PDFの点線5行に揃える） -->
+            <div class="sop-section-overlay sop-section-overlay-1">
+              <textarea id="sop-section-1" class="sop-overlay-textarea" rows="5" placeholder="志望理由を記入してください（最大5行）" aria-label="志望理由"></textarea>
+            </div>
+
+            <div class="sop-section-overlay sop-section-overlay-2">
+              <textarea id="sop-section-2" class="sop-overlay-textarea" rows="5" placeholder="勉学や活動の内容を記入してください（最大5行）" aria-label="勉学や活動の内容"></textarea>
+            </div>
+
+            <div class="sop-section-overlay sop-section-overlay-3">
+              <textarea id="sop-section-3" class="sop-overlay-textarea" rows="5" placeholder="本学に入学して取り組みたいことを記入してください（最大5行）" aria-label="本学に入学して取り組みたいこと"></textarea>
+            </div>
+
+            <div class="sop-section-overlay sop-section-overlay-4">
+              <textarea id="sop-section-4" class="sop-overlay-textarea" rows="5" placeholder="大学卒業後を見据えた目標を記入してください（最大5行）" aria-label="大学卒業後を見据えた目標"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 文字のみビュー（シンプルエディタ） -->
+        <div id="view-text-container" class="sop-text-wrapper" style="display: none;">
+          <textarea id="sop-textarea" class="essay-textarea" placeholder="ここに志願理由書を入力してください..."
+            spellcheck="false"></textarea>
+        </div>
       </div>
     </section>
 

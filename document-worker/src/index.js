@@ -12,14 +12,14 @@ const app = new Hono();
 app.use('/document/api/*', cors({
   origin: (origin) => origin || '*',
   allowMethods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
-  allowHeaders: ['Content-Type'],
+  allowHeaders: ['Content-Type', 'Cache-Control', 'Pragma'],
   maxAge: 86400,
 }));
 
 app.use('/sop/api/*', cors({
   origin: (origin) => origin || '*',
   allowMethods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
-  allowHeaders: ['Content-Type'],
+  allowHeaders: ['Content-Type', 'Cache-Control', 'Pragma'],
   maxAge: 86400,
 }));
 
