@@ -172,7 +172,7 @@ async function loadReview(versionId) {
 let isSyncing = false;
 
 function startLiveSync() {
-  setInterval(syncLatestData, 1500);
+  setInterval(syncLatestData, 5000);  // 5秒ごとの同期（課題論文の1.5秒より余裕を持たせる）
   window.addEventListener('focus', syncLatestData);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') syncLatestData();
