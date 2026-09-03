@@ -20,6 +20,22 @@ export class PaperManager {
     this.isReadOnly = false;
     this._isSyncing = false;
 
+    // 各セクションのコメント（// ...）を保持
+    this.sectionComments = {
+      sec1: [],
+      sec2: [],
+      sec3: [],
+      sec4: [],
+    };
+
+    // デフォルトのガイド文言
+    this.defaultHints = {
+      sec1: '上記の学部・学科を志望する理由について記入してください。',
+      sec2: 'これまでに積極的に取り組んだ勉学や活動の内容について記入してください。',
+      sec3: '本学に入学して取り組みたいことを記入してください。',
+      sec4: '大学卒業後を見据えた目標を記入してください。',
+    };
+
     this._cacheDom();
     this._bindEvents();
   }
@@ -47,6 +63,14 @@ export class PaperManager {
       sec3: document.getElementById('sop-section-3'),
       sec4: document.getElementById('sop-section-4'),
     };
+
+    // コメント・ヒント用うっすら表示ガイド要素
+    this.guides = {
+      sec1: document.getElementById('sop-guide-1'),
+      sec2: document.getElementById('sop-guide-2'),
+      sec3: document.getElementById('sop-guide-3'),
+      sec4: document.getElementById('sop-guide-4'),
+    };
   }
 
   _bindEvents() {
@@ -59,7 +83,7 @@ export class PaperManager {
       window.print();
     });
 
-    // 清書ビュー入力時：その場で即座に文字のみエディタへ同期
+    // 清書ビュー入力時：その場で即座に文字のみエディタへ同期 ＆ ガイド表示制御
     const onPaperInput = () => {
       if (this._isSyncing) return;
       this.syncPaperToMaster();
@@ -70,6 +94,22 @@ export class PaperManager {
       if (!el) return;
       el.addEventListener('input', onPaperInput);
       el.addEventListener('change', onPaperInput);
+    });
+
+    // 設問入力欄：文字入力時はガイドを即座に非表示、空なら再表示
+    ['sec1', 'sec2', 'sec3', 'sec4'].forEach((key) => {
+      const inputEl = this.inputs[key];
+      const guideEl = this.guides[key];
+      if (!inputEl || !guideEl) return;
+
+      const updateGuide = () => {
+        const hasText = inputEl.value.trim().length > 0;
+        guideEl.classList.toggle('is-hidden', hasText);
+      };
+
+      inputEl.addEventListener('input', updateGuide);
+      inputEl.addEventListener('focus', updateGuide);
+      inputEl.addEventListener('blur', updateGuide);
     });
 
     // 文字のみエディタ入力時：その場で即座に清書ビューへ同期
@@ -132,10 +172,27 @@ export class PaperManager {
       if (this.inputs.dept && this.inputs.dept.value !== parsed.dept) this.inputs.dept.value = parsed.dept || '';
       if (this.inputs.course && this.inputs.course.value !== parsed.course) this.inputs.course.value = parsed.course || '';
 
-      if (this.inputs.sec1 && this.inputs.sec1.value !== parsed.sec1) this.inputs.sec1.value = parsed.sec1 || '';
-      if (this.inputs.sec2 && this.inputs.sec2.value !== parsed.sec2) this.inputs.sec2.value = parsed.sec2 || '';
-      if (this.inputs.sec3 && this.inputs.sec3.value !== parsed.sec3) this.inputs.sec3.value = parsed.sec3 || '';
-      if (this.inputs.sec4 && this.inputs.sec4.value !== parsed.sec4) this.inputs.sec4.value = parsed.sec4 || '';
+      // 設問①〜④：本文をセットし、コメント（// ...）はガイド（うっすら表示）に反映
+      ['sec1', 'sec2', 'sec3', 'sec4'].forEach((key) => {
+        const inputEl = this.inputs[key];
+        const guideEl = this.guides[key];
+        const bodyVal = parsed[key] || '';
+        const commentText = parsed[`${key}CommentText`] || '';
+        const defaultHint = this.defaultHints[key] || '';
+
+        this.sectionComments[key] = parsed[`${key}Comments`] || [];
+
+        if (inputEl && inputEl.value !== bodyVal) {
+          inputEl.value = bodyVal;
+        }
+
+        if (guideEl) {
+          // コメントがあればそのコメントを、なければデフォルトヒントをうっすら表示
+          guideEl.textContent = commentText || defaultHint;
+          const hasContent = bodyVal.trim().length > 0;
+          guideEl.classList.toggle('is-hidden', hasContent);
+        }
+      });
     } finally {
       this._isSyncing = false;
     }
@@ -266,14 +323,61 @@ export class PaperManager {
       });
     }
 
-    data.sec1 = sections.sec1 || '';
-    data.sec2 = sections.sec2 || '';
-    data.sec3 = sections.sec3 || '';
-    data.sec4 = sections.sec4 || '';
+    // セクション本文とコメント（// ...）の分離関数
+    const extractBodyAndComments = (rawSecText) => {
+      if (!rawSecText) return { body: '', commentText: '', rawComments: [] };
+      const secLines = rawSecText.split(/\r?\n/);
+      const bodyLines = [];
+      const commentLines = [];
+
+      for (const line of secLines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('//')) {
+          commentLines.push(trimmed.replace(/^\/\/\s*/, ''));
+        } else if (line.includes('//')) {
+          const idx = line.indexOf('//');
+          const bodyPart = line.slice(0, idx).trimEnd();
+          const commentPart = line.slice(idx + 2).trim();
+          if (bodyPart) bodyLines.push(bodyPart);
+          if (commentPart) commentLines.push(commentPart);
+        } else {
+          bodyLines.push(line);
+        }
+      }
+
+      return {
+        body: bodyLines.join('\n').trim(),
+        commentText: commentLines.join('\n'),
+        rawComments: commentLines,
+      };
+    };
+
+    const parsed1 = extractBodyAndComments(sections.sec1 || '');
+    data.sec1 = parsed1.body;
+    data.sec1CommentText = parsed1.commentText;
+    data.sec1Comments = parsed1.rawComments;
+
+    const parsed2 = extractBodyAndComments(sections.sec2 || '');
+    data.sec2 = parsed2.body;
+    data.sec2CommentText = parsed2.commentText;
+    data.sec2Comments = parsed2.rawComments;
+
+    const parsed3 = extractBodyAndComments(sections.sec3 || '');
+    data.sec3 = parsed3.body;
+    data.sec3CommentText = parsed3.commentText;
+    data.sec3Comments = parsed3.rawComments;
+
+    const parsed4 = extractBodyAndComments(sections.sec4 || '');
+    data.sec4 = parsed4.body;
+    data.sec4CommentText = parsed4.commentText;
+    data.sec4Comments = parsed4.rawComments;
 
     // セクション記号が全くない場合は全体を①に
     if (!sections.meta && !data.sec1 && !data.sec2 && !data.sec3 && !data.sec4) {
-      data.sec1 = text.trim();
+      const fallback = extractBodyAndComments(text.trim());
+      data.sec1 = fallback.body;
+      data.sec1CommentText = fallback.commentText;
+      data.sec1Comments = fallback.rawComments;
     }
 
     return data;
@@ -301,10 +405,24 @@ export class PaperManager {
       parts.push(metaLines.join('\n'));
     }
 
-    parts.push(`【① 志望理由】\n${d.sec1 || ''}`);
-    parts.push(`【② 勉学や活動】\n${d.sec2 || ''}`);
-    parts.push(`【③ 本学に入学して取り組みたいこと】\n${d.sec3 || ''}`);
-    parts.push(`【④ 大学卒業後を見据えた目標】\n${d.sec4 || ''}`);
+    // コメント行（// ...）を保持しつつ本文を出力
+    const formatSection = (secNum, title, body, comments) => {
+      const secLines = [`【${secNum} ${title}】`];
+      if (comments && comments.length > 0) {
+        for (const c of comments) {
+          secLines.push(`// ${c}`);
+        }
+      }
+      if (body) {
+        secLines.push(body);
+      }
+      return secLines.join('\n');
+    };
+
+    parts.push(formatSection('①', '志望理由', d.sec1, this.sectionComments.sec1));
+    parts.push(formatSection('②', '勉学や活動', d.sec2, this.sectionComments.sec2));
+    parts.push(formatSection('③', '本学に入学して取り組みたいこと', d.sec3, this.sectionComments.sec3));
+    parts.push(formatSection('④', '大学卒業後を見据えた目標', d.sec4, this.sectionComments.sec4));
 
     return parts.join('\n\n');
   }

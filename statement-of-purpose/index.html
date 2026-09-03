@@ -81,10 +81,11 @@
     <section class="panel panel-sop" aria-label="志願理由書">
       <div class="panel-header" style="justify-content: flex-start; gap: 10px;">
         <h2 class="panel-title" style="margin-right: 4px;">志願理由書</h2>
-        
+
         <!-- ビュー切り替えタブ -->
         <div class="panel-tabs" role="tablist" aria-label="表示ビュー切替">
-          <button id="btn-view-paper" class="panel-tab panel-tab--active" role="tab" aria-selected="true" title="実際の志願理由書用紙に直接入力・閲覧">
+          <button id="btn-view-paper" class="panel-tab panel-tab--active" role="tab" aria-selected="true"
+            title="実際の志願理由書用紙に直接入力・閲覧">
             📄 清書ビュー
           </button>
           <button id="btn-view-text" class="panel-tab" role="tab" aria-selected="false" title="シンプルなテキストエディタ">
@@ -107,35 +108,49 @@
         <div id="view-paper-container" class="sop-paper-scroll-wrap">
           <div class="sop-paper-sheet" id="sop-paper-sheet">
             <!-- 公式PDFの上に重ねる入力フィールド群 -->
-            <input type="text" id="sop-input-receipt" class="sop-overlay-input sop-field-receipt" maxlength="12" aria-label="受付番号">
-            
-            <input type="text" id="sop-input-furigana" class="sop-overlay-input sop-field-furigana" placeholder="ふりがな" aria-label="フリガナ">
-            <input type="text" id="sop-input-name" class="sop-overlay-input sop-field-name" placeholder="氏名" aria-label="氏名">
-            
-            <input type="text" id="sop-input-school" class="sop-overlay-input sop-field-school" placeholder="出身高校名" aria-label="学校名">
-            <input type="text" id="sop-input-highschool-dept" class="sop-overlay-input sop-field-highschool-dept" placeholder="普通科など" aria-label="高校学科名">
-            
-            <input type="text" id="sop-input-exam-type" class="sop-overlay-input sop-field-exam-type" placeholder="選抜名（例: 学校推薦型選抜（指定校制）〔一般入学〕）" aria-label="入学者選抜名">
-            
-            <input type="text" id="sop-input-faculty" class="sop-overlay-input sop-field-faculty" placeholder="工" aria-label="志望学部">
-            <input type="text" id="sop-input-dept" class="sop-overlay-input sop-field-dept" placeholder="情報システム" aria-label="志望学科">
-            <input type="text" id="sop-input-course" class="sop-overlay-input sop-field-course" placeholder="コース名" aria-label="コース名">
-            
+            <input type="text" id="sop-input-receipt" class="sop-overlay-input sop-field-receipt" maxlength="12"
+              aria-label="受付番号">
+
+            <input type="text" id="sop-input-furigana" class="sop-overlay-input sop-field-furigana" placeholder="ふりがな"
+              aria-label="フリガナ">
+            <input type="text" id="sop-input-name" class="sop-overlay-input sop-field-name" placeholder="氏名"
+              aria-label="氏名">
+
+            <input type="text" id="sop-input-school" class="sop-overlay-input sop-field-school" placeholder="出身高校名"
+              aria-label="学校名">
+            <input type="text" id="sop-input-highschool-dept" class="sop-overlay-input sop-field-highschool-dept"
+              placeholder="普通科など" aria-label="高校学科名">
+
+            <input type="text" id="sop-input-exam-type" class="sop-overlay-input sop-field-exam-type"
+              placeholder="選抜名（例: 学校推薦型選抜（指定校制）〔一般入学〕）" aria-label="入学者選抜名">
+
+            <input type="text" id="sop-input-faculty" class="sop-overlay-input sop-field-faculty" placeholder="工"
+              aria-label="志望学部">
+            <input type="text" id="sop-input-dept" class="sop-overlay-input sop-field-dept" placeholder="情報システム"
+              aria-label="志望学科">
+            <input type="text" id="sop-input-course" class="sop-overlay-input sop-field-course" placeholder="コース名"
+              aria-label="コース名">
+
             <!-- 4つの設問入力欄（PDFの点線5行に揃える） -->
             <div class="sop-section-overlay sop-section-overlay-1">
-              <textarea id="sop-section-1" class="sop-overlay-textarea" rows="5" placeholder="志望理由を記入してください（最大5行）" aria-label="志望理由"></textarea>
+              <div id="sop-guide-1" class="sop-comment-guide" aria-hidden="true"></div>
+              <textarea id="sop-section-1" class="sop-overlay-textarea" rows="5" aria-label="志望理由"></textarea>
             </div>
 
             <div class="sop-section-overlay sop-section-overlay-2">
-              <textarea id="sop-section-2" class="sop-overlay-textarea" rows="5" placeholder="勉学や活動の内容を記入してください（最大5行）" aria-label="勉学や活動の内容"></textarea>
+              <div id="sop-guide-2" class="sop-comment-guide" aria-hidden="true"></div>
+              <textarea id="sop-section-2" class="sop-overlay-textarea" rows="5" aria-label="勉学や活動の内容"></textarea>
             </div>
 
             <div class="sop-section-overlay sop-section-overlay-3">
-              <textarea id="sop-section-3" class="sop-overlay-textarea" rows="5" placeholder="本学に入学して取り組みたいことを記入してください（最大5行）" aria-label="本学に入学して取り組みたいこと"></textarea>
+              <div id="sop-guide-3" class="sop-comment-guide" aria-hidden="true"></div>
+              <textarea id="sop-section-3" class="sop-overlay-textarea" rows="5"
+                aria-label="本学に入学して取り組みたいこと"></textarea>
             </div>
 
             <div class="sop-section-overlay sop-section-overlay-4">
-              <textarea id="sop-section-4" class="sop-overlay-textarea" rows="5" placeholder="大学卒業後を見据えた目標を記入してください（最大5行）" aria-label="大学卒業後を見据えた目標"></textarea>
+              <div id="sop-guide-4" class="sop-comment-guide" aria-hidden="true"></div>
+              <textarea id="sop-section-4" class="sop-overlay-textarea" rows="5" aria-label="大学卒業後を見据えた目標"></textarea>
             </div>
           </div>
         </div>
@@ -186,8 +201,8 @@
       </button>
 
       <span id="app-build-tag" class="app-build-tag"
-        style="font-size: 11px; color: var(--color-text-muted); opacity: 0.8; margin-left: 12px; font-variant-numeric: tabular-nums;">v1.0
-        (9.3 19:00)</span>
+        style="font-size: 11px; color: var(--color-text-muted); opacity: 0.8; margin-left: 12px; font-variant-numeric: tabular-nums;">v1.4
+        (9.3 21:00)</span>
     </div>
   </footer>
 
