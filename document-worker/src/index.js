@@ -16,6 +16,13 @@ app.use('/document/api/*', cors({
   maxAge: 86400,
 }));
 
+app.use('/sop/api/*', cors({
+  origin: (origin) => origin || '*',
+  allowMethods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+  allowHeaders: ['Content-Type'],
+  maxAge: 86400,
+}));
+
 // ── Cache-Control (キャッシュ無効化) ───────────────────────────
 app.use('/document/api/*', async (c, next) => {
   await next();
@@ -24,30 +31,44 @@ app.use('/document/api/*', async (c, next) => {
   c.header('Expires', '0');
 });
 
-// ── Database Migration (起動時自動マイグレーション) ──────────────
-app.use('/document/api/*', async (c, next) => {
-  const db = c.env.DB;
-  if (db) {
-    try {
-      const check = await db.prepare("PRAGMA table_info(reviews)").all();
-      const cols = check.results.map(col => col.name);
+app.use('/sop/api/*', async (c, next) => {
+  await next();
+  c.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  c.header('Pragma', 'no-cache');
+  c.header('Expires', '0');
+});
 
-      const stmts = [];
-      if (!cols.includes('teacher_name')) {
-        stmts.push(db.prepare("ALTER TABLE reviews ADD COLUMN teacher_name TEXT DEFAULT ''"));
-        console.log("Migration: adding teacher_name column");
-      }
-      if (!cols.includes('device_id')) {
-        stmts.push(db.prepare("ALTER TABLE reviews ADD COLUMN device_id TEXT NOT NULL DEFAULT ''"));
-        console.log("Migration: adding device_id column");
-      }
-      if (stmts.length > 0) {
-        await db.batch(stmts);
-      }
-    } catch (e) {
-      console.warn("Migration check skipped or failed:", e);
+// ── Database Migration (起動時自動マイグレーション) ──────────────
+const runMigration = async (db) => {
+  if (!db) return;
+  try {
+    const check = await db.prepare("PRAGMA table_info(reviews)").all();
+    const cols = check.results.map(col => col.name);
+
+    const stmts = [];
+    if (!cols.includes('teacher_name')) {
+      stmts.push(db.prepare("ALTER TABLE reviews ADD COLUMN teacher_name TEXT DEFAULT ''"));
+      console.log("Migration: adding teacher_name column");
     }
+    if (!cols.includes('device_id')) {
+      stmts.push(db.prepare("ALTER TABLE reviews ADD COLUMN device_id TEXT NOT NULL DEFAULT ''"));
+      console.log("Migration: adding device_id column");
+    }
+    if (stmts.length > 0) {
+      await db.batch(stmts);
+    }
+  } catch (e) {
+    console.warn("Migration check skipped or failed:", e);
   }
+};
+
+app.use('/document/api/*', async (c, next) => {
+  await runMigration(c.env.DB);
+  await next();
+});
+
+app.use('/sop/api/*', async (c, next) => {
+  await runMigration(c.env.DB);
   await next();
 });
 
@@ -367,6 +388,208 @@ app.post('/document/api/reviews/:id/submit', async (c) => {
   try {
     body = await c.req.json();
   } catch {}
+
+  const review = await db.prepare('SELECT submitted_at FROM reviews WHERE id = ?').bind(reviewId).first();
+  if (!review) return err(c, 404, 'Review not found');
+  if (review.submitted_at) return err(c, 400, 'Already submitted');
+
+  await db.prepare(
+    `UPDATE reviews SET submitted_at = datetime('now') WHERE id = ?`
+  ).bind(reviewId).run();
+
+  return c.json({ success: true });
+});
+
+// ================================================================
+// 志願理由書 (SOP) API — /sop/api/* ルート
+// 同じ D1 データベース (essays, essay_versions, reviews) を使用
+// essay_id = 2 が志願理由書用エントリ
+// ================================================================
+
+/** GET /sop/api/essays/:id */
+app.get('/sop/api/essays/:id', async (c) => {
+  const db = c.env.DB;
+  const id = parseInt(c.req.param('id'));
+
+  let essay = await db.prepare('SELECT * FROM essays WHERE id = ?').bind(id).first();
+
+  if (!essay) {
+    await db.prepare(
+      `INSERT INTO essays (id, title, current_content, updated_at)
+       VALUES (?, '志願理由書', '', datetime('now'))`
+    ).bind(id).run();
+    essay = { id, title: '志願理由書', current_content: '', updated_at: new Date().toISOString() };
+  }
+
+  const latestVersion = await db.prepare(
+    `SELECT ev.*
+     FROM essay_versions ev
+     WHERE ev.essay_id = ?
+     ORDER BY ev.created_at DESC
+     LIMIT 1`
+  ).bind(id).first();
+
+  let latestVersionWithReview = null;
+  if (latestVersion) {
+    const firstReview = await db.prepare(
+      `SELECT id FROM reviews WHERE version_id = ? ORDER BY created_at ASC LIMIT 1`
+    ).bind(latestVersion.id).first();
+    latestVersionWithReview = {
+      ...latestVersion,
+      review_id: firstReview?.id ?? null,
+    };
+  }
+
+  return c.json({ essay, latestVersion: latestVersionWithReview ?? null });
+});
+
+/** PATCH /sop/api/essays/:id */
+app.patch('/sop/api/essays/:id', async (c) => {
+  const db = c.env.DB;
+  const id = parseInt(c.req.param('id'));
+
+  let body;
+  try {
+    body = await c.req.json();
+  } catch {
+    return err(c, 400, 'Invalid JSON');
+  }
+
+  if (typeof body.content !== 'string') return err(c, 400, 'content is required');
+
+  const result = await db.prepare(
+    `UPDATE essays SET current_content = ?, updated_at = datetime('now') WHERE id = ?`
+  ).bind(body.content, id).run();
+
+  if (result.meta.changes === 0) return err(c, 404, 'Essay not found');
+
+  return c.json({ success: true, updatedAt: new Date().toISOString() });
+});
+
+/** POST /sop/api/essays/:id/versions */
+app.post('/sop/api/essays/:id/versions', async (c) => {
+  const db = c.env.DB;
+  const essayId = parseInt(c.req.param('id'));
+
+  const essay = await db.prepare('SELECT * FROM essays WHERE id = ?').bind(essayId).first();
+  if (!essay) return err(c, 404, 'Essay not found');
+
+  if (!essay.current_content.trim()) {
+    return err(c, 400, 'Essay content is empty');
+  }
+
+  const result = await db.prepare(
+    `INSERT INTO essay_versions (essay_id, content, created_at)
+     VALUES (?, ?, datetime('now'))`
+  ).bind(essayId, essay.current_content).run();
+
+  const versionId = result.meta.last_row_id;
+  return c.json({ versionId }, 201);
+});
+
+/** GET /sop/api/reviews?version_id=:id[&device_id=:did] */
+app.get('/sop/api/reviews', async (c) => {
+  const db = c.env.DB;
+  const versionId = c.req.query('version_id');
+  const deviceId = c.req.query('device_id') || '';
+  if (!versionId) return err(c, 400, 'version_id is required');
+
+  const reviews = await db.prepare(
+    `SELECT * FROM reviews WHERE version_id = ? ORDER BY created_at ASC`
+  ).bind(versionId).all();
+
+  const results = reviews.results.map(review => ({
+    ...review,
+    itemMap: {},
+    is_mine: deviceId !== '' && review.device_id === deviceId,
+  }));
+
+  return c.json(results);
+});
+
+/** POST /sop/api/reviews */
+app.post('/sop/api/reviews', async (c) => {
+  const db = c.env.DB;
+  let body;
+  try {
+    body = await c.req.json();
+  } catch {
+    return err(c, 400, 'Invalid JSON');
+  }
+
+  const { version_id, teacher_name, device_id } = body;
+  if (!version_id) return err(c, 400, 'version_id is required');
+
+  if (device_id) {
+    const existing = await db.prepare(
+      `SELECT id FROM reviews WHERE version_id = ? AND device_id = ?`
+    ).bind(version_id, device_id).first();
+    if (existing) {
+      const rev = await db.prepare('SELECT * FROM reviews WHERE id = ?').bind(existing.id).first();
+      return c.json({ ...rev, itemMap: {}, is_mine: true }, 200);
+    }
+  }
+
+  const result = await db.prepare(
+    `INSERT INTO reviews (version_id, teacher_name, device_id, markdown_comment, created_at)
+     VALUES (?, ?, ?, '', datetime('now'))`
+  ).bind(version_id, teacher_name || '', device_id || '').run();
+
+  return c.json({
+    id: result.meta.last_row_id,
+    version_id,
+    teacher_name: teacher_name || '',
+    device_id: device_id || '',
+    markdown_comment: '',
+    submitted_at: null,
+    itemMap: {},
+    is_mine: true,
+  }, 201);
+});
+
+/** PATCH /sop/api/reviews/:id */
+app.patch('/sop/api/reviews/:id', async (c) => {
+  const db = c.env.DB;
+  const reviewId = parseInt(c.req.param('id'));
+
+  const review = await db.prepare('SELECT submitted_at FROM reviews WHERE id = ?').bind(reviewId).first();
+  if (!review) return err(c, 404, 'Review not found');
+  if (review.submitted_at) return err(c, 403, 'Review already submitted');
+
+  let body;
+  try {
+    body = await c.req.json();
+  } catch {
+    return err(c, 400, 'Invalid JSON');
+  }
+
+  const stmts = [];
+
+  if (typeof body.teacher_name === 'string') {
+    stmts.push(
+      db.prepare(`UPDATE reviews SET teacher_name = ? WHERE id = ?`)
+        .bind(body.teacher_name, reviewId)
+    );
+  }
+
+  if (typeof body.markdown_comment === 'string') {
+    stmts.push(
+      db.prepare(`UPDATE reviews SET markdown_comment = ? WHERE id = ?`)
+        .bind(body.markdown_comment, reviewId)
+    );
+  }
+
+  if (stmts.length > 0) {
+    await db.batch(stmts);
+  }
+
+  return c.json({ success: true });
+});
+
+/** POST /sop/api/reviews/:id/submit */
+app.post('/sop/api/reviews/:id/submit', async (c) => {
+  const db = c.env.DB;
+  const reviewId = parseInt(c.req.param('id'));
 
   const review = await db.prepare('SELECT submitted_at FROM reviews WHERE id = ?').bind(reviewId).first();
   if (!review) return err(c, 404, 'Review not found');

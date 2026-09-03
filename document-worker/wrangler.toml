@@ -17,3 +17,8 @@ database_id   = "f04b1ff7-2f36-40b2-8838-372db4bcb341"
 [[routes]]
 pattern   = "rowpilot.jp/document/api/*"
 zone_name = "rowpilot.jp"
+
+# 志願理由書添削のルート
+[[routes]]
+pattern   = "rowpilot.jp/sop/api/*"
+zone_name = "rowpilot.jp"

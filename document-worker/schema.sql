@@ -46,3 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_review_items_review_id ON review_items(review_id)
 -- 初期データ（エッセイ id=1 を作成）
 INSERT OR IGNORE INTO essays (id, title, current_content, updated_at)
 VALUES (1, '課題論文', '', datetime('now'));
+
+-- 初期データ（志願理由書 id=2 を作成）
+INSERT OR IGNORE INTO essays (id, title, current_content, updated_at)
+VALUES (2, '志願理由書', '', datetime('now'));
