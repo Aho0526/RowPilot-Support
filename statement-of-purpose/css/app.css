@@ -1726,10 +1726,10 @@ details[open] .req-summary::before {
   left: 0;
   width: 100%;
   height: 100%;
-  padding: 4.2px 6px 0 6px;
+  padding: 2.5px 6px 0 6px;
   box-sizing: border-box;
   font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
-  font-size: 16px;
+  font-size: 14.5px;
   line-height: 24.45px;
   color: #64748b;
   opacity: 0.55;
@@ -1758,10 +1758,10 @@ details[open] .req-summary::before {
   outline: none;
   resize: none;
   font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
-  font-size: 16px;
+  font-size: 14.5px;
   line-height: 24.45px;
   color: #0f172a;
-  padding: 4.2px 6px 0 6px;
+  padding: 2.5px 6px 0 6px;
   box-sizing: border-box;
   overflow: hidden;
   transition: background-color 0.15s ease, border-color 0.15s ease;
@@ -1904,9 +1904,9 @@ details[open] .req-summary::before {
   }
 
   .sop-overlay-textarea {
-    font-size: 11.8pt !important;
+    font-size: 10.8pt !important;
     line-height: 18.32pt !important;
-    padding: 3.2pt 4.5pt 0 4.5pt !important;
+    padding: 1.9pt 4.5pt 0 4.5pt !important;
   }
 
   .sop-comment-guide {
