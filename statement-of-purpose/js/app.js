@@ -315,7 +315,7 @@ function initModules() {
       const countEl = $('#char-count');
       if (countEl) {
         countEl.textContent = `${count.toLocaleString()} 字`;
-        countEl.classList.toggle('count--over', count > 800);
+        countEl.classList.remove('count--over');
       }
     }
   });

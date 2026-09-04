@@ -154,13 +154,16 @@ export class Editor {
       return;
     }
     if (!this.countEl) return;
-    // 1. // 以降のコメント（http:// などのURL中の // は除く）を改行まで除外
-    const textWithoutComments = (this.textarea.value || '').replace(/(^|[^:])\/\/.*$/gm, '$1');
-    // 2. スペース（半角・全角）および改行を除外してカウント
-    const textWithoutSpaces = textWithoutComments.replace(/\s/g, '');
-    const len = textWithoutSpaces.length;
-    this.countEl.textContent = `${len.toLocaleString()} 字`;
-    this.countEl.classList.toggle('count--over', len > 800);
+    // 1. // 以降のコメントを除外
+    const noComments = (this.textarea.value || '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    // 2. 【...】見出しヘッダーを除外
+    const noHeaders = noComments.replace(/^【[^】]+】\s*$/gm, '');
+    // 3. 基本情報フィールドの行を除外
+    const noMeta = noHeaders.replace(/^(氏名|フリガナ|学校名|高校学科|選抜名|学部|学科|コース|受付番号)\s*:.*$/gm, '');
+    // 4. スペース（半角・全角）および改行を除外してカウント
+    const cleanLen = noMeta.replace(/\s/g, '').length;
+    this.countEl.textContent = `${cleanLen.toLocaleString()} 字`;
+    this.countEl.classList.remove('count--over');
   }
 
   _setStatus(state) {

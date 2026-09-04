@@ -588,8 +588,8 @@ a:hover { text-decoration: underline; }
 }
 
 .char-count.count--over {
-  color: var(--color-danger);
-  font-weight: 600;
+  color: var(--color-text-muted);
+  font-weight: 400;
 }
 
 /* 自動保存ステータス */

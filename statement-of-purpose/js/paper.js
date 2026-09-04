@@ -434,6 +434,7 @@ export class PaperManager {
 
   /**
    * 志望理由書本文（①〜④）の合計文字数を計算して更新
+   * 【基本情報】や【① 志望理由】などのヘッダー文字、// コメント、スペース・改行を除外
    */
   updateTotalCharCount() {
     let text = '';
@@ -443,19 +444,26 @@ export class PaperManager {
         this.inputs.sec2?.value || '',
         this.inputs.sec3?.value || '',
         this.inputs.sec4?.value || '',
-      ].join('');
+      ].join('\n');
     } else {
       // 文字のみモード: 見出し等を除去した本文文字数を計算
       const raw = this.masterTextarea ? this.masterTextarea.value : '';
       const parsed = this.parseTextToData(raw);
-      text = [parsed.sec1, parsed.sec2, parsed.sec3, parsed.sec4].join('');
+      text = [parsed.sec1, parsed.sec2, parsed.sec3, parsed.sec4].join('\n');
       if (!text && raw) {
-        // 見出しがないプレーンテキストの場合
-        text = raw.replace(/(^|[^:])\/\/.*$/gm, '$1').replace(/\s/g, '');
+        text = raw;
       }
     }
 
-    const cleanLen = text.replace(/\s/g, '').length;
+    // 1. // 以降のコメントを除外
+    const noComments = text.replace(/(^|[^:])\/\/.*$/gm, '$1');
+    // 2. 【...】見出しヘッダーを除外 (例: 【基本情報】, 【① 志望理由】など)
+    const noHeaders = noComments.replace(/^【[^】]+】\s*$/gm, '');
+    // 3. 基本情報フィールド（氏名: xxx など）の行を除外
+    const noMeta = noHeaders.replace(/^(氏名|フリガナ|学校名|高校学科|選抜名|学部|学科|コース|受付番号)\s*:.*$/gm, '');
+    // 4. 空白・改行を除外して純粋な本文文字数をカウント
+    const cleanLen = noMeta.replace(/\s/g, '').length;
+
     this.onCountUpdate(cleanLen);
   }
 }
