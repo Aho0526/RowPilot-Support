@@ -1695,38 +1695,32 @@ details[open] .req-summary::before {
   padding: 0 4px;
 }
 
-/* 設問コンテナ（絶対配置） */
+/* 設問コンテナ（絶対配置：公式PDFの本文領域とピクセルパーフェクト一致） */
 .sop-section-overlay {
   position: absolute;
   box-sizing: border-box;
+  left: 4.95%;
+  width: 91.00%;
 }
 
 .sop-section-overlay-1 {
   top: 35.23%;
-  left: 4.90%;
-  width: 91.28%;
-  height: 13.10%;
+  height: 13.13%;
 }
 
 .sop-section-overlay-2 {
   top: 50.57%;
-  left: 4.90%;
-  width: 91.28%;
-  height: 12.87%;
+  height: 12.90%;
 }
 
 .sop-section-overlay-3 {
   top: 65.67%;
-  left: 4.90%;
-  width: 91.28%;
-  height: 12.87%;
+  height: 12.90%;
 }
 
 .sop-section-overlay-4 {
   top: 80.77%;
-  left: 4.90%;
-  width: 91.28%;
-  height: 12.87%;
+  height: 12.90%;
 }
 
 /* コメント・ヒント用うっすら表示ガイド（文字入力で即座に非表示） */
@@ -1736,13 +1730,13 @@ details[open] .req-summary::before {
   left: 0;
   width: 100%;
   height: 100%;
-  padding: 2.5px 8px 0 8px;
   box-sizing: border-box;
   font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
-  font-size: 14.5px;
-  line-height: 24.45px;
+  font-size: 14px;
+  letter-spacing: 0.05em;
   color: #64748b;
   opacity: 0.55;
+  padding: 0 12px;
   pointer-events: none; /* クリックを透過してtextareaに直接フォーカス */
   white-space: pre-wrap;
   word-break: break-all;
@@ -1768,14 +1762,31 @@ details[open] .req-summary::before {
   outline: none;
   resize: none;
   font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
-  font-size: 14.5px;
-  line-height: 24.45px;
+  font-size: 14px;
+  letter-spacing: 0.05em;
   color: #0f172a;
-  padding: 2.5px 8px 0 8px;
+  padding: 0 12px;
   box-sizing: border-box;
   overflow: hidden;
   transition: background-color 0.15s ease, border-color 0.15s ease;
   user-select: text;
+}
+
+/* 各セクションの行間（破線ピッチ）との完全同期 */
+.sop-section-overlay-1 .sop-overlay-textarea,
+.sop-section-overlay-1 .sop-comment-guide {
+  line-height: 24.55px;
+  padding-top: 0.5px;
+}
+
+.sop-section-overlay-2 .sop-overlay-textarea,
+.sop-section-overlay-2 .sop-comment-guide,
+.sop-section-overlay-3 .sop-overlay-textarea,
+.sop-section-overlay-3 .sop-comment-guide,
+.sop-section-overlay-4 .sop-overlay-textarea,
+.sop-section-overlay-4 .sop-comment-guide {
+  line-height: 24.15px;
+  padding-top: 0.5px;
 }
 
 .sop-overlay-textarea:focus {

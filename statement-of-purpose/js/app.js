@@ -3,9 +3,9 @@
  * チェックリストなし・2パネル構成（志願理由書 / 先生コメント）
  */
 
-import { Editor }   from './editor.js';
-import { Comments } from './comments.js';
-import { PaperManager } from './paper.js';
+import { Editor }   from './editor.js?v=1.7_line_fix';
+import { Comments } from './comments.js?v=1.7_line_fix';
+import { PaperManager } from './paper.js?v=1.7_line_fix';
 import {
   getEssay,
   getReview,
@@ -208,11 +208,13 @@ async function syncLatestData() {
 
     const textarea = $('#sop-textarea');
     const isEditingTextarea = document.activeElement === textarea;
+    const isEditingPaper = window._paper?.currentMode === 'paper' && !!document.activeElement?.closest?.('#view-paper-container');
+    const isCurrentlyEditing = isEditingTextarea || isEditingPaper;
 
     if (state.mode === 'student') {
       if (serverEssay && serverEssay.current_content !== state.essay?.current_content) {
         state.essay = serverEssay;
-        if (!isEditingTextarea && window._editor) {
+        if (!isCurrentlyEditing && window._editor) {
           window._editor.setContent(serverEssay.current_content);
           if (window._paper && window._paper.currentMode === 'paper') {
             window._paper.syncMasterToPaper();

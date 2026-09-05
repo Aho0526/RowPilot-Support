@@ -263,7 +263,9 @@ export class PaperManager {
 
     const flush = () => {
       if (currentKey !== null) {
-        sections[currentKey] = currentLines.join('\n').trim();
+        // 先頭の改行（空行）のみ除去し、全角スペース・半角スペースは100%保持
+        // 末尾の余白・改行を除去
+        sections[currentKey] = currentLines.join('\n').replace(/^[\r\n]+/, '').replace(/[\s\uFEFF]+$/, '');
         currentLines.length = 0;
       }
     };
@@ -351,7 +353,9 @@ export class PaperManager {
       }
 
       return {
-        body: bodyLines.join('\n').trim(),
+        // 先頭の改行（空行）のみ除去し、全角スペース・半角スペースは100%保持
+        // 末尾の余白・改行を除去
+        body: bodyLines.join('\n').replace(/^[\r\n]+/, '').replace(/[\s\uFEFF]+$/, ''),
         commentText: commentLines.join('\n'),
         rawComments: commentLines,
       };
@@ -379,7 +383,7 @@ export class PaperManager {
 
     // セクション記号が全くない場合は全体を①に
     if (!sections.meta && !data.sec1 && !data.sec2 && !data.sec3 && !data.sec4) {
-      const fallback = extractBodyAndComments(text.trim());
+      const fallback = extractBodyAndComments(text.replace(/^[\r\n]+/, '').replace(/[\s\uFEFF]+$/, ''));
       data.sec1 = fallback.body;
       data.sec1CommentText = fallback.commentText;
       data.sec1Comments = fallback.rawComments;
