@@ -96,15 +96,47 @@ export class PaperManager {
       el.addEventListener('change', onPaperInput);
     });
 
-    // 設問入力欄：文字入力時はガイドを即座に非表示、空なら再表示
+    // 設問入力欄：行頭でスペースキーが押されたら自動で全角スペース（一字開け）を挿入
+    // また blur 時に行頭の半角スペースを全角スペースに正規化
     ['sec1', 'sec2', 'sec3', 'sec4'].forEach((key) => {
       const inputEl = this.inputs[key];
       const guideEl = this.guides[key];
-      if (!inputEl || !guideEl) return;
+      if (!inputEl) return;
+
+      inputEl.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.code === 'Space') {
+          const pos = inputEl.selectionStart;
+          const val = inputEl.value;
+          // 行の先頭、または直前が改行なら行頭
+          const isLineStart = pos === 0 || val.charAt(pos - 1) === '\n';
+          if (isLineStart) {
+            e.preventDefault();
+            const success = document.execCommand?.('insertText', false, '　');
+            if (!success) {
+              const before = val.slice(0, pos);
+              const after = val.slice(inputEl.selectionEnd);
+              inputEl.value = before + '　' + after;
+              inputEl.selectionStart = inputEl.selectionEnd = pos + 1;
+              inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }
+        }
+      });
+
+      const onBlur = () => {
+        const val = inputEl.value;
+        const normalized = normalizeLeadingIndents(val);
+        if (val !== normalized) {
+          inputEl.value = normalized;
+          this.syncPaperToMaster();
+          this.updateTotalCharCount();
+        }
+      };
+      inputEl.addEventListener('blur', onBlur);
 
       const updateGuide = () => {
         const hasText = inputEl.value.trim().length > 0;
-        guideEl.classList.toggle('is-hidden', hasText);
+        guideEl?.classList.toggle('is-hidden', hasText);
       };
 
       inputEl.addEventListener('input', updateGuide);
@@ -212,10 +244,10 @@ export class PaperManager {
         faculty: this.inputs.faculty?.value || '',
         dept: this.inputs.dept?.value || '',
         course: this.inputs.course?.value || '',
-        sec1: this.inputs.sec1?.value || '',
-        sec2: this.inputs.sec2?.value || '',
-        sec3: this.inputs.sec3?.value || '',
-        sec4: this.inputs.sec4?.value || '',
+        sec1: normalizeLeadingIndents(this.inputs.sec1?.value || ''),
+        sec2: normalizeLeadingIndents(this.inputs.sec2?.value || ''),
+        sec3: normalizeLeadingIndents(this.inputs.sec3?.value || ''),
+        sec4: normalizeLeadingIndents(this.inputs.sec4?.value || ''),
       };
 
       const formatted = this.formatDataToText(data);
@@ -352,10 +384,11 @@ export class PaperManager {
         }
       }
 
+      const normalizedBody = normalizeLeadingIndents(bodyLines.join('\n').replace(/^[\r\n]+/, '').replace(/[\s\uFEFF]+$/, ''));
       return {
-        // 先頭の改行（空行）のみ除去し、全角スペース・半角スペースは100%保持
+        // 先頭の改行（空行）を除去し、行頭の空白を一字開け（全角スペース）に正規化
         // 末尾の余白・改行を除去
-        body: bodyLines.join('\n').replace(/^[\r\n]+/, '').replace(/[\s\uFEFF]+$/, ''),
+        body: normalizedBody,
         commentText: commentLines.join('\n'),
         rawComments: commentLines,
       };
@@ -470,4 +503,21 @@ export class PaperManager {
 
     this.onCountUpdate(cleanLen);
   }
+}
+
+/**
+ * 各行の行頭にある空白（半角スペースや連続する空白）を一字開け（全角スペース1文字）に正規化
+ */
+export function normalizeLeadingIndents(text) {
+  if (!text) return '';
+  return text
+    .split(/\r?\n/)
+    .map((line) => {
+      // 行頭に1つ以上の半角/全角スペース・タブがある場合、全角スペース1個に統一
+      if (/^[ 　\t]+/.test(line)) {
+        return line.replace(/^[ 　\t]+/, '　');
+      }
+      return line;
+    })
+    .join('\n');
 }

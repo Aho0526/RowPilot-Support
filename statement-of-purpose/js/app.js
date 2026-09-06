@@ -3,9 +3,9 @@
  * チェックリストなし・2パネル構成（志願理由書 / 先生コメント）
  */
 
-import { Editor }   from './editor.js?v=1.7_line_fix';
-import { Comments } from './comments.js?v=1.7_line_fix';
-import { PaperManager } from './paper.js?v=1.7_line_fix';
+import { Editor }   from './editor.js?v=1.7_indent_fix';
+import { Comments } from './comments.js?v=1.7_indent_fix';
+import { PaperManager } from './paper.js?v=1.7_indent_fix';
 import {
   getEssay,
   getReview,
