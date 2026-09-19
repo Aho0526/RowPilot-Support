@@ -2,8 +2,9 @@
 <html lang="ja">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="main.js?v=10" defer></script>
-<link rel="stylesheet" href="style.css?v=2">
+<script src="stages.js?v=1" defer></script>
+<script src="main.js?v=12" defer></script>
+<link rel="stylesheet" href="style.css?v=4">
 <link rel="icon" href="pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
 <title>ハコゲーム</title>
 <div class="cloud cloud-1"></div>
@@ -11,7 +12,23 @@
 <div class="cloud cloud-3"></div>
 
 <h1>ハコゲーム</h1>
-<p class="subtitle">BLOCK PLACEMENT PUZZILE</p>
+<p class="subtitle">BLOCK PLACEMENT PUZZLE</p>
+
+<!-- ステージ選択バー -->
+<div class="stage-nav">
+    <button class="stage-nav-arrow" id="prevStageBtn" title="前のステージ">◀</button>
+    <div class="stage-selector-dropdown-wrap">
+        <button class="stage-current-btn" id="stageCurrentBtn">
+            <span id="stageCurrentTitle">ステージ 1</span>
+            <span class="dropdown-caret">▼</span>
+        </button>
+        <div class="stage-menu-popup" id="stageMenuPopup">
+            <div class="stage-menu-header">ステージ選択 (全20ステージ)</div>
+            <div class="stage-menu-grid" id="stageMenuGrid"></div>
+        </div>
+    </div>
+    <button class="stage-nav-arrow" id="nextStageBtn" title="次のステージ">▶</button>
+</div>
 
 <div class="game-wrapper">
     <canvas id="gameCanvas"></canvas>
@@ -20,6 +37,10 @@
 <div class="controls">
     <button class="btn btn-reset" id="resetBtn">リセット</button>
     <button class="btn btn-start" id="startBtn">スタート</button>
+    <div class="block-count-badge" id="blockBadge">
+        <span class="badge-label">BLOCKS</span>
+        <span class="badge-val" id="blockCountVal">0 / 6</span>
+    </div>
 </div>
 
 <div class="status-wrap">
@@ -27,7 +48,9 @@
         <span class="status-place">ブロックを配置しろ</span>
     </div>
 </div>
+
+<div class="legend-wrap" id="legendWrap"></div>
 <div class="hint" id="hintText">ブロックを配置　/　もう一度クリックで削除</div>
-<div class="dev-notice">これは一時的に公開している開発中のバージョンです。</div>
+<div class="dev-notice">v1.2(dev) 9/19 12:00</div>
 
 </html>

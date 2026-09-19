@@ -264,3 +264,245 @@ h1 {
     letter-spacing: 0.05em;
     font-family: sans-serif;
 }
+
+/* ステージ選択バー */
+.stage-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    background: rgba(0, 0, 0, 0.55);
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 100;
+}
+
+.stage-nav-arrow {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    background: #333;
+    color: #ffe060;
+    border: 2px solid #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #111;
+    transition: all 0.08s ease;
+}
+
+.stage-nav-arrow:hover:not(:disabled) {
+    background: #555;
+    transform: translateY(1px);
+    box-shadow: 0 2px 0 #111;
+}
+
+.stage-nav-arrow:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #111;
+}
+
+.stage-nav-arrow:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.stage-selector-dropdown-wrap {
+    position: relative;
+}
+
+.stage-current-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.75rem;
+    padding: 8px 16px;
+    background: #ffcc00;
+    color: #222;
+    border: 2px solid #ff9900;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #995500;
+    font-weight: bold;
+    min-width: 170px;
+    justify-content: center;
+    transition: all 0.08s ease;
+}
+
+.stage-current-btn:hover {
+    background: #ffe060;
+    transform: translateY(1px);
+    box-shadow: 0 2px 0 #995500;
+}
+
+.dropdown-caret {
+    font-size: 0.6rem;
+    color: #664400;
+}
+
+/* ポップアップメニュー (20ステージグリッド) */
+.stage-menu-popup {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #222;
+    border: 3px solid #ffcc00;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+    padding: 12px;
+    width: 320px;
+    z-index: 200;
+}
+
+.stage-menu-popup.open {
+    display: block;
+    animation: popupFade 0.15s ease-out;
+}
+
+@keyframes popupFade {
+    from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.stage-menu-header {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.55rem;
+    color: #ffe060;
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #444;
+}
+
+.stage-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+.stage-grid-item {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.65rem;
+    padding: 10px 0;
+    background: #333;
+    color: #fff;
+    border: 2px solid #555;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    box-shadow: 0 2px 0 #111;
+    transition: all 0.08s ease;
+}
+
+.stage-grid-item:hover {
+    background: #555;
+    border-color: #ffe060;
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 #111;
+}
+
+.stage-grid-item.active {
+    background: #ffcc00;
+    color: #222;
+    border-color: #ff9900;
+    font-weight: bold;
+    box-shadow: 0 2px 0 #995500;
+}
+
+/* ブロック数バッジ */
+.block-count-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #222;
+    border: 3px solid #ffcc00;
+    border-radius: 4px;
+    padding: 6px 14px;
+    box-shadow: 0 4px 0 #997700;
+}
+
+.badge-label {
+    font-size: 0.5rem;
+    color: #aaa;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+}
+
+.badge-val {
+    font-size: 0.75rem;
+    color: #ffe060;
+    font-weight: bold;
+}
+
+.badge-val.limit {
+    color: #ff5050;
+    animation: pulseLimit 0.6s infinite alternate;
+}
+
+@keyframes pulseLimit {
+    from { transform: scale(1); }
+    to { transform: scale(1.1); }
+}
+
+/* ギミック凡例パネル */
+.legend-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    max-width: 90vw;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.55rem;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000;
+    font-family: sans-serif;
+    font-weight: bold;
+}
+
+.legend-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-family: monospace;
+    font-weight: bold;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+}
+
+.legend-forbidden {
+    background: #ff4444;
+    color: #fff;
+    border: 1px solid #990000;
+}
+
+.legend-dash {
+    background: #00d2ff;
+    color: #fff;
+    border: 1px solid #0088cc;
+}
+
+.legend-step {
+    background: #22c55e;
+    color: #fff;
+    border: 1px solid #15803d;
+}
