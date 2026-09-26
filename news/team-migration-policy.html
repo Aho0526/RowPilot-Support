@@ -137,7 +137,16 @@
                 <li><a href="../support/index.html">サポート</a></li>
                 <li><a href="../privacy-policy/index.html">プライバシー</a></li>
                 <li><a href="../terms/index.html">利用規約</a></li>
-                <li><a href="../en/news/team-migration-policy.html" class="lang-switch">EN</a></li>
+                <li class="lang-dropdown-wrapper">
+          <button class="lang-btn" type="button" aria-label="Select Language">
+            <span class="lang-globe">🌐</span>
+            <span>JP</span>
+            <span class="lang-arrow">▾</span>
+          </button>
+          <div class="lang-dropdown-menu">
+            <a href="team-migration-policy.html" class="lang-dropdown-item active" data-lang="ja"><span>日本語</span><span class="lang-code-badge">JP</span></a><a href="../en/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">EN</span></a><a href="../de/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">DE</span></a><a href="../fr/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">FR</span></a><a href="../es/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">ES</span></a><a href="../it/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">IT</span></a><a href="../zh/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">ZH</span></a><a href="../ko/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">KO</span></a>
+          </div>
+        </li>
             </ul>
             <button class="nav-toggle" id="nav-toggle" aria-label="メニュー">
                 <span></span><span></span><span></span>
@@ -156,7 +165,12 @@
             <a href="../privacy-policy/index.html">プライバシーポリシー</a>
             <a href="../terms/index.html">利用規約</a>
             <div class="mobile-menu-divider"></div>
-            <a href="../en/news/team-migration-policy.html" class="lang-switch-mobile">English (EN)</a>
+            <div class="mobile-lang-sec">
+        <div class="mobile-lang-title">🌐 Language / 言語</div>
+        <div class="mobile-lang-grid">
+          <a href="team-migration-policy.html" class="mobile-lang-item active" data-lang="ja"><span>日本語</span><span class="lang-code-badge">JP</span></a><a href="../en/news/team-migration-policy.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">EN</span></a><a href="../de/news/team-migration-policy.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">DE</span></a><a href="../fr/news/team-migration-policy.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">FR</span></a><a href="../es/news/team-migration-policy.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">ES</span></a><a href="../it/news/team-migration-policy.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">IT</span></a><a href="../zh/news/team-migration-policy.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">ZH</span></a><a href="../ko/news/team-migration-policy.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">KO</span></a>
+        </div>
+      </div>
         </div>
     </nav>
 
@@ -317,6 +331,7 @@
             mMenu.classList.remove('open'); toggle.classList.remove('open');
         }));
     </script>
+  <script src="../js/lang-dropdown.js"></script>
 </body>
 
 </html>

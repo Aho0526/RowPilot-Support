@@ -29,7 +29,16 @@
         <li><a href="support/index.html">Support</a></li>
         <li><a href="privacy-policy/index.html">Privacy</a></li>
         <li><a href="terms/index.html">Terms</a></li>
-        <li><a href="../index.html" class="lang-switch">JP</a></li>
+        <li class="lang-dropdown-wrapper">
+          <button class="lang-btn" type="button" aria-label="Select Language">
+            <span class="lang-globe">🌐</span>
+            <span>EN</span>
+            <span class="lang-arrow">▾</span>
+          </button>
+          <div class="lang-dropdown-menu">
+            <a href="../index.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">JP</span></a><a href="index.html" class="lang-dropdown-item active" data-lang="en"><span>English</span><span class="lang-code-badge">EN</span></a><a href="../de/index.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">DE</span></a><a href="../fr/index.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">FR</span></a><a href="../es/index.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">ES</span></a><a href="../it/index.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">IT</span></a><a href="../zh/index.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">ZH</span></a><a href="../ko/index.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">KO</span></a>
+          </div>
+        </li>
       </ul>
 
       <!-- Hamburger -->
@@ -51,7 +60,12 @@
       <a href="privacy-policy/index.html">Privacy Policy</a>
       <a href="terms/index.html">Terms of Use</a>
       <div class="mobile-menu-divider"></div>
-      <a href="../index.html" class="lang-switch-mobile">日本語 (JP)</a>
+      <div class="mobile-lang-sec">
+        <div class="mobile-lang-title">🌐 Language / 言語</div>
+        <div class="mobile-lang-grid">
+          <a href="../index.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">JP</span></a><a href="index.html" class="mobile-lang-item active" data-lang="en"><span>English</span><span class="lang-code-badge">EN</span></a><a href="../de/index.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">DE</span></a><a href="../fr/index.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">FR</span></a><a href="../es/index.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">ES</span></a><a href="../it/index.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">IT</span></a><a href="../zh/index.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">ZH</span></a><a href="../ko/index.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">KO</span></a>
+        </div>
+      </div>
     </div>
   </nav>
 
@@ -64,13 +78,6 @@
     <div class="hero-cta">
       <a href="#features" class="btn btn-primary" id="hero-cta-feat">View Features</a>
       <a href="#story" class="btn btn-ghost" id="hero-cta-story">Developer Story</a>
-    </div>
-    <div class="jp-limit-card">
-      <div class="jp-limit-card-icon">⚠️</div>
-      <div class="jp-limit-card-text">
-        <strong>Available Only in Japan</strong>
-        <span>RowPilot is currently distributed exclusively on the App Store in Japan. Additionally, features like tide forecasts and weather data are optimized only for locations within Japan.</span>
-      </div>
     </div>
   </section>
 
@@ -529,6 +536,7 @@
       overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
       document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
     </script>
+  <script src="../js/lang-dropdown.js"></script>
 </body>
 
 </html>

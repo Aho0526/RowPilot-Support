@@ -24,7 +24,16 @@
             <li><a href="#" class="active">Support</a></li>
             <li><a href="../privacy-policy/index.html">Privacy</a></li>
             <li><a href="../terms/index.html">Terms</a></li>
-            <li><a href="../../support/index.html" class="lang-switch">JP</a></li>
+            <li class="lang-dropdown-wrapper">
+          <button class="lang-btn" type="button" aria-label="Select Language">
+            <span class="lang-globe">🌐</span>
+            <span>EN</span>
+            <span class="lang-arrow">▾</span>
+          </button>
+          <div class="lang-dropdown-menu">
+            <a href="../../support/index.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">JP</span></a><a href="index.html" class="lang-dropdown-item active" data-lang="en"><span>English</span><span class="lang-code-badge">EN</span></a><a href="../../de/support/index.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">DE</span></a><a href="../../fr/support/index.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">FR</span></a><a href="../../es/support/index.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">ES</span></a><a href="../../it/support/index.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">IT</span></a><a href="../../zh/support/index.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">ZH</span></a><a href="../../ko/support/index.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">KO</span></a>
+          </div>
+        </li>
         </ul>
         <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
             <span></span><span></span><span></span>
@@ -43,7 +52,12 @@
         <a href="../privacy-policy/index.html">Privacy Policy</a>
         <a href="../terms/index.html">Terms of Use</a>
         <div class="mobile-menu-divider"></div>
-        <a href="../../support/index.html" class="lang-switch-mobile">日本語 (JP)</a>
+        <div class="mobile-lang-sec">
+        <div class="mobile-lang-title">🌐 Language / 言語</div>
+        <div class="mobile-lang-grid">
+          <a href="../../support/index.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">JP</span></a><a href="index.html" class="mobile-lang-item active" data-lang="en"><span>English</span><span class="lang-code-badge">EN</span></a><a href="../../de/support/index.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">DE</span></a><a href="../../fr/support/index.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">FR</span></a><a href="../../es/support/index.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">ES</span></a><a href="../../it/support/index.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">IT</span></a><a href="../../zh/support/index.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">ZH</span></a><a href="../../ko/support/index.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">KO</span></a>
+        </div>
+      </div>
     </div>
 </nav>
 
@@ -70,13 +84,6 @@
     <p>Feel free to reach out for bug reports, feature requests, or questions about how to use the app.<br>We will respond as quickly as possible.</p>
     <a href="mailto:rowpilot.jp@gmail.com" class="contact-email-link" id="contact-email">rowpilot.jp@gmail.com</a>
     <p class="contact-note">For inquiries regarding donations or sponsorship to the Kochi Rowing Association, please contact us here.</p>
-    <div class="jp-limit-card">
-        <div class="jp-limit-card-icon">⚠️</div>
-        <div class="jp-limit-card-text">
-            <strong>Available Only in Japan</strong>
-            <span>RowPilot is currently distributed exclusively on the App Store in Japan. Additionally, features like tide forecasts and weather data are optimized only for locations within Japan.</span>
-        </div>
-    </div>
 </div>
 
 <!-- FAQ -->
@@ -318,5 +325,6 @@ document.querySelectorAll('.faq-a').forEach(a => {
     a.style.transition = 'max-height 0.35s ease, opacity 0.25s ease';
 });
 </script>
+  <script src="../../js/lang-dropdown.js"></script>
 </body>
 </html>

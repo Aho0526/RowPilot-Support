@@ -1603,30 +1603,150 @@ footer {
 }
 
 /* Language Switcher */
-.lang-switch {
-    border: 1px solid var(--border);
-    padding: 0.35rem 0.65rem !important;
-    border-radius: 6px;
-    font-size: 0.75rem !important;
-    color: var(--accent) !important;
-    background: rgba(77, 203, 255, 0.05);
+.lang-dropdown-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
     margin-left: 0.75rem;
 }
-.lang-switch:hover {
-    background: rgba(77, 203, 255, 0.15) !important;
-    color: #fff !important;
-    border-color: var(--accent) !important;
+.lang-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(77, 203, 255, 0.05);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    line-height: 1;
+}
+.lang-btn:hover, .lang-dropdown-wrapper:hover .lang-btn, .lang-dropdown-wrapper.active .lang-btn {
+    background: rgba(77, 203, 255, 0.15);
+    color: #fff;
+    border-color: var(--accent);
+}
+.lang-globe {
+    font-size: 0.9rem;
+    line-height: 1;
+}
+.lang-arrow {
+    font-size: 0.65rem;
+    transition: transform 0.2s ease;
+    opacity: 0.8;
+}
+.lang-dropdown-wrapper:hover .lang-arrow, .lang-dropdown-wrapper.active .lang-arrow {
+    transform: rotate(180deg);
+}
+.lang-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 140px;
+    background: rgba(13, 21, 38, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 0.35rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.lang-dropdown-wrapper:hover .lang-dropdown-menu,
+.lang-dropdown-wrapper.active .lang-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.lang-dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.65rem;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    color: var(--text-2);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    font-weight: 500;
+}
+.lang-dropdown-item:hover {
+    background: rgba(77, 203, 255, 0.12);
+    color: #fff;
+}
+.lang-dropdown-item.active {
+    background: rgba(77, 203, 255, 0.18);
+    color: var(--accent);
+    font-weight: 700;
+}
+.lang-code-badge {
+    font-size: 0.68rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+}
+.lang-dropdown-item.active .lang-code-badge {
+    background: rgba(77, 203, 255, 0.25);
+    color: var(--accent);
 }
 
-.lang-switch-mobile {
+/* Mobile Language Selector */
+.mobile-lang-sec {
     margin-top: 0.5rem;
-    border: 1px solid var(--border);
-    background: rgba(77, 203, 255, 0.05);
-    color: var(--accent) !important;
-    text-align: center;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
-.lang-switch-mobile:hover {
-    background: rgba(77, 203, 255, 0.1) !important;
+.mobile-lang-title {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.45rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.mobile-lang-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.35rem;
+}
+.mobile-lang-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.78rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-2);
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+.mobile-lang-item:hover {
+    background: rgba(77, 203, 255, 0.08);
+    color: #fff;
+    border-color: rgba(77, 203, 255, 0.4);
+}
+.mobile-lang-item.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(77, 203, 255, 0.12);
+    font-weight: 700;
 }
 
 /* Japan Limit Alert Card */
