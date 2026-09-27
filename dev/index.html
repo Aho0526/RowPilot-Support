@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RowPilot Dev Portal</title>
+  <meta name="description" content="RowPilot 個人開発プロジェクト（ゲーム、志願理由書添削、課題論文添削）へのアクセスハブ">
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="background-decorations" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="grid-pattern"></div>
+  </div>
+
+  <div class="container">
+    <header class="dev-header">
+      <div class="brand">
+        <a href="/" class="back-link" title="RowPilot ホームへ">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span>RowPilot Home</span>
+        </a>
+        <div class="badge">DEV PORTAL</div>
+      </div>
+      <h1 class="page-title">Personal Dev Projects</h1>
+      <p class="page-desc">各個人開発プロジェクトへのアクセスハブです。<br>検証・確認したいプロトコルまたはツールを選択してください。</p>
+    </header>
+
+    <main class="projects-grid">
+      <!-- Research Docs Card (Featured: 1x3) -->
+      <article class="project-card card-docs card-docs--featured">
+        <div class="card-glow"></div>
+        <div class="card-content">
+          <div class="card-featured-inner">
+            <div class="card-featured-main">
+              <div class="card-header-compact">
+                <div class="icon-wrap docs-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="16 18 22 12 16 6" />
+                    <polyline points="8 6 2 12 8 18" />
+                  </svg>
+                </div>
+                <div class="project-meta">
+                  <span class="path-badge">/dev/docs</span>
+                  <span class="type-badge">Research Archive</span>
+                </div>
+                <div class="status-indicator live">
+                  <span class="pulse-dot"></span>
+                  <span>5 Docs Available</span>
+                </div>
+              </div>
+
+              <div class="card-body">
+                <h2 class="project-title">Research Docs</h2>
+                <p class="project-subtitle">ARCHITECTURE & PROTOCOL SPECIFICATIONS</p>
+                <p class="project-description">
+                  BLE通信・ストロークレート検出・潮汐情報・Variable Intervalプロトコルなど、RowPilotの根幹を支える内部設計ドキュメント。
+                </p>
+
+                <div class="doc-tags">
+                  <span class="doc-tag">BLE Connection</span>
+                  <span class="doc-tag">Stroke Rate Detection</span>
+                  <span class="doc-tag">Tide Info</span>
+                  <span class="doc-tag">Variable Interval</span>
+                  <span class="doc-tag">Architecture v4.1</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-featured-action">
+              <a href="/dev/docs/" class="btn btn-primary btn-featured" id="btn-open-docs">
+                <span>ドキュメントを見る</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Game Card -->
+      <article class="project-card card-game">
+        <div class="card-glow"></div>
+        <div class="card-content">
+          <div class="card-header">
+            <div class="icon-wrap game-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="6" width="20" height="12" rx="2" />
+                <path d="M6 12h4m-2-2v4m7-2h.01m3 0h.01" />
+              </svg>
+            </div>
+            <div class="status-indicator live">
+              <span class="pulse-dot"></span>
+              <span>Ready</span>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="project-meta">
+              <span class="path-badge">/game</span>
+              <span class="type-badge">Puzzle Game</span>
+            </div>
+            <h2 class="project-title">ハコゲーム</h2>
+            <p class="project-subtitle">BLOCK PLACEMENT PUZZLE</p>
+            <p class="project-description">
+              ブロックをグリッド上に適切に配置してクリアを目指すWebキャンバスパズルゲーム（全20ステージ搭載）。
+            </p>
+          </div>
+
+          <div class="card-footer">
+            <a href="/dev/game/" class="btn btn-primary" id="btn-open-game">
+              <span>ゲームを起動</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Statement of Purpose Card -->
+      <article class="project-card card-sop">
+        <div class="card-glow"></div>
+        <div class="card-content">
+          <div class="card-header">
+            <div class="icon-wrap sop-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+            </div>
+            <div class="status-indicator live">
+              <span class="pulse-dot"></span>
+              <span>Ready</span>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="project-meta">
+              <span class="path-badge">/statement-of-purpose</span>
+              <span class="type-badge">Review Tool</span>
+            </div>
+            <h2 class="project-title">志願理由書 添削ツール</h2>
+            <p class="project-subtitle">STATEMENT OF PURPOSE REVIEW</p>
+            <p class="project-description">
+              生徒・指導者モードを切り替え、志願理由書の添削コメントのフィードバックを効率化するエディタツール。
+            </p>
+          </div>
+
+          <div class="card-footer">
+            <a href="/dev/statement-of-purpose/" class="btn btn-primary" id="btn-open-sop">
+              <span>ツールを開く</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Document Card -->
+      <article class="project-card card-doc">
+        <div class="card-glow"></div>
+        <div class="card-content">
+          <div class="card-header">
+            <div class="icon-wrap doc-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                <path d="M8 7h8m-8 4h8" />
+              </svg>
+            </div>
+            <div class="status-indicator live">
+              <span class="pulse-dot"></span>
+              <span>Ready</span>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="project-meta">
+              <span class="path-badge">/document</span>
+              <span class="type-badge">Essay Review</span>
+            </div>
+            <h2 class="project-title">課題論文 添削ツール</h2>
+            <p class="project-subtitle">ESSAY & THESIS REVIEW</p>
+            <p class="project-description">
+              課題論文の構成・添削レビューを支援するWebツール。先生からのレビューコメントと文章チェックに対応。
+            </p>
+          </div>
+
+          <div class="card-footer">
+            <a href="/dev/document/" class="btn btn-primary" id="btn-open-doc">
+              <span>ツールを開く</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </article>
+    </main>
+
+    <footer class="dev-footer">
+      <div class="footer-info">
+        <span>RowPilot Internal Dev Portal</span>
+        <span class="footer-separator">•</span>
+        <span>ローカル / 検証環境専用</span>
+      </div>
+    </footer>
+  </div>
+</body>
+
+</html>

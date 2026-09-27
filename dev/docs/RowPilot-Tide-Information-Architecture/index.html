@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tide Information Architecture — RowPilot Docs</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../docs.css">
+</head>
+<body>
+<div class="layout">
+  <header class="top-header">
+    <a href="/" class="header-logo-area">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      RowPilot
+    </a>
+    <span class="header-sep">/</span>
+    <div class="header-breadcrumb">
+      <a href="/dev/">Dev</a><span class="crumb-sep">/</span>
+      <a href="/dev/docs/">docs</a><span class="crumb-sep">/</span>
+      <span class="crumb-current">Tide-Information-Architecture</span>
+    </div>
+    <div class="header-spacer"></div>
+    <a href="https://github.com/Aho0526/RowPilot/blob/main/docs/Tide%20Information%20Architecture.md" target="_blank" rel="noopener" class="header-github-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/></svg>
+      View on GitHub
+    </a>
+  </header>
+  <nav class="sidebar">
+    <div class="sidebar-section-label">Navigate</div>
+    <a href="/dev/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Dev Portal</a>
+    <a href="/dev/docs/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>All Documents</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">Research Docs</div>
+    <a href="/dev/docs/RowPilot-PM5-BLE-Connection-Overview/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>PM5 BLE Connection Overview</a>
+    <a href="/dev/docs/RowPilot-PM5-Communication-Architecture-v4.1/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Communication Architecture v4.1</a>
+    <a href="/dev/docs/RowPilot-Stroke-Rate-Detection-Architecture/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Stroke Rate Detection</a>
+    <a href="/dev/docs/RowPilot-Tide-Information-Architecture/" class="sidebar-nav-link active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>Tide Information Architecture</a>
+    <a href="/dev/docs/RowPilot-Variable-Interval-Communication-Architecture/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m8.49-8.49-2.83 2.83M6.34 6.34 3.51 3.51M20.49 3.51l-2.83 2.83M6.34 17.66l-2.83 2.83"/></svg>Variable Interval Comm.</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">On This Page</div>
+    <a href="#data-source" class="sidebar-nav-link" style="font-size:0.82rem">1. Data Source</a>
+    <a href="#station-selection" class="sidebar-nav-link" style="font-size:0.82rem">2. Station Selection</a>
+    <a href="#data-format" class="sidebar-nav-link" style="font-size:0.82rem">3. Data Format</a>
+    <a href="#tide-type" class="sidebar-nav-link" style="font-size:0.82rem">4. Tide Type Classification</a>
+    <a href="#caching" class="sidebar-nav-link" style="font-size:0.82rem">5. Caching</a>
+    <a href="#privacy" class="sidebar-nav-link" style="font-size:0.82rem">7. Privacy</a>
+  </nav>
+
+  <main class="content-area">
+    <div class="doc-wrapper">
+      <div class="doc-header">
+        <div class="doc-chips">
+          <span class="chip chip-tide">JMA API</span>
+          <span class="chip chip-algo">CoreLocation</span>
+          <span class="chip chip-doc">v1.0</span>
+        </div>
+        <h1 class="doc-title">Tide Information Architecture</h1>
+        <p class="doc-overview">
+          RowPilot integrates real-time tide information sourced directly from the Japan Meteorological Agency (JMA) to provide rowers with accurate and actionable tidal data.
+          Tide conditions are a critical safety and performance factor for on-water rowing, and this feature is designed to be available instantly — without any account registration or third-party API key.
+        </p>
+        <div class="doc-meta">
+          <span class="doc-meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Source: docs/Tide Information Architecture.md
+          </span>
+          <span class="doc-meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Kaito Nakahira / Antigravity AI
+          </span>
+          <span class="doc-meta-item">2026-06-25</span>
+        </div>
+      </div>
+
+      <div class="toc-box">
+        <div class="toc-title">Table of Contents</div>
+        <ol class="toc-list">
+          <li><a href="#data-source">1. Data Source (JMA)</a></li>
+          <li><a href="#station-selection">2. Nearest Station Selection</a></li>
+          <li><a href="#data-format">3. Data Format Parsing</a></li>
+          <li><a href="#tide-type">4. Tide Type Classification</a></li>
+          <li><a href="#caching">5. Caching Strategy</a></li>
+          <li><a href="#privacy">7. Privacy &amp; Permissions</a></li>
+        </ol>
+      </div>
+
+      <div class="doc-body">
+        <h2 id="data-source">Data Source (JMA)</h2>
+        <p>RowPilot fetches tidal observation data from the JMA's publicly available dataset.</p>
+        <pre><code>https://www.data.jma.go.jp/gmd/kaiyou/data/db/tide/suisan/txt/{year}/{stationId}.txt</code></pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Property</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Format</td><td>Fixed-width plain text (<code>.txt</code>)</td></tr>
+              <tr><td>Update Cycle</td><td>Annually published; hourly tide level data for the entire year</td></tr>
+              <tr><td>Authentication</td><td>None required — completely open access</td></tr>
+              <tr><td>Coverage</td><td>239 tidal observation stations across all of Japan</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <hr>
+
+        <h2 id="station-selection">Nearest Station Selection</h2>
+        <p>When the user opens the tide view, RowPilot uses CoreLocation to obtain the device's current coordinates and automatically selects the nearest tidal observation station.</p>
+
+        <h4>Selection Algorithm</h4>
+        <ol>
+          <li>Retrieve user location via <code>CLLocationManager</code></li>
+          <li>Calculate the geodesic distance from the user's location to all 239 registered stations</li>
+          <li>Select the station with the minimum distance</li>
+        </ol>
+        <pre><code>let sortedStations = stations.sorted {
+    let loc1 = CLLocation(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude)
+    let loc2 = CLLocation(latitude: $1.coordinate.latitude, longitude: $1.coordinate.longitude)
+    return location.distance(from: loc1) &lt; location.distance(from: loc2)
+}</code></pre>
+
+        <h4>Station Coverage</h4>
+        <p>All 239 stations listed in the JMA Tide Tables are registered, covering: Hokkaido, Tohoku, Kanto, Chubu, Kinki, Chugoku, Shikoku, Kyushu, and remote islands (Ogasawara, Okinawa, Ishigaki, Miyako, Yonaguni, etc.).</p>
+
+        <hr>
+
+        <h2 id="data-format">Data Format Parsing</h2>
+        <p>Each row in the JMA text file corresponds to one calendar day and uses a fixed-width encoding.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Byte Range</th><th>Content</th></tr></thead>
+            <tbody>
+              <tr><td>0 – 71</td><td>Hourly tide levels (24 × 3 chars, unit: cm)</td></tr>
+              <tr><td>72 – 73</td><td>Year (last 2 digits, YY)</td></tr>
+              <tr><td>74 – 75</td><td>Month (MM)</td></tr>
+              <tr><td>76 – 77</td><td>Day (DD)</td></tr>
+              <tr><td>80 – 107</td><td>High tide events (up to 4 events × 7 chars)</td></tr>
+              <tr><td>108 – 135</td><td>Low tide events (up to 4 events × 7 chars)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>High/Low Tide Event Block (7 chars per event)</h4>
+        <pre><code>[HHMM][Level (3 chars)]</code></pre>
+        <p><code>9999</code> in the time field indicates a null/invalid entry and is skipped.</p>
+
+        <hr>
+
+        <h2 id="tide-type">Tide Type Classification</h2>
+        <p>RowPilot classifies each day's tide type based on the lunar calendar, computed from a known reference new moon.</p>
+        <ul>
+          <li><strong>Reference New Moon</strong>: January 11, 2024, 20:57 JST</li>
+          <li><strong>Synodic Month</strong>: 29.530588853 days</li>
+        </ul>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Moon Age Range (days)</th><th>Tide Type</th></tr></thead>
+            <tbody>
+              <tr><td>0.0 – 2.5, 13.5 – 17.0, 28.0 – 29.6</td><td><strong>大潮</strong> (Spring Tide)</td></tr>
+              <tr><td>2.5 – 6.0, 11.0 – 13.5, 17.0 – 20.0, 26.0 – 28.0</td><td><strong>中潮</strong> (Moderate Tide)</td></tr>
+              <tr><td>6.0 – 10.0, 20.0 – 23.0</td><td><strong>小潮</strong> (Neap Tide)</td></tr>
+              <tr><td>10.0 – 11.0, 23.0 – 24.0</td><td><strong>長潮</strong> (Long Tide)</td></tr>
+              <tr><td>24.0 – 26.0</td><td><strong>若潮</strong> (Young Tide)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <hr>
+
+        <h2 id="caching">Caching Strategy</h2>
+        <p>To minimize network requests and ensure offline usability during a training session, RowPilot caches the entire year's data in memory upon the first fetch.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Property</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Cache Key Format</td><td><code>"yyyy-MM-dd"</code> (e.g., <code>"2026-06-25"</code>)</td></tr>
+              <tr><td>Cache Scope</td><td>Per station, per year</td></tr>
+              <tr><td>Re-fetch Trigger</td><td>Year change (e.g., January 1st of a new year)</td></tr>
+              <tr><td>Date Navigation</td><td>Users can swipe to browse past and future dates without additional network requests</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <hr>
+
+        <h2 id="privacy">Privacy &amp; Permissions</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Permission</th><th>Purpose</th><th>Required</th></tr></thead>
+            <tbody>
+              <tr><td>Location (When In Use)</td><td>Nearest station detection</td><td>Yes</td></tr>
+              <tr><td>Network Access</td><td>JMA data fetch</td><td>Yes</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout callout-spec">
+          <div class="callout-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="callout-body">
+            No tide data or location data is transmitted to RowPilot servers. All data is fetched directly from JMA's public endpoints. Location is used locally on-device only.
+          </div>
+        </div>
+
+        <nav class="page-nav" aria-label="Document navigation">
+          <a href="/dev/docs/RowPilot-Stroke-Rate-Detection-Architecture/" class="page-nav-btn prev">
+            <span class="page-nav-label">← Previous</span>
+            <span class="page-nav-title">Stroke Rate Detection Architecture</span>
+          </a>
+          <a href="/dev/docs/RowPilot-Variable-Interval-Communication-Architecture/" class="page-nav-btn next">
+            <span class="page-nav-label">Next →</span>
+            <span class="page-nav-title">Variable Interval Communication</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

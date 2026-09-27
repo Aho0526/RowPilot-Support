@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Variable Interval Communication Architecture — RowPilot Docs</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../docs.css">
+</head>
+<body>
+<div class="layout">
+  <header class="top-header">
+    <a href="/" class="header-logo-area">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      RowPilot
+    </a>
+    <span class="header-sep">/</span>
+    <div class="header-breadcrumb">
+      <a href="/dev/">Dev</a><span class="crumb-sep">/</span>
+      <a href="/dev/docs/">docs</a><span class="crumb-sep">/</span>
+      <span class="crumb-current">Variable-Interval-Communication-Architecture</span>
+    </div>
+    <div class="header-spacer"></div>
+    <a href="https://github.com/Aho0526/RowPilot/blob/main/docs/Variable%20Interval%20Communication%20Architecture.md" target="_blank" rel="noopener" class="header-github-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/></svg>
+      View on GitHub
+    </a>
+  </header>
+  <nav class="sidebar">
+    <div class="sidebar-section-label">Navigate</div>
+    <a href="/dev/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Dev Portal</a>
+    <a href="/dev/docs/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>All Documents</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">Research Docs</div>
+    <a href="/dev/docs/RowPilot-PM5-BLE-Connection-Overview/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>PM5 BLE Connection Overview</a>
+    <a href="/dev/docs/RowPilot-PM5-Communication-Architecture-v4.1/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Communication Architecture v4.1</a>
+    <a href="/dev/docs/RowPilot-Stroke-Rate-Detection-Architecture/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Stroke Rate Detection</a>
+    <a href="/dev/docs/RowPilot-Tide-Information-Architecture/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>Tide Information Architecture</a>
+    <a href="/dev/docs/RowPilot-Variable-Interval-Communication-Architecture/" class="sidebar-nav-link active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m8.49-8.49-2.83 2.83M6.34 6.34 3.51 3.51M20.49 3.51l-2.83 2.83M6.34 17.66l-2.83 2.83"/></svg>Variable Interval Comm.</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">On This Page</div>
+    <a href="#executive-summary" class="sidebar-nav-link" style="font-size:0.82rem">1. Executive Summary</a>
+    <a href="#technical-context" class="sidebar-nav-link" style="font-size:0.82rem">2. Technical Context</a>
+    <a href="#protocol-definition" class="sidebar-nav-link" style="font-size:0.82rem">3. Protocol Definition</a>
+    <a href="#multi-frame-strategy" class="sidebar-nav-link" style="font-size:0.82rem">4. Multi-Frame Strategy</a>
+    <a href="#packet-examples" class="sidebar-nav-link" style="font-size:0.82rem">5. Packet Examples</a>
+  </nav>
+
+  <main class="content-area">
+    <div class="doc-wrapper">
+      <div class="doc-header">
+        <div class="doc-chips">
+          <span class="chip chip-var">Protocol</span>
+          <span class="chip chip-doc">PM5</span>
+          <span class="chip chip-doc">State Machine</span>
+        </div>
+        <h1 class="doc-title">PM5 Variable Interval Communication Architecture v1</h1>
+        <p class="doc-overview">
+          This document defines the communication protocol and transaction model for programming Variable Interval workouts on Concept2 PM5 monitors.
+          Unlike standard fixed-distance or fixed-time workouts, Variable Intervals require a stateful, multi-frame transaction to overcome payload limitations and firmware buffer constraints.
+        </p>
+        <div class="doc-meta">
+          <span class="doc-meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Source: docs/Variable Interval Communication Architecture.md
+          </span>
+        </div>
+      </div>
+
+      <div class="toc-box">
+        <div class="toc-title">Table of Contents</div>
+        <ol class="toc-list">
+          <li><a href="#executive-summary">1. Executive Summary</a></li>
+          <li><a href="#technical-context">2. Technical Context</a></li>
+          <li><a href="#protocol-definition">3. Protocol Definition</a></li>
+          <li><a href="#multi-frame-strategy">4. Multi-Frame Append Strategy</a></li>
+          <li><a href="#packet-examples">5. Packet Structure Examples</a></li>
+        </ol>
+      </div>
+
+      <div class="doc-body">
+        <h2 id="executive-summary">Executive Summary</h2>
+        <p>This document defines the communication protocol and transaction model for programming Variable Interval workouts on Concept2 PM5 monitors. Unlike standard fixed-distance or fixed-time workouts, Variable Intervals require a <strong>stateful, multi-frame transaction</strong> to overcome payload limitations and firmware buffer constraints.</p>
+
+        <hr>
+
+        <h2 id="technical-context">Technical Context</h2>
+
+        <h3>The Problem: Single-Frame Failure</h3>
+        <p>Initial implementations attempted to pack all intervals (Work/Rest pairs) into a single CSAFE frame.</p>
+        <ul>
+          <li><strong>Confirmed</strong>: Up to 4 intervals typically succeed.</li>
+          <li><strong>Confirmed</strong>: 5 or more intervals consistently fail.</li>
+          <li><strong>Observation</strong>: The PM5 accepts the packet (checksum passes), and the UI may show a brief loading state, but the workout is never committed. No standard error codes (e.g., 384-1) are returned.</li>
+        </ul>
+
+        <div class="callout callout-warn">
+          <div class="callout-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="callout-body">
+            <strong>Silent Failure Mode:</strong> The PM5 does not return standard error codes when the single-frame approach overflows its internal buffer. This makes debugging difficult without deep state monitoring.
+          </div>
+        </div>
+
+        <h3>Payload Size Limit Hypothesis</h3>
+        <div class="callout callout-hyp">
+          <div class="callout-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="callout-body">
+            <strong>Hypothesis:</strong> The PM5 firmware has a restricted input buffer (~64–128 bytes) for reassembled CSAFE commands when combined with <code>SET_WORKOUT_TYPE</code>. Overflow causes a silent rejection with no standard error code returned.
+          </div>
+        </div>
+
+        <hr>
+
+        <h2 id="protocol-definition">Protocol Definition</h2>
+
+        <h3>Workout Type</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>WorkoutType</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Variable Interval</td><td><code>0x08</code></td></tr>
+              <tr><td>Fixed Time</td><td><code>0x01</code></td></tr>
+              <tr><td>Fixed Distance</td><td><code>0x02</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Key Commands</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Command ID</th><th>Name</th><th>Role in Variable Intervals</th></tr></thead>
+            <tbody>
+              <tr><td><code>0x01</code></td><td>SET_WORKOUTTYPE</td><td>Sets context to <code>0x08</code></td></tr>
+              <tr><td><code>0x18</code></td><td>SET_INTERVAL_INDEX</td><td>Defines which interval (0-based) is being configured</td></tr>
+              <tr><td><code>0x14</code></td><td>CONFIGURE_WORKOUT</td><td>Stateful Trigger: Signals firmware to append/update the current interval builder</td></tr>
+              <tr><td><code>0x13</code></td><td>SET_DISPLAY_WORKOUT</td><td>Finalizes the transaction and commits the UI</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <hr>
+
+        <h2 id="multi-frame-strategy">Multi-Frame Append Strategy</h2>
+
+        <h3>The State Machine Hypothesis</h3>
+        <p>The PM5 firmware is hypothesized to operate a "Workout Builder" state machine that remains active as long as the device stays in a configuration phase.</p>
+
+        <div class="mermaid-wrap">
+          <pre style="background:none;border:none;padding:0;color:var(--text-2);font-size:0.85rem;text-align:left;line-height:1.8">
+[*] ──────────────────────► Idle
+         SET_WORKOUTTYPE(0x08)
+Idle ──────────────────────► BuilderActive
+         SET_INTERVAL_INDEX(n) + DATA + CONFIGURE(0x14)
+BuilderActive ─────────────► BuilderActive  (repeats per interval)
+         SET_DISPLAY_WORKOUT(0x13)
+BuilderActive ─────────────► WorkoutReady
+WorkoutReady ──────────────► [*]</pre>
+        </div>
+
+        <h3>Why CONFIGURE (0x14) in Every Frame?</h3>
+        <div class="callout callout-hyp">
+          <div class="callout-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="callout-body">
+            <strong>Hypothesis:</strong> The <code>0x14</code> command acts as a "Commit Interval" trigger. Without it, the data for a specific index may stay in a volatile buffer. It also prevents the PM5 from timing out the builder session by proving an active configuration sequence is in progress.
+          </div>
+        </div>
+
+        <hr>
+
+        <h2 id="packet-examples">Packet Structure Examples</h2>
+
+        <h3>Initialization Frame (First Interval)</h3>
+        <p>Sets the workout type and the first interval's work/rest parameters, then triggers <code>CONFIGURE_WORKOUT</code>.</p>
+        <pre><code>Frame 1: SET_WORKOUTTYPE(0x08) | SET_INTERVAL_INDEX(0) | [work/rest data] | CONFIGURE_WORKOUT(0x14)</code></pre>
+
+        <h3>Subsequent Intervals</h3>
+        <p>Each additional interval is sent as a separate frame, incrementing the interval index.</p>
+        <pre><code>Frame 2: SET_INTERVAL_INDEX(1) | [work/rest data] | CONFIGURE_WORKOUT(0x14)
+Frame 3: SET_INTERVAL_INDEX(2) | [work/rest data] | CONFIGURE_WORKOUT(0x14)
+...
+Frame N: SET_INTERVAL_INDEX(N-1) | [work/rest data] | CONFIGURE_WORKOUT(0x14)</code></pre>
+
+        <h3>Finalization Frame</h3>
+        <p>After all intervals are sent, <code>SET_DISPLAY_WORKOUT</code> commits the entire transaction to the PM5 UI.</p>
+        <pre><code>Final Frame: SET_DISPLAY_WORKOUT(0x13)</code></pre>
+
+        <div class="callout callout-spec">
+          <div class="callout-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="callout-body">
+            <strong>Inter-frame Delay:</strong> A <code>150ms</code> delay is inserted between configuration frames to comply with the CSAFE specification and ensure the PM5 firmware has time to process each interval before the next frame arrives.
+          </div>
+        </div>
+
+        <nav class="page-nav" aria-label="Document navigation">
+          <a href="/dev/docs/RowPilot-Tide-Information-Architecture/" class="page-nav-btn prev">
+            <span class="page-nav-label">← Previous</span>
+            <span class="page-nav-title">Tide Information Architecture</span>
+          </a>
+          <span></span>
+        </nav>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

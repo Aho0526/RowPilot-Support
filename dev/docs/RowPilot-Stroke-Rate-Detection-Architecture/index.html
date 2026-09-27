@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stroke Rate Detection Architecture — RowPilot Docs</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../docs.css">
+</head>
+<body>
+<div class="layout">
+  <header class="top-header">
+    <a href="/" class="header-logo-area">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      RowPilot
+    </a>
+    <span class="header-sep">/</span>
+    <div class="header-breadcrumb">
+      <a href="/dev/">Dev</a><span class="crumb-sep">/</span>
+      <a href="/dev/docs/">docs</a><span class="crumb-sep">/</span>
+      <span class="crumb-current">Stroke-Rate-Detection-Architecture</span>
+    </div>
+    <div class="header-spacer"></div>
+    <a href="https://github.com/Aho0526/RowPilot/blob/main/docs/Stroke%20Rate%20Detection%20Architecture.md" target="_blank" rel="noopener" class="header-github-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/></svg>
+      View on GitHub
+    </a>
+  </header>
+  <nav class="sidebar">
+    <div class="sidebar-section-label">Navigate</div>
+    <a href="/dev/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Dev Portal</a>
+    <a href="/dev/docs/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>All Documents</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">Research Docs</div>
+    <a href="/dev/docs/RowPilot-PM5-BLE-Connection-Overview/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>PM5 BLE Connection Overview</a>
+    <a href="/dev/docs/RowPilot-PM5-Communication-Architecture-v4.1/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Communication Architecture v4.1</a>
+    <a href="/dev/docs/RowPilot-Stroke-Rate-Detection-Architecture/" class="sidebar-nav-link active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Stroke Rate Detection</a>
+    <a href="/dev/docs/RowPilot-Tide-Information-Architecture/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>Tide Information Architecture</a>
+    <a href="/dev/docs/RowPilot-Variable-Interval-Communication-Architecture/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m8.49-8.49-2.83 2.83M6.34 6.34 3.51 3.51M20.49 3.51l-2.83 2.83M6.34 17.66l-2.83 2.83"/></svg>Variable Interval Comm.</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">On This Page</div>
+    <a href="#physical-principle" class="sidebar-nav-link" style="font-size:0.82rem">1. Physical Principle</a>
+    <a href="#sensor-configuration" class="sidebar-nav-link" style="font-size:0.82rem">2. Sensor Configuration</a>
+    <a href="#signal-processing" class="sidebar-nav-link" style="font-size:0.82rem">3. Signal Processing</a>
+  </nav>
+
+  <main class="content-area">
+    <div class="doc-wrapper">
+      <div class="doc-header">
+        <div class="doc-chips">
+          <span class="chip chip-algo">Algorithm</span>
+          <span class="chip chip-doc">CoreMotion</span>
+        </div>
+        <h1 class="doc-title">RowPilot Stroke Rate Detection Architecture</h1>
+        <p class="doc-overview">
+          RowPilot measures stroke rate (SPM — Strokes Per Minute) using the iPhone's built-in accelerometer, requiring no external hardware.
+          The algorithm is inspired by peer-reviewed rowing biomechanics research and is designed to work regardless of how the phone is mounted on the boat.
+        </p>
+        <div class="doc-meta">
+          <span class="doc-meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Source: docs/Stroke Rate Detection Architecture.md
+          </span>
+        </div>
+      </div>
+
+      <div class="toc-box">
+        <div class="toc-title">Table of Contents</div>
+        <ol class="toc-list">
+          <li><a href="#physical-principle">1. Physical Principle</a></li>
+          <li><a href="#sensor-configuration">2. Sensor Configuration</a></li>
+          <li><a href="#signal-processing">3. Signal Processing</a></li>
+        </ol>
+      </div>
+
+      <div class="doc-body">
+        <h2 id="physical-principle">Physical Principle</h2>
+
+        <h3>Boat Acceleration Pattern</h3>
+        <p>During a rowing stroke cycle, the boat's longitudinal (forward) acceleration follows a characteristic waveform:</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Phase</th><th>Acceleration</th></tr></thead>
+            <tbody>
+              <tr><td>Drive (catch → finish)</td><td><strong>Positive</strong> — Blade in water, boat accelerates</td></tr>
+              <tr><td>Recovery (finish → catch)</td><td><strong>Negative</strong> — Rower's body moves forward, boat decelerates</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>The <strong>catch</strong> — the moment the blade enters the water and drive begins — corresponds to the transition from a negative trough to a positive phase (negative-to-positive zero-crossing).</p>
+
+        <h3>References</h3>
+        <ul>
+          <li><strong>CrewNerd</strong> (performancephones.com): Monitors characteristic patterns in horizontal boat acceleration to detect the catch</li>
+          <li><strong>NK SpeedCoach</strong>: Identifies the "negative peak (minimum)" at the recovery-to-drive transition</li>
+          <li><strong>Academic research</strong> (Rowing in Motion / RUG): Uses zero-crossings after low-pass filtering to classify catch and finish</li>
+          <li><strong>Open Rowing Monitor</strong> (github.com/laberning/openrowingmonitor): Manages drive/recovery phases via a finite state machine</li>
+        </ul>
+
+        <hr>
+
+        <h2 id="sensor-configuration">Sensor Configuration</h2>
+
+        <h3>Device Motion (CMMotionManager)</h3>
+        <p>RowPilot uses Apple's <code>CMMotionManager</code> with device motion updates (gravity-corrected acceleration) rather than raw accelerometer data.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Sampling Rate</td><td><strong>50 Hz</strong> (20ms interval)</td></tr>
+              <tr><td>Data Type</td><td><code>userAcceleration</code> — linear acceleration with gravity removed</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Dynamic Axis Selection</h3>
+        <p>Since the phone can be mounted in any orientation, RowPilot does not assume a fixed axis. Instead, it continuously tracks the exponential moving average (EMA) of signal amplitude on all three axes and selects the most active one.</p>
+        <pre><code>α = 0.01  (time constant ≈ 2 seconds at 50 Hz)
+varianceX = varianceX × (1 − α) + |accel.x| × α
+varianceY = varianceY × (1 − α) + |accel.y| × α
+varianceZ = varianceZ × (1 − α) + |accel.z| × α
+
+activeAxis = argmax(varianceX, varianceY, varianceZ)</code></pre>
+
+        <div class="callout callout-spec">
+          <div class="callout-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="callout-body">
+            <strong>Mounting Agnostic:</strong> This dynamic axis selection makes the detection robust to arbitrary phone mounting directions — horizontal, vertical, or angled.
+          </div>
+        </div>
+
+        <hr>
+
+        <h2 id="signal-processing">Signal Processing</h2>
+
+        <h3>2nd-Order Butterworth Low-Pass Filter</h3>
+        <p>Raw accelerometer data contains high-frequency noise from water, vibration, and handling. A 2nd-order Butterworth filter suppresses noise above 3 Hz while preserving the stroke-frequency signal (typical rowing: 0.3–1.5 Hz / 18–90 SPM).</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Filter Type</td><td>2nd-order Butterworth IIR</td></tr>
+              <tr><td>Cutoff Frequency</td><td>3 Hz</td></tr>
+              <tr><td>Sampling Frequency</td><td>50 Hz</td></tr>
+              <tr><td>Design Method</td><td>Bilinear transform</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Difference Equation</h4>
+        <pre><code>y[n] = b0·x[n] + b1·x[n−1] + b2·x[n−2] − a1·y[n−1] − a2·y[n−2]</code></pre>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Coefficient</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td><code>b0</code></td><td>0.02008337</td></tr>
+              <tr><td><code>b1</code></td><td>0.04016674</td></tr>
+              <tr><td><code>b2</code></td><td>0.02008337</td></tr>
+              <tr><td><code>a1</code></td><td>−1.56101808</td></tr>
+              <tr><td><code>a2</code></td><td>0.64135154</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout-note">
+          <div class="callout-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="callout-body">
+            The 3 Hz cutoff captures the full SPM range (18–90 SPM = 0.3–1.5 Hz) with sufficient margin, while effectively rejecting higher-frequency vibration from water and boat handling.
+          </div>
+        </div>
+
+        <nav class="page-nav" aria-label="Document navigation">
+          <a href="/dev/docs/RowPilot-PM5-Communication-Architecture-v4.1/" class="page-nav-btn prev">
+            <span class="page-nav-label">← Previous</span>
+            <span class="page-nav-title">PM5 Communication Architecture v4.1</span>
+          </a>
+          <a href="/dev/docs/RowPilot-Tide-Information-Architecture/" class="page-nav-btn next">
+            <span class="page-nav-label">Next →</span>
+            <span class="page-nav-title">Tide Information Architecture</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

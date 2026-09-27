@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Research Docs — RowPilot Dev</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="docs.css">
+  <style>
+    .docs-index-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+      margin-top: 32px;
+    }
+    .doc-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+      position: relative;
+      overflow: hidden;
+    }
+    .doc-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .doc-card:hover { border-color: var(--border-h); background: rgba(255,255,255,0.07); transform: translateY(-3px); }
+    .doc-card:hover::before { opacity: 1; }
+    .card-ble::before  { background: linear-gradient(90deg, #06b6d4, #3b82f6); }
+    .card-comm::before { background: linear-gradient(90deg, #f59e0b, #ec4899); }
+    .card-spm::before  { background: linear-gradient(90deg, #10b981, #06b6d4); }
+    .card-tide::before { background: linear-gradient(90deg, #3b82f6, #8b5cf6); }
+    .card-var::before  { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+    .card-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .icon-ble  { background: rgba(6,182,212,0.12); color: #67e8f9; }
+    .icon-comm { background: rgba(245,158,11,0.12); color: #fcd34d; }
+    .icon-spm  { background: rgba(16,185,129,0.12); color: #6ee7b7; }
+    .icon-tide { background: rgba(59,130,246,0.12); color: #93c5fd; }
+    .icon-var  { background: rgba(139,92,246,0.12); color: #c4b5fd; }
+    .card-title { font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.3; }
+    .card-desc  { font-size: 0.875rem; color: var(--text-2); line-height: 1.6; flex: 1; }
+    .card-meta  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .card-tag {
+      font-family: var(--font-mono);
+      font-size: 0.7rem; font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .tag-ble   { background: rgba(6,182,212,0.1); color: #67e8f9; }
+    .tag-proto { background: rgba(245,158,11,0.1); color: #fcd34d; }
+    .tag-algo  { background: rgba(16,185,129,0.1); color: #6ee7b7; }
+    .tag-api   { background: rgba(59,130,246,0.1); color: #93c5fd; }
+    .tag-pm5   { background: rgba(139,92,246,0.1); color: #c4b5fd; }
+    .card-arrow {
+      color: var(--text-3);
+      transition: transform 0.2s, color 0.2s;
+    }
+    .doc-card:hover .card-arrow { transform: translateX(4px); color: var(--text-2); }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <!-- Header -->
+  <header class="top-header">
+    <a href="/" class="header-logo-area">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      RowPilot
+    </a>
+    <span class="header-sep">/</span>
+    <div class="header-breadcrumb">
+      <a href="/dev/">Dev</a>
+      <span class="crumb-sep">/</span>
+      <span class="crumb-current">docs</span>
+    </div>
+    <div class="header-spacer"></div>
+    <a href="https://github.com/Aho0526/RowPilot/tree/main/docs" target="_blank" rel="noopener" class="header-github-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/></svg>
+      View on GitHub
+    </a>
+  </header>
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-section-label">Navigate</div>
+    <a href="/dev/" class="sidebar-nav-link">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Dev Portal
+    </a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">Research Docs</div>
+    <a href="/dev/docs/" class="sidebar-nav-link active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      All Documents
+    </a>
+    <a href="/dev/docs/RowPilot-PM5-BLE-Connection-Overview/" class="sidebar-nav-link">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      PM5 BLE Connection Overview
+    </a>
+    <a href="/dev/docs/RowPilot-PM5-Communication-Architecture-v4.1/" class="sidebar-nav-link">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Communication Architecture v4.1
+    </a>
+    <a href="/dev/docs/RowPilot-Stroke-Rate-Detection-Architecture/" class="sidebar-nav-link">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Stroke Rate Detection
+    </a>
+    <a href="/dev/docs/RowPilot-Tide-Information-Architecture/" class="sidebar-nav-link">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+      Tide Information Architecture
+    </a>
+    <a href="/dev/docs/RowPilot-Variable-Interval-Communication-Architecture/" class="sidebar-nav-link">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m8.49-8.49-2.83 2.83M6.34 6.34 3.51 3.51M20.49 3.51l-2.83 2.83M6.34 17.66l-2.83 2.83"/></svg>
+      Variable Interval Comm.
+    </a>
+  </nav>
+
+  <!-- Content -->
+  <main class="content-area">
+    <div class="doc-wrapper">
+      <div class="doc-header">
+        <div class="doc-chips">
+          <span class="chip chip-doc">Research Docs</span>
+        </div>
+        <h1 class="doc-title">RowPilot Architecture Documents</h1>
+        <p class="doc-overview">
+          RowPilotの内部設計・通信プロトコル・アルゴリズムに関する研究ドキュメントの一覧です。
+          GitHubリポジトリの <code>docs/</code> ディレクトリを元に生成されています。
+        </p>
+        <div class="doc-meta">
+          <span class="doc-meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            5 Documents
+          </span>
+          <span class="doc-meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Source: github.com/Aho0526/RowPilot
+          </span>
+        </div>
+      </div>
+
+      <div class="docs-index-grid">
+        <a href="/dev/docs/RowPilot-PM5-BLE-Connection-Overview/" class="doc-card card-ble">
+          <div class="card-icon icon-ble">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          </div>
+          <div class="card-title">PM5 BLE Connection Overview</div>
+          <div class="card-desc">BLE接続モデル、CSAFEプロトコルフレーム構造、マルチデバイス対応設計のオープンリファレンス。</div>
+          <div class="card-meta">
+            <span class="card-tag tag-ble">BLE</span>
+            <span class="card-tag tag-proto">CSAFE</span>
+            <span class="card-tag tag-pm5">PM5</span>
+          </div>
+          <svg class="card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+
+        <a href="/dev/docs/RowPilot-PM5-Communication-Architecture-v4.1/" class="doc-card card-comm">
+          <div class="card-icon icon-comm">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          </div>
+          <div class="card-title">PM5 Communication Architecture v4.1</div>
+          <div class="card-desc">State-Synchronized Architectureを採用した最新通信仕様。CSAFECommandQueue・並列ハイブリッド構造を定義。</div>
+          <div class="card-meta">
+            <span class="card-tag tag-proto">Protocol</span>
+            <span class="card-tag tag-pm5">PM5</span>
+            <span class="card-tag tag-algo">Swift Actor</span>
+          </div>
+          <svg class="card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+
+        <a href="/dev/docs/RowPilot-Stroke-Rate-Detection-Architecture/" class="doc-card card-spm">
+          <div class="card-icon icon-spm">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div class="card-title">Stroke Rate Detection Architecture</div>
+          <div class="card-desc">加速度センサーのみを用いた漕艇ストロークレート（SPM）検出アルゴリズム。Butterworthフィルタ・ゼロ交差検出を実装。</div>
+          <div class="card-meta">
+            <span class="card-tag tag-algo">Algorithm</span>
+            <span class="card-tag tag-api">CoreMotion</span>
+          </div>
+          <svg class="card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+
+        <a href="/dev/docs/RowPilot-Tide-Information-Architecture/" class="doc-card card-tide">
+          <div class="card-icon icon-tide">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="card-title">Tide Information Architecture</div>
+          <div class="card-desc">気象庁公開APIを使用した潮汐情報の取得・最寄り観測局自動選択・月齢ベースの潮型判定ロジック。</div>
+          <div class="card-meta">
+            <span class="card-tag tag-api">JMA API</span>
+            <span class="card-tag tag-algo">CoreLocation</span>
+          </div>
+          <svg class="card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+
+        <a href="/dev/docs/RowPilot-Variable-Interval-Communication-Architecture/" class="doc-card card-var">
+          <div class="card-icon icon-var">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m8.49-8.49-2.83 2.83M6.34 6.34 3.51 3.51M20.49 3.51l-2.83 2.83M6.34 17.66l-2.83 2.83"/></svg>
+          </div>
+          <div class="card-title">Variable Interval Communication Architecture</div>
+          <div class="card-desc">PM5へのVariable Interval設定における Multi-Frame Append Strategy とCSAFEステートマシン仮説の定義。</div>
+          <div class="card-meta">
+            <span class="card-tag tag-proto">Protocol</span>
+            <span class="card-tag tag-pm5">PM5</span>
+            <span class="card-tag tag-pm5">State Machine</span>
+          </div>
+          <svg class="card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

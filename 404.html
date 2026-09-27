@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — ページが見つかりません | RowPilot</title>
+  <meta name="description" content="お探しのページは存在しないか、移動した可能性があります。">
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #070b13;
+      --surface: rgba(17, 24, 39, 0.7);
+      --border: rgba(255,255,255,0.08);
+      --border-h: rgba(255,255,255,0.18);
+      --text: #f1f5f9;
+      --text-2: #94a3b8;
+      --text-3: #64748b;
+      --accent: #6366f1;
+      --accent-glow: rgba(99,102,241,0.4);
+      --cyan: #06b6d4;
+      --emerald: #10b981;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      overflow: hidden;
+      position: relative;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Atmospheric background */
+    .bg-blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-blob-1 {
+      width: 560px; height: 560px;
+      background: radial-gradient(circle, rgba(99,102,241,0.22), transparent 70%);
+      top: -120px; left: -120px;
+    }
+    .bg-blob-2 {
+      width: 480px; height: 480px;
+      background: radial-gradient(circle, rgba(6,182,212,0.18), transparent 70%);
+      bottom: -100px; right: -60px;
+    }
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(ellipse 70% 70% at center, black 20%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 70% at center, black 20%, transparent 80%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Content */
+    .page {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px;
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* Animated 404 glitch number */
+    .error-code-wrap {
+      position: relative;
+      user-select: none;
+    }
+    .error-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(7rem, 20vw, 11rem);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 60%, #475569 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      position: relative;
+    }
+    .error-code::before,
+    .error-code::after {
+      content: '404';
+      position: absolute;
+      inset: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: inherit;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    .error-code::before {
+      -webkit-text-fill-color: transparent;
+      -webkit-text-stroke: 1px rgba(99,102,241,0.6);
+      clip-path: polygon(0 0, 100% 0, 100% 40%, 0 40%);
+      animation: glitch-top 3.5s infinite ease-in-out;
+    }
+    .error-code::after {
+      -webkit-text-fill-color: transparent;
+      -webkit-text-stroke: 1px rgba(6,182,212,0.5);
+      clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%);
+      animation: glitch-bottom 3.5s infinite ease-in-out;
+    }
+
+    @keyframes glitch-top {
+      0%, 90%, 100% { transform: translate(0, 0); opacity: 0; }
+      92% { transform: translate(-3px, -2px); opacity: 1; }
+      94% { transform: translate(3px, 0); opacity: 0.8; }
+      96% { transform: translate(-2px, 1px); opacity: 1; }
+      98% { transform: translate(0, 0); opacity: 0; }
+    }
+    @keyframes glitch-bottom {
+      0%, 90%, 100% { transform: translate(0, 0); opacity: 0; }
+      92% { transform: translate(3px, 2px); opacity: 0.8; }
+      94% { transform: translate(-2px, 0); opacity: 1; }
+      96% { transform: translate(2px, -1px); opacity: 0.6; }
+      98% { transform: translate(0, 0); opacity: 0; }
+    }
+
+    .error-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 50% at 50% 55%, var(--accent-glow), transparent 70%);
+      filter: blur(20px);
+      z-index: -1;
+      animation: glow-pulse 4s ease-in-out infinite;
+    }
+    @keyframes glow-pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 0.9; transform: scale(1.08); }
+    }
+
+    /* Text content */
+    .content-block {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      background: rgba(99,102,241,0.12);
+      color: #a5b4fc;
+      border: 1px solid rgba(99,102,241,0.25);
+      margin: 0 auto 4px;
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #a5b4fc;
+    }
+    h1 {
+      font-size: clamp(1.4rem, 4vw, 1.9rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      color: var(--text);
+    }
+    .subtitle {
+      font-size: 1rem;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+
+    /* URL display */
+    .url-display {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 18px;
+      max-width: 100%;
+      overflow: hidden;
+    }
+    .url-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #64748b;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .url-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .url-cross {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: rgba(239,68,68,0.15);
+      color: #f87171;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+
+    /* Known moved URLs alert */
+    .moved-alert {
+      width: 100%;
+      background: rgba(16,185,129,0.08);
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 14px;
+      padding: 18px 22px;
+      text-align: left;
+      display: none; /* Shown by JS when path matches */
+    }
+    .moved-alert-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #34d399;
+      margin-bottom: 12px;
+    }
+    .moved-alert-header svg { flex-shrink: 0; }
+    .moved-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 10px;
+      text-decoration: none;
+      color: #a7f3d0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .moved-link:hover {
+      background: rgba(16,185,129,0.18);
+      border-color: rgba(16,185,129,0.4);
+      color: #d1fae5;
+    }
+    .moved-link-arrow {
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    /* Action buttons */
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .btn svg { flex-shrink: 0; }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+    }
+    .btn-primary:hover {
+      background: #818cf8;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(99,102,241,0.45);
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.05);
+      color: var(--text-2);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.09);
+      border-color: var(--border-h);
+      color: var(--text);
+      transform: translateY(-2px);
+    }
+
+    /* Divider */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    }
+
+    /* Quick links */
+    .quick-links {
+      width: 100%;
+      text-align: left;
+    }
+    .quick-links-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-3);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .quick-links-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    .quick-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      text-decoration: none;
+      color: var(--text-2);
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .quick-link:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: var(--border-h);
+      color: var(--text);
+      transform: translateX(2px);
+    }
+    .quick-link-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .icon-home  { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+    .icon-dev   { background: rgba(139,92,246,0.15); color: #c084fc; }
+    .icon-game  { background: rgba(236,72,153,0.12); color: #f0abfc; }
+    .icon-sop   { background: rgba(59,130,246,0.12); color: #93c5fd; }
+    .icon-doc   { background: rgba(16,185,129,0.12); color: #6ee7b7; }
+
+    @media (max-width: 480px) {
+      .actions { flex-direction: column; }
+      .btn { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-blob bg-blob-1" aria-hidden="true"></div>
+  <div class="bg-blob bg-blob-2" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <main class="page">
+    <!-- Glitch 404 -->
+    <div class="error-code-wrap" aria-label="404">
+      <div class="error-glow" aria-hidden="true"></div>
+      <div class="error-code" aria-hidden="true">404</div>
+    </div>
+
+    <!-- Text -->
+    <div class="content-block">
+      <div class="status-chip">
+        <span class="status-dot" aria-hidden="true"></span>
+        HTTP 404 · Not Found
+      </div>
+      <h1>ページが見つかりません</h1>
+      <p class="subtitle">
+        お探しのURLは存在しないか、移動・削除された可能性があります。<br>
+        URLをご確認いただくか、以下のリンクからお試しください。
+      </p>
+    </div>
+
+    <!-- Requested URL display -->
+    <div class="url-display">
+      <span class="url-label">URL</span>
+      <span class="url-value" id="requested-url"></span>
+      <span class="url-cross" aria-hidden="true">✕</span>
+    </div>
+
+    <!-- Moved URL notice (shown when a known redirect path is detected) -->
+    <div class="moved-alert" id="moved-alert" role="alert">
+      <div class="moved-alert-header">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        このURLは移動しました。新しいURLへ移動しますか？
+      </div>
+      <a href="" class="moved-link" id="moved-link" aria-label="移動先へ">
+        <span id="moved-link-text"></span>
+        <span class="moved-link-arrow" aria-hidden="true">→</span>
+      </a>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <a href="/" class="btn btn-primary" id="btn-go-home">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        RowPilot ホームへ
+      </a>
+      <button class="btn btn-secondary" id="btn-go-back" onclick="history.length>1 ? history.back() : (location.href='/')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        前のページに戻る
+      </button>
+    </div>
+
+    <div class="divider" aria-hidden="true"></div>
+
+    <!-- Quick links -->
+    <nav class="quick-links" aria-label="クイックリンク">
+      <p class="quick-links-title">よく使うページ</p>
+      <div class="quick-links-grid">
+        <a href="/" class="quick-link" id="ql-home">
+          <span class="quick-link-icon icon-home" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </span>
+          RowPilot
+        </a>
+        <a href="/dev/" class="quick-link" id="ql-dev">
+          <span class="quick-link-icon icon-dev" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </span>
+          Dev Portal
+        </a>
+        <a href="/dev/docs/" class="quick-link" id="ql-docs">
+          <span class="quick-link-icon icon-doc" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </span>
+          Research Docs
+        </a>
+      </div>
+    </nav>
+  </main>
+
+  <script>
+    // Show current URL
+    const urlEl = document.getElementById('requested-url');
+    urlEl.textContent = location.pathname + location.search;
+
+    // Known redirect map
+    const REDIRECT_MAP = {
+      '/game':                     '/dev/game/',
+      '/game/':                    '/dev/game/',
+      '/statement-of-purpose':     '/dev/statement-of-purpose/',
+      '/statement-of-purpose/':    '/dev/statement-of-purpose/',
+      '/document':                 '/dev/document/',
+      '/document/':                '/dev/document/',
+    };
+
+    const newPath = REDIRECT_MAP[location.pathname];
+    if (newPath) {
+      const alert = document.getElementById('moved-alert');
+      const link  = document.getElementById('moved-link');
+      const text  = document.getElementById('moved-link-text');
+      alert.style.display = 'block';
+      link.href = newPath;
+      text.textContent = newPath;
+      // Auto-redirect after 2s
+      setTimeout(() => { location.replace(newPath); }, 2000);
+    }
+  </script>
+</body>
+</html>
