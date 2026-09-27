@@ -12,6 +12,7 @@
 </head>
 <body>
 <div class="layout">
+  <!-- Header -->
   <header class="top-header">
     <a href="/" class="header-logo-area">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -19,8 +20,10 @@
     </a>
     <span class="header-sep">/</span>
     <div class="header-breadcrumb">
-      <a href="/dev/">Dev</a><span class="crumb-sep">/</span>
-      <a href="/dev/docs/">docs</a><span class="crumb-sep">/</span>
+      <a href="/dev/">Dev</a>
+      <span class="crumb-sep">/</span>
+      <a href="/dev/docs/">docs</a>
+      <span class="crumb-sep">/</span>
       <span class="crumb-current">Tide-Information-Architecture</span>
     </div>
     <div class="header-spacer"></div>
@@ -29,6 +32,8 @@
       View on GitHub
     </a>
   </header>
+
+  <!-- Sidebar -->
   <nav class="sidebar">
     <div class="sidebar-section-label">Navigate</div>
     <a href="/dev/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Dev Portal</a>
@@ -44,69 +49,78 @@
     <div class="sidebar-section-label">On This Page</div>
     <a href="#data-source" class="sidebar-nav-link" style="font-size:0.82rem">1. Data Source</a>
     <a href="#station-selection" class="sidebar-nav-link" style="font-size:0.82rem">2. Station Selection</a>
-    <a href="#data-format" class="sidebar-nav-link" style="font-size:0.82rem">3. Data Format</a>
-    <a href="#tide-type" class="sidebar-nav-link" style="font-size:0.82rem">4. Tide Type Classification</a>
-    <a href="#caching" class="sidebar-nav-link" style="font-size:0.82rem">5. Caching</a>
-    <a href="#privacy" class="sidebar-nav-link" style="font-size:0.82rem">7. Privacy</a>
+    <a href="#data-parsing" class="sidebar-nav-link" style="font-size:0.82rem">3. Data Parsing</a>
+    <a href="#tide-type" class="sidebar-nav-link" style="font-size:0.82rem">4. Tide Classification</a>
+    <a href="#caching" class="sidebar-nav-link" style="font-size:0.82rem">5. Caching Strategy</a>
+    <a href="#ui-design-principles" class="sidebar-nav-link" style="font-size:0.82rem">6. UI Design Principles</a>
+    <a href="#privacy" class="sidebar-nav-link" style="font-size:0.82rem">7. Privacy &amp; Permissions</a>
   </nav>
 
+  <!-- Content -->
   <main class="content-area">
     <div class="doc-wrapper">
       <div class="doc-header">
         <div class="doc-chips">
-          <span class="chip chip-tide">JMA API</span>
-          <span class="chip chip-algo">CoreLocation</span>
-          <span class="chip chip-doc">v1.0</span>
+          <span class="chip chip-doc">JMA Open Data</span>
+          <span class="chip chip-algo">Geodesic Distance</span>
+          <span class="chip chip-protocol">Lunar Calendar</span>
+          <span class="chip chip-ble">CoreLocation</span>
         </div>
-        <h1 class="doc-title">Tide Information Architecture</h1>
+        <h1 class="doc-title">RowPilot Tide Information Architecture</h1>
         <p class="doc-overview">
           RowPilot integrates real-time tide information sourced directly from the Japan Meteorological Agency (JMA) to provide rowers with accurate and actionable tidal data.
-          Tide conditions are a critical safety and performance factor for on-water rowing, and this feature is designed to be available instantly — without any account registration or third-party API key.
+          Tide conditions are a critical safety and performance factor for on-water rowing, and this feature is designed to be available instantly &mdash; without any account registration or third-party API key.
         </p>
         <div class="doc-meta">
           <span class="doc-meta-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Source: docs/Tide Information Architecture.md
           </span>
-          <span class="doc-meta-item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Kaito Nakahira / Antigravity AI
-          </span>
-          <span class="doc-meta-item">2026-06-25</span>
+          <span class="doc-meta-item">Version: 1.0</span>
+          <span class="doc-meta-item">Author: Kaito Nakahira / Antigravity AI</span>
+          <span class="doc-meta-item">Date: 2026-06-25</span>
         </div>
       </div>
 
       <div class="toc-box">
         <div class="toc-title">Table of Contents</div>
         <ol class="toc-list">
-          <li><a href="#data-source">1. Data Source (JMA)</a></li>
-          <li><a href="#station-selection">2. Nearest Station Selection</a></li>
-          <li><a href="#data-format">3. Data Format Parsing</a></li>
+          <li><a href="#data-source">1. Data Source</a></li>
+          <li><a href="#station-selection">2. Station Selection</a></li>
+          <li><a href="#data-parsing">3. Data Parsing</a></li>
           <li><a href="#tide-type">4. Tide Type Classification</a></li>
           <li><a href="#caching">5. Caching Strategy</a></li>
+          <li><a href="#ui-design-principles">6. UI Design Principles</a></li>
           <li><a href="#privacy">7. Privacy &amp; Permissions</a></li>
         </ol>
       </div>
 
       <div class="doc-body">
-        <h2 id="data-source">Data Source (JMA)</h2>
-        <p>RowPilot fetches tidal observation data from the JMA's publicly available dataset.</p>
+        <!-- 1. Data Source -->
+        <h2 id="data-source">1. Data Source</h2>
+
+        <h3>Japan Meteorological Agency (JMA) Open Data</h3>
+        <p>RowPilot fetches tidal observation data from the JMA's publicly available dataset:</p>
         <pre><code>https://www.data.jma.go.jp/gmd/kaiyou/data/db/tide/suisan/txt/{year}/{stationId}.txt</code></pre>
+
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Property</th><th>Value</th></tr></thead>
+            <thead><tr><th>Attribute</th><th>Specification</th></tr></thead>
             <tbody>
-              <tr><td>Format</td><td>Fixed-width plain text (<code>.txt</code>)</td></tr>
-              <tr><td>Update Cycle</td><td>Annually published; hourly tide level data for the entire year</td></tr>
-              <tr><td>Authentication</td><td>None required — completely open access</td></tr>
-              <tr><td>Coverage</td><td>239 tidal observation stations across all of Japan</td></tr>
+              <tr><td><strong>Format</strong></td><td>Fixed-width plain text (<code>.txt</code>)</td></tr>
+              <tr><td><strong>Update Cycle</strong></td><td>Annually published; hourly tide level data for the entire year</td></tr>
+              <tr><td><strong>Authentication</strong></td><td>None required &mdash; completely open access</td></tr>
+              <tr><td><strong>Coverage</strong></td><td>239 tidal observation stations across all of Japan</td></tr>
             </tbody>
           </table>
         </div>
 
         <hr>
 
-        <h2 id="station-selection">Nearest Station Selection</h2>
+        <!-- 2. Station Selection -->
+        <h2 id="station-selection">2. Station Selection</h2>
+
+        <h3>Automatic GPS-Based Nearest Station Detection</h3>
         <p>When the user opens the tide view, RowPilot uses CoreLocation to obtain the device's current coordinates and automatically selects the nearest tidal observation station.</p>
 
         <h4>Selection Algorithm</h4>
@@ -115,6 +129,7 @@
           <li>Calculate the geodesic distance from the user's location to all 239 registered stations</li>
           <li>Select the station with the minimum distance</li>
         </ol>
+
         <pre><code>let sortedStations = stations.sorted {
     let loc1 = CLLocation(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude)
     let loc2 = CLLocation(latitude: $1.coordinate.latitude, longitude: $1.coordinate.longitude)
@@ -122,22 +137,30 @@
 }</code></pre>
 
         <h4>Station Coverage</h4>
-        <p>All 239 stations listed in the JMA Tide Tables are registered, covering: Hokkaido, Tohoku, Kanto, Chubu, Kinki, Chugoku, Shikoku, Kyushu, and remote islands (Ogasawara, Okinawa, Ishigaki, Miyako, Yonaguni, etc.).</p>
+        <p>All 239 stations listed in the JMA Tide Tables are registered, covering:</p>
+        <ul>
+          <li>Hokkaido, Tohoku, Kanto, Chubu, Kinki, Chugoku, Shikoku, Kyushu</li>
+          <li>Remote islands: Ogasawara, Okinawa, Ishigaki, Miyako, Yonaguni, etc.</li>
+        </ul>
 
         <hr>
 
-        <h2 id="data-format">Data Format Parsing</h2>
+        <!-- 3. Data Parsing -->
+        <h2 id="data-parsing">3. Data Parsing</h2>
+
+        <h3>JMA Text Format</h3>
         <p>Each row in the JMA text file corresponds to one calendar day and uses a fixed-width encoding.</p>
+
         <div class="table-wrap">
           <table>
             <thead><tr><th>Byte Range</th><th>Content</th></tr></thead>
             <tbody>
-              <tr><td>0 – 71</td><td>Hourly tide levels (24 × 3 chars, unit: cm)</td></tr>
-              <tr><td>72 – 73</td><td>Year (last 2 digits, YY)</td></tr>
-              <tr><td>74 – 75</td><td>Month (MM)</td></tr>
-              <tr><td>76 – 77</td><td>Day (DD)</td></tr>
-              <tr><td>80 – 107</td><td>High tide events (up to 4 events × 7 chars)</td></tr>
-              <tr><td>108 – 135</td><td>Low tide events (up to 4 events × 7 chars)</td></tr>
+              <tr><td><code>0 &ndash; 71</code></td><td>Hourly tide levels (24 &times; 3 chars, unit: cm)</td></tr>
+              <tr><td><code>72 &ndash; 73</code></td><td>Year (last 2 digits, YY)</td></tr>
+              <tr><td><code>74 &ndash; 75</code></td><td>Month (MM)</td></tr>
+              <tr><td><code>76 &ndash; 77</code></td><td>Day (DD)</td></tr>
+              <tr><td><code>80 &ndash; 107</code></td><td>High tide events (up to 4 events &times; 7 chars)</td></tr>
+              <tr><td><code>108 &ndash; 135</code></td><td>Low tide events (up to 4 events &times; 7 chars)</td></tr>
             </tbody>
           </table>
         </div>
@@ -148,70 +171,99 @@
 
         <hr>
 
-        <h2 id="tide-type">Tide Type Classification</h2>
+        <!-- 4. Tide Type Classification -->
+        <h2 id="tide-type">4. Tide Type Classification</h2>
+
+        <h3>Moon-Age Based Algorithm</h3>
         <p>RowPilot classifies each day's tide type based on the lunar calendar, computed from a known reference new moon.</p>
         <ul>
           <li><strong>Reference New Moon</strong>: January 11, 2024, 20:57 JST</li>
           <li><strong>Synodic Month</strong>: 29.530588853 days</li>
         </ul>
+
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Moon Age Range (days)</th><th>Tide Type</th></tr></thead>
+            <thead><tr><th>Moon Age Range (days)</th><th>Tide Type</th><th>Japanese</th></tr></thead>
             <tbody>
-              <tr><td>0.0 – 2.5, 13.5 – 17.0, 28.0 – 29.6</td><td><strong>大潮</strong> (Spring Tide)</td></tr>
-              <tr><td>2.5 – 6.0, 11.0 – 13.5, 17.0 – 20.0, 26.0 – 28.0</td><td><strong>中潮</strong> (Moderate Tide)</td></tr>
-              <tr><td>6.0 – 10.0, 20.0 – 23.0</td><td><strong>小潮</strong> (Neap Tide)</td></tr>
-              <tr><td>10.0 – 11.0, 23.0 – 24.0</td><td><strong>長潮</strong> (Long Tide)</td></tr>
-              <tr><td>24.0 – 26.0</td><td><strong>若潮</strong> (Young Tide)</td></tr>
+              <tr><td><code>0.0 &ndash; 2.5</code>, <code>13.5 &ndash; 17.0</code>, <code>28.0 &ndash; 29.6</code></td><td>Spring Tide</td><td><strong>大潮</strong></td></tr>
+              <tr><td><code>2.5 &ndash; 6.0</code>, <code>11.0 &ndash; 13.5</code>, <code>17.0 &ndash; 20.0</code>, <code>26.0 &ndash; 28.0</code></td><td>Moderate Tide</td><td><strong>中潮</strong></td></tr>
+              <tr><td><code>6.0 &ndash; 10.0</code>, <code>20.0 &ndash; 23.0</code></td><td>Neap Tide</td><td><strong>小潮</strong></td></tr>
+              <tr><td><code>10.0 &ndash; 11.0</code>, <code>23.0 &ndash; 24.0</code></td><td>Long Tide</td><td><strong>長潮</strong></td></tr>
+              <tr><td><code>24.0 &ndash; 26.0</code></td><td>Young Tide</td><td><strong>若潮</strong></td></tr>
             </tbody>
           </table>
         </div>
 
         <hr>
 
-        <h2 id="caching">Caching Strategy</h2>
-        <p>To minimize network requests and ensure offline usability during a training session, RowPilot caches the entire year's data in memory upon the first fetch.</p>
+        <!-- 5. Caching Strategy -->
+        <h2 id="caching">5. Caching Strategy</h2>
+
+        <h3>Full-Year In-Memory Cache</h3>
+        <p>To minimize network requests and ensure offline usability during a training session on the water, RowPilot caches the entire year's data in memory upon the first fetch.</p>
+
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Property</th><th>Value</th></tr></thead>
+            <thead><tr><th>Cache Attribute</th><th>Rule / Value</th></tr></thead>
             <tbody>
-              <tr><td>Cache Key Format</td><td><code>"yyyy-MM-dd"</code> (e.g., <code>"2026-06-25"</code>)</td></tr>
-              <tr><td>Cache Scope</td><td>Per station, per year</td></tr>
-              <tr><td>Re-fetch Trigger</td><td>Year change (e.g., January 1st of a new year)</td></tr>
-              <tr><td>Date Navigation</td><td>Users can swipe to browse past and future dates without additional network requests</td></tr>
+              <tr><td><strong>Cache Key Format</strong></td><td><code>"yyyy-MM-dd"</code> (e.g., <code>"2026-06-25"</code>)</td></tr>
+              <tr><td><strong>Cache Scope</strong></td><td>Per station, per year</td></tr>
+              <tr><td><strong>Re-fetch Trigger</strong></td><td>Year change (e.g., January 1st of a new year)</td></tr>
+              <tr><td><strong>Date Navigation</strong></td><td>Users can swipe to browse past and future dates without triggering additional network requests</td></tr>
             </tbody>
           </table>
         </div>
 
         <hr>
 
-        <h2 id="privacy">Privacy &amp; Permissions</h2>
+        <!-- 6. UI Design Principles -->
+        <h2 id="ui-design-principles">6. UI Design Principles</h2>
+        <ul>
+          <li><strong>Zero Configuration</strong>: The tide view activates automatically when location permission is granted. No manual station selection required.</li>
+          <li><strong>Date Swipe Navigation</strong>: Users can navigate to any date within the cached year by swiping, enabling pre-training planning.</li>
+          <li><strong>Graceful Degradation</strong>: If the network is unavailable, the last cached data is displayed without error interruption.</li>
+        </ul>
+
+        <hr>
+
+        <!-- 7. Privacy & Permissions -->
+        <h2 id="privacy">7. Privacy &amp; Permissions</h2>
+
         <div class="table-wrap">
           <table>
             <thead><tr><th>Permission</th><th>Purpose</th><th>Required</th></tr></thead>
             <tbody>
-              <tr><td>Location (When In Use)</td><td>Nearest station detection</td><td>Yes</td></tr>
-              <tr><td>Network Access</td><td>JMA data fetch</td><td>Yes</td></tr>
+              <tr><td><strong>Location (When In Use)</strong></td><td>Nearest station detection</td><td>Yes</td></tr>
+              <tr><td><strong>Network Access</strong></td><td>JMA data fetch</td><td>Yes</td></tr>
             </tbody>
           </table>
         </div>
+
         <div class="callout callout-spec">
           <div class="callout-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
           <div class="callout-body">
-            No tide data or location data is transmitted to RowPilot servers. All data is fetched directly from JMA's public endpoints. Location is used locally on-device only.
+            <strong>Privacy Guarantee:</strong> No tide data or location data is transmitted to RowPilot servers. All data is fetched directly from JMA's public endpoints. Location is used locally on-device only.
           </div>
         </div>
 
+        <!-- Document Metadata Footer -->
+        <div class="doc-meta-footer" style="margin-top: 40px; padding: 20px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-2);">
+          <div><strong>Version:</strong> 1.0</div>
+          <div><strong>Author:</strong> Kaito Nakahira / Antigravity AI</div>
+          <div><strong>Date:</strong> 2026-06-25</div>
+        </div>
+
+        <!-- Navigation Buttons -->
         <nav class="page-nav" aria-label="Document navigation">
           <a href="/dev/docs/RowPilot-Stroke-Rate-Detection-Architecture/" class="page-nav-btn prev">
-            <span class="page-nav-label">← Previous</span>
+            <span class="page-nav-label">&larr; Previous</span>
             <span class="page-nav-title">Stroke Rate Detection Architecture</span>
           </a>
           <a href="/dev/docs/RowPilot-Variable-Interval-Communication-Architecture/" class="page-nav-btn next">
-            <span class="page-nav-label">Next →</span>
-            <span class="page-nav-title">Variable Interval Communication</span>
+            <span class="page-nav-label">Next &rarr;</span>
+            <span class="page-nav-title">Variable Interval Comm.</span>
           </a>
         </nav>
       </div>

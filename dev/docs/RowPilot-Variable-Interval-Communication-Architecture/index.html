@@ -12,6 +12,7 @@
 </head>
 <body>
 <div class="layout">
+  <!-- Header -->
   <header class="top-header">
     <a href="/" class="header-logo-area">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -19,8 +20,10 @@
     </a>
     <span class="header-sep">/</span>
     <div class="header-breadcrumb">
-      <a href="/dev/">Dev</a><span class="crumb-sep">/</span>
-      <a href="/dev/docs/">docs</a><span class="crumb-sep">/</span>
+      <a href="/dev/">Dev</a>
+      <span class="crumb-sep">/</span>
+      <a href="/dev/docs/">docs</a>
+      <span class="crumb-sep">/</span>
       <span class="crumb-current">Variable-Interval-Communication-Architecture</span>
     </div>
     <div class="header-spacer"></div>
@@ -29,6 +32,8 @@
       View on GitHub
     </a>
   </header>
+
+  <!-- Sidebar -->
   <nav class="sidebar">
     <div class="sidebar-section-label">Navigate</div>
     <a href="/dev/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Dev Portal</a>
@@ -42,54 +47,64 @@
     <a href="/dev/docs/RowPilot-Variable-Interval-Communication-Architecture/" class="sidebar-nav-link active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m8.49-8.49-2.83 2.83M6.34 6.34 3.51 3.51M20.49 3.51l-2.83 2.83M6.34 17.66l-2.83 2.83"/></svg>Variable Interval Comm.</a>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">On This Page</div>
-    <a href="#executive-summary" class="sidebar-nav-link" style="font-size:0.82rem">1. Executive Summary</a>
+    <a href="#summary" class="sidebar-nav-link" style="font-size:0.82rem">1. Executive Summary</a>
     <a href="#technical-context" class="sidebar-nav-link" style="font-size:0.82rem">2. Technical Context</a>
     <a href="#protocol-definition" class="sidebar-nav-link" style="font-size:0.82rem">3. Protocol Definition</a>
     <a href="#multi-frame-strategy" class="sidebar-nav-link" style="font-size:0.82rem">4. Multi-Frame Strategy</a>
-    <a href="#packet-examples" class="sidebar-nav-link" style="font-size:0.82rem">5. Packet Examples</a>
+    <a href="#packet-examples" class="sidebar-nav-link" style="font-size:0.82rem">5. Packet Structure</a>
+    <a href="#implementation-guidelines" class="sidebar-nav-link" style="font-size:0.82rem">6. Implementation Guidelines</a>
+    <a href="#future-verification" class="sidebar-nav-link" style="font-size:0.82rem">7. Verification &amp; Confirmed Flow</a>
   </nav>
 
+  <!-- Content -->
   <main class="content-area">
     <div class="doc-wrapper">
       <div class="doc-header">
         <div class="doc-chips">
-          <span class="chip chip-var">Protocol</span>
-          <span class="chip chip-doc">PM5</span>
-          <span class="chip chip-doc">State Machine</span>
+          <span class="chip chip-protocol">CSAFE v1.1</span>
+          <span class="chip chip-doc">Variable Interval</span>
+          <span class="chip chip-algo">Multi-Frame Append</span>
+          <span class="chip chip-ble">PM5 Firmware</span>
         </div>
         <h1 class="doc-title">PM5 Variable Interval Communication Architecture v1</h1>
         <p class="doc-overview">
-          This document defines the communication protocol and transaction model for programming Variable Interval workouts on Concept2 PM5 monitors.
-          Unlike standard fixed-distance or fixed-time workouts, Variable Intervals require a stateful, multi-frame transaction to overcome payload limitations and firmware buffer constraints.
+          This document defines the communication protocol and transaction model for programming Variable Interval workouts on Concept2 PM5 monitors. Unlike standard fixed-distance or fixed-time workouts, Variable Intervals require a stateful, multi-frame transaction to overcome payload limitations and firmware buffer constraints.
         </p>
         <div class="doc-meta">
           <span class="doc-meta-item">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Source: docs/Variable Interval Communication Architecture.md
           </span>
+          <span class="doc-meta-item">Version: 1.1</span>
+          <span class="doc-meta-item">Author: Kaito Nakahira / Antigravity AI</span>
+          <span class="doc-meta-item">Date: 2026-06-24</span>
         </div>
       </div>
 
       <div class="toc-box">
         <div class="toc-title">Table of Contents</div>
         <ol class="toc-list">
-          <li><a href="#executive-summary">1. Executive Summary</a></li>
+          <li><a href="#summary">1. Executive Summary</a></li>
           <li><a href="#technical-context">2. Technical Context</a></li>
           <li><a href="#protocol-definition">3. Protocol Definition</a></li>
           <li><a href="#multi-frame-strategy">4. Multi-Frame Append Strategy</a></li>
           <li><a href="#packet-examples">5. Packet Structure Examples</a></li>
+          <li><a href="#implementation-guidelines">6. Implementation Guidelines</a></li>
+          <li><a href="#future-verification">7. Future Verification &amp; Confirmed Transmission Flow</a></li>
         </ol>
       </div>
 
       <div class="doc-body">
-        <h2 id="executive-summary">Executive Summary</h2>
-        <p>This document defines the communication protocol and transaction model for programming Variable Interval workouts on Concept2 PM5 monitors. Unlike standard fixed-distance or fixed-time workouts, Variable Intervals require a <strong>stateful, multi-frame transaction</strong> to overcome payload limitations and firmware buffer constraints.</p>
+        <!-- 1. Executive Summary -->
+        <h2 id="summary">1. Executive Summary</h2>
+        <p>This document defines the communication protocol and transaction model for programming Variable Interval workouts on Concept2 PM5 monitors. Unlike standard fixed-distance or fixed-time workouts, Variable Intervals require a stateful, multi-frame transaction to overcome payload limitations and firmware buffer constraints.</p>
 
         <hr>
 
-        <h2 id="technical-context">Technical Context</h2>
+        <!-- 2. Technical Context -->
+        <h2 id="technical-context">2. Technical Context</h2>
 
-        <h3>The Problem: Single-Frame Failure</h3>
+        <h3>2.1 The Problem: Single-Frame Failure</h3>
         <p>Initial implementations attempted to pack all intervals (Work/Rest pairs) into a single CSAFE frame.</p>
         <ul>
           <li><strong>Confirmed</strong>: Up to 4 intervals typically succeed.</li>
@@ -97,63 +112,46 @@
           <li><strong>Observation</strong>: The PM5 accepts the packet (checksum passes), and the UI may show a brief loading state, but the workout is never committed. No standard error codes (e.g., 384-1) are returned.</li>
         </ul>
 
-        <div class="callout callout-warn">
-          <div class="callout-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </div>
-          <div class="callout-body">
-            <strong>Silent Failure Mode:</strong> The PM5 does not return standard error codes when the single-frame approach overflows its internal buffer. This makes debugging difficult without deep state monitoring.
-          </div>
-        </div>
-
-        <h3>Payload Size Limit Hypothesis</h3>
-        <div class="callout callout-hyp">
-          <div class="callout-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </div>
-          <div class="callout-body">
-            <strong>Hypothesis:</strong> The PM5 firmware has a restricted input buffer (~64–128 bytes) for reassembled CSAFE commands when combined with <code>SET_WORKOUT_TYPE</code>. Overflow causes a silent rejection with no standard error code returned.
-          </div>
-        </div>
+        <h3>2.2 Payload Size Limit Hypothesis</h3>
+        <ul>
+          <li><strong>Speculation</strong>: The PM5 firmware has a restricted input buffer for the <code>SET_HORIZONTAL_DISTANCE</code> (or similar) commands when combined with <code>SET_WORKOUT_TYPE</code>.</li>
+          <li><strong>Speculation</strong>: There is an internal 64-byte to 128-byte limit on the reassembled CSAFE command buffer before the processing engine triggers a silent overflow or rejection.</li>
+        </ul>
 
         <hr>
 
-        <h2 id="protocol-definition">Protocol Definition</h2>
+        <!-- 3. Protocol Definition -->
+        <h2 id="protocol-definition">3. Protocol Definition</h2>
 
-        <h3>Workout Type</h3>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>WorkoutType</th><th>Value</th></tr></thead>
-            <tbody>
-              <tr><td>Variable Interval</td><td><code>0x08</code></td></tr>
-              <tr><td>Fixed Time</td><td><code>0x01</code></td></tr>
-              <tr><td>Fixed Distance</td><td><code>0x02</code></td></tr>
-            </tbody>
-          </table>
-        </div>
+        <h3>3.1 Workout Type</h3>
+        <ul>
+          <li><strong>Confirmed</strong>: <code>WorkoutType = 0x08</code> designates a Variable Interval workout.</li>
+          <li><em>Note</em>: Standard fixed time is <code>0x01</code>, fixed distance is <code>0x02</code>.</li>
+        </ul>
 
-        <h3>Key Commands</h3>
+        <h3>3.2 Key Commands</h3>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Command ID</th><th>Name</th><th>Role in Variable Intervals</th></tr></thead>
             <tbody>
-              <tr><td><code>0x01</code></td><td>SET_WORKOUTTYPE</td><td>Sets context to <code>0x08</code></td></tr>
-              <tr><td><code>0x18</code></td><td>SET_INTERVAL_INDEX</td><td>Defines which interval (0-based) is being configured</td></tr>
-              <tr><td><code>0x14</code></td><td>CONFIGURE_WORKOUT</td><td>Stateful Trigger: Signals firmware to append/update the current interval builder</td></tr>
-              <tr><td><code>0x13</code></td><td>SET_DISPLAY_WORKOUT</td><td>Finalizes the transaction and commits the UI</td></tr>
+              <tr><td><code>0x01</code></td><td><strong>SET_WORKOUTTYPE</strong></td><td>Sets context to <code>0x08</code> (Variable Interval).</td></tr>
+              <tr><td><code>0x18</code></td><td><strong>SET_INTERVAL_INDEX</strong></td><td>Defines which interval (0-based) is being configured.</td></tr>
+              <tr><td><code>0x14</code></td><td><strong>CONFIGURE_WORKOUT</strong></td><td><em>Stateful Trigger</em>: Signals the firmware to append/update the current interval builder.</td></tr>
+              <tr><td><code>0x13</code></td><td><strong>SET_DISPLAY_WORKOUT</strong></td><td>Finalizes the transaction and commits the workout to the UI.</td></tr>
             </tbody>
           </table>
         </div>
 
         <hr>
 
-        <h2 id="multi-frame-strategy">Multi-Frame Append Strategy</h2>
+        <!-- 4. Multi-Frame Append Strategy -->
+        <h2 id="multi-frame-strategy">4. Multi-Frame Append Strategy</h2>
 
-        <h3>The State Machine Hypothesis</h3>
-        <p>The PM5 firmware is hypothesized to operate a "Workout Builder" state machine that remains active as long as the device stays in a configuration phase.</p>
+        <h3>4.1 The State Machine Hypothesis</h3>
+        <p>We hypothesize that the PM5 firmware operates a "Workout Builder" state machine that remains active as long as the device stays in a configuration phase.</p>
 
-        <div class="mermaid-wrap">
-          <pre style="background:none;border:none;padding:0;color:var(--text-2);font-size:0.85rem;text-align:left;line-height:1.8">
+        <div class="mermaid-wrap" style="padding: 24px; background: rgba(0,0,0,0.3); border-radius: 12px; margin: 20px 0; border: 1px solid var(--border);">
+          <pre style="background:none;border:none;padding:0;color:var(--text-1);font-family:var(--font-mono);font-size:0.85rem;line-height:1.7;">
 [*] ──────────────────────► Idle
          SET_WORKOUTTYPE(0x08)
 Idle ──────────────────────► BuilderActive
@@ -164,47 +162,124 @@ BuilderActive ─────────────► WorkoutReady
 WorkoutReady ──────────────► [*]</pre>
         </div>
 
-        <h3>Why CONFIGURE (0x14) in Every Frame?</h3>
-        <div class="callout callout-hyp">
-          <div class="callout-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </div>
-          <div class="callout-body">
-            <strong>Hypothesis:</strong> The <code>0x14</code> command acts as a "Commit Interval" trigger. Without it, the data for a specific index may stay in a volatile buffer. It also prevents the PM5 from timing out the builder session by proving an active configuration sequence is in progress.
-          </div>
-        </div>
+        <h3>4.2 Why CONFIGURE (0x14) in Every Frame?</h3>
+        <ul>
+          <li><strong>Speculation</strong>: The <code>0x14</code> command acts as a "Commit Interval" trigger. Without it, the data provided for a specific index may stay in a volatile buffer.</li>
+          <li><strong>Speculation</strong>: It prevents the PM5 from timing out the builder session by proving an active configuration sequence is in progress.</li>
+        </ul>
 
         <hr>
 
-        <h2 id="packet-examples">Packet Structure Examples</h2>
+        <!-- 5. Packet Structure Examples -->
+        <h2 id="packet-examples">5. Packet Structure Examples</h2>
 
-        <h3>Initialization Frame (First Interval)</h3>
-        <p>Sets the workout type and the first interval's work/rest parameters, then triggers <code>CONFIGURE_WORKOUT</code>.</p>
-        <pre><code>Frame 1: SET_WORKOUTTYPE(0x08) | SET_INTERVAL_INDEX(0) | [work/rest data] | CONFIGURE_WORKOUT(0x14)</code></pre>
+        <h3>5.1 Initialization Frame (First Interval)</h3>
+        <p>Sets the workout type and the first interval parameters:</p>
+        <pre><code>[Start] F1
+[Payload]
+  01 01 08       (Workout Type: Variable)
+  18 01 00       (Interval Index: 0)
+  07 02 EE 02    (Work Distance: 750m)
+  08 02 3C 00    (Rest Time: 60s)
+  14 00          (Configure/Append)
+[End] Checksum + F2</code></pre>
 
-        <h3>Subsequent Intervals</h3>
-        <p>Each additional interval is sent as a separate frame, incrementing the interval index.</p>
-        <pre><code>Frame 2: SET_INTERVAL_INDEX(1) | [work/rest data] | CONFIGURE_WORKOUT(0x14)
-Frame 3: SET_INTERVAL_INDEX(2) | [work/rest data] | CONFIGURE_WORKOUT(0x14)
-...
-Frame N: SET_INTERVAL_INDEX(N-1) | [work/rest data] | CONFIGURE_WORKOUT(0x14)</code></pre>
+        <h3>5.2 Append Frame (Subsequent Intervals)</h3>
+        <p>Repeats the interval-specific configuration:</p>
+        <pre><code>[Start] F1
+[Payload]
+  18 01 01       (Interval Index: 1)
+  07 02 FA 00    (Work Distance: 500m)
+  08 02 1E 00    (Rest Time: 30s)
+  14 00          (Configure/Append)
+[End] Checksum + F2</code></pre>
 
-        <h3>Finalization Frame</h3>
-        <p>After all intervals are sent, <code>SET_DISPLAY_WORKOUT</code> commits the entire transaction to the PM5 UI.</p>
-        <pre><code>Final Frame: SET_DISPLAY_WORKOUT(0x13)</code></pre>
+        <h3>5.3 Finalization Frame</h3>
+        <p>Commits the completed list to the PM5 screen:</p>
+        <pre><code>[Start] F1
+[Payload]
+  13 00          (Display Workout)
+[End] Checksum + F2</code></pre>
+
+        <hr>
+
+        <!-- 6. Implementation Guidelines -->
+        <h2 id="implementation-guidelines">6. Implementation Guidelines (RowPilot Strategy)</h2>
+
+        <h3>1. Frame Splitting</h3>
+        <ul>
+          <li>Always split each interval into its own CSAFE frame.</li>
+          <li>Maximum payload per frame should not exceed 32 bytes of actual CSAFE data to ensure compatibility with BLE MTU and internal PM5 buffers.</li>
+        </ul>
+
+        <h3>2. Sequential Processing</h3>
+        <ul>
+          <li>Wait for the CSAFE response (Status byte) of Frame N before sending Frame N+1.</li>
+          <li>Monitor the status byte for "Busy" flags.</li>
+        </ul>
+
+        <h3>3. Display Delay</h3>
+        <ul>
+          <li>Only send <code>SET_DISPLAY_WORKOUT</code> (<code>0x13</code>) after the final interval has been successfully "Configured" (<code>0x14</code>). This prevents the UI from trying to render an incomplete workout.</li>
+        </ul>
+
+        <hr>
+
+        <!-- 7. Future Verification & Risks -->
+        <h2 id="future-verification">7. Future Verification &amp; Confirmed Transmission Flow</h2>
+
+        <h3>7.1 Unconfirmed Behaviors</h3>
+        <ul>
+          <li><strong>Max Limit</strong>: ErgData supports up to 50 intervals. We need to verify if RowPilot's multi-frame strategy holds up to the 50-interval limit or if there is a secondary buffer limit at 20&ndash;30 intervals.</li>
+          <li><strong>Inter-frame Gap</strong>: While not strictly required by Bluetooth, a 20&ndash;50ms gap between append frames improves reliability on older PM5 hardware.</li>
+        </ul>
+
+        <h3>Confirmed &mdash; June 20</h3>
+        <p><strong>Transmission Method Overview:</strong></p>
+
+        <h4>Initialization Frame (1st Frame):</h4>
+        <p>Only at the beginning of the frame that sets the first interval (<code>i == 0</code>) should the command (<code>0x01 0x01 0x08</code>) specifying the workout type as &ldquo;Variable Interval&rdquo; be included.</p>
+
+        <h4>Intermediate Addition Frames (2nd Frame and Beyond):</h4>
+        <p>Each block that constructs an interval (<code>buildVariableIntervalBlock</code>) includes the interval number (<code>0x18</code>), the exercise type, the exercise intensity, and the rest time (<code>0x04</code>). At the end of each interval, be sure to include the command <code>0x14 0x01 0x01</code> (Configure Workout) to commit the interval to the PM5.</p>
+
+        <h4>Confirmation/End Frame (Final Frame):</h4>
+        <p>Only at the end of the frame that transmits the final interval should you include the command <code>0x13 0x02 0x01 0x01</code> (Set Screen State / Display Workout) to confirm the settings and switch the PM5 screen to the workout screen.</p>
 
         <div class="callout callout-spec">
           <div class="callout-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
           <div class="callout-body">
-            <strong>Inter-frame Delay:</strong> A <code>150ms</code> delay is inserted between configuration frames to comply with the CSAFE specification and ensure the PM5 firmware has time to process each interval before the next frame arrives.
+            <strong>Summary Example (5 Variable Intervals):</strong>
+            <pre style="margin-top:10px;background:none;border:none;padding:0;color:var(--text-1);font-family:var(--font-mono);font-size:0.83rem;line-height:1.7;">Creating CSAFE frames (up to 3):
+Frame 1: Interval 1 (including initialization) + Interval 2
+Frame 2: Interval 3 + Interval 4
+Frame 3: Interval 5 (including confirmation)
+
+Transmission Control (sendCSAFEChunkedSequence):
+• Divide Frame 1 into 20-byte chunks and transmit at 100 ms intervals.
+• Once Frame 1 has been fully transmitted, insert a 100 ms delay.
+• Similarly, split Frame 2 into 20-byte chunks and transmit at 100 ms intervals.
+• Once Frame 2 has been fully transmitted, insert a 100 ms delay.
+• Similarly, split Frame 3 into 20-byte chunks and transmit at 100 ms intervals.</pre>
           </div>
         </div>
 
+        <h3>7.2 Safety / Error Handling</h3>
+        <p>If transmission of any of the additional frames fails, you must use the <code>TERMINATE</code> command to cancel the entire transaction in order to prevent an error message from appearing on the PM5.</p>
+
+        <!-- Document Metadata Footer -->
+        <div class="doc-meta-footer" style="margin-top: 40px; padding: 20px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-2);">
+          <div><strong>Version:</strong> 1.1</div>
+          <div><strong>Author:</strong> Kaito Nakahira / Antigravity AI</div>
+          <div><strong>Date:</strong> 2026-06-24</div>
+        </div>
+
+        <!-- Navigation Buttons -->
         <nav class="page-nav" aria-label="Document navigation">
           <a href="/dev/docs/RowPilot-Tide-Information-Architecture/" class="page-nav-btn prev">
-            <span class="page-nav-label">← Previous</span>
+            <span class="page-nav-label">&larr; Previous</span>
             <span class="page-nav-title">Tide Information Architecture</span>
           </a>
           <span></span>

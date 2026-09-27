@@ -71,7 +71,10 @@
     <a href="#ble-connection-model" class="sidebar-nav-link" style="font-size:0.82rem">1. BLE Connection Model</a>
     <a href="#csafe-protocol" class="sidebar-nav-link" style="font-size:0.82rem">2. CSAFE Protocol</a>
     <a href="#key-data-streams" class="sidebar-nav-link" style="font-size:0.82rem">3. Key Data Streams</a>
-    <a href="#workout-states" class="sidebar-nav-link" style="font-size:0.82rem">4. Workout States</a>
+    <a href="#workout-programming" class="sidebar-nav-link" style="font-size:0.82rem">4. Workout Programming</a>
+    <a href="#machine-status-sync" class="sidebar-nav-link" style="font-size:0.82rem">5. Machine Status Sync</a>
+    <a href="#transmission-safeguards" class="sidebar-nav-link" style="font-size:0.82rem">6. Transmission Safeguards</a>
+    <a href="#design-philosophy" class="sidebar-nav-link" style="font-size:0.82rem">7. Design Philosophy</a>
   </nav>
 
   <!-- Content -->
@@ -81,7 +84,8 @@
         <div class="doc-chips">
           <span class="chip chip-ble">BLE</span>
           <span class="chip chip-protocol">CSAFE</span>
-          <span class="chip chip-doc">PM5</span>
+          <span class="chip chip-doc">PM5 Monitor</span>
+          <span class="chip chip-algo">Multi-Device</span>
         </div>
         <h1 class="doc-title">RowPilot PM5 BLE Connection Overview</h1>
         <p class="doc-overview">
@@ -93,6 +97,9 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Source: docs/PM5 BLE Connection Overview.md
           </span>
+          <span class="doc-meta-item">Version: 1.0</span>
+          <span class="doc-meta-item">Author: Kaito Nakahira / Antigravity AI</span>
+          <span class="doc-meta-item">Date: 2026-06-25</span>
         </div>
       </div>
 
@@ -102,12 +109,16 @@
           <li><a href="#ble-connection-model">1. BLE Connection Model</a></li>
           <li><a href="#csafe-protocol">2. CSAFE Protocol</a></li>
           <li><a href="#key-data-streams">3. Key Data Streams</a></li>
-          <li><a href="#workout-states">4. Workout States</a></li>
+          <li><a href="#workout-programming">4. Workout Programming</a></li>
+          <li><a href="#machine-status-sync">5. Machine Status Synchronization</a></li>
+          <li><a href="#transmission-safeguards">6. Transmission Safeguards</a></li>
+          <li><a href="#design-philosophy">7. Design Philosophy</a></li>
         </ol>
       </div>
 
       <div class="doc-body">
-        <h2 id="ble-connection-model">BLE Connection Model</h2>
+        <!-- 1. BLE Connection Model -->
+        <h2 id="ble-connection-model">1. BLE Connection Model</h2>
 
         <h3>Multi-Device Support</h3>
         <p>RowPilot is designed for multi-boat environments such as crew training sessions. Multiple PM5 monitors can be connected and controlled simultaneously, with each unit managed as an independent state machine.</p>
@@ -136,7 +147,8 @@
 
         <hr>
 
-        <h2 id="csafe-protocol">CSAFE Protocol</h2>
+        <!-- 2. CSAFE Protocol -->
+        <h2 id="csafe-protocol">2. CSAFE Protocol</h2>
 
         <h3>Frame Format</h3>
         <p>RowPilot uses the <strong>Extended CSAFE frame format</strong> for all communication to ensure compatibility when multiple PM5 units are connected.</p>
@@ -160,7 +172,8 @@
 
         <hr>
 
-        <h2 id="key-data-streams">Key Data Streams</h2>
+        <!-- 3. Key Data Streams -->
+        <h2 id="key-data-streams">3. Key Data Streams</h2>
         <p>RowPilot reads the following data from each PM5 during an active workout session.</p>
 
         <div class="table-wrap">
@@ -177,34 +190,90 @@
         <h3>Polling Interval</h3>
         <p>Data is polled at <strong>4 Hz</strong> during an active workout, providing smooth real-time updates to the RowPilot dashboard without saturating the BLE bandwidth.</p>
 
-        <div class="callout callout-note">
-          <div class="callout-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-          <div class="callout-body">
-            <strong>4 Hz Rationale:</strong> This rate balances real-time responsiveness with BLE bandwidth constraints, especially important when multiple PM5 units are connected simultaneously.
-          </div>
+        <hr>
+
+        <!-- 4. Workout Programming -->
+        <h2 id="workout-programming">4. Workout Programming</h2>
+
+        <h3>Supported Workout Types</h3>
+        <p>RowPilot supports programming workouts directly to the PM5 from the app.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Workout Type</th><th>CSAFE Code</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td>Fixed Time</td><td><code>0x01</code></td><td>Single interval target defined by duration in seconds.</td></tr>
+              <tr><td>Fixed Distance</td><td><code>0x02</code></td><td>Single interval target defined by meters.</td></tr>
+              <tr><td>Variable Intervals</td><td><code>0x08</code></td><td>Series of work/rest pairs with customizable metrics.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Variable Interval Strategy</h3>
+        <p>Variable Interval workouts (multiple work/rest segments with different distances or times) require a multi-frame transaction due to PM5 firmware buffer constraints. Each interval is sent in its own CSAFE frame sequentially, followed by a finalization command.</p>
+        <p>See <a href="/dev/docs/RowPilot-Variable-Interval-Communication-Architecture/" style="color: var(--accent-2);">Variable Interval Communication Architecture</a> for full protocol details.</p>
+
+        <hr>
+
+        <!-- 5. Machine Status Synchronization -->
+        <h2 id="machine-status-sync">5. Machine Status Synchronization</h2>
+        <p>Before programming a new workout, RowPilot ensures all connected PM5 units are in a <code>Ready</code> state.</p>
+
+        <h3>Synchronization Phases</h3>
+        <ol>
+          <li><strong>TERMINATE</strong> &mdash; Send a reset to all PM5s to end any ongoing workout and clear internal state.</li>
+          <li><strong>Status Polling</strong> &mdash; Monitor Machine Status at 4 Hz until all units report <code>Ready</code>.</li>
+          <li><strong>CONFIG</strong> &mdash; Transmit workout parameters (distance, time, split, screen state) to each unit.</li>
+        </ol>
+
+        <h3>Timeout &amp; Resilience</h3>
+        <ul>
+          <li>Base timeout: <strong>9.0 seconds</strong></li>
+          <li>The timeout is dynamically extended if transitional states (<code>Busy</code>, <code>InUse</code>, <code>Finish</code>) are detected, accommodating PM5-side save operations and state transitions.</li>
+        </ul>
+        <p>For full details on the state-synchronized architecture, see <a href="/dev/docs/RowPilot-PM5-Communication-Architecture-v4.1/" style="color: var(--accent-2);">PM5 Communication Architecture v4.1</a>.</p>
+
+        <hr>
+
+        <!-- 6. Transmission Safeguards -->
+        <h2 id="transmission-safeguards">6. Transmission Safeguards</h2>
+        <p>To ensure stability in real-world BLE environments:</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Safeguard</th><th>Value</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Inter-Frame Gap</strong></td><td><code>50 ms</code></td><td>Compliance with CSAFE spec; prevents frame collisions.</td></tr>
+              <tr><td><strong>Max Concurrent Writes</strong></td><td><code>3</code></td><td>Prevents CoreBluetooth internal queue congestion.</td></tr>
+              <tr><td><strong>Per-Device Queue</strong></td><td><code>Sequential</code></td><td>Guarantees frame ordering per PM5.</td></tr>
+            </tbody>
+          </table>
         </div>
 
         <hr>
 
-        <h2 id="workout-states">Workout States</h2>
-        <p>Each PM5 is monitored via the <strong>Machine Status</strong> field from CSAFE command <code>0x22</code>. RowPilot's state machine maps machine status codes to internal workout phases (<em>idle</em>, <em>working</em>, <em>resting</em>, <em>finished</em>) to drive UI and data collection behavior.</p>
+        <!-- 7. Design Philosophy -->
+        <h2 id="design-philosophy">7. Design Philosophy</h2>
+        <p>The PM5 communication stack in RowPilot is built for reliability in real-world environments, not theoretical throughput.</p>
 
-        <div class="callout callout-note">
-          <div class="callout-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-          <div class="callout-body">
-            For the complete state-transition model and v4.1 phase definitions, see <a href="/dev/docs/RowPilot-PM5-Communication-Architecture-v4.1/" style="color: var(--accent-2);">Communication Architecture v4.1</a>.
-          </div>
+        <ul>
+          <li><strong>Optimistic UI</strong>: The dashboard loads immediately after a button press; BLE synchronization proceeds in the background.</li>
+          <li><strong>Fault Isolation</strong>: No single PM5 failure causes a system-wide halt.</li>
+          <li><strong>Production-Ready</strong>: The architecture is designed for App Store release, prioritizing correctness and user experience over raw performance.</li>
+        </ul>
+
+        <!-- Document Metadata Footer -->
+        <div class="doc-meta-footer" style="margin-top: 40px; padding: 20px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-2);">
+          <div><strong>Version:</strong> 1.0</div>
+          <div><strong>Author:</strong> Kaito Nakahira / Antigravity AI</div>
+          <div><strong>Date:</strong> 2026-06-25</div>
         </div>
 
         <!-- Page Nav -->
         <nav class="page-nav" aria-label="Document navigation">
           <span></span>
           <a href="/dev/docs/RowPilot-PM5-Communication-Architecture-v4.1/" class="page-nav-btn next">
-            <span class="page-nav-label">Next →</span>
+            <span class="page-nav-label">Next &rarr;</span>
             <span class="page-nav-title">PM5 Communication Architecture v4.1</span>
           </a>
         </nav>

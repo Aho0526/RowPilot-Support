@@ -12,6 +12,7 @@
 </head>
 <body>
 <div class="layout">
+  <!-- Header -->
   <header class="top-header">
     <a href="/" class="header-logo-area">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -19,8 +20,10 @@
     </a>
     <span class="header-sep">/</span>
     <div class="header-breadcrumb">
-      <a href="/dev/">Dev</a><span class="crumb-sep">/</span>
-      <a href="/dev/docs/">docs</a><span class="crumb-sep">/</span>
+      <a href="/dev/">Dev</a>
+      <span class="crumb-sep">/</span>
+      <a href="/dev/docs/">docs</a>
+      <span class="crumb-sep">/</span>
       <span class="crumb-current">Stroke-Rate-Detection-Architecture</span>
     </div>
     <div class="header-spacer"></div>
@@ -29,6 +32,8 @@
       View on GitHub
     </a>
   </header>
+
+  <!-- Sidebar -->
   <nav class="sidebar">
     <div class="sidebar-section-label">Navigate</div>
     <a href="/dev/" class="sidebar-nav-link"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Dev Portal</a>
@@ -45,25 +50,35 @@
     <a href="#physical-principle" class="sidebar-nav-link" style="font-size:0.82rem">1. Physical Principle</a>
     <a href="#sensor-configuration" class="sidebar-nav-link" style="font-size:0.82rem">2. Sensor Configuration</a>
     <a href="#signal-processing" class="sidebar-nav-link" style="font-size:0.82rem">3. Signal Processing</a>
+    <a href="#catch-detection" class="sidebar-nav-link" style="font-size:0.82rem">4. Catch Detection FSM</a>
+    <a href="#spm-calculation" class="sidebar-nav-link" style="font-size:0.82rem">5. SPM Calculation</a>
+    <a href="#system-summary" class="sidebar-nav-link" style="font-size:0.82rem">6. System Summary</a>
+    <a href="#privacy-hardware" class="sidebar-nav-link" style="font-size:0.82rem">7. Privacy &amp; Hardware</a>
   </nav>
 
+  <!-- Content -->
   <main class="content-area">
     <div class="doc-wrapper">
       <div class="doc-header">
         <div class="doc-chips">
-          <span class="chip chip-algo">Algorithm</span>
-          <span class="chip chip-doc">CoreMotion</span>
+          <span class="chip chip-algo">Accelerometer</span>
+          <span class="chip chip-protocol">Butterworth LPF</span>
+          <span class="chip chip-ble">CoreMotion</span>
+          <span class="chip chip-doc">50 Hz Sampling</span>
         </div>
         <h1 class="doc-title">RowPilot Stroke Rate Detection Architecture</h1>
         <p class="doc-overview">
-          RowPilot measures stroke rate (SPM — Strokes Per Minute) using the iPhone's built-in accelerometer, requiring no external hardware.
-          The algorithm is inspired by peer-reviewed rowing biomechanics research and is designed to work regardless of how the phone is mounted on the boat.
+          RowPilot measures stroke rate (SPM &mdash; Strokes Per Minute) using the iPhone's built-in accelerometer, requiring no external hardware.
+          The algorithm is inspired by peer-reviewed rowing biomechanics research and established commercial implementations, and is designed to work regardless of how the phone is mounted on the boat.
         </p>
         <div class="doc-meta">
           <span class="doc-meta-item">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             Source: docs/Stroke Rate Detection Architecture.md
           </span>
+          <span class="doc-meta-item">Version: 1.0</span>
+          <span class="doc-meta-item">Author: Kaito Nakahira / Antigravity AI</span>
+          <span class="doc-meta-item">Date: 2026-06-25</span>
         </div>
       </div>
 
@@ -73,53 +88,55 @@
           <li><a href="#physical-principle">1. Physical Principle</a></li>
           <li><a href="#sensor-configuration">2. Sensor Configuration</a></li>
           <li><a href="#signal-processing">3. Signal Processing</a></li>
+          <li><a href="#catch-detection">4. Catch Detection &mdash; Finite State Machine</a></li>
+          <li><a href="#spm-calculation">5. SPM Calculation</a></li>
+          <li><a href="#system-summary">6. System Summary</a></li>
+          <li><a href="#privacy-hardware">7. Privacy &amp; Hardware Requirements</a></li>
         </ol>
       </div>
 
       <div class="doc-body">
-        <h2 id="physical-principle">Physical Principle</h2>
+        <!-- 1. Physical Principle -->
+        <h2 id="physical-principle">1. Physical Principle</h2>
 
         <h3>Boat Acceleration Pattern</h3>
         <p>During a rowing stroke cycle, the boat's longitudinal (forward) acceleration follows a characteristic waveform:</p>
 
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Phase</th><th>Acceleration</th></tr></thead>
+            <thead><tr><th>Stroke Phase</th><th>Acceleration Characteristics</th></tr></thead>
             <tbody>
-              <tr><td>Drive (catch → finish)</td><td><strong>Positive</strong> — Blade in water, boat accelerates</td></tr>
-              <tr><td>Recovery (finish → catch)</td><td><strong>Negative</strong> — Rower's body moves forward, boat decelerates</td></tr>
+              <tr><td><strong>Drive</strong> (catch &rarr; finish)</td><td><strong>Positive</strong> &mdash; Blade in water, boat accelerates forward.</td></tr>
+              <tr><td><strong>Recovery</strong> (finish &rarr; catch)</td><td><strong>Negative</strong> &mdash; Rower's body moves forward towards stern, boat decelerates.</td></tr>
             </tbody>
           </table>
         </div>
 
-        <p>The <strong>catch</strong> — the moment the blade enters the water and drive begins — corresponds to the transition from a negative trough to a positive phase (negative-to-positive zero-crossing).</p>
+        <p>The <strong>catch</strong> &mdash; the moment the blade enters the water and drive begins &mdash; corresponds to the transition from a negative trough to a positive phase (negative-to-positive zero-crossing).</p>
 
         <h3>References</h3>
         <ul>
-          <li><strong>CrewNerd</strong> (performancephones.com): Monitors characteristic patterns in horizontal boat acceleration to detect the catch</li>
-          <li><strong>NK SpeedCoach</strong>: Identifies the "negative peak (minimum)" at the recovery-to-drive transition</li>
-          <li><strong>Academic research</strong> (Rowing in Motion / RUG): Uses zero-crossings after low-pass filtering to classify catch and finish</li>
-          <li><strong>Open Rowing Monitor</strong> (github.com/laberning/openrowingmonitor): Manages drive/recovery phases via a finite state machine</li>
+          <li><strong>CrewNerd</strong> (performancephones.com): Monitors characteristic patterns in horizontal boat acceleration to detect the catch.</li>
+          <li><strong>NK SpeedCoach</strong>: Identifies the "negative peak (minimum)" at the recovery-to-drive transition.</li>
+          <li><strong>Academic research</strong> (Rowing in Motion / RUG): Uses zero-crossings after low-pass filtering to classify catch and finish.</li>
+          <li><strong>Open Rowing Monitor</strong> (github.com/laberning/openrowingmonitor): Manages drive/recovery phases via a finite state machine.</li>
         </ul>
 
         <hr>
 
-        <h2 id="sensor-configuration">Sensor Configuration</h2>
+        <!-- 2. Sensor Configuration -->
+        <h2 id="sensor-configuration">2. Sensor Configuration</h2>
 
         <h3>Device Motion (CMMotionManager)</h3>
         <p>RowPilot uses Apple's <code>CMMotionManager</code> with device motion updates (gravity-corrected acceleration) rather than raw accelerometer data.</p>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
-            <tbody>
-              <tr><td>Sampling Rate</td><td><strong>50 Hz</strong> (20ms interval)</td></tr>
-              <tr><td>Data Type</td><td><code>userAcceleration</code> — linear acceleration with gravity removed</td></tr>
-            </tbody>
-          </table>
-        </div>
+        <ul>
+          <li><strong>Sampling Rate</strong>: <strong>50 Hz</strong> (20ms interval)</li>
+          <li><strong>Data Type</strong>: <code>userAcceleration</code> &mdash; linear acceleration with 1G gravity mathematically removed.</li>
+        </ul>
 
         <h3>Dynamic Axis Selection</h3>
-        <p>Since the phone can be mounted in any orientation, RowPilot does not assume a fixed axis. Instead, it continuously tracks the exponential moving average (EMA) of signal amplitude on all three axes and selects the most active one.</p>
+        <p>Since the phone can be mounted in any orientation (horizontal, vertical, or angled on a foot stretcher), RowPilot does not assume a fixed axis. Instead, it continuously tracks the exponential moving average (EMA) of signal amplitude on all three axes and dynamically selects the most active one.</p>
+
         <pre><code>α = 0.01  (time constant ≈ 2 seconds at 50 Hz)
 varianceX = varianceX × (1 − α) + |accel.x| × α
 varianceY = varianceY × (1 − α) + |accel.y| × α
@@ -127,22 +144,17 @@ varianceZ = varianceZ × (1 − α) + |accel.z| × α
 
 activeAxis = argmax(varianceX, varianceY, varianceZ)</code></pre>
 
-        <div class="callout callout-spec">
-          <div class="callout-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <div class="callout-body">
-            <strong>Mounting Agnostic:</strong> This dynamic axis selection makes the detection robust to arbitrary phone mounting directions — horizontal, vertical, or angled.
-          </div>
-        </div>
+        <p>This makes the detection robust to arbitrary phone mounting directions &mdash; landscape, portrait, flat, or tilted.</p>
 
         <hr>
 
-        <h2 id="signal-processing">Signal Processing</h2>
+        <!-- 3. Signal Processing -->
+        <h2 id="signal-processing">3. Signal Processing</h2>
 
         <h3>2nd-Order Butterworth Low-Pass Filter</h3>
-        <p>Raw accelerometer data contains high-frequency noise from water, vibration, and handling. A 2nd-order Butterworth filter suppresses noise above 3 Hz while preserving the stroke-frequency signal (typical rowing: 0.3–1.5 Hz / 18–90 SPM).</p>
+        <p>Raw accelerometer data contains high-frequency noise from water chop, hull vibration, and rower seat movement. A 2nd-order Butterworth filter suppresses noise above 3 Hz while preserving the stroke-frequency signal (typical rowing: 0.3&ndash;1.5 Hz / 18&ndash;90 SPM).</p>
 
+        <h4>Filter Specification</h4>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
@@ -163,7 +175,7 @@ activeAxis = argmax(varianceX, varianceY, varianceZ)</code></pre>
             <thead><tr><th>Coefficient</th><th>Value</th></tr></thead>
             <tbody>
               <tr><td><code>b0</code></td><td>0.02008337</td></tr>
-              <tr><td><code>b1</code></td><td>0.04016674</td></tr>
+              <tr><td><code>b1</code></td><td>0.04016673</td></tr>
               <tr><td><code>b2</code></td><td>0.02008337</td></tr>
               <tr><td><code>a1</code></td><td>−1.56101808</td></tr>
               <tr><td><code>a2</code></td><td>0.64135154</td></tr>
@@ -171,22 +183,143 @@ activeAxis = argmax(varianceX, varianceY, varianceZ)</code></pre>
           </table>
         </div>
 
-        <div class="callout callout-note">
-          <div class="callout-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-          <div class="callout-body">
-            The 3 Hz cutoff captures the full SPM range (18–90 SPM = 0.3–1.5 Hz) with sufficient margin, while effectively rejecting higher-frequency vibration from water and boat handling.
-          </div>
+        <hr>
+
+        <!-- 4. Catch Detection — Finite State Machine -->
+        <h2 id="catch-detection">4. Catch Detection &mdash; Finite State Machine</h2>
+
+        <h3>Overview</h3>
+        <p>The filtered signal is processed by a 3-state finite state machine that tracks the stroke phase and identifies the catch event with sub-sample precision.</p>
+
+        <div class="mermaid-wrap" style="padding: 24px; background: rgba(0,0,0,0.3); border-radius: 12px; margin: 20px 0; border: 1px solid var(--border);">
+          <pre style="background:none;border:none;padding:0;color:var(--text-1);font-family:var(--font-mono);font-size:0.85rem;line-height:1.7;">
+[*] ──► Idle
+Idle ──────────────► InTrough   (when polarizedSignal &lt; −threshold)
+Idle ──────────────► InDrive    (when polarizedSignal &gt; +threshold)
+InTrough ──────────► InDrive    (zero-crossing −→+ : REGISTER CATCH)
+InTrough ──────────► Idle       (signal returns within threshold without crossing)
+InDrive ───────────► Idle       (signal &lt; zeroCrossHysteresis)</pre>
         </div>
 
+        <h3>States</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>State</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>Idle</code></td><td>Signal within threshold; no active stroke phase.</td></tr>
+              <tr><td><code>InTrough</code></td><td>Signal has entered the negative trough; tracking the absolute minimum point.</td></tr>
+              <tr><td><code>InDrive</code></td><td>Signal is in the positive drive phase.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Polarity Auto-Detection</h3>
+        <p>The algorithm automatically determines whether the catch corresponds to a positive or negative acceleration peak depending on how the phone is mounted. The first significant threshold crossing establishes the polarity for the session.</p>
+
+        <h3>Parameters</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Parameter</th><th>Value</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Catch Threshold</strong></td><td><code>0.06 G</code></td><td>Minimum acceleration magnitude required to enter a trough.</td></tr>
+              <tr><td><strong>Zero-Cross Hysteresis</strong></td><td><code>threshold × 15%</code></td><td>Prevents false triggers and chatter near the zero line.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <hr>
+
+        <!-- 5. SPM Calculation -->
+        <h2 id="spm-calculation">5. SPM Calculation</h2>
+
+        <h3>Catch Timestamp &mdash; Sub-Sample Precision</h3>
+        <p>The catch is registered at the <strong>timestamp of the trough minimum</strong> (the most negative point), not the zero-crossing. This provides more accurate timing by anchoring directly to the physical event.</p>
+
+        <h3>Median of Recent Intervals</h3>
+        <p>SPM is computed from the <strong>median of the 3 most recent inter-catch intervals</strong>. The median is chosen over the mean because it is exceptionally robust to outlier intervals caused by missed strokes or false catches.</p>
+
+        <pre><code>intervals = [t1→t2, t2→t3, t3→t4]    (from last 4 catch timestamps)
+medianInterval = median(intervals)
+rawSPM = 60.0 / medianInterval</code></pre>
+        <p>Valid interval range: <strong>0.5 s &ndash; 6.0 s</strong> (equivalent to 10&ndash;120 SPM).</p>
+
+        <h3>Exponential Moving Average (EMA) Smoothing</h3>
+        <p>To prevent the displayed SPM from flickering while preserving fast feedback:</p>
+        <pre><code>smoothedSPM = 0.6 × rawSPM + 0.4 × previousSPM</code></pre>
+        <p>The weight of 0.6 on the current value ensures fast response to genuine rate changes while dampening transient sensor jitter.</p>
+
+        <h3>Dynamic Debounce</h3>
+        <p>To prevent double-counting within a single stroke, a minimum inter-catch interval is enforced. The debounce window adapts dynamically to the current SPM:</p>
+        <pre><code>strokePeriod = 60.0 / currentSPM
+debounce = clamp(strokePeriod × 0.45, min: 0.4s, max: 2.0s)</code></pre>
+        <p>This allows the algorithm to accurately track high stroke rates (e.g., race starts at 40+ SPM) without false rejections.</p>
+
+        <hr>
+
+        <!-- 6. System Summary -->
+        <h2 id="system-summary">6. System Summary</h2>
+        <div class="mermaid-wrap" style="padding: 24px; background: rgba(0,0,0,0.3); border-radius: 12px; margin: 20px 0; border: 1px solid var(--border);">
+          <pre style="background:none;border:none;padding:0;color:var(--text-1);font-family:var(--font-mono);font-size:0.85rem;line-height:1.6;">
+CMDeviceMotion (50 Hz)
+        │
+        ▼
+  Dynamic Axis Selection
+  (EMA-based, orientation-agnostic)
+        │
+        ▼
+  2nd-Order Butterworth LPF
+  (fc = 3 Hz, noise rejection)
+        │
+        ▼
+  3-State Finite State Machine
+  (Idle → InTrough → InDrive)
+        │
+        ▼
+  Catch Event (at trough minimum)
+        │
+        ▼
+  Dynamic Debounce Filter
+        │
+        ▼
+  Median of Last 3 Intervals → EMA Smoothing
+        │
+        ▼
+  Published SPM (Int, rounded)</pre>
+        </div>
+
+        <hr>
+
+        <!-- 7. Privacy & Hardware Requirements -->
+        <h2 id="privacy-hardware">7. Privacy &amp; Hardware Requirements</h2>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Hardware Required</strong></td><td>iPhone accelerometer (built-in)</td></tr>
+              <tr><td><strong>External Sensor</strong></td><td>Not required</td></tr>
+              <tr><td><strong>Location Permission</strong></td><td>Not required</td></tr>
+              <tr><td><strong>Network Connection</strong></td><td>Not required</td></tr>
+              <tr><td><strong>Data Transmission</strong></td><td>All processing is strictly on-device; no sensor data leaves the phone.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Document Metadata Footer -->
+        <div class="doc-meta-footer" style="margin-top: 40px; padding: 20px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-2);">
+          <div><strong>Version:</strong> 1.0</div>
+          <div><strong>Author:</strong> Kaito Nakahira / Antigravity AI</div>
+          <div><strong>Date:</strong> 2026-06-25</div>
+        </div>
+
+        <!-- Navigation Buttons -->
         <nav class="page-nav" aria-label="Document navigation">
           <a href="/dev/docs/RowPilot-PM5-Communication-Architecture-v4.1/" class="page-nav-btn prev">
-            <span class="page-nav-label">← Previous</span>
+            <span class="page-nav-label">&larr; Previous</span>
             <span class="page-nav-title">PM5 Communication Architecture v4.1</span>
           </a>
           <a href="/dev/docs/RowPilot-Tide-Information-Architecture/" class="page-nav-btn next">
-            <span class="page-nav-label">Next →</span>
+            <span class="page-nav-label">Next &rarr;</span>
             <span class="page-nav-title">Tide Information Architecture</span>
           </a>
         </nav>
