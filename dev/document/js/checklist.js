@@ -80,6 +80,7 @@ export class Checklist {
     this._reviews = [];
     this._activeReviewId = null; // 先生編集用 or 生徒閲覧用の選択ID（null = Overview）
     this._isTeacher = false;
+    this._collapsedSections = new Set(); // 折りたたまれたセクションのIDセット
 
     this._build();
   }
@@ -134,7 +135,7 @@ export class Checklist {
       </div>
 
       <!-- 評価進捗バー -->
-      <div class="cl-progress-wrap" style="margin-bottom: 16px; background: var(--color-surface); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+      <div class="cl-progress-wrap" style="margin-bottom: 12px; background: var(--color-surface); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
         <div class="cl-progress-label" style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 6px;">
           <span class="cl-progress-title-text">評価進捗 (Overview)</span>
           <span class="cl-progress-count">0/16</span>
@@ -142,6 +143,13 @@ export class Checklist {
         <div class="cl-progress-bar" style="height: 8px; background: var(--color-border-light); border-radius: 4px; overflow: hidden;">
           <div class="cl-progress-fill" style="width: 0%; height: 100%; background: var(--color-accent); transition: width 0.3s;"></div>
         </div>
+      </div>
+
+      <!-- セクション一括折りたたみ/展開ボタン -->
+      <div class="cl-sections-toggle-bar" style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 12px; font-size: 11.5px;">
+        <button type="button" class="cl-btn-expand-all" style="background: none; border: none; padding: 0; color: var(--color-text-muted); cursor: pointer; text-decoration: underline;">すべて展開</button>
+        <span style="color: var(--color-border-dark);">|</span>
+        <button type="button" class="cl-btn-collapse-all" style="background: none; border: none; padding: 0; color: var(--color-text-muted); cursor: pointer; text-decoration: underline;">すべて最小化</button>
       </div>
 
       <!-- チェックリストコンテンツ -->
@@ -156,6 +164,18 @@ export class Checklist {
       const isHidden = promptBox.style.display === 'none';
       promptBox.style.display = isHidden ? 'block' : 'none';
       promptIcon.textContent = isHidden ? '▲' : '▼';
+    });
+
+    // すべて展開 / すべて最小化
+    const btnExpandAll = this.container.querySelector('.cl-btn-expand-all');
+    const btnCollapseAll = this.container.querySelector('.cl-btn-collapse-all');
+    btnExpandAll.addEventListener('click', () => {
+      this._collapsedSections.clear();
+      this._render();
+    });
+    btnCollapseAll.addEventListener('click', () => {
+      CHECKLIST.forEach(s => this._collapsedSections.add(s.id));
+      this._render();
     });
 
     this._tabsContainer = this.container.querySelector('.cl-tabs-container');
@@ -252,14 +272,43 @@ export class Checklist {
             ${sectionChecked}/${section.items.length}
           </span>`;
 
+      const isCollapsed = this._collapsedSections.has(section.id);
+      if (isCollapsed) {
+        sectionEl.classList.add('cl-section--collapsed');
+      }
+
       sectionEl.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <span style="font-weight: 600; font-size: 13.5px; color: var(--color-text-primary); ${section.optional ? 'text-decoration: line-through;' : ''}">${section.title}</span>
+        <div class="cl-section-header" title="クリックして最小化/展開" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="cl-section-collapse-btn" style="display: inline-block; font-size: 10px; color: var(--color-text-muted); width: 14px; text-align: center;">${isCollapsed ? '▶' : '▼'}</span>
+            <span style="font-weight: 600; font-size: 13.5px; color: var(--color-text-primary); ${section.optional ? 'text-decoration: line-through;' : ''}">${section.title}</span>
+          </div>
           ${badgeHtml}
         </div>
-        <p style="font-size: 11.5px; color: var(--color-text-muted); margin-bottom: 10px; ${section.optional ? 'text-decoration: line-through;' : ''}">${section.description}</p>
-        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;"></ul>
+        <div class="cl-section-body" style="${isCollapsed ? 'display: none;' : ''}">
+          <p style="font-size: 11.5px; color: var(--color-text-muted); margin: 6px 0 10px 0; ${section.optional ? 'text-decoration: line-through;' : ''}">${section.description}</p>
+          <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;"></ul>
+        </div>
       `;
+
+      const header = sectionEl.querySelector('.cl-section-header');
+      const body = sectionEl.querySelector('.cl-section-body');
+      const collapseBtn = sectionEl.querySelector('.cl-section-collapse-btn');
+
+      header.addEventListener('click', () => {
+        const currentlyCollapsed = this._collapsedSections.has(section.id);
+        if (currentlyCollapsed) {
+          this._collapsedSections.delete(section.id);
+          body.style.display = '';
+          collapseBtn.textContent = '▼';
+          sectionEl.classList.remove('cl-section--collapsed');
+        } else {
+          this._collapsedSections.add(section.id);
+          body.style.display = 'none';
+          collapseBtn.textContent = '▶';
+          sectionEl.classList.add('cl-section--collapsed');
+        }
+      });
 
       const ul = sectionEl.querySelector('ul');
 

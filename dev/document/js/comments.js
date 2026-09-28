@@ -56,6 +56,7 @@ export class Comments {
     this._activeReviewId = null;
     this._pendingDraft = null; // 旧バージョンの未提出ドラフト引き継ぎ用
     this._hasVersionRequest = false; // 生徒がレビュー依頼を送ったか否か
+    this._collapsedComments = new Set(); // 折りたたまれたコメントIDのセット
 
     this._build();
   }
@@ -255,13 +256,17 @@ export class Comments {
       const name = r.teacher_name ? `${r.teacher_name}先生` : `先生 ${index + 1}`;
       const commentHtml = renderMarkdown(r.markdown_comment);
       const timeStr = formatDateJST(r.submitted_at);
+      const isCollapsed = this._collapsedComments.has(r.id);
       return `
-        <div style="background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); padding: 12px; margin-bottom: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-weight: 600; font-size: 12px; color: var(--color-text-muted);">${escapeHtml(name)}（提出済み）</span>
+        <div class="cm-card ${isCollapsed ? 'cm-card--collapsed' : ''}" data-review-id="${r.id}" style="background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: var(--radius-md); padding: 12px; margin-bottom: 8px;">
+          <div class="cm-card-header" title="クリックして最小化/展開" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: ${isCollapsed ? '0' : '8px'}; cursor: pointer; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="cm-card-collapse-icon" style="font-size: 10px; color: var(--color-text-muted);">${isCollapsed ? '▶' : '▼'}</span>
+              <span style="font-weight: 600; font-size: 12px; color: var(--color-text-muted);">${escapeHtml(name)}（提出済み）</span>
+            </div>
             <span style="font-size: 11px; color: var(--color-text-muted);">${timeStr}</span>
           </div>
-          <div style="font-size: 13px; line-height: 1.6; color: var(--color-text-primary);">${commentHtml}</div>
+          <div class="cm-card-body" style="font-size: 13px; line-height: 1.6; color: var(--color-text-primary); ${isCollapsed ? 'display: none;' : ''}">${commentHtml}</div>
         </div>
       `;
     }).join('');
@@ -292,14 +297,18 @@ export class Comments {
       const name = r.teacher_name ? `${r.teacher_name}先生` : `先生 ${index + 1}`;
       const commentHtml = renderMarkdown(r.markdown_comment);
       const timeStr = formatDateJST(r.submitted_at);
+      const isCollapsed = this._collapsedComments.has(r.id);
 
       return `
-        <div class="cm-card" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px; margin: 12px; box-shadow: var(--shadow-sm);">
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border-light); padding-bottom: 8px; margin-bottom: 12px;">
-            <span style="font-weight: 600; font-size: 14px; color: var(--color-accent);">${escapeHtml(name)}からのアドバイス</span>
+        <div class="cm-card ${isCollapsed ? 'cm-card--collapsed' : ''}" data-review-id="${r.id}" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px; margin: 12px; box-shadow: var(--shadow-sm);">
+          <div class="cm-card-header" title="クリックして最小化/展開" style="display: flex; justify-content: space-between; align-items: center; border-bottom: ${isCollapsed ? 'none' : '1px solid var(--color-border-light)'}; padding-bottom: ${isCollapsed ? '0' : '8px'}; margin-bottom: ${isCollapsed ? '0' : '12px'}; cursor: pointer; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="cm-card-collapse-icon" style="font-size: 10px; color: var(--color-text-muted); width: 14px; text-align: center;">${isCollapsed ? '▶' : '▼'}</span>
+              <span style="font-weight: 600; font-size: 14px; color: var(--color-accent);">${escapeHtml(name)}からのアドバイス</span>
+            </div>
             <span style="font-size: 11px; color: var(--color-text-muted);">${timeStr}</span>
           </div>
-          <div class="cm-card-body" style="font-size: 13.5px; line-height: 1.6; color: var(--color-text-primary); white-space: pre-wrap;">
+          <div class="cm-card-body" style="font-size: 13.5px; line-height: 1.6; color: var(--color-text-primary); white-space: pre-wrap; ${isCollapsed ? 'display: none;' : ''}">
             ${commentHtml}
           </div>
         </div>
@@ -311,6 +320,35 @@ export class Comments {
         ${cards}
       </div>
     `;
+
+    // コメントカード折りたたみイベント登録
+    this._contentEl.querySelectorAll('.cm-card').forEach(card => {
+      const header = card.querySelector('.cm-card-header');
+      const body = card.querySelector('.cm-card-body');
+      const icon = card.querySelector('.cm-card-collapse-icon');
+      const rId = parseInt(card.dataset.reviewId, 10);
+
+      header?.addEventListener('click', () => {
+        const currentlyCollapsed = this._collapsedComments.has(rId);
+        if (currentlyCollapsed) {
+          this._collapsedComments.delete(rId);
+          body.style.display = '';
+          icon.textContent = '▼';
+          header.style.borderBottom = '1px solid var(--color-border-light)';
+          header.style.paddingBottom = '8px';
+          header.style.marginBottom = '12px';
+          card.classList.remove('cm-card--collapsed');
+        } else {
+          this._collapsedComments.add(rId);
+          body.style.display = 'none';
+          icon.textContent = '▶';
+          header.style.borderBottom = 'none';
+          header.style.paddingBottom = '0';
+          header.style.marginBottom = '0';
+          card.classList.add('cm-card--collapsed');
+        }
+      });
+    });
   }
 
   _scheduleAutoSave() {

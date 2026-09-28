@@ -320,6 +320,219 @@ a:hover { text-decoration: underline; }
   background: var(--color-bg);
 }
 
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.panel-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.panel-icon-btn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-light);
+}
+
+.panel-icon-btn:active {
+  transform: scale(0.95);
+}
+
+/* ── パネル折りたたみ（最小化）状態 ───────────────────────────── */
+.panel-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.panel-collapsed-bar {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  padding: 12px 0;
+  gap: 14px;
+  background: var(--color-surface);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.panel-collapsed-bar:hover {
+  background: var(--color-surface-2);
+}
+
+.panel--collapsed {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  overflow: hidden !important;
+}
+
+.panel--collapsed .panel-inner {
+  display: none !important;
+}
+
+.panel--collapsed .panel-collapsed-bar {
+  display: flex !important;
+}
+
+.panel-collapsed-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  padding: 6px 0;
+}
+
+.panel-collapsed-bar:hover .panel-collapsed-label {
+  color: var(--color-accent);
+}
+
+.panel-collapsed-icon {
+  writing-mode: horizontal-tb;
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.panel-divider--disabled {
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* ── ヘッダーのパネル切り替えトグル群 ───────────────────────────── */
+.panel-toggles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+}
+
+.panel-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.panel-toggle-btn:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-dark);
+}
+
+.panel-toggle-btn--active {
+  background: var(--color-accent-light);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* ── チェックリスト セクション折りたたみ ────────────────────────── */
+.cl-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+  border-radius: var(--radius-sm);
+  transition: opacity 0.15s;
+}
+
+.cl-section-header:hover {
+  opacity: 0.85;
+}
+
+.cl-section-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.cl-section--collapsed .cl-section-body {
+  display: none !important;
+}
+
+.cl-section--collapsed .cl-section-collapse-btn {
+  transform: rotate(-90deg);
+}
+
+/* ── コメントカード折りたたみ ─────────────────────────────────── */
+.cm-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cm-card-header:hover {
+  opacity: 0.85;
+}
+
+.cm-card-collapse-icon {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+  margin-left: 8px;
+}
+
+.cm-card--collapsed .cm-card-header {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.cm-card--collapsed .cm-card-body {
+  display: none !important;
+}
+
+.cm-card--collapsed .cm-card-collapse-icon {
+  transform: rotate(-90deg);
+}
+
+
 /* ── Panel Tabs ─────────────────────────────────────────────── */
 .panel-tabs {
   display: flex;
@@ -1539,5 +1752,27 @@ details[open] .req-summary::before {
 
   .essay-textarea {
     min-height: 280px;
+  }
+
+  .panel--collapsed {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
+    height: 44px !important;
+    overflow: hidden !important;
+  }
+
+  .panel-collapsed-bar {
+    flex-direction: row !important;
+    padding: 0 16px !important;
+    gap: 12px !important;
+    height: 44px !important;
+  }
+
+  .panel-collapsed-label {
+    writing-mode: horizontal-tb !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    padding: 0 !important;
   }
 }

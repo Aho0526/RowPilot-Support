@@ -4,8 +4,8 @@
  */
 
 import { Editor }    from './editor.js';
-import { Checklist } from './checklist.js';
-import { Comments }  from './comments.js';
+import { Checklist } from './checklist.js?v=2.3';
+import { Comments }  from './comments.js?v=2.3';
 import {
   getEssay,
   getVersions,
@@ -1068,24 +1068,134 @@ window._app_setViewType = (type) => {
 // パネルリサイズ
 
 // ================================================================
+// ================================================================
 function initResizablePanels() {
   const main = document.querySelector('.app-main');
   if (!main) return;
 
+  const panels = [
+    document.getElementById('panel-essay'),
+    document.getElementById('panel-checklist'),
+    document.getElementById('panel-comments')
+  ];
+
   const dividers = main.querySelectorAll('.panel-divider[data-divider]');
+
+  // パネルの折りたたみ状態 (0: essay, 1: checklist, 2: comments)
+  const collapsed = [
+    false,
+    localStorage.getItem('rp_panel_collapsed_checklist') === '1',
+    localStorage.getItem('rp_panel_collapsed_comments') === '1'
+  ];
 
   // 初期カラム幅（%）
   let cols = [40, 30, 30];
 
   function applyGridCols() {
-    main.style.gridTemplateColumns =
-      `${cols[0]}fr 4px ${cols[1]}fr 4px ${cols[2]}fr`;
+    // デスクトップ表示でのグリッド適用
+    if (window.innerWidth > 900) {
+      const parts = [];
+      for (let i = 0; i < 3; i++) {
+        if (collapsed[i]) {
+          parts.push('44px');
+        } else {
+          parts.push(`${cols[i]}fr`);
+        }
+        if (i < 2) {
+          parts.push('4px');
+        }
+      }
+      main.style.gridTemplateColumns = parts.join(' ');
+    } else {
+      main.style.gridTemplateColumns = '';
+    }
+
+    // パネルのクラス更新
+    panels.forEach((p, idx) => {
+      if (p) {
+        p.classList.toggle('panel--collapsed', !!collapsed[idx]);
+      }
+    });
+
+    // ヘッダーのトグルボタン同期
+    const btnCl = document.getElementById('toggle-panel-checklist');
+    if (btnCl) {
+      btnCl.classList.toggle('panel-toggle-btn--active', !collapsed[1]);
+      btnCl.setAttribute('aria-pressed', String(!collapsed[1]));
+    }
+    const btnCm = document.getElementById('toggle-panel-comments');
+    if (btnCm) {
+      btnCm.classList.toggle('panel-toggle-btn--active', !collapsed[2]);
+      btnCm.setAttribute('aria-pressed', String(!collapsed[2]));
+    }
+
+    // ディバイダーの無効化/有効化
+    dividers.forEach((divider) => {
+      const divIdx = parseInt(divider.dataset.divider, 10);
+      const isDisabled = (divIdx === 0 && (collapsed[0] || collapsed[1])) ||
+                         (divIdx === 1 && (collapsed[1] || collapsed[2]));
+      divider.classList.toggle('panel-divider--disabled', isDisabled);
+    });
+
+    // リサイズイベントを発火してエディタ・Diff表示の再計算を促す
+    window.dispatchEvent(new Event('resize'));
   }
 
+  function setPanelCollapsed(idx, isCollapsed) {
+    collapsed[idx] = isCollapsed;
+    // すべて折りたたまれるのを防ぐ
+    if (collapsed.every(c => c)) {
+      collapsed[0] = false;
+    }
+    if (idx === 1) localStorage.setItem('rp_panel_collapsed_checklist', collapsed[1] ? '1' : '0');
+    if (idx === 2) localStorage.setItem('rp_panel_collapsed_comments', collapsed[2] ? '1' : '0');
+    applyGridCols();
+  }
+
+  function togglePanel(idx) {
+    setPanelCollapsed(idx, !collapsed[idx]);
+  }
+
+  // 最小化ボタンのイベント
+  main.querySelectorAll('.btn-collapse-panel').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = btn.dataset.panel;
+      if (target === 'checklist') togglePanel(1);
+      if (target === 'comments') togglePanel(2);
+    });
+  });
+
+  // 折りたたみ時バー・展開ボタンのイベント
+  main.querySelectorAll('.panel-collapsed-bar').forEach(bar => {
+    bar.addEventListener('click', () => {
+      const target = bar.dataset.panel;
+      if (target === 'checklist') setPanelCollapsed(1, false);
+      if (target === 'comments') setPanelCollapsed(2, false);
+    });
+  });
+
+  // ヘッダーのトグルボタンイベント
+  const btnToggleCl = document.getElementById('toggle-panel-checklist');
+  if (btnToggleCl) {
+    btnToggleCl.addEventListener('click', () => togglePanel(1));
+  }
+  const btnToggleCm = document.getElementById('toggle-panel-comments');
+  if (btnToggleCm) {
+    btnToggleCm.addEventListener('click', () => togglePanel(2));
+  }
+
+  // ドラッグによるリサイズ
   dividers.forEach((divider) => {
     const divIdx = parseInt(divider.dataset.divider, 10); // 0 or 1
 
     divider.addEventListener('mousedown', (e) => {
+      // 隣接パネルが折りたたまれている時はドラッグ無効
+      if ((divIdx === 0 && (collapsed[0] || collapsed[1])) ||
+          (divIdx === 1 && (collapsed[1] || collapsed[2]))) {
+        return;
+      }
+
       e.preventDefault();
       const startX     = e.clientX;
       const mainW      = main.getBoundingClientRect().width;
@@ -1130,6 +1240,14 @@ function initResizablePanels() {
       applyGridCols();
     });
   });
+
+  // ウィンドウリサイズ時の同期
+  window.addEventListener('resize', () => {
+    applyGridCols();
+  });
+
+  // 初回適用
+  applyGridCols();
 }
 
 // ================================================================
