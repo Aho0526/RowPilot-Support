@@ -172,7 +172,14 @@ class LanguageManager {
                 resultChatReviewSub: "各チャットをクリックすると、その発言があった瞬間の双方の位置へジャンプします。",
                 resultTakeawayHeader: "体験から学ぶネット安全・防犯リテラシー",
                 resultBtnCheckMap: "マップを確認する",
-                resultBtnReturnHome: "タイトルへ戻る"
+                resultBtnReturnHome: "タイトルへ戻る",
+                btnStartMapReplay: "🎬 マップで答え合わせ（リプレイ）を見る！",
+                btnViewResultSheet: "📋 勝敗シートを見る",
+                btnReplayPrev: "⏮️ 戻る",
+                btnReplayPlay: "▶️ 再生",
+                btnReplayPause: "⏸️ 一時停止",
+                btnReplayNext: "進む ⏭️",
+                replayHintJump: "💡 右のスマホ画面のメッセージを押すと、その発言瞬間にジャンプします！"
             },
 
             // ==========================================
@@ -329,7 +336,14 @@ class LanguageManager {
                 resultChatReviewSub: "メッセージを おすと、そのときの ばしょが わかるよ。",
                 resultTakeawayHeader: "べんきょうになったこと（たいせつな こと）",
                 resultBtnCheckMap: "マップを みる",
-                resultBtnReturnHome: "タイトルへ もどる"
+                resultBtnReturnHome: "タイトルへ もどる",
+                btnStartMapReplay: "🎬 マップで ほんとうのうごき（リプレイ）をみる！",
+                btnViewResultSheet: "📋 しょうはいシートを みる",
+                btnReplayPrev: "⏮️ もどる",
+                btnReplayPlay: "▶️ さいせい",
+                btnReplayPause: "⏸️ とめる",
+                btnReplayNext: "すすむ ⏭️",
+                replayHintJump: "💡 みぎのスマホの メッセージをおすと、そのときの ばしょが わかるよ！"
             }
         };
 

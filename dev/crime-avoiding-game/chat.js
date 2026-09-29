@@ -141,8 +141,19 @@ class ChatManager {
 
         if (!inputField) return;
 
+        let isComposing = false;
+        let isSending = false;
+
+        // IME変換状態の正確なトラッキング
+        inputField.addEventListener('compositionstart', () => {
+            isComposing = true;
+        });
+        inputField.addEventListener('compositionend', () => {
+            isComposing = false;
+        });
+
         // 文字入力時の「送信」ボタン表示/非表示（Instagram仕様）
-        inputField.addEventListener('input', () => {
+        const updateInputState = () => {
             const hasText = inputField.value.trim().length > 0;
             if (btnSend) {
                 if (hasText) {
@@ -158,37 +169,50 @@ class ChatManager {
                     extraIcons.classList.remove('hidden');
                 }
             }
-        });
+        };
+
+        inputField.addEventListener('input', updateInputState);
 
         // 送信実行ハンドラ
         const submitChat = () => {
+            if (isSending) return;
+
             const text = inputField.value.trim();
             if (!text) return;
 
-            // 送信処理
-            if (this.onSendChat) {
-                this.onSendChat(text);
-            }
+            isSending = true;
 
-            // 入力欄リセット
+            // 即座に入力欄を完全クリア（PCブラウザでのテキスト保持・再代入を徹底防止）
             inputField.value = '';
-            if (btnSend) btnSend.classList.add('hidden');
-            if (extraIcons) extraIcons.classList.remove('hidden');
-            inputField.focus();
+            updateInputState();
 
-            // ターン制入力欄にも同期セット（親切な連携）
-            const turnInput = document.getElementById('turnChatInput');
-            if (turnInput) {
-                turnInput.value = text;
-                if (window.gameManager) {
-                    window.gameManager.updateCommitButtonState();
+            // 送信処理実行
+            try {
+                if (this.onSendChat) {
+                    this.onSendChat(text);
                 }
+            } catch (err) {
+                console.error('Chat send error:', err);
+            } finally {
+                setTimeout(() => {
+                    isSending = false;
+                    // 送信後に入力欄が勝手に復元されていないか再点検
+                    if (inputField.value) {
+                        inputField.value = '';
+                        updateInputState();
+                    }
+                }, 50);
             }
+
+            inputField.focus();
         };
 
-        // Enterキーで即時送信
+        // Enterキーで即時送信 (日本語IME変換中は確定のみ行い送信しない)
         inputField.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
+                if (e.isComposing || isComposing || e.keyCode === 229) {
+                    return;
+                }
                 e.preventDefault();
                 submitChat();
             }

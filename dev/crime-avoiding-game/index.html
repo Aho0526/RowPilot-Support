@@ -344,6 +344,37 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- リプレイ・答え合わせコントローラーパネル (ゲーム終了後に表示) -->
+                    <div id="replayControllerPanel" class="replay-controller-panel hidden">
+                        <div class="replay-panel-header">
+                            <div class="replay-status-group">
+                                <span class="replay-title-badge">🎬 答え合わせリプレイ</span>
+                                <span id="replayStepDisplay" class="replay-step-display">第 1 ターン / 全 12 ターン</span>
+                                <span id="replayDistanceDisplay" class="replay-dist-display">距離: 3区画</span>
+                            </div>
+                            <button id="btnReopenResultModal" class="btn btn-outline btn-sm" data-i18n="btnViewResultSheet">📋 勝敗シートを見る</button>
+                        </div>
+
+                        <div class="replay-controls-row">
+                            <button id="btnReplayPrev" class="btn btn-replay-step" title="前のターン" data-i18n="btnReplayPrev">⏮️ 戻る</button>
+                            <button id="btnReplayPlayPause" class="btn btn-replay-play" data-i18n="btnReplayPlay">▶️ 再生</button>
+                            <button id="btnReplayNext" class="btn btn-replay-step" title="次のターン" data-i18n="btnReplayNext">進む ⏭️</button>
+                            <div class="replay-slider-container">
+                                <input type="range" id="replayMapSlider" class="replay-slider" min="0" max="10" value="0">
+                            </div>
+                        </div>
+
+                        <div class="replay-panel-footer">
+                            <span id="replayTimestampDisplay" style="font-size: 0.82rem; color: var(--text-secondary); font-weight: 700;">
+                                ⏱️ 00:00 時点
+                            </span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);" data-i18n="replayHintJump">
+                                💡 右のスマホ画面のメッセージを押すと、その発言瞬間にジャンプします！
+                            </span>
+                            <button id="btnReplayReturnHome" class="btn btn-outline btn-sm" data-i18n="resultBtnReturnHome">🏠 タイトルへ</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 右側：スマートフォン風 Instagram DM パネル -->
@@ -588,26 +619,24 @@
                 </div>
             </div>
 
-            <!-- リプレイツールバー -->
-            <div class="replay-controller">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <strong style="font-size: 1rem;" data-i18n="resultReplayTitle">🎬 真実の答え合わせ（リプレイ）</strong>
-                    <button id="btnPlayReplay" class="btn btn-outline btn-sm">▶️ 再生</button>
+            <!-- 答え合わせ（リプレイ）への導線バナー -->
+            <div style="background: #f0fdf4; border: 2px solid #86efac; border-radius: var(--radius-md); padding: 16px; margin: 16px 0; text-align: center;">
+                <div style="font-size: 1.05rem; font-weight: 800; color: #166534; margin-bottom: 6px;" data-i18n="resultReplayBannerTitle">
+                    🎬 犯罪者はどこを歩いていた？
                 </div>
-                <div class="replay-slider-row">
-                    <input type="range" id="replaySlider" class="replay-slider" min="0" max="10" value="10">
-                </div>
-                <div class="replay-info-row">
-                    <span id="replayDistanceInfo">距離: 計算中...</span>
-                    <span style="font-size: 0.8rem; color: var(--text-muted);" data-i18n="resultReplaySub">スライダーを動かして移動と接近を確認</span>
-                </div>
+                <p style="font-size: 0.85rem; color: #15803d; margin-bottom: 12px;" data-i18n="resultReplayBannerDesc">
+                    ゲーム画面に戻り、犯罪者の実際の足跡やチャット発言時の本当の居場所をコマ送り・等倍アニメーションで完全開示します！
+                </p>
+                <button id="btnStartMapReplay" class="btn btn-primary" style="background: #16a34a; font-size: 1.05rem; padding: 12px 24px; width: 100%; font-weight: 800; box-shadow: 0 4px 0 #15803d;" data-i18n="btnStartMapReplay">
+                    🎬 マップで答え合わせ（リプレイ）を見る！
+                </button>
             </div>
 
             <!-- チャット答え合わせ -->
             <div class="review-section">
                 <h3 data-i18n="resultChatReviewTitle"><span>💬</span> 発言時の実際の居場所（真偽検証）</h3>
                 <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 10px;" data-i18n="resultChatReviewSub">
-                    各チャットをクリックすると、その発言があった瞬間の双方の位置へジャンプします。
+                    各チャットをクリックすると、モーダルを閉じてマップ上のその瞬間の位置へジャンプします。
                 </p>
                 <div id="reviewChatList" class="review-chat-list">
                     <!-- 動的に挿入 -->
@@ -625,9 +654,9 @@
                 </div>
             </div>
 
-            <div class="modal-footer">
-                <button id="btnCloseResult" class="btn btn-outline" data-i18n="resultBtnCheckMap">マップを確認する</button>
-                <button id="btnReturnHome" class="btn btn-primary" data-i18n="resultBtnReturnHome">タイトルへ戻る</button>
+            <div class="modal-footer" style="display: flex; gap: 10px;">
+                <button id="btnStartMapReplayFooter" class="btn btn-primary" style="flex: 1;" data-i18n="btnStartMapReplay">🎬 マップで答え合わせ</button>
+                <button id="btnReturnHome" class="btn btn-outline" style="flex: 1;" data-i18n="resultBtnReturnHome">タイトルへ戻る</button>
             </div>
         </div>
     </div>

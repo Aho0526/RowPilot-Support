@@ -166,12 +166,12 @@ body {
 /* Project Cards Grid */
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 28px;
   flex: 1;
 }
 
-/* Featured Card (1 x 3) - Research Docs */
+/* Featured Card (1 x 2) - Research Docs */
 .card-docs--featured {
   grid-column: 1 / -1;
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(99, 102, 241, 0.08) 50%, rgba(17, 24, 39, 0.8) 100%);
@@ -294,6 +294,9 @@ body {
 }
 
 /* Card Themes */
+.card-crime-game .card-glow {
+  background: linear-gradient(90deg, #ef4444, #f59e0b, #ec4899);
+}
 .card-game .card-glow {
   background: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6);
 }
@@ -334,6 +337,11 @@ body {
 
 .project-card:hover .icon-wrap {
   transform: scale(1.06);
+}
+
+.crime-icon {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(245, 158, 11, 0.15));
+  color: #f87171;
 }
 
 .game-icon {
@@ -480,6 +488,13 @@ body {
 }
 
 /* Card Specific Button Hover Variations */
+.card-crime-game:hover .btn-primary {
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35);
+}
+
 .card-game:hover .btn-primary {
   background: linear-gradient(135deg, #a855f7, #6366f1);
   color: #ffffff;

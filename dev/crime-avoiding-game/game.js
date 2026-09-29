@@ -533,16 +533,8 @@ class GameManager {
             if (extraIcons) extraIcons.classList.remove('hidden');
         }
 
-        // チャットが空の場合はデフォルトのメッセージ
-        if (!chatText) {
-            const lm = window.languageManager;
-            const isKids = lm && lm.isKidsMode;
-            if (this.role === 'victim') {
-                chatText = isKids ? '……どこへ にげようかな……' : '……どこへ逃げるべきか……';
-            } else {
-                chatText = isKids ? '……どこに いるのかな……' : '……どこに潜んでいるんだ……';
-            }
-        }
+        // チャットが空の場合は送信しない（自動送信は行わない）
+        chatText = chatText || '';
 
         // 待機状態に切り替え（相手待ちUIを表示、確定ボタンは無効化、交差点は保持）
         this.setWaitingOpponentState(true);
