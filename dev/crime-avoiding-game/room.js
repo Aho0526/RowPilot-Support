@@ -78,7 +78,23 @@ class RoomManager {
             btnCreateRoom.addEventListener('click', () => this.handleCreateRoom());
         }
 
-        // 7. ルーム参加ボタン
+        // 7. ルーム参加ボタン＆入力欄の自動半角変換
+        const joinRoomInput = document.getElementById('joinRoomCode');
+        if (joinRoomInput) {
+            const formatCode = (el) => {
+                const converted = (el.value || '')
+                    .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+                    .replace(/[^0-9]/g, '')
+                    .slice(0, 4);
+                if (el.value !== converted) {
+                    el.value = converted;
+                }
+            };
+            joinRoomInput.addEventListener('input', () => formatCode(joinRoomInput));
+            joinRoomInput.addEventListener('blur', () => formatCode(joinRoomInput));
+            joinRoomInput.addEventListener('compositionend', () => formatCode(joinRoomInput));
+        }
+
         const btnJoinRoom = document.getElementById('btnJoinRoom');
         if (btnJoinRoom) {
             btnJoinRoom.addEventListener('click', () => this.handleJoinRoom());
@@ -152,6 +168,14 @@ class RoomManager {
             this.roomId = res.roomId;
             this.isHost = true;
 
+            // Workers / ローカル両対応: 確実にゲーム状態を playing に確定
+            try {
+                await window.apiService.startGame(res.roomId, res.playerId);
+            } catch (e) {
+                // すでに playing の場合などはスキップ
+                console.log('Solo game started state confirmed:', e.message);
+            }
+
             const startNode = 'node_0_3';
             window.playerManager.setMe(res.playerId, playerName, role, startNode);
             window.mapManager.initMapData(mapType);
@@ -200,11 +224,17 @@ class RoomManager {
     async handleJoinRoom() {
         const roomInput = document.getElementById('joinRoomCode');
         const nameInput = document.getElementById('joinPlayerName');
-        const roomId = roomInput ? roomInput.value.trim() : '';
+        const rawCode = roomInput ? roomInput.value : '';
+        const roomId = (rawCode || '')
+            .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+            .replace(/[^0-9]/g, '')
+            .slice(0, 4);
+        if (roomInput) roomInput.value = roomId;
+
         const playerName = nameInput ? nameInput.value.trim() : 'プレイヤー2';
 
-        if (!roomId) {
-            alert('ルームコードを入力してください');
+        if (!roomId || roomId.length !== 4) {
+            alert('数字4桁のルームコードを入力してください');
             return;
         }
 

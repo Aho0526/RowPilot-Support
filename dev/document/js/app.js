@@ -340,8 +340,8 @@ async function loadReview(versionId) {
 let isSyncing = false;
 
 function startLiveSync() {
-  // 30秒ごとの自動同期
-  setInterval(syncLatestData, 30000);
+  // 5分（300000ms）ごとの自動同期
+  setInterval(syncLatestData, 300000);
 
   // タブ復帰・ウィンドウフォーカス時にも即時同期
   window.addEventListener('focus', syncLatestData);

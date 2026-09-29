@@ -28,6 +28,7 @@
                 <button id="btnToggleKids" class="btn btn-outline btn-sm" style="border-radius: var(--radius-full);">👶 こどもモード: OFF</button>
                 <button id="btnToggleSound" class="btn btn-outline btn-sm">🔊 音: ON</button>
                 <button id="btnHowToPlay" class="btn btn-outline btn-sm" data-i18n="btnHowToPlay">📜 ルール説明</button>
+                <span class="app-version-badge" title="バージョン">v1.8-dev(9/29 22:30)</span>
             </div>
         </div>
     </header>
@@ -194,9 +195,10 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" data-i18n="pvpLabelRoomCode">ルームコード (4〜6文字)</label>
-                        <input type="text" id="joinRoomCode" class="form-input" placeholder="例: 7K9X"
-                            style="text-transform: uppercase; font-family: var(--font-mono); font-size: 1.25rem; letter-spacing: 0.15em;">
+                        <label class="form-label" data-i18n="pvpLabelRoomCode">ルームコード (数字4桁)</label>
+                        <input type="text" id="joinRoomCode" class="form-input" placeholder="例: 1234"
+                            maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off"
+                            style="font-family: var(--font-mono); font-size: 1.25rem; letter-spacing: 0.15em;">
                     </div>
 
                     <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;" data-i18n="pvpRoleAutoNotice">
@@ -720,16 +722,16 @@
     </div>
 
     <!-- スクリプト群 -->
-    <script src="lang.js"></script>
-    <script src="audio.js"></script>
-    <script src="map.js"></script>
-    <script src="player.js"></script>
-    <script src="chat.js"></script>
-    <script src="api.js"></script>
-    <script src="result.js"></script>
-    <script src="ai.js"></script>
-    <script src="room.js"></script>
-    <script src="game.js"></script>
+    <script src="lang.js?v=1.8.3"></script>
+    <script src="audio.js?v=1.8.3"></script>
+    <script src="map.js?v=1.8.3"></script>
+    <script src="player.js?v=1.8.3"></script>
+    <script src="chat.js?v=1.8.3"></script>
+    <script src="api.js?v=1.8.3"></script>
+    <script src="result.js?v=1.8.3"></script>
+    <script src="ai.js?v=1.8.3"></script>
+    <script src="room.js?v=1.8.3"></script>
+    <script src="game.js?v=1.8.3"></script>
 </body>
 
 </html>

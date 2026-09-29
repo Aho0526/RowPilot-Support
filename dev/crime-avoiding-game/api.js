@@ -22,6 +22,16 @@ class ApiService {
         localStorage.setItem('crime_server_url', this.serverUrl);
     }
 
+    isAiRoom(roomId) {
+        if (!roomId) return false;
+        try {
+            const data = this.getLocalData();
+            return !!(data.rooms && data.rooms[roomId] && data.rooms[roomId].isAiMode);
+        } catch (e) {
+            return false;
+        }
+    }
+
     isRemoteMode() {
         return !!this.serverUrl;
     }
@@ -59,7 +69,7 @@ class ApiService {
 
     // ルーム作成
     async createRoom(hostName, preferredRole, mapType = '3x3', isAiMode = false) {
-        if (this.isRemoteMode()) {
+        if (this.isRemoteMode() && !isAiMode) {
             const res = await fetch(`${this.serverUrl}/api/room/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -70,7 +80,8 @@ class ApiService {
         }
 
         // --- ローカル擬似サーバー ---
-        const roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
+        // 数字4桁のルームIDを生成 (1000〜9999)
+        const roomId = Math.floor(1000 + Math.random() * 9000).toString();
         const playerId = 'p_' + Math.random().toString(36).substring(2, 8);
         const hostRole = preferredRole === 'criminal' ? 'criminal' : 'victim';
         const guestRole = hostRole === 'criminal' ? 'victim' : 'criminal';
@@ -163,7 +174,10 @@ class ApiService {
 
     // ルーム参加
     async joinRoom(roomId, playerName) {
-        roomId = (roomId || '').trim().toUpperCase();
+        roomId = String(roomId || '')
+            .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+            .replace(/[^0-9]/g, '')
+            .trim();
         if (this.isRemoteMode()) {
             const res = await fetch(`${this.serverUrl}/api/room/join`, {
                 method: 'POST',
@@ -218,7 +232,7 @@ class ApiService {
 
     // ゲーム開始
     async startGame(roomId, playerId) {
-        if (this.isRemoteMode()) {
+        if (this.isRemoteMode() && !this.isAiRoom(roomId)) {
             const res = await fetch(`${this.serverUrl}/api/room/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -263,7 +277,7 @@ class ApiService {
 
     // ゲーム状態取得（情報非対称性マスキング処理）
     async getGameState(roomId, playerId) {
-        if (this.isRemoteMode()) {
+        if (this.isRemoteMode() && !this.isAiRoom(roomId)) {
             const res = await fetch(`${this.serverUrl}/api/game/state?roomId=${roomId}&playerId=${playerId}`, {
                 headers: { 'X-Player-Id': playerId }
             });
@@ -346,7 +360,7 @@ class ApiService {
 
     // 【重要】ターン行動提出（移動先決定 ＋ チャット送信）
     async submitTurnAction(roomId, playerId, toNode, chatText) {
-        if (this.isRemoteMode()) {
+        if (this.isRemoteMode() && !this.isAiRoom(roomId)) {
             const res = await fetch(`${this.serverUrl}/api/game/turn-action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -484,7 +498,7 @@ class ApiService {
     async sendChat(roomId, playerId, content) {
         if (!content || !content.trim()) return;
 
-        if (this.isRemoteMode()) {
+        if (this.isRemoteMode() && !this.isAiRoom(roomId)) {
             const res = await fetch(`${this.serverUrl}/api/chat/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -521,7 +535,7 @@ class ApiService {
 
     // 被害者による「ブロック＆削除」
     async blockCriminal(roomId, playerId) {
-        if (this.isRemoteMode()) {
+        if (this.isRemoteMode() && !this.isAiRoom(roomId)) {
             const res = await fetch(`${this.serverUrl}/api/game/block`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -575,7 +589,7 @@ class ApiService {
 
     // 回線切断・退出によるゲーム終了
     async abandonGame(roomId, playerId, reason) {
-        if (this.isRemoteMode()) {
+        if (this.isRemoteMode() && !this.isAiRoom(roomId)) {
             const res = await fetch(`${this.serverUrl}/api/game/abandon`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -605,7 +619,7 @@ class ApiService {
 
     // 振り返りデータ取得
     async getReviewData(roomId) {
-        if (this.isRemoteMode()) {
+        if (this.isRemoteMode() && !this.isAiRoom(roomId)) {
             const res = await fetch(`${this.serverUrl}/api/game/review?roomId=${roomId}`);
             if (!res.ok) throw new Error((await res.json()).error || '振り返りデータ取得失敗');
             return await res.json();

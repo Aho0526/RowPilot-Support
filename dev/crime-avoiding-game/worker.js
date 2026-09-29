@@ -80,24 +80,30 @@ function jsonResponse(data, headers, status = 200) {
 // ルーム作成
 async function handleCreateRoom(request, env, headers) {
     const { hostName, preferredRole, mapType = '3x3', isAiMode = false } = await request.json();
-    const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+    // 数字4桁のルームIDを生成 (1000〜9999)
+    const roomId = Math.floor(1000 + Math.random() * 9000).toString();
     const playerId = 'p_' + Math.random().toString(36).substring(2, 10);
     const now = Date.now();
 
     // 初期配置の候補（3x3の場合: 16ノード）
     // 犯罪者と被害者はある程度離れた位置からスタート
-    const victimStart = 'node_0_3'; // 被害者: 南西
-    const criminalStart = 'node_3_0'; // 犯罪者: 北東
-    const victimGoal = 'node_3_3'; // 被害者の目的地: 南東（駅・避難所など）
+    const is4x4 = mapType === '4x4';
+    const victimStart = is4x4 ? 'node_0_4' : 'node_0_3';
+    const criminalStart = is4x4 ? 'node_4_0' : 'node_3_0';
+    const victimGoal = is4x4 ? 'node_4_4' : 'node_3_3';
+    const maxTurns = is4x4 ? 16 : 12;
 
     const hostRole = preferredRole === 'criminal' ? 'criminal' : 'victim';
     const guestRole = hostRole === 'criminal' ? 'victim' : 'criminal';
 
     const db = env.DB;
+    const initialStatus = isAiMode ? 'playing' : 'waiting';
+    const startedAt = isAiMode ? now : null;
+
     await db.prepare(`
-        INSERT INTO rooms (id, status, map_type, time_limit, victim_goal_node, created_at)
-        VALUES (?, 'waiting', ?, 120, ?, ?)
-    `).bind(roomId, mapType, victimGoal, now).run();
+        INSERT INTO rooms (id, status, map_type, time_limit, max_turns, victim_goal_node, created_at, started_at)
+        VALUES (?, ?, ?, 120, ?, ?, ?, ?)
+    `).bind(roomId, initialStatus, mapType, maxTurns, victimGoal, now, startedAt).run();
 
     const hostStartNode = hostRole === 'victim' ? victimStart : criminalStart;
     await db.prepare(`
@@ -113,6 +119,17 @@ async function handleCreateRoom(request, env, headers) {
             INSERT INTO players (id, room_id, role, name, current_node, joined_at)
             VALUES (?, ?, ?, 'AI対戦者', ?, ?)
         `).bind(aiId, roomId, aiRole, aiStartNode, now).run();
+
+        // 1人プレイ用初期位置ログ
+        await db.prepare(`
+            INSERT INTO moves (room_id, player_id, role, turn, from_node, to_node, timestamp, elapsed_seconds)
+            VALUES (?, ?, ?, 1, ?, ?, ?, 0)
+        `).bind(roomId, playerId, hostRole, hostStartNode, hostStartNode, now).run();
+
+        await db.prepare(`
+            INSERT INTO moves (room_id, player_id, role, turn, from_node, to_node, timestamp, elapsed_seconds)
+            VALUES (?, ?, ?, 1, ?, ?, ?, 0)
+        `).bind(roomId, aiId, aiRole, aiStartNode, aiStartNode, now).run();
     }
 
     return jsonResponse({
@@ -126,7 +143,13 @@ async function handleCreateRoom(request, env, headers) {
 
 // ルーム参加
 async function handleJoinRoom(request, env, headers) {
-    const { roomId, playerName } = await request.json();
+    let { roomId, playerName } = await request.json();
+    if (roomId != null) {
+        roomId = String(roomId)
+            .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+            .replace(/[^0-9]/g, '')
+            .trim();
+    }
     const db = env.DB;
 
     const room = await db.prepare('SELECT * FROM rooms WHERE id = ?').bind(roomId.toUpperCase()).first();

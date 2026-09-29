@@ -175,8 +175,13 @@ class ResultManager {
             });
         });
 
-        // チャットイベント
+        // チャットイベント（「どこへ逃げるべきか」等の不要メッセージは除外）
+        const IGNORED_PHRASES = ['どこへ逃げるべきか', 'どこへ にげようかな', 'どこに潜んでいるんだ', 'どこに いるのかな'];
         (messages || []).forEach(msg => {
+            const c = msg.content || '';
+            if (IGNORED_PHRASES.some(phrase => c.includes(phrase))) {
+                return;
+            }
             allEvents.push({
                 type: 'chat',
                 role: msg.role,
@@ -185,7 +190,8 @@ class ResultManager {
                 sender: msg.sender_name,
                 senderNode: msg.sender_node_at_time,
                 timestamp: msg.timestamp,
-                elapsed: msg.elapsed_seconds
+                elapsed: msg.elapsed_seconds,
+                rawMessage: msg
             });
         });
 
@@ -217,7 +223,13 @@ class ResultManager {
         const replayPanel = document.getElementById('replayControllerPanel');
         if (replayPanel) replayPanel.classList.remove('hidden');
 
-        // 初期ステップを0にセットして再生準備
+        // スマホ画面をDMチャットビューに切り替え
+        const chatView = document.getElementById('instaChatView');
+        const detailsView = document.getElementById('instaDetailsView');
+        if (detailsView) detailsView.classList.add('hidden');
+        if (chatView) chatView.classList.remove('hidden');
+
+        // 初期ステップを0にセットして再生準備（チャットも0件から同期）
         this.setTimelineStep(0);
 
         // 自動再生をスタート！
@@ -341,6 +353,33 @@ class ResultManager {
                 setTimeout(() => pinEl.classList.remove('is-speaking-highlight'), 1200);
             }
         }
+
+        // ★ シークバーの現在ステップまでに送受信されたチャットメッセージを抽出し、DM画面に完全同期！
+        if (window.chatManager) {
+            const myPlayer = (this.reviewData?.players || []).find(p => p.role === this.myRole) || (this.reviewData?.players || [])[0];
+            const myId = myPlayer ? myPlayer.id : 'me';
+
+            const visibleMessages = [];
+            for (let i = 0; i <= this.currentStepIndex; i++) {
+                const ev = this.timelineEvents[i];
+                if (ev && ev.type === 'chat') {
+                    if (ev.rawMessage) {
+                        visibleMessages.push(ev.rawMessage);
+                    } else {
+                        visibleMessages.push({
+                            id: 'replay_msg_' + i,
+                            player_id: ev.role === this.myRole ? myId : 'opponent',
+                            role: ev.role,
+                            sender_name: ev.sender,
+                            content: ev.content,
+                            turn: ev.turn,
+                            timestamp: ev.timestamp
+                        });
+                    }
+                }
+            }
+            window.chatManager.updateMessages(visibleMessages, myId, this.myRole, true);
+        }
     }
 
     // チャット振り返りリスト（クリックでモーダルを閉じてマップ上のその瞬間にジャンプ）
@@ -349,7 +388,12 @@ class ResultManager {
         if (!listEl || !this.reviewData) return;
 
         listEl.innerHTML = '';
-        const messages = this.reviewData.messages || [];
+        const rawMessages = this.reviewData.messages || [];
+        const IGNORED_PHRASES = ['どこへ逃げるべきか', 'どこへ にげようかな', 'どこに潜んでいるんだ', 'どこに いるのかな'];
+        const messages = rawMessages.filter(msg => {
+            const c = msg.content || '';
+            return !IGNORED_PHRASES.some(phrase => c.includes(phrase));
+        });
 
         if (messages.length === 0) {
             listEl.innerHTML = '<p class="text-muted" style="padding: 10px; font-size: 0.85rem;">チャットのやり取りはありませんでした。</p>';

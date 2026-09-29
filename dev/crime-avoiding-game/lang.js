@@ -128,7 +128,7 @@ class LanguageManager {
                 pvpBtnCreate: "ルームを作成する",
                 pvpJoinCardTitle: "ルームに参加する",
                 pvpJoinCardSub: "友達のルームコードを入力",
-                pvpLabelRoomCode: "ルームコード (4〜6文字)",
+                pvpLabelRoomCode: "ルームコード (数字4桁)",
                 pvpRoleAutoNotice: "※ 役割はホストの相手側（ホストが逃げる側なら追う側、追う側なら逃げる側）に自動で決まります。",
                 pvpBtnJoin: "ルームに参加する",
 
@@ -292,7 +292,7 @@ class LanguageManager {
                 pvpBtnCreate: "へやを つくる！",
                 pvpJoinCardTitle: "へやに はいる",
                 pvpJoinCardSub: "ともだちの あいことば（コード）を いれてね",
-                pvpLabelRoomCode: "あいことば（コード 4〜6もじ）",
+                pvpLabelRoomCode: "あいことば（すうじ 4けた）",
                 pvpRoleAutoNotice: "※ やくわりは、あいてと べつの やくわり（あいてが にげるなら あなたは おうがわ）に じどうで きまります。",
                 pvpBtnJoin: "へやに はいる！",
 

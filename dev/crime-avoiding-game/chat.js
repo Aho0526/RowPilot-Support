@@ -332,15 +332,26 @@ class ChatManager {
     // =========================================================================
     // 5. メッセージ表示更新 (添付画像1に完全準拠)
     // =========================================================================
-    updateMessages(messageList, myId, myRole) {
+    updateMessages(messageList, myId, myRole, isReplay = false) {
         if (!this.container) return;
-        this.messages = messageList || [];
 
-        // 新着メッセージの効果音
+        // 「どこへ逃げるべきか」等の自動・不要メッセージは徹底除外
+        const IGNORED_PHRASES = ['どこへ逃げるべきか', 'どこへ にげようかな', 'どこに潜んでいるんだ', 'どこに いるのかな'];
+        const validMessages = (messageList || []).filter(msg => {
+            const c = msg.content || '';
+            return !IGNORED_PHRASES.some(phrase => c.includes(phrase));
+        });
+
+        this.messages = validMessages;
+
+        // 新着メッセージの効果音（リプレイ時のシークバー操作にも心地よく追従）
         if (this.messages.length > this.lastSeenMessageCount) {
             if (this.lastSeenMessageCount > 0 && window.soundManager) {
                 window.soundManager.playChatSound();
             }
+            this.lastSeenMessageCount = this.messages.length;
+        } else if (this.messages.length < this.lastSeenMessageCount) {
+            // シークバーを巻き戻した場合はカウントを同期（逆再生時の誤爆防止）
             this.lastSeenMessageCount = this.messages.length;
         }
 
@@ -366,9 +377,13 @@ class ChatManager {
             emptyTip.style.padding = '30px 10px';
             emptyTip.style.color = '#71717a';
             emptyTip.style.fontSize = '0.82rem';
-            emptyTip.innerHTML = isKids
-                ? `💬 メッセージを いれるか、すすむ ばしょを えらんで あいてと たたかおう！`
-                : `💬 メッセージを入力して送信するか、交差点を進めて相手と心理戦を繰り広げましょう。`;
+            if (isReplay) {
+                emptyTip.innerHTML = `💬 リプレイ開始時点：メッセージの送受信はまだありません。<br><span style="font-size:0.75rem; color:#a1a1aa;">シークバーを進めると、その時点でのメッセージがリアルタイムに表示されます。</span>`;
+            } else {
+                emptyTip.innerHTML = isKids
+                    ? `💬 メッセージを いれるか、すすむ ばしょを えらんで あいてと たたかおう！`
+                    : `💬 メッセージを入力して送信するか、交差点を進めて相手と心理戦を繰り広げましょう。`;
+            }
             this.container.appendChild(emptyTip);
             return;
         }
