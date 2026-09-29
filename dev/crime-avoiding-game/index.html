@@ -28,30 +28,9 @@
                 <button id="btnToggleKids" class="btn btn-outline btn-sm" style="border-radius: var(--radius-full);">👶 こどもモード: OFF</button>
                 <button id="btnToggleSound" class="btn btn-outline btn-sm">🔊 音: ON</button>
                 <button id="btnHowToPlay" class="btn btn-outline btn-sm" data-i18n="btnHowToPlay">📜 ルール説明</button>
-                <button id="btnToggleSettings" class="btn btn-outline btn-sm" data-i18n="btnSettings">⚙️ 接続設定</button>
             </div>
         </div>
     </header>
-
-    <!-- サーバー接続設定 (折りたたみ) -->
-    <div id="serverSettingsBox" class="main-container hidden" style="padding-top: 10px; padding-bottom: 0;">
-        <div
-            style="background: #ffffff; border: 2px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                <h4 style="margin: 0; font-size: 0.95rem;">🌐 サーバー接続設定 (Cloudflare Workers & D1)</h4>
-                <span id="serverStatusTag" style="font-size: 0.78rem; font-weight: 700; color: #16a34a; background: #dcfce7; padding: 3px 10px; border-radius: 9999px;">● 接続中</span>
-            </div>
-            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
-                専用サーバー（Cloudflare Workers + D1）へ自動接続されています。離れた端末や友達同士でも同じルームコードで対戦可能です。
-            </p>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="inputServerUrl" class="form-input"
-                    placeholder="https://crime-avoiding-game.rowpilot-jp.workers.dev" style="flex: 1; min-width: 260px; font-family: monospace; font-size: 0.85rem;">
-                <button id="btnSaveServerUrl" class="btn btn-primary btn-sm">保存</button>
-                <button id="btnResetServerUrl" class="btn btn-outline btn-sm">デフォルトに戻す</button>
-            </div>
-        </div>
-    </div>
 
     <main class="main-container">
 
@@ -340,16 +319,14 @@
                                     <span>🎯</span> 移動先: <strong id="selectedNodeName"
                                         style="color:#b45309; margin-left:4px;" data-i18n="selectedNodeEmpty">未選択（交差点をタップ）</strong>
                                 </span>
-                                <span style="font-size:0.78rem; color:var(--text-muted); font-weight:700;" data-i18n="turnStepGuide">②
-                                    チャットを添えて確定</span>
+                                <span style="font-size:0.8rem; color:var(--text-muted); font-weight:700;" data-i18n="turnStepGuide">
+                                    ※ チャットはスマホ画面から直接送信できます
+                                </span>
                             </div>
 
-                            <div class="turn-commit-row">
-                                <input type="text" id="turnChatInput" class="turn-chat-input"
-                                    placeholder="相手を惑わすウソや居場所のヒントを入力..." maxlength="80"
-                                    data-i18n-placeholder="turnChatPlaceholder">
+                            <div class="turn-commit-row no-chat">
                                 <button id="btnCommitTurn" class="btn btn-commit-action" disabled data-i18n="btnCommitTurn">
-                                    行動を確定する！
+                                    この交差点への移動を確定する！
                                 </button>
                             </div>
                         </div>
@@ -357,8 +334,13 @@
                         <!-- 相手待機フェーズ -->
                         <div id="turnWaitingPhase" class="hidden">
                             <div class="waiting-pulse-box">
-                                <span>⏳</span>
-                                <span data-i18n="turnWaitingNotice">相手が移動先とメッセージを決めるのを待っています…</span>
+                                <div class="pulse-icon" style="font-size: 1.8rem; animation: pulse 1.5s infinite;">⏳</div>
+                                <div class="waiting-text-group" style="display: flex; flex-direction: column; gap: 3px;">
+                                    <strong style="font-size: 0.95rem; color: #b45309;" data-i18n="turnWaitingNoticeTitle">相手の入力を待っています…</strong>
+                                    <span style="font-size: 0.8rem; color: var(--text-secondary);" data-i18n="turnWaitingNoticeSub">
+                                        相手が決めるまで移動は保留されます。スマホからチャット送信も可能です！
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -682,6 +664,29 @@
             <div class="modal-footer" style="margin-top: 20px;">
                 <button id="btnCloseRules" class="btn btn-primary" style="width: 100%;" data-i18n="rulesBtnClose">とじる</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 相手回線切断待機モーダル (30秒カウントダウン) -->
+    <div id="modalDisconnectWait" class="modal-backdrop hidden" style="z-index: 99999;">
+        <div class="modal-dialog" style="max-width: 440px; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 12px; animation: pulse 1.5s infinite;">📡</div>
+            <h3 style="color: #dc2626; font-size: 1.3rem; margin-bottom: 8px;" data-i18n="disconnectModalTitle">⚠️ 相手のインターネット接続が切れました</h3>
+            <p style="color: var(--text-secondary); font-size: 0.88rem; line-height: 1.6; margin-bottom: 16px;" data-i18n="disconnectModalDesc">
+                相手の通信が途絶えました。復帰を待機しています…<br>
+                相手が復帰した場合は自動的に対戦を継続します。
+            </p>
+            <div style="background: #fef2f2; border: 2px solid #fecaca; border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+                <div style="font-size: 0.8rem; color: #991b1b; font-weight: 700; margin-bottom: 4px;" data-i18n="disconnectRemainLabel">
+                    復帰待機リミット
+                </div>
+                <div id="disconnectCountdown" style="font-size: 2.4rem; font-weight: 900; color: #dc2626; font-family: monospace;">
+                    30秒
+                </div>
+            </div>
+            <button id="btnAbandonGameManual" class="btn btn-outline btn-sm" style="color: var(--text-muted); width: 100%;" data-i18n="btnAbandonGameManual">
+                待たずにセッションを終了する
+            </button>
         </div>
     </div>
 

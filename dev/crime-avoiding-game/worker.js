@@ -48,6 +48,9 @@ export default {
             if (path === '/api/game/block' && request.method === 'POST') {
                 return await handleBlock(request, env, corsHeaders);
             }
+            if (path === '/api/game/abandon' && request.method === 'POST') {
+                return await handleAbandonGame(request, env, corsHeaders);
+            }
             if (path === '/api/game/review' && request.method === 'GET') {
                 return await handleGetReview(request, env, corsHeaders, url);
             }
@@ -188,7 +191,7 @@ async function handleStartGame(request, env, headers) {
     return jsonResponse({ success: true, startedAt: now }, headers);
 }
 
-// ゲーム状態取得（情報非対称性フィルタリング）
+// ゲーム状態取得（情報非対称性フィルタリング & 接続死活監視）
 async function handleGetGameState(request, env, headers, url) {
     const roomId = url.searchParams.get('roomId');
     const playerId = request.headers.get('X-Player-Id') || url.searchParams.get('playerId');
@@ -197,20 +200,24 @@ async function handleGetGameState(request, env, headers, url) {
     const room = await db.prepare('SELECT * FROM rooms WHERE id = ?').bind(roomId).first();
     if (!room) return jsonResponse({ error: 'ルームが存在しません' }, headers, 404);
 
-    const players = await db.prepare('SELECT * FROM players WHERE room_id = ?').bind(roomId).all();
-    const myPlayer = players.results.find(p => p.id === playerId);
-    if (!myPlayer && room.status === 'playing') {
-        // 観戦者などの扱い
+    const now = Date.now();
+
+    // 自分の最終アクセス時刻 (last_seen_at) を更新（オンライン死活監視用）
+    if (playerId) {
+        await db.prepare('UPDATE players SET last_seen_at = ? WHERE id = ?').bind(now, playerId).run();
     }
 
-    const now = Date.now();
+    const players = await db.prepare('SELECT * FROM players WHERE room_id = ?').bind(roomId).all();
+    const myPlayer = players.results.find(p => p.id === playerId);
+    const opponentPlayer = players.results.find(p => p.id !== playerId);
+
     let isInitialPeek = false; // 開始直後3秒以内か
     let remainingTime = room.time_limit;
 
     if (room.status === 'playing' && room.started_at) {
         const elapsedSec = Math.floor((now - room.started_at) / 1000);
         remainingTime = Math.max(0, room.time_limit - elapsedSec);
-        if (elapsedSec <= 3) {
+        if (elapsedSec <= 3 && (room.current_turn === 1 || !room.current_turn)) {
             isInitialPeek = true; // ゲーム開始3秒間だけ相手の位置が見える
         }
 
@@ -230,12 +237,15 @@ async function handleGetGameState(request, env, headers, url) {
     const sanitizedPlayers = players.results.map(p => {
         const isSelf = p.id === playerId;
         const canSee = isSelf || room.status === 'finished' || isInitialPeek;
+        const lastSeenAgo = p.last_seen_at ? Math.max(0, Math.floor((now - p.last_seen_at) / 1000)) : null;
 
         return {
             id: p.id,
             name: p.name,
             role: p.role,
             isBlocked: p.is_blocked,
+            isTurnReady: p.is_turn_ready === 1,
+            lastSeenAgo,
             // サーバー側で相手の現在地を厳格にマスク
             currentNode: canSee ? p.current_node : null,
             isSelf,
@@ -248,6 +258,12 @@ async function handleGetGameState(request, env, headers, url) {
         FROM messages WHERE room_id = ? ORDER BY id ASC LIMIT 50
     `).bind(roomId).all();
 
+    // 相手の切断判定（10秒以上通信が途絶えている場合）
+    const oppLastSeenAgo = opponentPlayer && opponentPlayer.last_seen_at
+        ? Math.max(0, Math.floor((now - opponentPlayer.last_seen_at) / 1000))
+        : null;
+    const isOpponentDisconnected = oppLastSeenAgo !== null && oppLastSeenAgo >= 10;
+
     return jsonResponse({
         room: {
             id: room.id,
@@ -255,10 +271,21 @@ async function handleGetGameState(request, env, headers, url) {
             mapType: room.map_type,
             timeLimit: room.time_limit,
             remainingTime,
+            currentTurn: room.current_turn || 1,
+            maxTurns: room.max_turns || 12,
             victimGoalNode: room.victim_goal_node,
             winner: room.winner,
             finishReason: room.finish_reason,
             isInitialPeek,
+        },
+        myStatus: {
+            isReady: myPlayer ? (myPlayer.is_turn_ready === 1) : false,
+            pendingMoveNode: myPlayer ? myPlayer.pending_move_node : null,
+        },
+        opponentStatus: {
+            isReady: opponentPlayer ? (opponentPlayer.is_turn_ready === 1) : false,
+            lastSeenAgo: oppLastSeenAgo,
+            isDisconnected: isOpponentDisconnected,
         },
         players: sanitizedPlayers,
         messages: messages.results,
@@ -522,6 +549,34 @@ async function handleTurnAction(request, env, headers) {
         turnResolved: true,
         currentTurn: currentTurn + 1,
         isGameOver,
+        winner,
+        finishReason,
+    }, headers);
+}
+
+// 接続切断・退出によるゲーム終了
+async function handleAbandonGame(request, env, headers) {
+    const { roomId, playerId, reason } = await request.json();
+    const db = env.DB;
+
+    const room = await db.prepare('SELECT * FROM rooms WHERE id = ?').bind(roomId).first();
+    if (!room) return jsonResponse({ error: 'ルームが存在しません' }, headers, 404);
+
+    const players = await db.prepare('SELECT * FROM players WHERE room_id = ?').bind(roomId).all();
+    const survivor = players.results.find(p => p.id === playerId);
+    const leaver = players.results.find(p => p.id !== playerId);
+
+    const now = Date.now();
+    const winner = survivor ? survivor.role : (room.winner || 'victim');
+    const finishReason = reason || (leaver ? `相手（${leaver.name}）の通信切断によりゲーム終了` : '通信切断によりゲーム終了');
+
+    await db.prepare(`
+        UPDATE rooms SET status = 'finished', ended_at = ?, winner = ?, finish_reason = ?
+        WHERE id = ?
+    `).bind(now, winner, finishReason, roomId).run();
+
+    return jsonResponse({
+        success: true,
         winner,
         finishReason,
     }, headers);

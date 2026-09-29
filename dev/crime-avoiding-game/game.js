@@ -24,6 +24,12 @@ class GameManager {
         this.currentTurn = 1;
         this.maxTurns = 12;
         this.isWaitingOpponent = false;
+        this.lastResolvedTurn = 1;
+
+        // 回線切断監視
+        this.disconnectTimer = null;
+        this.disconnectSecondsLeft = 30;
+        this.isOpponentDisconnected = false;
 
         this.peekBannerTimer = null;
     }
@@ -78,6 +84,8 @@ class GameManager {
                 const btnPvp = document.getElementById('btnPlayPvp');
                 if (btnPvp) btnPvp.click();
             }, 300);
+        } else if (urlParams.get('screen') === 'game') {
+            this.startGame('PREVIEW', 'p_test', 'victim', '3x3', true);
         } else if (urlParams.get('screen') === 'rules') {
             setTimeout(() => {
                 const btnRules = document.getElementById('btnHowToPlay');
@@ -212,6 +220,17 @@ class GameManager {
                 document.getElementById('resultModal').classList.add('hidden');
             });
         }
+
+        // 相手回線切断待機モーダルの手動セッション終了ボタン
+        const btnAbandonManual = document.getElementById('btnAbandonGameManual');
+        if (btnAbandonManual) {
+            btnAbandonManual.addEventListener('click', async () => {
+                this.stopDisconnectCountdown();
+                const modal = document.getElementById('modalDisconnectWait');
+                if (modal) modal.classList.add('hidden');
+                await this.handleAbandonSession('相手の通信切断によりセッションを終了しました');
+            });
+        }
     }
 
     // ゲーム開始
@@ -224,6 +243,9 @@ class GameManager {
         this.isGameOver = false;
         this.isWaitingOpponent = false;
         this.currentTurn = 1;
+        this.lastResolvedTurn = 1;
+        this.isOpponentDisconnected = false;
+        this.stopDisconnectCountdown();
 
         // 画面切り替え
         const titleEl = document.getElementById('screenTitle');
@@ -380,15 +402,21 @@ class GameManager {
                 }
             }
 
+            // 相手の回線切断監視
+            this.checkOpponentConnection(state);
+
             // 【重要】自分のターン準備状態の同期
             const isMyTurnReady = state.myStatus?.isReady;
+            const turnNumber = room.currentTurn || 1;
+
             if (isMyTurnReady) {
-                // 自分がすでに提出済みで相手待ちの場合
+                // 自分がすでに提出済みで相手待ちの場合：確実に待機状態を維持
                 this.setWaitingOpponentState(true);
-            } else if (this.isWaitingOpponent && !isMyTurnReady) {
-                // 相手も提出してターンが解決された瞬間！次の移動が許可される！
+            } else if (this.isWaitingOpponent) {
+                // 待機中だったのにサーバー側でターンが解決された（turnNumberが進んだ、または isMyTurnReady が解除された）！
                 this.setWaitingOpponentState(false);
                 this.resetTurnUI();
+                this.lastResolvedTurn = turnNumber;
                 if (window.soundManager) window.soundManager.playMoveSound();
             }
 
@@ -419,11 +447,19 @@ class GameManager {
             if (room.status === 'finished' && !this.isGameOver) {
                 this.isGameOver = true;
                 this.stopPolling();
+                this.stopDisconnectCountdown();
                 if (this.isAiMode) window.aiCriminal.stop();
                 window.resultManager.showResult(this.roomId, room.winner, room.finishReason, this.role);
             }
         } catch (err) {
             console.error('State sync error:', err);
+            // オフライン・ネットワーク切断の検知
+            const headerOnlineBadge = document.getElementById('headerOnlineBadge');
+            if (headerOnlineBadge && (!navigator.onLine || err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch'))) {
+                headerOnlineBadge.textContent = '● オフライン';
+                headerOnlineBadge.style.color = '#dc2626';
+                headerOnlineBadge.style.background = '#fee2e2';
+            }
         }
     }
 
@@ -468,12 +504,6 @@ class GameManager {
 
         // 確定ボタンの活性化を判定
         this.updateCommitButtonState();
-
-        // チャット入力欄へフォーカス
-        const inputEl = document.getElementById('turnChatInput');
-        if (inputEl && !inputEl.value) {
-            inputEl.focus();
-        }
     }
 
     // 確定ボタンの活性化状態
@@ -492,8 +522,16 @@ class GameManager {
         const selectedNode = window.playerManager.selectedNextNode;
         if (!selectedNode || this.isWaitingOpponent) return;
 
-        const chatInput = document.getElementById('turnChatInput');
-        let chatText = chatInput ? chatInput.value.trim() : '';
+        // メッセージはスマホ画面の入力欄から取得（未送信のものがあればそれを反映してクリア）
+        const instaInput = document.getElementById('instaInputText');
+        let chatText = instaInput ? instaInput.value.trim() : '';
+        if (instaInput && chatText) {
+            instaInput.value = '';
+            const btnSend = document.getElementById('btnSendInstaChat');
+            const extraIcons = document.getElementById('instaInputIcons');
+            if (btnSend) btnSend.classList.add('hidden');
+            if (extraIcons) extraIcons.classList.remove('hidden');
+        }
 
         // チャットが空の場合はデフォルトのメッセージ
         if (!chatText) {
@@ -506,7 +544,7 @@ class GameManager {
             }
         }
 
-        // 待機状態に切り替え
+        // 待機状態に切り替え（相手待ちUIを表示、確定ボタンは無効化、交差点は保持）
         this.setWaitingOpponentState(true);
 
         try {
@@ -516,10 +554,12 @@ class GameManager {
                 // 両者揃って即座にターン解決された場合
                 this.setWaitingOpponentState(false);
                 this.resetTurnUI();
+                this.lastResolvedTurn = res.currentTurn || (this.currentTurn + 1);
 
                 if (res.isGameOver) {
                     this.isGameOver = true;
                     this.stopPolling();
+                    this.stopDisconnectCountdown();
                     if (this.isAiMode) window.aiCriminal.stop();
                     window.resultManager.showResult(this.roomId, res.winner, res.finishReason, this.role);
                 }
@@ -540,11 +580,13 @@ class GameManager {
         const inputPhase = document.getElementById('turnInputPhase');
         const waitingPhase = document.getElementById('turnWaitingPhase');
         const statusBadge = document.getElementById('gameTurnStatusBadge');
+        const btnCommit = document.getElementById('btnCommitTurn');
         const lm = window.languageManager;
 
         if (isWaiting) {
             if (inputPhase) inputPhase.classList.add('hidden');
             if (waitingPhase) waitingPhase.classList.remove('hidden');
+            if (btnCommit) btnCommit.disabled = true;
             if (statusBadge) {
                 statusBadge.textContent = lm ? lm.t('turnBadgeWaiting') : '相手の行動待ち… ⏳';
                 statusBadge.style.background = '#fef3c7';
@@ -554,6 +596,7 @@ class GameManager {
         } else {
             if (inputPhase) inputPhase.classList.remove('hidden');
             if (waitingPhase) waitingPhase.classList.add('hidden');
+            this.updateCommitButtonState();
             if (statusBadge) {
                 statusBadge.textContent = lm ? lm.t('turnBadgeMyTurn') : 'あなたの番';
                 statusBadge.style.background = '#e0f2fe';
@@ -574,12 +617,78 @@ class GameManager {
             selectedNameEl.style.color = '#b45309';
         }
 
-        const chatInput = document.getElementById('turnChatInput');
-        if (chatInput) {
-            chatInput.value = '';
-        }
-
         this.updateCommitButtonState();
+    }
+
+    // 相手の回線切断監視
+    checkOpponentConnection(state) {
+        if (this.isAiMode || this.isGameOver || !this.roomId) return;
+
+        const oppStatus = state.opponentStatus;
+        if (!oppStatus) return;
+
+        const isDisconnected = oppStatus.isDisconnected === true || (oppStatus.lastSeenAgo !== null && oppStatus.lastSeenAgo >= 10);
+
+        if (isDisconnected) {
+            if (!this.isOpponentDisconnected) {
+                this.isOpponentDisconnected = true;
+                this.startDisconnectCountdown();
+            }
+        } else if (this.isOpponentDisconnected && oppStatus.lastSeenAgo !== null && oppStatus.lastSeenAgo < 6) {
+            // 接続復帰！
+            this.isOpponentDisconnected = false;
+            this.stopDisconnectCountdown();
+            const modal = document.getElementById('modalDisconnectWait');
+            if (modal) modal.classList.add('hidden');
+            if (window.chatManager && window.chatManager.showToast) {
+                window.chatManager.showToast('相手のインターネット接続が復帰しました！');
+            }
+        }
+    }
+
+    startDisconnectCountdown() {
+        const modal = document.getElementById('modalDisconnectWait');
+        const countdownEl = document.getElementById('disconnectCountdown');
+        if (modal) modal.classList.remove('hidden');
+
+        this.disconnectSecondsLeft = 30;
+        if (countdownEl) countdownEl.textContent = `${this.disconnectSecondsLeft}秒`;
+
+        if (this.disconnectTimer) clearInterval(this.disconnectTimer);
+
+        this.disconnectTimer = setInterval(async () => {
+            this.disconnectSecondsLeft--;
+            if (countdownEl) {
+                countdownEl.textContent = `${this.disconnectSecondsLeft}秒`;
+            }
+
+            if (this.disconnectSecondsLeft <= 0) {
+                this.stopDisconnectCountdown();
+                if (modal) modal.classList.add('hidden');
+                await this.handleAbandonSession('相手の通信切断（30秒タイムアウト）により勝利！');
+            }
+        }, 1000);
+    }
+
+    stopDisconnectCountdown() {
+        if (this.disconnectTimer) {
+            clearInterval(this.disconnectTimer);
+            this.disconnectTimer = null;
+        }
+    }
+
+    async handleAbandonSession(reason) {
+        if (this.isGameOver) return;
+        this.isGameOver = true;
+        this.stopPolling();
+        this.stopDisconnectCountdown();
+
+        try {
+            const res = await window.apiService.abandonGame(this.roomId, this.playerId, reason);
+            window.resultManager.showResult(this.roomId, res.winner || this.role, res.finishReason || reason, this.role);
+        } catch (e) {
+            window.resultManager.showResult(this.roomId, this.role, reason, this.role);
+        }
     }
 
     // 被害者による不審者ブロック

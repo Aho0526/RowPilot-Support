@@ -103,64 +103,42 @@ class RoomManager {
             btnHostStart.addEventListener('click', () => this.handleHostStart());
         }
 
-        // 10. サーバー接続設定
-        const btnToggleSettings = document.getElementById('btnToggleSettings');
-        const settingsBox = document.getElementById('serverSettingsBox');
-        const inputServerUrl = document.getElementById('inputServerUrl');
-        const btnSaveServerUrl = document.getElementById('btnSaveServerUrl');
-        const btnResetServerUrl = document.getElementById('btnResetServerUrl');
+        // 10. オンライン/オフライン接続バッジ監視
         const headerOnlineBadge = document.getElementById('headerOnlineBadge');
-        const serverStatusTag = document.getElementById('serverStatusTag');
 
         const updateConnectionBadge = () => {
-            const isOnline = window.apiService.isRemoteMode();
+            const isNavigatorOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+            const isOnline = window.apiService.isRemoteMode() && isNavigatorOnline;
             const lm = window.langManager;
             const onlineText = lm ? lm.t('badgeOnline') : '● オンライン';
+            const offlineText = lm ? (lm.t('badgeOffline') || '● オフライン') : '● オフライン';
             const localText = lm ? lm.t('badgeLocal') : '● ローカル';
 
             if (headerOnlineBadge) {
-                headerOnlineBadge.textContent = isOnline ? onlineText : localText;
-                headerOnlineBadge.style.color = isOnline ? '#16a34a' : '#d97706';
-                headerOnlineBadge.style.background = isOnline ? '#dcfce7' : '#fef3c7';
-            }
-            if (serverStatusTag) {
-                serverStatusTag.textContent = isOnline ? (onlineText + ' (Cloudflare D1)') : localText;
-                serverStatusTag.style.color = isOnline ? '#16a34a' : '#d97706';
-                serverStatusTag.style.background = isOnline ? '#dcfce7' : '#fef3c7';
+                if (!isNavigatorOnline) {
+                    headerOnlineBadge.textContent = offlineText;
+                    headerOnlineBadge.style.color = '#dc2626';
+                    headerOnlineBadge.style.background = '#fee2e2';
+                } else if (isOnline) {
+                    headerOnlineBadge.textContent = onlineText;
+                    headerOnlineBadge.style.color = '#16a34a';
+                    headerOnlineBadge.style.background = '#dcfce7';
+                } else {
+                    headerOnlineBadge.textContent = localText;
+                    headerOnlineBadge.style.color = '#d97706';
+                    headerOnlineBadge.style.background = '#fef3c7';
+                }
             }
         };
         window.updateConnectionBadgeUI = updateConnectionBadge;
-
-        if (inputServerUrl) {
-            inputServerUrl.value = window.apiService.serverUrl;
-        }
         updateConnectionBadge();
 
-        if (btnToggleSettings && settingsBox) {
-            btnToggleSettings.addEventListener('click', () => {
-                settingsBox.classList.toggle('hidden');
-            });
-        }
-
-        if (btnSaveServerUrl && inputServerUrl) {
-            btnSaveServerUrl.addEventListener('click', () => {
-                window.apiService.setServerUrl(inputServerUrl.value);
-                updateConnectionBadge();
-                alert('サーバー設定を保存しました: ' + (inputServerUrl.value ? inputServerUrl.value : 'ローカル同期モード'));
-                if (settingsBox) settingsBox.classList.add('hidden');
-            });
-        }
-
-        if (btnResetServerUrl && inputServerUrl) {
-            btnResetServerUrl.addEventListener('click', () => {
-                const defaultUrl = 'https://crime-avoiding-game.rowpilot-jp.workers.dev';
-                inputServerUrl.value = defaultUrl;
-                window.apiService.setServerUrl(defaultUrl);
-                updateConnectionBadge();
-                alert('専用サーバー（Cloudflare Workers + D1）にリセットしました');
-                if (settingsBox) settingsBox.classList.add('hidden');
-            });
-        }
+        window.addEventListener('online', () => {
+            updateConnectionBadge();
+        });
+        window.addEventListener('offline', () => {
+            updateConnectionBadge();
+        });
     }
 
     // 「一人でプレイ (AI対戦)」を即時開始

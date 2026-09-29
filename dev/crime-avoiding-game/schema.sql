@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS players (
     pending_move_node TEXT,
     pending_chat_text TEXT,
     is_turn_ready INTEGER NOT NULL DEFAULT 0,
+    last_seen_at INTEGER,
     joined_at INTEGER NOT NULL,
     FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
 );

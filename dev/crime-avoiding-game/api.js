@@ -573,6 +573,36 @@ class ApiService {
         };
     }
 
+    // 回線切断・退出によるゲーム終了
+    async abandonGame(roomId, playerId, reason) {
+        if (this.isRemoteMode()) {
+            const res = await fetch(`${this.serverUrl}/api/game/abandon`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId, playerId, reason })
+            });
+            if (!res.ok) throw new Error((await res.json()).error || 'セッション終了エラー');
+            return await res.json();
+        }
+
+        const data = this.getLocalData();
+        const room = data.rooms[roomId];
+        if (!room) throw new Error('ルームが存在しません');
+
+        const survivor = data.players[playerId];
+        const now = Date.now();
+        const winner = survivor ? survivor.role : (room.winner || 'victim');
+        const finishReason = reason || '相手の通信切断によりセッションが終了しました';
+
+        room.status = 'finished';
+        room.ended_at = now;
+        room.winner = winner;
+        room.finish_reason = finishReason;
+
+        this.saveLocalData(data);
+        return { success: true, winner, finishReason };
+    }
+
     // 振り返りデータ取得
     async getReviewData(roomId) {
         if (this.isRemoteMode()) {
