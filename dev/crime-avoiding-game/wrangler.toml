@@ -1,0 +1,8 @@
+name = "crime-avoiding-game"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "crime-avoiding-game"
+database_id = "6998f5c5-ba3d-49e0-a44d-be5f6a6e6231"

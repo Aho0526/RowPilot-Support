@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>犯罪回避ゲーム - 心理戦ブラウザゲーム</title>
+    <!-- Google Fonts: Zen Maru Gothic (親しみやすく柔らかい丸ゴシック) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;800&family=Outfit:wght@600;800&family=Zen+Maru+Gothic:wght@500;700;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- ヘッダー -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="brand-wrapper">
+                <img src="pic/joho-ranger.png" alt="情報レンジャー" class="ranger-badge-img">
+                <span class="brand-title" data-i18n="brandTitle">犯罪回避ゲーム</span>
+                <span class="brand-tag" data-i18n="brandTag">心理戦 × 防犯体験</span>
+            </div>
+            <div class="header-actions">
+                <span id="headerOnlineBadge" style="font-size: 0.75rem; font-weight: 700; color: #16a34a; background: #dcfce7; padding: 4px 10px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 4px;">● オンライン</span>
+                <button id="btnToggleKids" class="btn btn-outline btn-sm" style="border-radius: var(--radius-full);">👶 こどもモード: OFF</button>
+                <button id="btnToggleSound" class="btn btn-outline btn-sm">🔊 音: ON</button>
+                <button id="btnHowToPlay" class="btn btn-outline btn-sm" data-i18n="btnHowToPlay">📜 ルール説明</button>
+                <button id="btnToggleSettings" class="btn btn-outline btn-sm" data-i18n="btnSettings">⚙️ 接続設定</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- サーバー接続設定 (折りたたみ) -->
+    <div id="serverSettingsBox" class="main-container hidden" style="padding-top: 10px; padding-bottom: 0;">
+        <div
+            style="background: #ffffff; border: 2px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <h4 style="margin: 0; font-size: 0.95rem;">🌐 サーバー接続設定 (Cloudflare Workers & D1)</h4>
+                <span id="serverStatusTag" style="font-size: 0.78rem; font-weight: 700; color: #16a34a; background: #dcfce7; padding: 3px 10px; border-radius: 9999px;">● 接続中</span>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
+                専用サーバー（Cloudflare Workers + D1）へ自動接続されています。離れた端末や友達同士でも同じルームコードで対戦可能です。
+            </p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <input type="text" id="inputServerUrl" class="form-input"
+                    placeholder="https://crime-avoiding-game.rowpilot-jp.workers.dev" style="flex: 1; min-width: 260px; font-family: monospace; font-size: 0.85rem;">
+                <button id="btnSaveServerUrl" class="btn btn-primary btn-sm">保存</button>
+                <button id="btnResetServerUrl" class="btn btn-outline btn-sm">デフォルトに戻す</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-container">
+
+        <!-- ============================================================
+             SCREEN 1: TITLE SCREEN (画面中央のタイトル画面)
+             ============================================================ -->
+        <section id="screenTitle" class="title-screen-container">
+            <div class="title-card">
+                <div class="title-character-wrapper">
+                    <img src="pic/joho-ranger.png" alt="情報レンジャー" class="title-character-img">
+                </div>
+                <h1 class="game-main-title" data-i18n="gameMainTitle">犯罪回避ゲーム</h1>
+                <p class="game-main-subtitle" data-i18n="gameMainSubtitle">
+                    相手の言葉は「ホント」？それとも「ウソ」？<br>
+                    見えない相手の心理を読み、目的地まで逃げ切ろう！
+                </p>
+
+                <div class="title-button-group">
+                    <button id="btnPlaySolo" class="btn btn-solo btn-lg" data-i18n="btnPlaySolo">
+                        🎮 一人でプレイ
+                    </button>
+                    <button id="btnPlayPvp" class="btn btn-pvp btn-lg" data-i18n="btnPlayPvp">
+                        👥 2人でプレイ (オンライン)
+                    </button>
+                </div>
+
+                <div class="title-sub-info" data-i18n="titleSubInfo">
+                    ※ 1人でプレイはAI犯罪者との対戦になります
+                </div>
+            </div>
+
+            <!-- ゲームの趣旨・教育的メッセージ・免責事項 -->
+            <div class="home-concept-card">
+                <div class="concept-card-header">
+                    <span class="concept-header-icon">🛡️</span>
+                    <div>
+                        <h3 class="concept-header-title" data-i18n="conceptHeaderTitle">ゲームの趣旨と大切なお知らせ</h3>
+                        <p class="concept-header-sub" data-i18n="conceptHeaderSub">オンライン安全・防犯リテラシー学習のための対戦体験</p>
+                    </div>
+                </div>
+
+                <div class="concept-card-body">
+                    <!-- 1. ゲームの目的 -->
+                    <div class="concept-section">
+                        <h4 class="concept-section-title" data-i18n="conceptAboutTitle"><span>🎯</span> 本ゲームについて</h4>
+                        <p class="concept-text" data-i18n="conceptAboutText">
+                            このゲームは、プレイヤー同士や対AIでそれぞれの目的<strong>（被害者側：犯罪者と接触せずに目的地に向かう ／ 犯罪者側：被害者が目的地に到達する前に接触する）</strong>を達成する過程を、オンライン上の対戦形式で体験できるようにしたものです。
+                        </p>
+                    </div>
+
+                    <!-- 2. 重要：免責事項と注意喚起 -->
+                    <div class="concept-warning-grid">
+                        <div class="warning-card warning-caution">
+                            <div class="warning-card-title" data-i18n="warningCautionTitle">
+                                <span>⚠️</span> 免責事項
+                            </div>
+                            <p data-i18n="warningCautionText">本ゲームは<strong>実際の犯罪を助長するようなゲームではありません。</strong></p>
+                        </div>
+                        <div class="warning-card warning-danger">
+                            <div class="warning-card-title" data-i18n="warningDangerTitle">
+                                <span>🚫</span> 絶対にしてはいけないこと
+                            </div>
+                            <p data-i18n="warningDangerText">このゲーム内でチャットを通して接触を試みることは犯罪ではないですが、<strong>実際に行うと犯罪に抵触する可能性がありますので絶対にしないでください。</strong></p>
+                        </div>
+                    </div>
+
+                    <!-- 3. 制作の想い・メッセージ -->
+                    <div class="concept-message-box">
+                        <h4 class="concept-section-title" data-i18n="conceptMessageTitle"><span>💡</span> 制作に込めた想い</h4>
+                        <p class="concept-text" data-i18n="conceptMessageText">
+                            見知らぬ相手と手軽につながれる現代のSNSやDMでは、親切を装って居場所を聞き出したり、巧みに誘導しようとするトラブルが後を絶ちません。<br>
+                            相手の言葉に潜む「嘘や誘導」の違和感に気づき、<strong>「不審な言動を受けたら、ためらわずにブロックして身を守る」</strong>という実践的な防犯判断力を安全に学んでいただくことを目的としています。
+                        </p>
+                        <div class="concept-wish-banner">
+                            <span class="wish-icon">🕊️</span>
+                            <span class="wish-text" data-i18n="conceptWishText">このゲームを通して、オンライン上の被害が少しでも減少することを心より願っています。</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ============================================================
+             SCREEN 2: PVP SELECT SCREEN (2人対戦: 作成 or 参加)
+             ============================================================ -->
+        <section id="screenPvpSelect" class="pvp-select-container hidden">
+            <div class="back-nav-bar">
+                <button id="btnBackToTitleFromPvp" class="btn btn-outline btn-sm" data-i18n="pvpBackToTitle">
+                    ← タイトルに戻る
+                </button>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 24px;">
+                <h2 style="font-size: 1.8rem; font-weight: 800;" data-i18n="pvpMainTitle">2人でオンライン対戦</h2>
+                <p style="color: var(--text-secondary); font-size: 0.95rem;" data-i18n="pvpMainSub">ルームを作るか、友達のルームに参加してください</p>
+            </div>
+
+            <div class="pvp-grid">
+                <!-- ルーム作成カード -->
+                <div class="friendly-card">
+                    <div class="friendly-card-header">
+                        <span class="card-icon">🏠</span>
+                        <div>
+                            <h3 data-i18n="pvpCreateCardTitle">ルームを作る</h3>
+                            <span style="font-size: 0.78rem; color: var(--text-muted);" data-i18n="pvpCreateCardSub">ホストになって友達を呼ぶ</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="pvpLabelNickname">あなたのニックネーム</label>
+                        <input type="text" id="hostPlayerName" class="form-input" placeholder="名前を入力" value="アリス" data-i18n-placeholder="pvpPlaceholderNickname">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="pvpLabelRole">あなたの役割</label>
+                        <div class="radio-pills">
+                            <div class="radio-pill-item">
+                                <input type="radio" id="roleVictim" name="hostRole" value="victim" checked>
+                                <label for="roleVictim" class="radio-pill-label" data-i18n="pvpRoleVictimLabel">🏃 被害者 (逃げる)</label>
+                            </div>
+                            <div class="radio-pill-item">
+                                <input type="radio" id="roleCriminal" name="hostRole" value="criminal">
+                                <label for="roleCriminal" class="radio-pill-label" data-i18n="pvpRoleCriminalLabel">🦹 犯罪者 (追う)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="pvpLabelMapSize">マップの広さ</label>
+                        <div class="radio-pills">
+                            <div class="radio-pill-item">
+                                <input type="radio" id="map3x3" name="hostMapType" value="3x3" checked>
+                                <label for="map3x3" class="radio-pill-label" data-i18n="pvpMap3x3Label">住宅街 (3×3)</label>
+                            </div>
+                            <div class="radio-pill-item">
+                                <input type="radio" id="map4x4" name="hostMapType" value="4x4">
+                                <label for="map4x4" class="radio-pill-label" data-i18n="pvpMap4x4Label">市街地 (4×4)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="btnCreateRoom" class="btn btn-primary" style="margin-top: auto; width: 100%;" data-i18n="pvpBtnCreate">
+                        ルームを作成する
+                    </button>
+                </div>
+
+                <!-- ルーム参加カード -->
+                <div class="friendly-card">
+                    <div class="friendly-card-header">
+                        <span class="card-icon">🚪</span>
+                        <div>
+                            <h3 data-i18n="pvpJoinCardTitle">ルームに参加する</h3>
+                            <span style="font-size: 0.78rem; color: var(--text-muted);" data-i18n="pvpJoinCardSub">友達のルームコードを入力</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="pvpLabelNickname">あなたのニックネーム</label>
+                        <input type="text" id="joinPlayerName" class="form-input" placeholder="名前を入力" value="ボブ" data-i18n-placeholder="pvpPlaceholderNickname">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="pvpLabelRoomCode">ルームコード (4〜6文字)</label>
+                        <input type="text" id="joinRoomCode" class="form-input" placeholder="例: 7K9X"
+                            style="text-transform: uppercase; font-family: var(--font-mono); font-size: 1.25rem; letter-spacing: 0.15em;">
+                    </div>
+
+                    <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;" data-i18n="pvpRoleAutoNotice">
+                        ※ 役割はホストの相手側（ホストが逃げる側なら追う側、追う側なら逃げる側）に自動で決まります。
+                    </p>
+
+                    <button id="btnJoinRoom" class="btn btn-primary" style="margin-top: auto; width: 100%;" data-i18n="pvpBtnJoin">
+                        ルームに参加する
+                    </button>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ============================================================
+             SCREEN 3: LOBBY SCREEN (対戦相手の待機)
+             ============================================================ -->
+        <section id="screenLobby" class="hidden">
+            <div class="lobby-box">
+                <div class="back-nav-bar" style="text-align: left;">
+                    <button id="btnLeaveLobby" class="btn btn-outline btn-sm" data-i18n="lobbyBtnLeave">← 退出する</button>
+                </div>
+
+                <h2 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 4px;" data-i18n="lobbyTitle">ルーム待機中</h2>
+                <p style="color: var(--text-secondary); font-size: 0.92rem;" data-i18n="lobbySubNotice">友達に以下の合言葉（ルームコード）を伝えてね！</p>
+
+                <div class="room-code-tag">
+                    <span id="lobbyRoomCode" class="code-text">----</span>
+                    <button id="btnCopyCode" class="btn btn-outline btn-sm" data-i18n="lobbyBtnCopy">コードをコピー</button>
+                </div>
+
+                <div
+                    style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 16px;">
+                    <span style="font-size: 0.9rem; color: var(--text-secondary);" data-i18n="lobbyLabelMyRole">あなたの役割:</span>
+                    <span id="lobbyMyRole" class="role-badge">----</span>
+                </div>
+
+                <div class="lobby-players-box">
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; font-weight: 700;">
+                        <span data-i18n="lobbyHeaderMembers">参加メンバー</span>
+                        <span id="lobbyPlayerCount">1 / 2 人</span>
+                    </div>
+                    <div id="lobbyPlayerList">
+                        <!-- 動的に挿入 -->
+                    </div>
+                </div>
+
+                <div id="lobbyHostControls" class="hidden">
+                    <button id="btnHostStart" class="btn btn-primary btn-lg" style="width: 100%;" disabled data-i18n="lobbyHostWaitBtn">
+                        友達の参加を待っています…
+                    </button>
+                </div>
+                <div id="lobbyGuestWaiting" class="hidden">
+                    <p
+                        style="color: #0284c7; font-weight: 700; padding: 12px; background: #e0f2fe; border-radius: var(--radius-md);" data-i18n="lobbyGuestWaitNotice">
+                        ⏳ ホストがゲームを開始するのを待っています…
+                    </p>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ============================================================
+             SCREEN 4: MAIN GAME SCREEN (対戦本編 - ターン制心理戦)
+             ============================================================ -->
+        <section id="screenGame" class="hidden">
+            <!-- 上部ステータスバー -->
+            <div class="game-top-bar">
+                <div class="game-status-group">
+                    <span id="gameHeaderRoleBadge" class="role-badge">----</span>
+                    <span style="font-size: 0.88rem; color: var(--text-muted); font-weight: 700;">
+                        ルーム: <strong id="gameHeaderRoomId"
+                            style="color: var(--text-primary); font-family: var(--font-mono);">----</strong>
+                    </span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="timer-box">
+                        <span>🚩</span>
+                        <span id="gameTurnDisplay">第 1 ターン</span>
+                    </div>
+                    <span id="gameTurnStatusBadge" class="role-badge"
+                        style="background:#e0f2fe; color:#0284c7; border:2px solid #bae6fd;">
+                        あなたの番
+                    </span>
+                </div>
+            </div>
+
+            <!-- 初期3秒ピープバナー -->
+            <div id="initialPeekBanner" class="peek-banner hidden">
+                <span id="peekBannerText">双方の初期位置はこの通りです。犯罪者から逃れ、目的地へ向かいましょう。</span>
+                <span class="peek-countdown"
+                    style="font-size: 1.15rem; font-family: var(--font-mono); background: #ffffff; padding: 2px 12px; border-radius: var(--radius-full); border: 1px solid #cbd5e1; font-weight: 800;">3</span>
+            </div>
+
+            <!-- ゲームエリア (2カラム) -->
+            <div class="game-play-area">
+                <!-- 左側：マップ -->
+                <div class="map-panel">
+                    <div class="map-header-bar">
+                        <div class="current-loc-badge">
+                            <span data-i18n="currentLocLabel">現在地:</span> <strong id="currentLocationName">交差点</strong>
+                        </div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary); font-weight: 700;" data-i18n="mapGuideStep1">
+                            ① 移動したい隣接する交差点をタップ
+                        </div>
+                    </div>
+
+                    <!-- 1:1 正方形マップ -->
+                    <div id="gameMapContainer" class="map-viewport">
+                        <!-- map.js が動的描画 -->
+                    </div>
+
+                    <!-- ターン行動確定パネル -->
+                    <div id="turnActionPanel" class="turn-action-panel">
+                        <!-- 入力フェーズ -->
+                        <div id="turnInputPhase">
+                            <div class="turn-step-bar">
+                                <span class="turn-step-title">
+                                    <span>🎯</span> 移動先: <strong id="selectedNodeName"
+                                        style="color:#b45309; margin-left:4px;" data-i18n="selectedNodeEmpty">未選択（交差点をタップ）</strong>
+                                </span>
+                                <span style="font-size:0.78rem; color:var(--text-muted); font-weight:700;" data-i18n="turnStepGuide">②
+                                    チャットを添えて確定</span>
+                            </div>
+
+                            <div class="turn-commit-row">
+                                <input type="text" id="turnChatInput" class="turn-chat-input"
+                                    placeholder="相手を惑わすウソや居場所のヒントを入力..." maxlength="80"
+                                    data-i18n-placeholder="turnChatPlaceholder">
+                                <button id="btnCommitTurn" class="btn btn-commit-action" disabled data-i18n="btnCommitTurn">
+                                    行動を確定する！
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 相手待機フェーズ -->
+                        <div id="turnWaitingPhase" class="hidden">
+                            <div class="waiting-pulse-box">
+                                <span>⏳</span>
+                                <span data-i18n="turnWaitingNotice">相手が移動先とメッセージを決めるのを待っています…</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右側：スマートフォン風 Instagram DM パネル -->
+                <div class="smartphone-wrapper">
+                    <div class="smartphone-frame">
+                        <!-- iOS ステータスバー -->
+                        <div class="phone-status-bar">
+                            <span class="phone-time">19:03</span>
+                            <div class="phone-dynamic-island"></div>
+                            <div class="phone-status-icons">
+                                <span>📶</span>
+                                <span>5G</span>
+                                <div class="phone-battery"><span>53</span></div>
+                            </div>
+                        </div>
+
+                        <!-- ================= VIEW 1: DM チャット画面 ================= -->
+                        <div id="instaChatView" class="insta-view">
+                            <!-- DM ヘッダー -->
+                            <div class="insta-header">
+                                <div class="insta-header-left" id="btnOpenInstaDetails">
+                                    <span class="insta-back-icon">‹</span>
+                                    <div class="insta-avatar-small">
+                                        <img src="pic/joho-ranger.png" alt="アバター" class="insta-avatar-img">
+                                    </div>
+                                    <div class="insta-user-meta">
+                                        <div class="insta-display-name">
+                                            <span id="chatOpponentName">情報ニキ</span> <span class="insta-arrow">›</span>
+                                        </div>
+                                        <div class="insta-username" id="chatOpponentHandle">@jouhou_niki </div>
+                                    </div>
+                                </div>
+                                <div class="insta-header-actions">
+                                    <button class="insta-icon-btn insta-dummy-action" title="ステッカー">😀</button>
+                                    <button class="insta-icon-btn insta-dummy-action" title="電話">📞</button>
+                                    <button class="insta-icon-btn insta-dummy-action" title="ビデオ通話">📹</button>
+                                </div>
+                            </div>
+
+                            <!-- DM メッセージスクロール領域 -->
+                            <div id="chatMessagesList" class="insta-chat-body">
+                                <div class="insta-date-separator">9月17日 17:31</div>
+                                <!-- メッセージが動的に挿入されます -->
+                            </div>
+
+                            <!-- クイック定型文チップ -->
+                            <div class="insta-quick-chips">
+                                <button class="insta-chip-btn" data-text="駅の近くにいるよ">「駅の近くにいるよ」</button>
+                                <button class="insta-chip-btn" data-text="今どこにいる？">「今どこにいる？」</button>
+                                <button class="insta-chip-btn" data-text="そっちには向かってないよ">「そっちには向かってない」</button>
+                                <button class="insta-chip-btn" data-text="公園を通り過ぎたところ">「公園を通り過ぎた」</button>
+                                <button class="insta-chip-btn" data-text="もうすぐ目的地に着くよ">「もうすぐ目的地に着く」</button>
+                            </div>
+
+                            <!-- DM 下部入力バー -->
+                            <div class="insta-input-bar">
+                                <div class="insta-camera-btn insta-dummy-action">📷</div>
+                                <input type="text" id="instaInputText" class="insta-input-field"
+                                    placeholder="メッセージを入力..." maxlength="100" data-i18n-placeholder="chatPlaceholder">
+                                <button id="btnSendInstaChat" class="insta-send-btn hidden" data-i18n="btnSend">送信</button>
+                                <div id="instaInputIcons" class="insta-input-extra-icons">
+                                    <span class="insta-dummy-action">🎙️</span>
+                                    <span class="insta-dummy-action">🖼️</span>
+                                    <span class="insta-dummy-action">😀</span>
+                                    <span class="insta-dummy-action">➕</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ================= VIEW 2: チャット詳細画面 ================= -->
+                        <div id="instaDetailsView" class="insta-view hidden">
+                            <div class="insta-details-header">
+                                <button id="btnBackToChatFromDetails" class="insta-back-btn">‹</button>
+                                <span class="insta-details-title" data-i18n="instaDetailsTitle">詳細</span>
+                                <span style="width:24px;"></span>
+                            </div>
+
+                            <div class="insta-details-body">
+                                <div class="insta-profile-center">
+                                    <div class="insta-avatar-large">
+                                        <img src="pic/joho-ranger.png" alt="アバター" class="insta-avatar-large-img">
+                                    </div>
+                                    <div class="insta-details-name" id="detailsOpponentName">情報ニキ</div>
+                                    <div class="insta-details-username" id="detailsOpponentHandle">@jouhou_niki</div>
+                                </div>
+
+                                <!-- 4つのアクションボタン -->
+                                <div class="insta-action-buttons">
+                                    <div class="insta-action-col insta-dummy-action">
+                                        <div class="insta-action-circle">👤</div>
+                                        <span data-i18n="instaActionProfile">プロフィール</span>
+                                    </div>
+                                    <div class="insta-action-col insta-dummy-action">
+                                        <div class="insta-action-circle">🔍</div>
+                                        <span data-i18n="instaActionSearch">検索</span>
+                                    </div>
+                                    <div class="insta-action-col insta-dummy-action">
+                                        <div class="insta-action-circle">🔔</div>
+                                        <span data-i18n="instaActionMute">ミュート</span>
+                                    </div>
+                                    <div class="insta-action-col" id="btnOpenOptionsMenu"
+                                        style="position:relative; cursor:pointer;">
+                                        <div class="insta-action-circle">•••</div>
+                                        <span data-i18n="instaActionOptions">オプション</span>
+
+                                        <!-- ================= VIEW 3: オプションメニューポップアップ ================= -->
+                                        <div id="instaOptionsMenu" class="insta-options-dropdown hidden">
+                                            <div class="insta-option-item insta-dummy-action">
+                                                <span>🚫</span> <span data-i18n="instaOptRestrict">制限する</span>
+                                            </div>
+                                            <div class="insta-option-item item-danger" id="btnTriggerBlockModal">
+                                                <span>⛔</span> <span data-i18n="instaOptBlock">ブロック</span>
+                                            </div>
+                                            <div class="insta-option-item insta-dummy-action">
+                                                <span>💬</span> <span data-i18n="instaOptReport">報告する</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- メニューリスト -->
+                                <div class="insta-menu-list">
+                                    <div class="insta-menu-item insta-dummy-action">
+                                        <div class="insta-menu-left">
+                                            <span class="menu-icon-gradient">🟣</span>
+                                            <span>カスタマイズ<br><small class="text-muted">テーマとフォント</small></span>
+                                        </div>
+                                        <span>›</span>
+                                    </div>
+                                    <div class="insta-menu-item insta-dummy-action">
+                                        <div class="insta-menu-left">
+                                            <span>🔤</span>
+                                            <span>ニックネーム</span>
+                                        </div>
+                                        <span>›</span>
+                                    </div>
+                                    <div class="insta-menu-item insta-dummy-action">
+                                        <div class="insta-menu-left">
+                                            <span>⏱️</span>
+                                            <span>消えるメッセージ<br><small class="text-muted">オフ</small></span>
+                                        </div>
+                                        <span>›</span>
+                                    </div>
+                                    <div class="insta-menu-item insta-dummy-action">
+                                        <div class="insta-menu-left">
+                                            <span>🔒</span>
+                                            <span>プライバシー・安全</span>
+                                        </div>
+                                        <span>›</span>
+                                    </div>
+                                    <div class="insta-menu-item insta-dummy-action">
+                                        <div class="insta-menu-left">
+                                            <span>👥</span>
+                                            <span>グループチャットを作成</span>
+                                        </div>
+                                        <span>›</span>
+                                    </div>
+                                    <div class="insta-menu-item insta-dummy-action">
+                                        <div class="insta-menu-left">
+                                            <span>⚠️</span>
+                                            <span>不具合を報告</span>
+                                        </div>
+                                        <span>›</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ================= VIEW 4: ブロック確認ボトムシート ================= -->
+                        <div id="instaBlockSheetBackdrop" class="insta-bottom-sheet-backdrop hidden">
+                            <div class="insta-bottom-sheet">
+                                <div class="sheet-handle-bar"></div>
+                                <div class="sheet-avatar">
+                                    <img src="pic/joho-ranger.png" alt="アバター" class="sheet-avatar-img">
+                                </div>
+                                <h3 class="sheet-title">
+                                    <span id="sheetBlockHandle">@jouhou_niki</span><span data-i18n="blockTitleSuffix">をブロックしますか？</span>
+                                </h3>
+                                <p class="sheet-subtitle" data-i18n="blockSubtitle">
+                                    これにより、この人が持っている、または今後作成する他のプロフィールもブロックされます。ブロックはいつでも解除できます。
+                                </p>
+
+                                <div class="sheet-rules-list">
+                                    <div class="sheet-rule-item">
+                                        <span class="sheet-rule-icon">🚫</span>
+                                        <span data-i18n="blockRule1">この人は、Instagram上であなたへのメッセージ送信や、あなたのプロフィールやコンテンツの検索ができなくなります。</span>
+                                    </div>
+                                    <div class="sheet-rule-item">
+                                        <span class="sheet-rule-icon">🔕</span>
+                                        <span data-i18n="blockRule2">ブロックまたは報告したことは相手に通知されません。</span>
+                                    </div>
+                                </div>
+
+                                <div class="sheet-actions">
+                                    <button id="btnConfirmInstaBlock" class="btn-sheet-primary" data-i18n="btnConfirmBlock">
+                                        ブロック
+                                    </button>
+                                    <button id="btnConfirmInstaBlockReport" class="btn-sheet-secondary" data-i18n="btnConfirmBlockReport">
+                                        ブロックして報告
+                                    </button>
+                                    <button id="btnCancelInstaBlock" class="btn-sheet-cancel" data-i18n="btnCancelBlock">
+                                        キャンセル
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- トースト通知 (ダミーアクションタップ時) -->
+                        <div id="instaToast" class="insta-toast hidden">この機能は現在利用できません</div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============================================================
+         SCREEN 5: RESULT & REVIEW MODAL (勝敗＆答え合わせ)
+         ============================================================ -->
+    <div id="resultModal" class="modal-backdrop hidden">
+        <div class="modal-dialog">
+            <div class="result-banner">
+                <h2 id="resultTitle" class="result-win">🎉 あなたの勝利！</h2>
+                <div id="resultWinnerBadge" class="winner-badge winner-victim">逃走成功</div>
+                <p id="resultReason" class="result-reason">目的地に無事到達しました！</p>
+            </div>
+
+            <!-- 防犯教育ハイライトバナー (ブロック勝利時や教育振り返り時に強調表示) -->
+            <div id="resultEducationBanner" class="education-highlight-banner hidden">
+                <div class="edu-banner-icon">🛡️</div>
+                <div class="edu-banner-content">
+                    <h3 class="edu-banner-title" data-i18n="eduBannerTitle">
+                        <span>🎓 防犯リテラシー・重要アクション</span>
+                    </h3>
+                    <p class="edu-banner-main-text" data-i18n="eduBannerMain">
+                        インターネット上で知り合った知らない相手から不審な言動を受けたら、このようにブロックして危険を回避するようにしましょう！
+                    </p>
+                    <div class="edu-banner-sub-text" data-i18n="eduBannerSub">
+                        <span>💡 現実のSNSやDMでも、相手の言葉（「駅で待ってる」「写真送って」等）を安易に信じず、違和感を覚えたら即座に連絡を断つ（ブロック＆通報）ことが身を守る最大の鍵です。</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- リプレイツールバー -->
+            <div class="replay-controller">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong style="font-size: 1rem;" data-i18n="resultReplayTitle">🎬 真実の答え合わせ（リプレイ）</strong>
+                    <button id="btnPlayReplay" class="btn btn-outline btn-sm">▶️ 再生</button>
+                </div>
+                <div class="replay-slider-row">
+                    <input type="range" id="replaySlider" class="replay-slider" min="0" max="10" value="10">
+                </div>
+                <div class="replay-info-row">
+                    <span id="replayDistanceInfo">距離: 計算中...</span>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);" data-i18n="resultReplaySub">スライダーを動かして移動と接近を確認</span>
+                </div>
+            </div>
+
+            <!-- チャット答え合わせ -->
+            <div class="review-section">
+                <h3 data-i18n="resultChatReviewTitle"><span>💬</span> 発言時の実際の居場所（真偽検証）</h3>
+                <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 10px;" data-i18n="resultChatReviewSub">
+                    各チャットをクリックすると、その発言があった瞬間の双方の位置へジャンプします。
+                </p>
+                <div id="reviewChatList" class="review-chat-list">
+                    <!-- 動的に挿入 -->
+                </div>
+            </div>
+
+            <!-- 教育的振り返りコンテンツ -->
+            <div class="takeaway-container">
+                <h3
+                    style="font-size: 1.05rem; color: #5b21b6; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-weight: 800;">
+                    <span>🎓</span> <span data-i18n="resultTakeawayHeader">体験から学ぶネット安全・防犯リテラシー</span>
+                </h3>
+                <div id="reviewTakeawayContent">
+                    <!-- 動的に挿入 -->
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="btnCloseResult" class="btn btn-outline" data-i18n="resultBtnCheckMap">マップを確認する</button>
+                <button id="btnReturnHome" class="btn btn-primary" data-i18n="resultBtnReturnHome">タイトルへ戻る</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ルール説明モーダル -->
+    <div id="rulesModal" class="modal-backdrop hidden">
+        <div class="modal-dialog" style="max-width: 640px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h3 style="font-size: 1.5rem; font-weight: 800;" data-i18n="rulesTitle">📜 犯罪回避ゲームのあそびかた</h3>
+            </div>
+            <div
+                style="display: flex; flex-direction: column; gap: 16px; font-size: 0.92rem; color: var(--text-secondary);">
+                <div
+                    style="background: #fbf9f5; border: 2px solid #efe8df; border-radius: var(--radius-md); padding: 14px;">
+                    <strong style="color: #0284c7; font-size: 1rem;" data-i18n="rulesSec1Title">1. 被害者の目的（逃げる側）</strong>
+                    <p data-i18n="rulesSec1Text">犯罪者に捕まらずに、街のどこかにある「目的地（安全地帯 🏁）」にたどり着くか、制限時間（2分間）逃げ切れば勝ち！</p>
+                </div>
+                <div
+                    style="background: #fbf9f5; border: 2px solid #efe8df; border-radius: var(--radius-md); padding: 14px;">
+                    <strong style="color: #e11d48; font-size: 1rem;" data-i18n="rulesSec2Title">2. 犯罪者の目的（追う側）</strong>
+                    <p data-i18n="rulesSec2Text">チャットで相手を騙したり誘導しながら、被害者と同じ交差点に接触（確保）できれば勝ち！</p>
+                </div>
+                <div
+                    style="background: #fbf9f5; border: 2px solid #efe8df; border-radius: var(--radius-md); padding: 14px;">
+                    <strong style="color: #d97706; font-size: 1rem;" data-i18n="rulesSec3Title">3. 相手の姿は見えない！</strong>
+                    <p data-i18n="rulesSec3Text">最初の3秒間だけ相手の位置が見えますが、その後は完全に姿が消えます。チャットでの会話や嘘を頼りに相手の位置を推理しよう。</p>
+                </div>
+                <div
+                    style="background: #ecfdf5; border: 2px solid #a7f3d0; border-radius: var(--radius-md); padding: 14px;">
+                    <strong style="color: #065f46; font-size: 1rem;" data-i18n="rulesSec4Title">4. 不審者は「ブロック＆削除」！</strong>
+                    <p data-i18n="rulesSec4Text">1人プレイ時、AI犯罪者はあなたの居場所を完全把握しています。チャット画面の「ブロック＆削除」を押すと追跡を断ち切ることができます！</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="margin-top: 20px;">
+                <button id="btnCloseRules" class="btn btn-primary" style="width: 100%;" data-i18n="rulesBtnClose">とじる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- スクリプト群 -->
+    <script src="lang.js"></script>
+    <script src="audio.js"></script>
+    <script src="map.js"></script>
+    <script src="player.js"></script>
+    <script src="chat.js"></script>
+    <script src="api.js"></script>
+    <script src="result.js"></script>
+    <script src="ai.js"></script>
+    <script src="room.js"></script>
+    <script src="game.js"></script>
+</body>
+
+</html>
