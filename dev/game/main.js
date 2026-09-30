@@ -38,6 +38,7 @@ let canvas;
 let ctx;
 let startBtn;
 let resetBtn;
+let answerBtn;
 let statusBar;
 let hintText;
 let stageCurrentTitle;
@@ -53,6 +54,7 @@ let legendWrap;
 let grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
 let phase = 'place';
 let actionHistory = [];
+let showSolution = false;
 
 // Sliding block animations queue: [{ fromCol, toCol, row, progress, startTime, duration }]
 let slidingBlocks = [];
@@ -157,54 +159,67 @@ function applyGimmickBlockMoves() {
     const st = getStage();
     const moves = [];
 
-    // Find all blocks placed on gimmick tiles
+    // Find all blocks placed on gimmick tiles that have directional movement
     st.gimmicks.forEach(g => {
-        if (grid[g.row][g.col]) {
+        if (g.type && grid[g.row][g.col]) {
             moves.push({
                 gimmick: g,
                 fromCol: g.col,
-                row: g.row
+                fromRow: g.row
             });
         }
     });
 
     if (moves.length === 0) return false;
 
-    // Separate by direction to resolve collisions smoothly
-    // Right moves: resolve from right to left (descending col)
-    // Left moves: resolve from left to right (ascending col)
-    const rightMoves = moves.filter(m => m.gimmick.dir === 'right').sort((a, b) => b.fromCol - a.fromCol);
+    // Order moves depending on direction to avoid collisions
+    const upMoves = moves.filter(m => m.gimmick.dir === 'up').sort((a, b) => a.fromRow - b.fromRow);
+    const downMoves = moves.filter(m => m.gimmick.dir === 'down').sort((a, b) => b.fromRow - a.fromRow);
     const leftMoves = moves.filter(m => m.gimmick.dir === 'left').sort((a, b) => a.fromCol - b.fromCol);
+    const rightMoves = moves.filter(m => m.gimmick.dir === 'right').sort((a, b) => b.fromCol - a.fromCol);
 
     let hasAnyMove = false;
 
     function executeMove(m) {
         const g = m.gimmick;
         const originCol = m.fromCol;
-        const row = m.row;
+        const originRow = m.fromRow;
+
+        let destCol = originCol;
+        let destRow = originRow;
 
         if (g.type === 'dash') {
             // 水色: 矢印の方向に限界まで移動
-            let destCol = originCol;
             if (g.dir === 'right') {
                 for (let c = originCol + 1; c < COLS; c++) {
-                    if (grid[row][c]) break;
+                    if (grid[originRow][c] || isForbidden(c, originRow)) break;
                     destCol = c;
                 }
             } else if (g.dir === 'left') {
                 for (let c = originCol - 1; c >= 0; c--) {
-                    if (grid[row][c]) break;
+                    if (grid[originRow][c] || isForbidden(c, originRow)) break;
                     destCol = c;
+                }
+            } else if (g.dir === 'up') {
+                for (let r = originRow - 1; r >= 0; r--) {
+                    if (grid[r][originCol] || isForbidden(originCol, r)) break;
+                    destRow = r;
+                }
+            } else if (g.dir === 'down') {
+                for (let r = originRow + 1; r < ROWS; r++) {
+                    if (grid[r][originCol] || isForbidden(originCol, r)) break;
+                    destRow = r;
                 }
             }
 
-            if (destCol !== originCol) {
-                grid[row][originCol] = false;
-                grid[row][destCol] = true;
+            if (destCol !== originCol || destRow !== originRow) {
+                grid[originRow][originCol] = false;
+                grid[destRow][destCol] = true;
                 slidingBlocks.push({
                     fromCol: originCol,
                     toCol: destCol,
-                    row: row,
+                    fromRow: originRow,
+                    toRow: destRow,
                     startTime: performance.now(),
                     duration: 350
                 });
@@ -212,20 +227,36 @@ function applyGimmickBlockMoves() {
             }
         } else if (g.type === 'step') {
             // 緑色: 1マスだけ矢印の方向に移動
-            let destCol = originCol;
-            if (g.dir === 'right') {
-                destCol = Math.min(COLS - 1, originCol + 1);
-            } else if (g.dir === 'left') {
-                destCol = Math.max(0, originCol - 1);
+            if (g.dir === 'right' && originCol + 1 < COLS) {
+                const targetC = originCol + 1;
+                if (!grid[originRow][targetC] && !isForbidden(targetC, originRow)) {
+                    destCol = targetC;
+                }
+            } else if (g.dir === 'left' && originCol - 1 >= 0) {
+                const targetC = originCol - 1;
+                if (!grid[originRow][targetC] && !isForbidden(targetC, originRow)) {
+                    destCol = targetC;
+                }
+            } else if (g.dir === 'up' && originRow - 1 >= 0) {
+                const targetR = originRow - 1;
+                if (!grid[targetR][originCol] && !isForbidden(originCol, targetR)) {
+                    destRow = targetR;
+                }
+            } else if (g.dir === 'down' && originRow + 1 < ROWS) {
+                const targetR = originRow + 1;
+                if (!grid[targetR][originCol] && !isForbidden(originCol, targetR)) {
+                    destRow = targetR;
+                }
             }
 
-            if (destCol !== originCol && !grid[row][destCol]) {
-                grid[row][originCol] = false;
-                grid[row][destCol] = true;
+            if (destCol !== originCol || destRow !== originRow) {
+                grid[originRow][originCol] = false;
+                grid[destRow][destCol] = true;
                 slidingBlocks.push({
                     fromCol: originCol,
                     toCol: destCol,
-                    row: row,
+                    fromRow: originRow,
+                    toRow: destRow,
                     startTime: performance.now(),
                     duration: 250
                 });
@@ -234,8 +265,11 @@ function applyGimmickBlockMoves() {
         }
     }
 
-    rightMoves.forEach(executeMove);
+    // Execute in collision-safe order
+    upMoves.forEach(executeMove);
+    downMoves.forEach(executeMove);
     leftMoves.forEach(executeMove);
+    rightMoves.forEach(executeMove);
 
     return hasAnyMove;
 }
@@ -278,6 +312,13 @@ function drawGimmickTile(gimmick) {
     const y = GY + gimmick.row * CELL;
     const pulse = (Math.sin(Date.now() / 200) + 1) / 2;
 
+    function getDirAngle(dir) {
+        if (dir === 'down') return Math.PI / 2;
+        if (dir === 'left') return Math.PI;
+        if (dir === 'up') return -Math.PI / 2;
+        return 0; // default 'right'
+    }
+
     if (gimmick.type === 'dash') {
         // 水色: 矢印の方向に限界まで移動
         ctx.fillStyle = 'rgba(0, 195, 255, 0.22)';
@@ -285,7 +326,7 @@ function drawGimmickTile(gimmick) {
 
         ctx.save();
         ctx.translate(x + CELL / 2, y + CELL / 2);
-        if (gimmick.dir === 'left') ctx.scale(-1, 1);
+        ctx.rotate(getDirAngle(gimmick.dir));
 
         ctx.fillStyle = '#00c0ff';
         ctx.strokeStyle = '#0077b6';
@@ -305,12 +346,6 @@ function drawGimmickTile(gimmick) {
         ctx.stroke();
 
         ctx.restore();
-
-        if (gimmick.purpleBorder) {
-            ctx.strokeStyle = '#a855f7';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(x + 2, y + 2, CELL - 4, CELL - 4);
-        }
     } else if (gimmick.type === 'step') {
         // 緑色: 1マスだけ矢印の方向に移動
         ctx.fillStyle = 'rgba(34, 197, 94, 0.22)';
@@ -318,7 +353,7 @@ function drawGimmickTile(gimmick) {
 
         ctx.save();
         ctx.translate(x + CELL / 2, y + CELL / 2);
-        if (gimmick.dir === 'left') ctx.scale(-1, 1);
+        ctx.rotate(getDirAngle(gimmick.dir));
 
         ctx.fillStyle = '#22c55e';
         ctx.strokeStyle = '#15803d';
@@ -338,6 +373,16 @@ function drawGimmickTile(gimmick) {
         ctx.stroke();
 
         ctx.restore();
+    } else if (gimmick.purpleBorder) {
+        // 矢印のない紫枠マス
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.16)';
+        ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
+    }
+
+    if (gimmick.purpleBorder) {
+        ctx.strokeStyle = '#a855f7';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(x + 2, y + 2, CELL - 4, CELL - 4);
     }
 }
 
@@ -544,6 +589,134 @@ function drawStickman(gx_pos, gy_pos) {
     ctx.restore();
 }
 
+// MARK: - Solution Overlay Drawing (答え合わせ用オレンジ色マス)
+function drawSolutionOverlay() {
+    if (!showSolution) return;
+    const st = getStage();
+    if (!st.solution || st.solution.length === 0) return;
+
+    const pulse = (Math.sin(Date.now() / 250) + 1) / 2;
+
+    st.solution.forEach(sol => {
+        const x = GX + sol.col * CELL;
+        const y = GY + sol.row * CELL;
+        const isMatched = grid[sol.row][sol.col];
+
+        ctx.save();
+
+        if (isMatched) {
+            // すでにプレイヤーが正しく配置している場合：緑のハイライト
+            ctx.fillStyle = 'rgba(34, 197, 94, 0.28)';
+            ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
+            ctx.strokeStyle = '#22c55e';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x + 2, y + 2, CELL - 4, CELL - 4);
+
+            ctx.fillStyle = '#22c55e';
+            ctx.font = 'bold 16px "Press Start 2P", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('✓', x + CELL / 2, y + CELL / 2);
+        } else {
+            // 正解のオレンジマス（半透明オレンジ＋パルス効果）
+            ctx.fillStyle = `rgba(245, 158, 11, ${0.48 + pulse * 0.22})`;
+            ctx.fillRect(x + 3, y + 3, CELL - 6, CELL - 6);
+
+            ctx.strokeStyle = `rgba(217, 119, 6, ${0.85 + pulse * 0.15})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x + 3, y + 3, CELL - 6, CELL - 6);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px "Press Start 2P", monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('答', x + CELL / 2, y + CELL / 2);
+        }
+
+        ctx.restore();
+    });
+}
+
+function checkSolutionMatch() {
+    const st = getStage();
+    if (!st.solution) return { isMatch: false, matchCount: 0, totalSolution: 0, extraCount: 0 };
+
+    let matchCount = 0;
+    let extraCount = 0;
+
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            const shouldHave = st.solution.some(s => s.col === c && s.row === r);
+            const actualHave = grid[r][c];
+            if (shouldHave && actualHave) {
+                matchCount++;
+            } else if (!shouldHave && actualHave) {
+                extraCount++;
+            }
+        }
+    }
+
+    return {
+        isMatch: (matchCount === st.solution.length && extraCount === 0),
+        matchCount: matchCount,
+        totalSolution: st.solution.length,
+        extraCount: extraCount
+    };
+}
+
+function toggleSolution(applyToGrid = false) {
+    if (applyToGrid) {
+        applySolutionToGrid();
+        return;
+    }
+
+    showSolution = !showSolution;
+    if (answerBtn) {
+        if (showSolution) {
+            answerBtn.classList.add('active');
+            answerBtn.textContent = '答えを隠す';
+        } else {
+            answerBtn.classList.remove('active');
+            answerBtn.textContent = '答え合わせ';
+        }
+    }
+
+    if (showSolution) {
+        const check = checkSolutionMatch();
+        if (check.isMatch) {
+            statusBar.innerHTML = '<span class="status-clear">【答え合わせ】正解の配置と一致しています！</span>';
+        } else {
+            statusBar.innerHTML = `<span class="status-place">【答え合わせ】オレンジ枠を表示中 (${check.matchCount}/${check.totalSolution} 正解)</span>`;
+            hintText.textContent = 'Shift+答え合わせクリックで答えを一発セットできます';
+        }
+    } else {
+        statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
+        hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
+    }
+    render();
+}
+
+function applySolutionToGrid() {
+    const st = getStage();
+    if (!st.solution) return;
+
+    grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    actionHistory = [];
+    st.solution.forEach(sol => {
+        grid[sol.row][sol.col] = true;
+        actionHistory.push({ row: sol.row, col: sol.col, remove: false });
+    });
+
+    showSolution = true;
+    if (answerBtn) {
+        answerBtn.classList.add('active');
+        answerBtn.textContent = '答えを隠す';
+    }
+    updateBlockBadge();
+    statusBar.innerHTML = '<span class="status-clear">答えのブロックを配置しました！スタートで確認しよう！</span>';
+    render();
+}
+
 // MARK: - Main Render
 function render() {
     ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
@@ -569,18 +742,24 @@ function render() {
         drawGimmickTile(g);
     });
 
+    // Draw solution overlay (答え合わせ)
+    drawSolutionOverlay();
+
     // Draw placed blocks
     const now = performance.now();
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (grid[r][c]) {
                 // Check if this block is currently animating
-                const anim = slidingBlocks.find(b => b.toCol === c && b.row === r);
+                const anim = slidingBlocks.find(b => b.toCol === c && (b.toRow !== undefined ? b.toRow === r : b.row === r));
                 if (anim) {
                     const elapsed = now - anim.startTime;
                     const progress = Math.min(1, elapsed / anim.duration);
                     const currentC = anim.fromCol + (anim.toCol - anim.fromCol) * progress;
-                    drawMarioBlock(currentC, r);
+                    const currentR = (anim.fromRow !== undefined && anim.toRow !== undefined)
+                        ? anim.fromRow + (anim.toRow - anim.fromRow) * progress
+                        : (anim.row !== undefined ? anim.row : r);
+                    drawMarioBlock(currentC, currentR);
                     if (progress >= 1) {
                         slidingBlocks = slidingBlocks.filter(b => b !== anim);
                     }
@@ -868,6 +1047,11 @@ function selectStage(idx) {
     grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
     actionHistory = [];
     slidingBlocks = [];
+    showSolution = false;
+    if (answerBtn) {
+        answerBtn.classList.remove('active');
+        answerBtn.textContent = '答え合わせ';
+    }
     phase = 'place';
     man = makeMan();
     startBtn.disabled = false;
@@ -894,6 +1078,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     startBtn = document.getElementById('startBtn');
     resetBtn = document.getElementById('resetBtn');
+    answerBtn = document.getElementById('answerBtn');
     statusBar = document.getElementById('statusBar');
     hintText = document.getElementById('hintText');
     stageCurrentTitle = document.getElementById('stageCurrentTitle');
@@ -944,6 +1129,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
             placeBlock(col, row);
+            if (showSolution) {
+                const check = checkSolutionMatch();
+                if (check.isMatch) {
+                    statusBar.innerHTML = '<span class="status-clear">【答え合わせ】正解の配置と一致しています！</span>';
+                } else {
+                    statusBar.innerHTML = `<span class="status-place">【答え合わせ】オレンジ枠を表示中 (${check.matchCount}/${check.totalSolution} 正解)</span>`;
+                }
+            }
         }
     });
 
@@ -975,6 +1168,21 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function triggerStart() {
         if (phase !== 'place') return;
+
+        // 紫枠（必須設置）のチェック
+        const st = getStage();
+        const requiredGimmicks = st.gimmicks.filter(g => g.purpleBorder);
+        const missingRequired = requiredGimmicks.filter(g => !grid[g.row][g.col]);
+        if (missingRequired.length > 0) {
+            statusBar.innerHTML = '<span class="status-fail">紫色の枠には必ずブロックを設置してください！</span>';
+            setTimeout(() => {
+                if (phase === 'place') {
+                    statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
+                }
+            }, 1800);
+            return;
+        }
+
         startBtn.disabled = true;
 
         // スタート前のブロック配置をバックアップ
@@ -1028,6 +1236,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
     startBtn.addEventListener('click', triggerStart);
     resetBtn.addEventListener('click', triggerReset);
+    if (answerBtn) {
+        answerBtn.addEventListener('click', (e) => {
+            toggleSolution(e.shiftKey);
+        });
+        answerBtn.addEventListener('dblclick', () => {
+            applySolutionToGrid();
+        });
+    }
 
     // Keyboard input
     window.addEventListener('keydown', e => {
@@ -1055,6 +1271,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
                 e.preventDefault();
             }
+            return;
+        }
+
+        // 'h' key for solution toggle
+        if (key === 'h' && phase === 'place') {
+            toggleSolution(false);
+            e.preventDefault();
             return;
         }
 

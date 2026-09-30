@@ -201,6 +201,30 @@ h1 {
     box-shadow: 0 0 0 #901010;
 }
 
+.btn-answer {
+    background: #f59e0b;
+    color: #fff;
+    box-shadow: 0 6px 0 #b45309, inset 0 2px 0 rgba(255, 255, 255, 0.4);
+    text-shadow: 2px 2px 0 #78350f;
+    border: 3px solid #78350f;
+}
+
+.btn-answer:hover {
+    transform: translateY(2px);
+    box-shadow: 0 4px 0 #b45309;
+}
+
+.btn-answer:active {
+    transform: translateY(6px);
+    box-shadow: 0 0 0 #b45309;
+}
+
+.btn-answer.active {
+    background: #ea580c;
+    box-shadow: 0 3px 0 #9a3412, inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    transform: translateY(3px);
+}
+
 .status-wrap {
     background: #000;
     border: 4px solid #fff;
