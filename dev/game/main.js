@@ -493,13 +493,21 @@ function drawGoal() {
     const by = GY + st.goalRow * CELL;
     const bw = 56, bh = CELL;
 
-    // Right wall orange boundary line
+    // Right wall orange boundary line (オレンジ色の壁: ゴール以外のマス)
     ctx.strokeStyle = '#ff9800';
     ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(bx, by + bh);
-    ctx.lineTo(bx, GY + ROWS * CELL);
-    ctx.stroke();
+    if (st.goalRow > 0) {
+        ctx.beginPath();
+        ctx.moveTo(bx, GY);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+    }
+    if (st.goalRow < ROWS - 1) {
+        ctx.beginPath();
+        ctx.moveTo(bx, by + bh);
+        ctx.lineTo(bx, GY + ROWS * CELL);
+        ctx.stroke();
+    }
 
     // Goal block
     const alpha = 0.18 + Math.sin(goalPulse * Math.PI * 2) * 0.14;
@@ -775,8 +783,10 @@ function render() {
     drawPipe();
     drawGoal();
 
-    // Draw character
-    if (phase === 'place') {
+    // Draw character or respawn animation
+    if (phase === 'respawning') {
+        drawRespawnTrail(now);
+    } else if (phase === 'place') {
         drawStickman(-1.5, st.startRow);
     } else {
         drawStickman(man.x, man.y);
@@ -807,13 +817,12 @@ function solveRoute() {
                 keyframes.push({ x: curX, y: curY, type: 'done', time: curTime });
                 return keyframes;
             } else {
-                // Hit wall or fall
+                // オレンジ色の右壁に当たった時点で即アウト！
                 keyframes[curKfIdx].type = 'walk';
                 curTime += (COLS - curX) / WALK_SPEED * 16.67;
                 curX = COLS;
-                keyframes.push({ x: curX, y: curY, type: 'fall', time: curTime });
-                curTime += (ROWS - curY) * 150;
-                curY = ROWS;
+                keyframes.push({ x: curX, y: curY, type: 'crash', time: curTime });
+                curTime += 40;
                 keyframes.push({ x: curX, y: curY, type: 'fail', time: curTime });
                 return keyframes;
             }
@@ -828,9 +837,9 @@ function solveRoute() {
             const ceilBlocked = (c >= 0) && getBlock(c, curY - 1);
 
             if (outOfTop || jumpBlocked || ceilBlocked) {
-                // Crash
+                // 壁・天井に衝突 -> 即アウト！
                 keyframes[curKfIdx].type = 'crash';
-                const cd = Math.min(0.4, nextCol - curX - 0.05);
+                const cd = Math.min(0.35, nextCol - curX - 0.05);
                 curTime += Math.max(cd, 0.05) / WALK_SPEED * 16.67;
                 curX = Math.min(curX + Math.max(cd, 0.05), nextCol - 0.02);
                 keyframes.push({ x: curX, y: curY, type: 'fail', time: curTime });
@@ -847,6 +856,7 @@ function solveRoute() {
         }
 
         // Walk or Fall
+        // 次の列の足元にブロックがあるか、または地面(y >= ROWS)に接地しているか
         const hasFloor = getBlock(nextCol, curY + 1) || (curY + 1 >= ROWS);
         if (hasFloor) {
             keyframes[curKfIdx].type = 'walk';
@@ -856,31 +866,21 @@ function solveRoute() {
             continue;
         }
 
-        // No floor -> find landing
-        let landY = -1;
+        // 足元にブロックがない場合、下方の足場(ブロック、または最下段の地面)を探す
+        let landY = ROWS - 1; // 地面に着地
         for (let y = curY + 1; y < ROWS; y++) {
-            if (getBlock(nextCol, y + 1) || (y + 1 >= ROWS)) {
+            if (getBlock(nextCol, y + 1)) {
                 landY = y;
                 break;
             }
         }
 
-        if (landY === -1) {
-            keyframes[curKfIdx].type = 'walk';
-            curTime += (nextCol - curX) / WALK_SPEED * 16.67;
-            curX = nextCol;
-            keyframes.push({ x: curX, y: curY, type: 'fall', time: curTime });
-            curTime += (ROWS - curY) * 150;
-            curY = ROWS;
-            keyframes.push({ x: curX, y: curY, type: 'fail', time: curTime });
-            return keyframes;
-        }
-
+        // 着地足場（ブロックまたは地面）へ落下して着地
         keyframes[curKfIdx].type = 'walk';
         curTime += (nextCol - curX) / WALK_SPEED * 16.67;
         curX = nextCol;
         keyframes.push({ x: curX, y: curY, type: 'fall', time: curTime });
-        curTime += (landY - curY) * 120;
+        curTime += (landY - curY) * 60;
         curY = landY;
         keyframes.push({ x: curX, y: curY, type: 'walk', time: curTime });
     }
@@ -925,9 +925,8 @@ function step(ts) {
             render();
             showClear();
         } else {
-            phase = 'fail';
-            render();
-            showFail();
+            // ミス時：即座に「ｼｭｩｲｰﾝ」演出を開始してスタート位置へスムーズに戻る
+            triggerRespawnAnimation(man.x, man.y);
         }
         return;
     }
@@ -958,6 +957,150 @@ function step(ts) {
 
 function animate() {
     animId = requestAnimationFrame(step);
+}
+
+// MARK: - Respawn Animation ("ｼｭｩｲｰﾝ" スムーズリスポーン)
+let respawnEffect = null;
+
+function triggerRespawnAnimation(failX, failY) {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    phase = 'respawning';
+    startBtn.disabled = true;
+    statusBar.innerHTML = '<span class="status-fail">ミス！ ｼｭｩｲｰﾝ... リトライ</span>';
+
+    const st = getStage();
+    const targetX = -1.5;
+    const targetY = st.startRow;
+    const startTime = performance.now();
+    const duration = 850; // ゆっくり滑らかに移動
+
+    respawnEffect = {
+        failX,
+        failY,
+        targetX,
+        targetY,
+        currentX: failX,
+        currentY: failY,
+        startTime,
+        duration,
+        particles: []
+    };
+
+    // 初期弾けパーティクル
+    for (let i = 0; i < 20; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 1.2 + Math.random() * 2.8;
+        respawnEffect.particles.push({
+            x: GX + (failX + 0.5) * CELL,
+            y: GY + (failY + 0.5) * CELL,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            life: 1.0,
+            color: (i % 2 === 0) ? '#38bdf8' : '#fbbf24',
+            size: 3 + Math.random() * 3
+        });
+    }
+
+    function respawnLoop(now) {
+        if (phase !== 'respawning' || !respawnEffect) return;
+
+        const elapsed = now - respawnEffect.startTime;
+        const progress = Math.min(1, elapsed / respawnEffect.duration);
+
+        // smooth cubic ease-in-out
+        const t = progress < 0.5
+            ? 4 * progress * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+        respawnEffect.currentX = respawnEffect.failX + (respawnEffect.targetX - respawnEffect.failX) * t;
+        // 上空を滑空するアーチカーブ
+        const arch = Math.sin(progress * Math.PI) * -0.7;
+        respawnEffect.currentY = respawnEffect.failY + (respawnEffect.targetY - respawnEffect.failY) * t + arch;
+
+        // 飛行中のキラキラトレイル
+        for (let k = 0; k < 2; k++) {
+            respawnEffect.particles.push({
+                x: GX + (respawnEffect.currentX + 0.5) * CELL + (Math.random() - 0.5) * 8,
+                y: GY + (respawnEffect.currentY + 0.5) * CELL + (Math.random() - 0.5) * 8,
+                vx: (Math.random() - 0.5) * 1.2,
+                vy: (Math.random() - 0.5) * 1.2,
+                life: 1.0,
+                color: (Math.random() > 0.5) ? '#38bdf8' : '#f59e0b',
+                size: 2.5 + Math.random() * 3
+            });
+        }
+
+        render();
+
+        if (progress < 1) {
+            requestAnimationFrame(respawnLoop);
+        } else {
+            completeRespawn();
+        }
+    }
+
+    requestAnimationFrame(respawnLoop);
+}
+
+function completeRespawn() {
+    respawnEffect = null;
+
+    // スタート前のブロック配置を自動復元
+    if (originalGrid) {
+        grid = originalGrid.map(r => [...r]);
+    }
+    slidingBlocks = [];
+    phase = 'place';
+    man = makeMan();
+    startBtn.disabled = false;
+
+    statusBar.innerHTML = '<span class="status-place">ブロックを再配置 (Space: 開始 / m: 全クリア)</span>';
+    hintText.textContent = 'Spaceキーで即座に再スタートできます！';
+    updateBlockBadge();
+    render();
+}
+
+function drawRespawnTrail(now) {
+    if (!respawnEffect) return;
+
+    ctx.save();
+
+    // パーティクルの更新と描画
+    respawnEffect.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fill();
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.025; // 軌跡を長めに残す
+    });
+    respawnEffect.particles = respawnEffect.particles.filter(p => p.life > 0);
+
+    // 光のオーブ本体（ｼｭｩｲｰﾝと飛ぶ光球）
+    const ox = GX + (respawnEffect.currentX + 0.5) * CELL;
+    const oy = GY + (respawnEffect.currentY + 0.5) * CELL;
+
+    // 外側のグロー
+    const grad = ctx.createRadialGradient(ox, oy, 2, ox, oy, 24);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+    grad.addColorStop(0.25, 'rgba(56, 189, 248, 0.85)');
+    grad.addColorStop(0.65, 'rgba(245, 158, 11, 0.4)');
+    grad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(ox, oy, 24, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 中心の強い光核
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(ox, oy, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
 }
 
 // MARK: - UI & Feedback
@@ -1249,12 +1392,14 @@ window.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('keydown', e => {
         const key = e.key.toLowerCase();
 
-        if (e.key === 'Shift') {
+        // 'm' key or Shift for Reset
+        if (key === 'm' || e.key === 'Shift') {
             triggerReset();
             e.preventDefault();
             return;
         }
-        if (e.key === 'Enter') {
+        // Space key or Enter for Start
+        if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') {
             if (phase === 'place') {
                 triggerStart();
                 e.preventDefault();
@@ -1274,8 +1419,8 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 'h' key for solution toggle
-        if (key === 'h' && phase === 'place') {
+        // '.' key for solution toggle (答え合わせ)
+        if ((e.key === '.' || e.code === 'Period') && phase === 'place') {
             toggleSolution(false);
             e.preventDefault();
             return;
