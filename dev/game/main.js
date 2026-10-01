@@ -486,13 +486,8 @@ function drawGridLines() {
 }
 
 function drawKeyGuide(col, row) {
-    if (isForbidden(col, row)) return;
-    const keyChar = KEY_MAP[row][col].toUpperCase();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-    ctx.font = '10px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.fillText(keyChar, GX + (col + 1) * CELL - 4, GY + row * CELL + 4);
+    // ユーザー要望によりグリッド内のキー文字（Q, W, E...）は非表示化
+    return;
 }
 
 // Mario-style brick block

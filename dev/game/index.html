@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
-    <link rel="stylesheet" href="style.css?v=13">
+    <link rel="stylesheet" href="style.css?v=15">
     <script src="stages.js?v=4" defer></script>
-    <script src="main.js?v=18" defer></script>
+    <script src="main.js?v=20" defer></script>
     <title>ハコゲーム - BLOCK PLACEMENT PUZZLE</title>
 </head>
 <body>
@@ -40,17 +40,35 @@
             </div>
 
             <div class="home-menu-box">
-                <button class="home-menu-btn btn-play" id="homeStartBtn">
-                    <span class="home-btn-icon">▶</span>
-                    <span class="home-btn-label">ゲーム開始</span>
+                <button class="home-menu-btn btn-play" id="homeStartBtn" type="button">
+                    <div class="home-btn-block-icon">
+                        <span class="btn-block-inner">▶</span>
+                    </div>
+                    <div class="home-btn-text-group">
+                        <span class="home-btn-main">ゲーム開始</span>
+                        <span class="home-btn-sub">GAME START</span>
+                    </div>
+                    <span class="home-btn-arrow">▶</span>
                 </button>
-                <button class="home-menu-btn btn-select" id="homeSelectBtn">
-                    <span class="home-btn-icon">🗺️</span>
-                    <span class="home-btn-label">ステージをえらぶ</span>
+                <button class="home-menu-btn btn-select" id="homeSelectBtn" type="button">
+                    <div class="home-btn-block-icon">
+                        <span class="btn-block-inner">🗺️</span>
+                    </div>
+                    <div class="home-btn-text-group">
+                        <span class="home-btn-main">ステージをえらぶ</span>
+                        <span class="home-btn-sub">STAGE SELECT</span>
+                    </div>
+                    <span class="home-btn-arrow">▶</span>
                 </button>
-                <button class="home-menu-btn btn-how" id="homeHelpBtn">
-                    <span class="home-btn-icon">❓</span>
-                    <span class="home-btn-label">あそびかた</span>
+                <button class="home-menu-btn btn-how" id="homeHelpBtn" type="button">
+                    <div class="home-btn-block-icon">
+                        <span class="btn-block-inner">❓</span>
+                    </div>
+                    <div class="home-btn-text-group">
+                        <span class="home-btn-main">あそびかた</span>
+                        <span class="home-btn-sub">HOW TO PLAY</span>
+                    </div>
+                    <span class="home-btn-arrow">▶</span>
                 </button>
             </div>
         </div>
@@ -126,16 +144,13 @@
                 <div class="controls controls-panel">
                     <button class="btn btn-start btn-large" id="startBtn" title="ゲーム開始 (Spaceキー / Enterキー)">
                         <span class="btn-main-label">スタート</span>
-                        <span class="btn-key-badge">Space</span>
                     </button>
                     <div class="controls-sub-row">
                         <button class="btn btn-reset btn-large" id="resetBtn" title="配置を全クリア (Mキー / Shiftキー)">
                             <span class="btn-main-label">リセット</span>
-                            <span class="btn-key-badge">M</span>
                         </button>
                         <button class="btn btn-answer btn-large" id="answerBtn" title="答えの配置ガイドを表示 (.キー)">
                             <span class="btn-main-label">答え合わせ</span>
-                            <span class="btn-key-badge">.</span>
                         </button>
                     </div>
                 </div>
@@ -203,6 +218,6 @@
     </div>
 
     <!-- ビルド情報 -->
-    <div class="dev-notice">Build v2.2 (2026/10/01 22:20 JST)</div>
+    <div class="dev-notice">Build v2.4 (2026/10/01 22:50 JST)</div>
 </body>
 </html>
