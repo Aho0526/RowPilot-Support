@@ -1260,6 +1260,39 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Help Modal handlers
+    const helpBtn = document.getElementById('helpBtn');
+    const helpModalOverlay = document.getElementById('helpModalOverlay');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+    function openHelpModal() {
+        if (helpModalOverlay) helpModalOverlay.classList.add('open');
+    }
+    function closeHelpModal() {
+        if (helpModalOverlay) helpModalOverlay.classList.remove('open');
+    }
+
+    if (helpBtn) {
+        helpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openHelpModal();
+        });
+    }
+    if (modalCloseBtn) {
+        modalCloseBtn.addEventListener('click', closeHelpModal);
+    }
+    if (helpModalOverlay) {
+        helpModalOverlay.addEventListener('click', (e) => {
+            if (e.target === helpModalOverlay) closeHelpModal();
+        });
+    }
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && helpModalOverlay && helpModalOverlay.classList.contains('open')) {
+            closeHelpModal();
+            e.preventDefault();
+        }
+    });
+
     // Mouse input for block placement
     canvas.addEventListener('click', e => {
         if (phase !== 'place') return;

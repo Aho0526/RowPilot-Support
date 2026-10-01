@@ -14,7 +14,7 @@
 <h1>ハコゲーム</h1>
 <p class="subtitle">BLOCK PLACEMENT PUZZLE</p>
 
-<!-- ステージ選択バー -->
+<!-- ステージ選択バー & ヘルプボタン -->
 <div class="stage-nav">
     <button class="stage-nav-arrow" id="prevStageBtn" title="前のステージ">◀</button>
     <div class="stage-selector-dropdown-wrap">
@@ -28,6 +28,35 @@
         </div>
     </div>
     <button class="stage-nav-arrow" id="nextStageBtn" title="次のステージ">▶</button>
+    <button class="help-btn" id="helpBtn" title="遊び方・使い方ガイド (Hキー / クリック)">?</button>
+</div>
+
+<!-- 遊び方ポップアップモーダル -->
+<div class="modal-overlay" id="helpModalOverlay">
+    <div class="help-modal">
+        <div class="help-modal-header">
+            <div class="help-modal-title">❓ ハコゲームの遊び方</div>
+            <button class="modal-close-btn" id="modalCloseBtn">✕</button>
+        </div>
+        <div class="help-modal-body">
+            <div class="help-rule-box">
+                <b>🎯 目的:</b> スタート土管から出るキャラクターを、ブロックを置いて右の<b>GOAL</b>まで導こう！<br>
+                <b>🏃 移動:</b> 直進歩行。1段のブロックはジャンプ。2段の壁や右のオレンジ壁に衝突するとスタックしてアウト！
+            </div>
+            <div class="help-section-title">⌨️ 主な操作方法</div>
+            <ul class="help-key-list">
+                <li><span class="modal-kbd">クリック</span> または <span class="modal-kbd">Q〜N</span>: ブロック配置 / 削除</li>
+                <li><span class="modal-kbd">Space</span> / <span class="modal-kbd">Enter</span>: スタート</li>
+                <li><span class="modal-kbd">M</span> / <span class="modal-kbd">Shift</span>: 全リセット</li>
+                <li><span class="modal-kbd">. (ピリオド)</span>: 答え合わせガイド表示</li>
+                <li><span class="modal-kbd">Backspace</span>: 1手戻す</li>
+                <li><span class="modal-kbd">◀</span> / <span class="modal-kbd">▶</span>: ステージ切り替え</li>
+            </ul>
+        </div>
+        <div class="help-modal-footer">
+            <a href="how-to-play.html" target="_blank" class="modal-full-guide-link">📖 詳細な使い方ページを開く (別タブ) ➔</a>
+        </div>
+    </div>
 </div>
 
 <div class="game-wrapper">

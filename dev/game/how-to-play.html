@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <link rel="stylesheet" href="style.css?v=6">
+    <title>ハコゲーム - 遊び方・使い方ガイド</title>
+    <style>
+        body {
+            overflow-y: auto !important;
+            height: auto !important;
+            min-height: 100vh;
+            padding: 24px 16px 60px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .guide-container {
+            max-width: 680px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border: 4px solid #000;
+            box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 24px 28px;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #222;
+            z-index: 10;
+        }
+
+        .guide-header {
+            text-align: center;
+            border-bottom: 3px dashed #e2e8f0;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+
+        .guide-title {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 20px;
+            color: #d97706;
+            text-shadow: 2px 2px 0px #000;
+            margin: 0 0 8px;
+        }
+
+        .guide-subtitle {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .back-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #2563eb;
+            color: #fff;
+            text-decoration: none;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 11px;
+            padding: 10px 16px;
+            border: 3px solid #000;
+            border-radius: 8px;
+            box-shadow: 3px 3px 0 #000;
+            margin-top: 12px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .back-link-btn:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 4px 4px 0 #000;
+            background: #1d4ed8;
+        }
+
+        .back-link-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0 #000;
+        }
+
+        .section {
+            margin-bottom: 28px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 800;
+            color: #1e293b;
+            border-left: 5px solid #f59e0b;
+            padding-left: 10px;
+            margin: 0 0 12px;
+        }
+
+        .rule-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .rule-card b {
+            color: #0f172a;
+        }
+
+        .key-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .key-table th, .key-table td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .key-table th {
+            background: #f1f5f9;
+            font-weight: bold;
+            color: #334155;
+        }
+
+        .kbd {
+            display: inline-block;
+            background: #e2e8f0;
+            border: 2px solid #94a3b8;
+            border-bottom: 3px solid #64748b;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 12px;
+            color: #0f172a;
+        }
+
+        .gimmick-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+
+        .gimmick-item:last-child {
+            border-bottom: none;
+        }
+
+        .gimmick-badge {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 6px;
+            flex-shrink: 0;
+            font-size: 14px;
+            border: 2px solid #000;
+        }
+
+        .gimmick-dash {
+            background: rgba(56, 189, 248, 0.4);
+            border-color: #0284c7;
+            color: #0369a1;
+        }
+
+        .gimmick-step {
+            background: rgba(74, 222, 128, 0.4);
+            border-color: #16a34a;
+            color: #15803d;
+        }
+
+        .gimmick-purple {
+            background: rgba(168, 85, 247, 0.25);
+            border: 3px solid #9333ea;
+            color: #7e22ce;
+        }
+
+        .gimmick-forbidden {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: #dc2626;
+            color: #b91c1c;
+        }
+
+        .gimmick-desc {
+            font-size: 13.5px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+
+    <div class="guide-container">
+        <div class="guide-header">
+            <h1 class="guide-title">HOW TO PLAY</h1>
+            <p class="guide-subtitle">ハコゲーム 基本ルール & 操作ガイド</p>
+            <a href="index.html" class="back-link-btn">◀ ゲーム画面に戻る</a>
+        </div>
+
+        <!-- 1. ゲームの目的 -->
+        <div class="section">
+            <div class="section-title">🎯 ゲームの目的</div>
+            <div class="rule-card">
+                左側の<b>スタート土管</b>から現れるキャラクターを、ブロックを置いて足場を作り、右側の<b>ゴール地点（GOAL）</b>まで無事に導くパズルゲームです。
+            </div>
+        </div>
+
+        <!-- 2. キャラクターの移動ルール -->
+        <div class="section">
+            <div class="section-title">🏃 キャラクターの動きのルール</div>
+            <div class="rule-card">
+                <b>・直進：</b> キャラクターは自動的に右方向へ歩き続けます。<br>
+                <b>・段差ジャンプ：</b> 目の前（1マス先）にブロックが1つある場合、上に「ピョン」と飛び乗ります。<br>
+                <b>・落下：</b> 足元にブロックがない場合、下の足場（または地面）に着地するまで落下します。<br>
+                <b>・ゲームオーバー（即時停止 & 自動リスポーン）：</b><br>
+                　① 前方に2段以上のブロック壁や天井があり進めない（スタックした）場合<br>
+                　② 右端に到達した時、ゴール以外の「オレンジ色の壁」にぶつかった場合<br>
+                ※ミスになると「ｼｭｩｲｰﾝ」と光になって自動でスタート地点に戻り、前回の配置が復元されるので即座に再挑戦できます！
+            </div>
+        </div>
+
+        <!-- 3. 操作方法 & ショートカット -->
+        <div class="section">
+            <div class="section-title">⌨️ 操作方法 & キーボードショートカット</div>
+            <table class="key-table">
+                <thead>
+                    <tr>
+                        <th style="width: 32%;">操作</th>
+                        <th>キー / アクション</th>
+                        <th>説明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><b>ブロック配置 / 削除</b></td>
+                        <td><span class="kbd">クリック</span> または <span class="kbd">Q</span>〜<span class="kbd">N</span></td>
+                        <td>マス目をクリックするか、右上に小さく表示された対応キーを押す</td>
+                    </tr>
+                    <tr>
+                        <td><b>ゲーム開始</b></td>
+                        <td><span class="kbd">Space</span> / <span class="kbd">Enter</span></td>
+                        <td>配置したブロックでキャラクターを走らせる</td>
+                    </tr>
+                    <tr>
+                        <td><b>全リセット</b></td>
+                        <td><span class="kbd">M</span> / <span class="kbd">Shift</span></td>
+                        <td>配置したブロックをすべてクリアする</td>
+                    </tr>
+                    <tr>
+                        <td><b>1手戻す</b></td>
+                        <td><span class="kbd">Backspace</span></td>
+                        <td>最後に置いた（または消した）ブロックを取り消す</td>
+                    </tr>
+                    <tr>
+                        <td><b>答え合わせ (ヒント)</b></td>
+                        <td><span class="kbd">.</span> (ピリオド)</td>
+                        <td>正解のブロック配置をガイド表示 / ボタンをダブルクリックで自動配置</td>
+                    </tr>
+                    <tr>
+                        <td><b>ステージ切り替え</b></td>
+                        <td><span class="kbd">◀</span> / <span class="kbd">▶</span> (矢印キー)</td>
+                        <td>前のステージ / 次のステージへ切り替える（全19ステージ）</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 4. 特殊ギミック一覧 -->
+        <div class="section">
+            <div class="section-title">🧩 特殊ギミックマス</div>
+            <div class="rule-card">
+                <div class="gimmick-item">
+                    <div class="gimmick-badge gimmick-dash">➔</div>
+                    <div class="gimmick-desc">
+                        <b>水色マス（ダッシュスライド）：</b><br>
+                        ここにブロックを置くと、スタートした瞬間に矢印の方向へ<b>壁や他のブロックに当たるまで限界まで移動</b>します。
+                    </div>
+                </div>
+                <div class="gimmick-item">
+                    <div class="gimmick-badge gimmick-step">←</div>
+                    <div class="gimmick-desc">
+                        <b>緑色マス（ステップスライド）：</b><br>
+                        ここにブロックを置くと、スタートした瞬間に矢印の方向へ<b>指定マス数（1マス）だけ移動</b>します。
+                    </div>
+                </div>
+                <div class="gimmick-item">
+                    <div class="gimmick-badge gimmick-purple">▢</div>
+                    <div class="gimmick-desc">
+                        <b>紫色の太枠（必須配置）：</b><br>
+                        このマスには<b>必ずブロックを配置</b>する必要があります（置かないとスタートできません）。
+                    </div>
+                </div>
+                <div class="gimmick-item">
+                    <div class="gimmick-badge gimmick-forbidden">／</div>
+                    <div class="gimmick-desc">
+                        <b>赤の斜線（配置禁止）：</b><br>
+                        このマスには<b>ブロックを置くことができません</b>。
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 24px;">
+            <a href="index.html" class="back-link-btn" style="padding: 12px 24px; font-size: 13px;">🎮 さっそく遊ぶ！</a>
+        </div>
+    </div>
+</body>
+</html>
