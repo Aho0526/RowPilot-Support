@@ -1,86 +1,208 @@
 <!DOCTYPE html>
 <html lang="ja">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="stages.js?v=2" defer></script>
-<script src="main.js?v=13" defer></script>
-<link rel="stylesheet" href="style.css?v=5">
-<link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
-<title>ハコゲーム</title>
-<div class="cloud cloud-1"></div>
-<div class="cloud cloud-2"></div>
-<div class="cloud cloud-3"></div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <link rel="stylesheet" href="style.css?v=13">
+    <script src="stages.js?v=4" defer></script>
+    <script src="main.js?v=18" defer></script>
+    <title>ハコゲーム - BLOCK PLACEMENT PUZZLE</title>
+</head>
+<body>
+    <!-- 共通背景の雲 -->
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
 
-<h1>ハコゲーム</h1>
-<p class="subtitle">BLOCK PLACEMENT PUZZLE</p>
+    <!-- ==========================================
+         1. ホーム画面 (タイトル画面)
+         ========================================== -->
+    <div class="screen-view active" id="homeScreen">
+        <div class="home-container">
+            <h1 class="home-title">ハコゲーム</h1>
+            <p class="home-subtitle">BLOCK PLACEMENT PUZZLE</p>
 
-<!-- ステージ選択バー & ヘルプボタン -->
-<div class="stage-nav">
-    <button class="stage-nav-arrow" id="prevStageBtn" title="前のステージ">◀</button>
-    <div class="stage-selector-dropdown-wrap">
-        <button class="stage-current-btn" id="stageCurrentBtn">
-            <span id="stageCurrentTitle">ステージ 1</span>
-            <span class="dropdown-caret">▼</span>
-        </button>
-        <div class="stage-menu-popup" id="stageMenuPopup">
-            <div class="stage-menu-header">ステージ選択 (全19ステージ)</div>
-            <div class="stage-menu-grid" id="stageMenuGrid"></div>
-        </div>
-    </div>
-    <button class="stage-nav-arrow" id="nextStageBtn" title="次のステージ">▶</button>
-    <button class="help-btn" id="helpBtn" title="遊び方・使い方ガイド (Hキー / クリック)">?</button>
-</div>
-
-<!-- 遊び方ポップアップモーダル -->
-<div class="modal-overlay" id="helpModalOverlay">
-    <div class="help-modal">
-        <div class="help-modal-header">
-            <div class="help-modal-title">❓ ハコゲームの遊び方</div>
-            <button class="modal-close-btn" id="modalCloseBtn">✕</button>
-        </div>
-        <div class="help-modal-body">
-            <div class="help-rule-box">
-                <b>🎯 目的:</b> スタート土管から出るキャラクターを、ブロックを置いて右の<b>GOAL</b>まで導こう！<br>
-                <b>🏃 移動:</b> 直進歩行。1段のブロックはジャンプ。2段の壁や右のオレンジ壁に衝突するとスタックしてアウト！
+            <!-- マリオ風キャラクターアニメーションアート -->
+            <div class="home-hero-art">
+                <div class="hero-pipe-wrap">
+                    <div class="hero-pipe">
+                        <span class="hero-pipe-label">START</span>
+                    </div>
+                    <canvas class="hero-character-canvas" id="heroCharacterCanvas" width="36" height="70"></canvas>
+                </div>
+                <div class="hero-blocks-wrap">
+                    <div class="hero-block"></div>
+                    <div class="hero-block hero-block-q">?</div>
+                    <div class="hero-block"></div>
+                    <div class="hero-goal-box">GOAL</div>
+                </div>
             </div>
-            <div class="help-section-title">⌨️ 主な操作方法</div>
-            <ul class="help-key-list">
-                <li><span class="modal-kbd">クリック</span> または <span class="modal-kbd">Q〜N</span>: ブロック配置 / 削除</li>
-                <li><span class="modal-kbd">Space</span> / <span class="modal-kbd">Enter</span>: スタート</li>
-                <li><span class="modal-kbd">M</span> / <span class="modal-kbd">Shift</span>: 全リセット</li>
-                <li><span class="modal-kbd">. (ピリオド)</span>: 答え合わせガイド表示</li>
-                <li><span class="modal-kbd">Backspace</span>: 1手戻す</li>
-                <li><span class="modal-kbd">◀</span> / <span class="modal-kbd">▶</span>: ステージ切り替え</li>
-            </ul>
+
+            <div class="home-menu-box">
+                <button class="home-menu-btn btn-play" id="homeStartBtn">
+                    <span class="home-btn-icon">▶</span>
+                    <span class="home-btn-label">ゲーム開始</span>
+                </button>
+                <button class="home-menu-btn btn-select" id="homeSelectBtn">
+                    <span class="home-btn-icon">🗺️</span>
+                    <span class="home-btn-label">ステージをえらぶ</span>
+                </button>
+                <button class="home-menu-btn btn-how" id="homeHelpBtn">
+                    <span class="home-btn-icon">❓</span>
+                    <span class="home-btn-label">あそびかた</span>
+                </button>
+            </div>
         </div>
-        <div class="help-modal-footer">
-            <a href="how-to-play.html" target="_blank" class="modal-full-guide-link">📖 詳細な使い方ページを開く (別タブ) ➔</a>
+    </div>
+
+    <!-- ==========================================
+         2. ステージ選択画面 (ステージセレクト)
+         ========================================== -->
+    <div class="screen-view" id="selectScreen">
+        <div class="select-container">
+            <div class="select-header">
+                <button class="nav-back-btn" id="selectBackToHomeBtn">◀ ホームへ</button>
+                <h2 class="select-title">ステージ選択</h2>
+                <div class="select-progress-badge" id="selectProgressBadge">クリア: 0 / 19</div>
+            </div>
+            <div class="select-grid-wrap" id="selectScreenGrid">
+                <!-- 1〜19のステージカードがJSで生成される -->
+            </div>
         </div>
     </div>
-</div>
 
-<div class="game-wrapper">
-    <canvas id="gameCanvas"></canvas>
-</div>
+    <!-- ==========================================
+         3. ゲームプレイ画面
+         ========================================== -->
+    <div class="screen-view" id="gameScreen">
+        <!-- ゲーム画面ヘッダー -->
+        <div class="game-top-bar">
+            <button class="top-nav-btn" id="gameBackToHomeBtn" title="タイトル画面へ">🏠 ホーム</button>
+            <button class="top-nav-btn" id="gameToSelectBtn" title="ステージ選択一覧へ">🗺️ ステージ</button>
+            
+            <div class="stage-nav-pill">
+                <button class="stage-nav-arrow" id="prevStageBtn" title="前のステージ (◀キー)">◀</button>
+                <span class="stage-pill-title" id="stageCurrentTitle">ステージ 1</span>
+                <button class="stage-nav-arrow" id="nextStageBtn" title="次のステージ (▶キー)">▶</button>
+            </div>
 
-<div class="controls">
-    <button class="btn btn-reset" id="resetBtn" title="リセット (Mキー / Shiftキー)">リセット (M)</button>
-    <button class="btn btn-answer" id="answerBtn" title="答えの配置を表示 (.キー) / ダブルクリックで自動配置">答え合わせ (.)</button>
-    <button class="btn btn-start" id="startBtn" title="スタート (Spaceキー / Enterキー)">スタート (Space)</button>
-    <div class="block-count-badge" id="blockBadge">
-        <span class="badge-label">BLOCKS</span>
-        <span class="badge-val" id="blockCountVal">0 / 6</span>
+            <button class="help-btn" id="helpBtn" title="遊び方・使い方ガイド (?キー / クリック)">?</button>
+        </div>
+
+        <!-- ステージ開始時アナウンスバナー -->
+        <div class="stage-announce-banner" id="stageAnnounceBanner">
+            <div class="announce-inner">
+                <div class="announce-stage-title" id="announceTitle">ステージ 1</div>
+                <div class="announce-stage-sub" id="announceSub">ブロックを配置してゴールを目指そう！</div>
+            </div>
+        </div>
+
+        <!-- メインゲームエリア (左: ステージ / 右: 案内 & 操作パネル) -->
+        <div class="game-main-area">
+            <!-- 左カラム: ゲームステージ (キャンバス) -->
+            <div class="game-left-col">
+                <div class="game-wrapper">
+                    <canvas id="gameCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- 右カラム: 案内 & 操作パネル -->
+            <div class="game-right-col">
+                <!-- ステータスバー (大きく視認性抜群) -->
+                <div class="status-wrap status-wrap-large">
+                    <div class="status-bar" id="statusBar">
+                        <span class="status-place">ブロックを配置してください</span>
+                    </div>
+                </div>
+
+                <!-- ブロック残数バッジ -->
+                <div class="block-count-badge block-count-large" id="blockBadge">
+                    <span class="badge-label">BLOCKS</span>
+                    <span class="badge-val" id="blockCountVal">0 / 6</span>
+                </div>
+
+                <!-- 操作ボタン群 (右カラム用レイアウト) -->
+                <div class="controls controls-panel">
+                    <button class="btn btn-start btn-large" id="startBtn" title="ゲーム開始 (Spaceキー / Enterキー)">
+                        <span class="btn-main-label">スタート</span>
+                        <span class="btn-key-badge">Space</span>
+                    </button>
+                    <div class="controls-sub-row">
+                        <button class="btn btn-reset btn-large" id="resetBtn" title="配置を全クリア (Mキー / Shiftキー)">
+                            <span class="btn-main-label">リセット</span>
+                            <span class="btn-key-badge">M</span>
+                        </button>
+                        <button class="btn btn-answer btn-large" id="answerBtn" title="答えの配置ガイドを表示 (.キー)">
+                            <span class="btn-main-label">答え合わせ</span>
+                            <span class="btn-key-badge">.</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ギミック凡例 & ヒント -->
+                <div class="legend-wrap" id="legendWrap"></div>
+                <div class="hint" id="hintText">ブロックを配置　/　[Space]: 開始　[M]: リセット</div>
+            </div>
+        </div>
     </div>
-</div>
 
-<div class="status-wrap">
-    <div class="status-bar" id="statusBar">
-        <span class="status-place">ブロックを配置しろ</span>
+    <!-- ==========================================
+         4. クリア時 自動移行モーダル
+         ========================================== -->
+    <div class="modal-overlay" id="clearModalOverlay">
+        <div class="clear-modal">
+            <div class="clear-confetti-wrap"></div>
+            <div class="clear-modal-badge">★ CLEAR! ★</div>
+            <h3 class="clear-modal-title" id="clearModalTitle">STAGE CLEAR!</h3>
+            <p class="clear-modal-sub" id="clearModalSub">お見事！ステージ 1 をクリアしました！</p>
+            
+            <div class="clear-modal-actions">
+                <button class="clear-action-btn clear-btn-next" id="clearNextStageBtn">
+                    <span>次のステージへ 進む ▶</span>
+                    <span class="countdown-tag">(<span id="clearCountdown">3</span>秒後に自動移動)</span>
+                </button>
+                <div class="clear-sub-actions">
+                    <button class="clear-action-btn clear-btn-retry" id="clearRetryBtn">もう一度遊ぶ (M)</button>
+                    <button class="clear-action-btn clear-btn-select" id="clearSelectBtn">ステージ一覧へ</button>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
-<div class="legend-wrap" id="legendWrap"></div>
-<div class="hint" id="hintText">ブロックを配置　/　[Space]: 開始　[M]: リセット</div>
-<div class="dev-notice">Build v1.5 (2026/10/01 18:50 JST)</div>
+    <!-- ==========================================
+         5. 遊び方・使い方ポップアップモーダル
+         ========================================== -->
+    <div class="modal-overlay" id="helpModalOverlay">
+        <div class="help-modal">
+            <div class="help-modal-header">
+                <div class="help-modal-title">❓ ハコゲームの遊び方</div>
+                <button class="modal-close-btn" id="modalCloseBtn">✕</button>
+            </div>
+            <div class="help-modal-body">
+                <div class="help-rule-box">
+                    <b>🎯 目的:</b> スタート土管から出るキャラクターを、ブロックを置いて右の<b>GOAL</b>まで導こう！<br>
+                    <b>🏃 移動:</b> 直進歩行。1段のブロックはジャンプ。2段の壁や右のオレンジ壁に衝突するとスタックしてアウト！<br>
+                    <b>🧩 ギミック:</b> 水色矢印＝端まで移動（途中の緑矢印で向きを変え1マス移動！）、緑色矢印＝1マス移動、紫枠＝必須設置。<br>
+                    <b>🔗 連結:</b> 複数ブロックを置くときは、ブロック同士を縦横斜めで必ずくっつけて配置しよう！
+                </div>
+                <div class="help-section-title">⌨️ 主な操作方法</div>
+                <ul class="help-key-list">
+                    <li><span class="modal-kbd">クリック</span> または <span class="modal-kbd">Q〜N</span>: ブロック配置 / 削除</li>
+                    <li><span class="modal-kbd">Space</span> / <span class="modal-kbd">Enter</span>: スタート</li>
+                    <li><span class="modal-kbd">M</span> / <span class="modal-kbd">Shift</span>: 全リセット</li>
+                    <li><span class="modal-kbd">. (ピリオド)</span>: 答え合わせガイド表示</li>
+                    <li><span class="modal-kbd">Backspace</span>: 1手戻す</li>
+                    <li><span class="modal-kbd">◀</span> / <span class="modal-kbd">▶</span>: ステージ切り替え</li>
+                </ul>
+            </div>
+            <div class="help-modal-footer">
+                <a href="how-to-play.html" target="_blank" class="modal-full-guide-link">📖 詳細な使い方ページを開く (別タブ) ➔</a>
+            </div>
+        </div>
+    </div>
 
+    <!-- ビルド情報 -->
+    <div class="dev-notice">Build v2.2 (2026/10/01 22:20 JST)</div>
+</body>
 </html>

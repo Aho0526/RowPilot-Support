@@ -31,7 +31,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '←', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
@@ -64,7 +64,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '↓', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' }
         ]
     },
@@ -97,7 +97,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
     },
@@ -125,7 +125,7 @@ const STAGES = [
             { col: 1, row: 3 }, { col: 2, row: 3 }
         ],
         legends: [
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '↓', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
@@ -162,7 +162,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '↑', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
@@ -230,7 +230,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
     },
@@ -263,7 +263,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
@@ -296,7 +296,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '↑', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
@@ -333,7 +333,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
@@ -357,12 +357,12 @@ const STAGES = [
         ],
         solution: [
             { col: 2, row: 0 },
-            { col: 1, row: 1 }, { col: 3, row: 1 },
+            { col: 1, row: 1 }, { col: 4, row: 1 },
             { col: 0, row: 2 }, { col: 3, row: 2 },
             { col: 1, row: 3 }, { col: 2, row: 3 }
         ],
         legends: [
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
     },
@@ -398,7 +398,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
@@ -434,7 +434,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '←', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
@@ -472,7 +472,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
@@ -489,24 +489,24 @@ const STAGES = [
         startRow: 0,
         goalRow: 3,
         forbidden: [
-            { col: 0, row: 3 },
+            { col: 4, row: 2 },
             { col: 4, row: 3 },
             { col: 4, row: 4 }
         ],
         gimmicks: [
             { col: 0, row: 2, type: 'dash', dir: 'down', purpleBorder: false },
             { col: 1, row: 3, type: 'step', dir: 'up', steps: 1, purpleBorder: true },
-            { col: 4, row: 2, type: 'dash', dir: 'left', purpleBorder: false },
+            { col: 3, row: 2, type: 'dash', dir: 'left', purpleBorder: false },
             { col: 0, row: 4, type: 'dash', dir: 'right', purpleBorder: false }
         ],
         solution: [
-            { col: 0, row: 1 }, { col: 0, row: 2 },
+            { col: 0, row: 1 }, { col: 0, row: 2 }, { col: 0, row: 3 },
             { col: 1, row: 3 }, { col: 2, row: 3 },
             { col: 0, row: 4 }
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '↑', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
@@ -541,7 +541,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '←', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' }
         ]
     },
@@ -570,7 +570,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '↑', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
@@ -603,7 +603,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '↑', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' }
         ]
     },
@@ -637,7 +637,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に限界まで移動' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]

@@ -102,6 +102,46 @@ function countPlacedBlocks() {
     return count;
 }
 
+// 全てのブロックが8方向（縦・横・斜め）で一続きに連結しているかを判定
+function areBlocksConnected() {
+    const blocks = [];
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (grid[r][c]) blocks.push({ r, c });
+        }
+    }
+    // 0個または1個なら常に連結
+    if (blocks.length <= 1) return true;
+
+    const visited = new Set();
+    const queue = [blocks[0]];
+    visited.add(`${blocks[0].r},${blocks[0].c}`);
+
+    // 8方向（上下左右＋斜め4方向）
+    const dirs = [
+        [-1, -1], [-1, 0], [-1, 1],
+        [ 0, -1],          [ 0, 1],
+        [ 1, -1], [ 1, 0], [ 1, 1]
+    ];
+
+    while (queue.length > 0) {
+        const cur = queue.shift();
+        for (const [dr, dc] of dirs) {
+            const nr = cur.r + dr;
+            const nc = cur.c + dc;
+            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && grid[nr][nc]) {
+                const key = `${nr},${nc}`;
+                if (!visited.has(key)) {
+                    visited.add(key);
+                    queue.push({ r: nr, c: nc });
+                }
+            }
+        }
+    }
+
+    return visited.size === blocks.length;
+}
+
 function updateBlockBadge() {
     if (!blockCountVal) return;
     const placed = countPlacedBlocks();
@@ -111,6 +151,14 @@ function updateBlockBadge() {
         blockCountVal.classList.add('limit');
     } else {
         blockCountVal.classList.remove('limit');
+    }
+
+    if (phase === 'place' && statusBar) {
+        if (placed >= 2 && !areBlocksConnected()) {
+            statusBar.innerHTML = '<span class="status-place" style="color: #fbbf24;">⚠️ ブロック同士をくっつけて配置してください</span>';
+        } else if (!showSolution) {
+            statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
+        }
     }
 }
 
@@ -185,83 +233,96 @@ function applyGimmickBlockMoves() {
         const originCol = m.fromCol;
         const originRow = m.fromRow;
 
-        let destCol = originCol;
-        let destRow = originRow;
+        // 一旦自身をグリッドから外して移動経路を計算
+        grid[originRow][originCol] = false;
+
+        let curC = originCol;
+        let curR = originRow;
+        let currentDir = g.dir;
+        const path = [{ col: curC, row: curR }];
 
         if (g.type === 'dash') {
-            // 水色: 矢印の方向に限界まで移動
-            if (g.dir === 'right') {
-                for (let c = originCol + 1; c < COLS; c++) {
-                    if (grid[originRow][c] || isForbidden(c, originRow)) break;
-                    destCol = c;
-                }
-            } else if (g.dir === 'left') {
-                for (let c = originCol - 1; c >= 0; c--) {
-                    if (grid[originRow][c] || isForbidden(c, originRow)) break;
-                    destCol = c;
-                }
-            } else if (g.dir === 'up') {
-                for (let r = originRow - 1; r >= 0; r--) {
-                    if (grid[r][originCol] || isForbidden(originCol, r)) break;
-                    destRow = r;
-                }
-            } else if (g.dir === 'down') {
-                for (let r = originRow + 1; r < ROWS; r++) {
-                    if (grid[r][originCol] || isForbidden(originCol, r)) break;
-                    destRow = r;
-                }
-            }
+            // 水色(青): 矢印の方向に端まで移動。
+            // 途中に緑矢印(step)マスがあればその方向に向きを変え「1マスのみ動く」！
+            const maxSteps = COLS * ROWS;
+            for (let step = 0; step < maxSteps; step++) {
+                let nextC = curC;
+                let nextR = curR;
+                if (currentDir === 'right') nextC++;
+                else if (currentDir === 'left') nextC--;
+                else if (currentDir === 'up') nextR--;
+                else if (currentDir === 'down') nextR++;
 
-            if (destCol !== originCol || destRow !== originRow) {
-                grid[originRow][originCol] = false;
-                grid[destRow][destCol] = true;
-                slidingBlocks.push({
-                    fromCol: originCol,
-                    toCol: destCol,
-                    fromRow: originRow,
-                    toRow: destRow,
-                    startTime: performance.now(),
-                    duration: 350
-                });
-                hasAnyMove = true;
+                // 壁（グリッド境界）に衝突
+                if (nextC < 0 || nextC >= COLS || nextR < 0 || nextR >= ROWS) {
+                    break;
+                }
+                // 他のブロックまたは配置禁止マスに衝突
+                if (grid[nextR][nextC] || isForbidden(nextC, nextR)) {
+                    break;
+                }
+
+                // 1マス進む
+                curC = nextC;
+                curR = nextR;
+                path.push({ col: curC, row: curR });
+
+                // 移動経路上のマスに緑矢印(step)があるかチェック
+                const tileGimmick = getGimmick(curC, curR);
+                if (tileGimmick && tileGimmick.type === 'step') {
+                    // 緑矢印の方向に向きを変え、その方向へ1マスのみ動いて停止！
+                    let stepNextC = curC;
+                    let stepNextR = curR;
+                    if (tileGimmick.dir === 'right') stepNextC++;
+                    else if (tileGimmick.dir === 'left') stepNextC--;
+                    else if (tileGimmick.dir === 'up') stepNextR--;
+                    else if (tileGimmick.dir === 'down') stepNextR++;
+
+                    if (stepNextC >= 0 && stepNextC < COLS && stepNextR >= 0 && stepNextR < ROWS) {
+                        if (!grid[stepNextR][stepNextC] && !isForbidden(stepNextC, stepNextR)) {
+                            curC = stepNextC;
+                            curR = stepNextR;
+                            path.push({ col: curC, row: curR });
+                        }
+                    }
+                    // 1マス動いたらダッシュ終了！
+                    break;
+                }
             }
         } else if (g.type === 'step') {
             // 緑色: 1マスだけ矢印の方向に移動
-            if (g.dir === 'right' && originCol + 1 < COLS) {
-                const targetC = originCol + 1;
-                if (!grid[originRow][targetC] && !isForbidden(targetC, originRow)) {
-                    destCol = targetC;
-                }
-            } else if (g.dir === 'left' && originCol - 1 >= 0) {
-                const targetC = originCol - 1;
-                if (!grid[originRow][targetC] && !isForbidden(targetC, originRow)) {
-                    destCol = targetC;
-                }
-            } else if (g.dir === 'up' && originRow - 1 >= 0) {
-                const targetR = originRow - 1;
-                if (!grid[targetR][originCol] && !isForbidden(originCol, targetR)) {
-                    destRow = targetR;
-                }
-            } else if (g.dir === 'down' && originRow + 1 < ROWS) {
-                const targetR = originRow + 1;
-                if (!grid[targetR][originCol] && !isForbidden(originCol, targetR)) {
-                    destRow = targetR;
-                }
-            }
+            let nextC = curC;
+            let nextR = curR;
+            if (currentDir === 'right') nextC++;
+            else if (currentDir === 'left') nextC--;
+            else if (currentDir === 'up') nextR--;
+            else if (currentDir === 'down') nextR++;
 
-            if (destCol !== originCol || destRow !== originRow) {
-                grid[originRow][originCol] = false;
-                grid[destRow][destCol] = true;
-                slidingBlocks.push({
-                    fromCol: originCol,
-                    toCol: destCol,
-                    fromRow: originRow,
-                    toRow: destRow,
-                    startTime: performance.now(),
-                    duration: 250
-                });
-                hasAnyMove = true;
+            if (nextC >= 0 && nextC < COLS && nextR >= 0 && nextR < ROWS) {
+                if (!grid[nextR][nextC] && !isForbidden(nextC, nextR)) {
+                    curC = nextC;
+                    curR = nextR;
+                    path.push({ col: curC, row: curR });
+                }
             }
+        }
+
+        const destCol = curC;
+        const destRow = curR;
+        // 最終位置にブロックを配置
+        grid[destRow][destCol] = true;
+
+        if (destCol !== originCol || destRow !== originRow) {
+            hasAnyMove = true;
+            slidingBlocks.push({
+                fromCol: originCol,
+                toCol: destCol,
+                fromRow: originRow,
+                toRow: destRow,
+                path: path,
+                startTime: performance.now(),
+                duration: Math.max(250, (path.length - 1) * 110)
+            });
         }
     }
 
@@ -529,72 +590,86 @@ function drawGoal() {
     ctx.textAlign = 'left';
 }
 
-// Stickman render
-function drawStickman(gx_pos, gy_pos) {
-    const cx = GX + (gx_pos + 0.5) * CELL;
-    const bot = GY + (gy_pos + 1) * CELL - 2;
-    const isJump = man.state === 'jump';
-
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
+// Stickman render to any canvas context
+function renderStickmanToContext(targetCtx, cx, bot, walkCycle = 0, isJump = false) {
+    targetCtx.save();
+    targetCtx.imageSmoothingEnabled = false;
 
     // Hat brim
-    ctx.fillStyle = '#e83000';
-    ctx.fillRect(cx - 10, bot - 58, 20, 6);
+    targetCtx.fillStyle = '#e83000';
+    targetCtx.fillRect(cx - 10, bot - 58, 20, 6);
 
     // Hat crown
-    ctx.fillRect(cx - 8, bot - 66, 16, 9);
+    targetCtx.fillRect(cx - 8, bot - 66, 16, 9);
 
     // Face
-    ctx.fillStyle = '#f8c080';
-    ctx.fillRect(cx - 8, bot - 52, 16, 14);
+    targetCtx.fillStyle = '#f8c080';
+    targetCtx.fillRect(cx - 8, bot - 52, 16, 14);
 
     // Eyes
-    ctx.fillStyle = '#1a0a00';
-    ctx.fillRect(cx - 5, bot - 49, 3, 3);
-    ctx.fillRect(cx + 3, bot - 49, 3, 3);
+    targetCtx.fillStyle = '#1a0a00';
+    targetCtx.fillRect(cx - 5, bot - 49, 3, 3);
+    targetCtx.fillRect(cx + 3, bot - 49, 3, 3);
 
     // Moustache
-    ctx.fillStyle = '#7a3800';
-    ctx.fillRect(cx - 6, bot - 43, 12, 3);
+    targetCtx.fillStyle = '#7a3800';
+    targetCtx.fillRect(cx - 6, bot - 43, 12, 3);
 
     // Body (overalls)
-    ctx.fillStyle = '#4060e0';
-    ctx.fillRect(cx - 9, bot - 39, 18, 20);
+    targetCtx.fillStyle = '#4060e0';
+    targetCtx.fillRect(cx - 9, bot - 39, 18, 20);
 
     // Shirt (red)
-    ctx.fillStyle = '#e83000';
-    ctx.fillRect(cx - 8, bot - 37, 7, 12);
-    ctx.fillRect(cx + 2, bot - 37, 7, 12);
+    targetCtx.fillStyle = '#e83000';
+    targetCtx.fillRect(cx - 8, bot - 37, 7, 12);
+    targetCtx.fillRect(cx + 2, bot - 37, 7, 12);
 
     if (isJump) {
-        ctx.fillStyle = '#4060e0';
-        ctx.fillRect(cx - 8, bot - 19, 7, 10);
-        ctx.fillRect(cx + 2, bot - 19, 7, 10);
-        ctx.fillStyle = '#802000';
-        ctx.fillRect(cx - 9, bot - 11, 9, 9);
-        ctx.fillRect(cx + 1, bot - 11, 9, 9);
+        targetCtx.fillStyle = '#4060e0';
+        targetCtx.fillRect(cx - 8, bot - 19, 7, 10);
+        targetCtx.fillRect(cx + 2, bot - 19, 7, 10);
+        targetCtx.fillStyle = '#802000';
+        targetCtx.fillRect(cx - 9, bot - 11, 9, 9);
+        targetCtx.fillRect(cx + 1, bot - 11, 9, 9);
     } else {
-        const angle = man.walkCycle;
+        const angle = walkCycle;
         const leftX = Math.sin(angle) * 5;
         const rightX = -Math.sin(angle) * 5;
         const leftY = Math.sin(angle) > 0 ? Math.sin(angle) * 5 : 0;
         const rightY = Math.sin(angle) < 0 ? -Math.sin(angle) * 5 : 0;
 
         // Left leg
-        ctx.fillStyle = '#4060e0';
-        ctx.fillRect(cx - 8 + leftX, bot - 19 - leftY, 6, 14);
-        ctx.fillStyle = '#802000';
-        ctx.fillRect(cx - 9 + leftX, bot - 7 - leftY, 8, 7);
+        targetCtx.fillStyle = '#4060e0';
+        targetCtx.fillRect(cx - 8 + leftX, bot - 19 - leftY, 6, 14);
+        targetCtx.fillStyle = '#802000';
+        targetCtx.fillRect(cx - 9 + leftX, bot - 7 - leftY, 8, 7);
 
         // Right leg
-        ctx.fillStyle = '#4060e0';
-        ctx.fillRect(cx + 2 + rightX, bot - 19 - rightY, 6, 14);
-        ctx.fillStyle = '#802000';
-        ctx.fillRect(cx + 1 + rightX, bot - 7 - rightY, 8, 7);
+        targetCtx.fillStyle = '#4060e0';
+        targetCtx.fillRect(cx + 2 + rightX, bot - 19 - rightY, 6, 14);
+        targetCtx.fillStyle = '#802000';
+        targetCtx.fillRect(cx + 1 + rightX, bot - 7 - rightY, 8, 7);
     }
 
-    ctx.restore();
+    targetCtx.restore();
+}
+
+// Stickman render on main game canvas
+function drawStickman(gx_pos, gy_pos) {
+    const cx = GX + (gx_pos + 0.5) * CELL;
+    const bot = GY + (gy_pos + 1) * CELL - 2;
+    const isJump = man.state === 'jump';
+    renderStickmanToContext(ctx, cx, bot, man.walkCycle, isJump);
+}
+
+// Render exact game stickman to the home title hero canvas
+function renderHeroCharacter() {
+    const heroCanvas = document.getElementById('heroCharacterCanvas');
+    if (!heroCanvas) return;
+    const hCtx = heroCanvas.getContext('2d');
+    hCtx.clearRect(0, 0, heroCanvas.width, heroCanvas.height);
+    // cx = 18, bot = 68 (キャンバス 36x70 の中央にぴったり描画)
+    renderStickmanToContext(hCtx, 18, 68, 0, false);
 }
 
 // MARK: - Solution Overlay Drawing (答え合わせ用オレンジ色マス)
@@ -672,20 +747,15 @@ function checkSolutionMatch() {
     };
 }
 
-function toggleSolution(applyToGrid = false) {
-    if (applyToGrid) {
-        applySolutionToGrid();
-        return;
-    }
-
+function toggleSolution() {
     showSolution = !showSolution;
     if (answerBtn) {
         if (showSolution) {
             answerBtn.classList.add('active');
-            answerBtn.textContent = '答えを隠す';
+            answerBtn.innerHTML = '<span class="btn-main-label">答えを隠す</span><span class="btn-key-badge">.</span>';
         } else {
             answerBtn.classList.remove('active');
-            answerBtn.textContent = '答え合わせ';
+            answerBtn.innerHTML = '<span class="btn-main-label">答え合わせ</span><span class="btn-key-badge">.</span>';
         }
     }
 
@@ -695,7 +765,7 @@ function toggleSolution(applyToGrid = false) {
             statusBar.innerHTML = '<span class="status-clear">【答え合わせ】正解の配置と一致しています！</span>';
         } else {
             statusBar.innerHTML = `<span class="status-place">【答え合わせ】オレンジ枠を表示中 (${check.matchCount}/${check.totalSolution} 正解)</span>`;
-            hintText.textContent = 'Shift+答え合わせクリックで答えを一発セットできます';
+            hintText.textContent = 'オレンジ枠に合わせてブロックを配置してみよう';
         }
     } else {
         statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
@@ -763,10 +833,26 @@ function render() {
                 if (anim) {
                     const elapsed = now - anim.startTime;
                     const progress = Math.min(1, elapsed / anim.duration);
-                    const currentC = anim.fromCol + (anim.toCol - anim.fromCol) * progress;
-                    const currentR = (anim.fromRow !== undefined && anim.toRow !== undefined)
-                        ? anim.fromRow + (anim.toRow - anim.fromRow) * progress
-                        : (anim.row !== undefined ? anim.row : r);
+
+                    let currentC = anim.fromCol;
+                    let currentR = (anim.fromRow !== undefined) ? anim.fromRow : r;
+
+                    if (anim.path && anim.path.length > 1) {
+                        const totalSegments = anim.path.length - 1;
+                        const segProgress = progress * totalSegments;
+                        const segIdx = Math.min(Math.floor(segProgress), totalSegments - 1);
+                        const subT = segProgress - segIdx;
+                        const p0 = anim.path[segIdx];
+                        const p1 = anim.path[segIdx + 1];
+                        currentC = p0.col + (p1.col - p0.col) * subT;
+                        currentR = p0.row + (p1.row - p0.row) * subT;
+                    } else {
+                        currentC = anim.fromCol + (anim.toCol - anim.fromCol) * progress;
+                        currentR = (anim.fromRow !== undefined && anim.toRow !== undefined)
+                            ? anim.fromRow + (anim.toRow - anim.fromRow) * progress
+                            : (anim.row !== undefined ? anim.row : r);
+                    }
+
                     drawMarioBlock(currentC, currentR);
                     if (progress >= 1) {
                         slidingBlocks = slidingBlocks.filter(b => b !== anim);
@@ -817,10 +903,11 @@ function solveRoute() {
                 keyframes.push({ x: curX, y: curY, type: 'done', time: curTime });
                 return keyframes;
             } else {
-                // オレンジ色の右壁に当たった時点で即アウト！
+                // オレンジ色の右壁に当たった時点で即アウト！（壁を貫通せず手前でピタッと止まる）
+                const wallHitX = COLS - 0.65; // 壁の境界線に鼻先が触れる位置
                 keyframes[curKfIdx].type = 'walk';
-                curTime += (COLS - curX) / WALK_SPEED * 16.67;
-                curX = COLS;
+                curTime += Math.max(0.05, wallHitX - curX) / WALK_SPEED * 16.67;
+                curX = wallHitX;
                 keyframes.push({ x: curX, y: curY, type: 'crash', time: curTime });
                 curTime += 40;
                 keyframes.push({ x: curX, y: curY, type: 'fail', time: curTime });
@@ -1103,11 +1190,184 @@ function drawRespawnTrail(now) {
     ctx.restore();
 }
 
-// MARK: - UI & Feedback
+// MARK: - View & Screen Management
+let currentView = 'home'; // 'home' | 'select' | 'game'
+
+function switchView(viewName) {
+    currentView = viewName;
+    const views = {
+        home: document.getElementById('homeScreen'),
+        select: document.getElementById('selectScreen'),
+        game: document.getElementById('gameScreen')
+    };
+
+    Object.keys(views).forEach(key => {
+        if (views[key]) {
+            if (key === viewName) {
+                views[key].classList.add('active');
+            } else {
+                views[key].classList.remove('active');
+            }
+        }
+    });
+
+    if (viewName === 'game') {
+        render();
+    } else if (viewName === 'select') {
+        updateSelectScreenUI();
+    } else if (viewName === 'home') {
+        renderHeroCharacter();
+    }
+}
+
+// MARK: - Cleared Stages Storage
+function getClearedStages() {
+    try {
+        const val = localStorage.getItem('hako_cleared_stages');
+        return val ? JSON.parse(val) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function markStageCleared(idx) {
+    const cleared = getClearedStages();
+    if (!cleared.includes(idx)) {
+        cleared.push(idx);
+        try {
+            localStorage.setItem('hako_cleared_stages', JSON.stringify(cleared));
+        } catch (e) {}
+    }
+}
+
+// MARK: - Stage Select Grid
+function updateSelectScreenUI() {
+    const selectGrid = document.getElementById('selectScreenGrid');
+    const progressBadge = document.getElementById('selectProgressBadge');
+    if (!selectGrid) return;
+
+    selectGrid.innerHTML = '';
+    const cleared = getClearedStages();
+
+    if (progressBadge) {
+        progressBadge.textContent = `クリア: ${cleared.length} / ${STAGES.length}`;
+    }
+
+    STAGES.forEach((st, idx) => {
+        const card = document.createElement('div');
+        const isCleared = cleared.includes(idx);
+        card.className = `stage-card ${isCleared ? 'cleared' : ''}`;
+        card.innerHTML = `
+            <div class="stage-card-num">${st.title}</div>
+            <div class="stage-card-blocks">ブロック: 最大${st.maxBlocks}個</div>
+            <div class="stage-card-badge">${st.gimmicks.length > 0 ? 'ギミック有' : '基本'}</div>
+        `;
+        card.addEventListener('click', () => {
+            selectStage(idx);
+            switchView('game');
+        });
+        selectGrid.appendChild(card);
+    });
+}
+
+// MARK: - Stage Announce Banner
+let announceTimeout = null;
+function triggerStageAnnounce() {
+    const banner = document.getElementById('stageAnnounceBanner');
+    const titleEl = document.getElementById('announceTitle');
+    const subEl = document.getElementById('announceSub');
+    if (!banner) return;
+
+    const st = getStage();
+    if (titleEl) titleEl.textContent = st.title;
+    if (subEl) subEl.textContent = `${st.subtitle} (ブロック最大 ${st.maxBlocks}個)`;
+
+    banner.style.display = 'block';
+    banner.style.animation = 'none';
+    banner.offsetHeight; // reflow
+    banner.style.animation = 'announcePopup 1.8s ease forwards';
+
+    if (announceTimeout) clearTimeout(announceTimeout);
+    announceTimeout = setTimeout(() => {
+        banner.style.display = 'none';
+    }, 1800);
+}
+
+// MARK: - UI & Clear Modal with Auto-Transition
+let clearCountdownTimer = null;
+
 function showClear() {
+    markStageCleared(currentStageIndex);
     statusBar.innerHTML = '<span class="status-clear">★ クリア！ おめでとう！ ★</span>';
-    hintText.textContent = 'リセットでもう一度チャレンジ！または次のステージへ！';
+    hintText.textContent = '次のステージへ進みます！';
     startBtn.disabled = true;
+
+    const clearModal = document.getElementById('clearModalOverlay');
+    const modalTitle = document.getElementById('clearModalTitle');
+    const modalSub = document.getElementById('clearModalSub');
+    const countdownEl = document.getElementById('clearCountdown');
+    const nextBtn = document.getElementById('clearNextStageBtn');
+    const isLastStage = (currentStageIndex === STAGES.length - 1);
+
+    if (modalTitle) {
+        modalTitle.textContent = isLastStage ? '★ ALL STAGES CLEAR! ★' : 'STAGE CLEAR!';
+    }
+    if (modalSub) {
+        modalSub.textContent = isLastStage
+            ? '🎉 おめでとうございます！全19ステージを完全制覇しました！ 🎉'
+            : `お見事！ステージ ${currentStageIndex + 1} をクリア！次のステージを解放しました！`;
+    }
+    if (nextBtn) {
+        if (isLastStage) {
+            nextBtn.innerHTML = '<span>ステージ一覧を見る ▶</span>';
+        } else {
+            nextBtn.innerHTML = `<span>次のステージへ 進む ▶</span><span class="countdown-tag">(<span id="clearCountdown">3</span>秒後に自動移動)</span>`;
+        }
+    }
+
+    if (clearModal) {
+        clearModal.classList.add('open');
+    }
+
+    let count = 3;
+    const cdEl = document.getElementById('clearCountdown');
+    if (cdEl) cdEl.textContent = count;
+
+    if (clearCountdownTimer) clearInterval(clearCountdownTimer);
+    clearCountdownTimer = setInterval(() => {
+        count--;
+        const curCdEl = document.getElementById('clearCountdown');
+        if (curCdEl) curCdEl.textContent = count;
+        if (count <= 0) {
+            clearInterval(clearCountdownTimer);
+            clearCountdownTimer = null;
+            proceedToNextStage();
+        }
+    }, 1000);
+}
+
+function proceedToNextStage() {
+    if (clearCountdownTimer) {
+        clearInterval(clearCountdownTimer);
+        clearCountdownTimer = null;
+    }
+    const clearModal = document.getElementById('clearModalOverlay');
+    if (clearModal) clearModal.classList.remove('open');
+
+    if (currentStageIndex < STAGES.length - 1) {
+        selectStage(currentStageIndex + 1);
+    } else {
+        switchView('select');
+    }
+}
+
+function closeClearModal() {
+    if (clearCountdownTimer) {
+        clearInterval(clearCountdownTimer);
+        clearCountdownTimer = null;
+    }
+    const clearModal = document.getElementById('clearModalOverlay');
+    if (clearModal) clearModal.classList.remove('open');
 }
 
 function showFail() {
@@ -1141,46 +1401,6 @@ function updateStageNavUI() {
     if (nextStageBtn) {
         nextStageBtn.disabled = (currentStageIndex === STAGES.length - 1);
     }
-
-    // Update popup grid active states
-    if (stageMenuGrid) {
-        const items = stageMenuGrid.querySelectorAll('.stage-grid-item');
-        items.forEach((btn, idx) => {
-            if (idx === currentStageIndex) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-    }
-}
-
-function initStageMenuGrid() {
-    if (!stageMenuGrid) return;
-    stageMenuGrid.innerHTML = '';
-    STAGES.forEach((st, idx) => {
-        const btn = document.createElement('button');
-        btn.className = `stage-grid-item ${idx === currentStageIndex ? 'active' : ''}`;
-        btn.textContent = st.id;
-        btn.title = st.title;
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            selectStage(idx);
-            closeStageMenu();
-        });
-        stageMenuGrid.appendChild(btn);
-    });
-}
-
-function toggleStageMenu() {
-    if (!stageMenuPopup) return;
-    stageMenuPopup.classList.toggle('open');
-}
-
-function closeStageMenu() {
-    if (stageMenuPopup) {
-        stageMenuPopup.classList.remove('open');
-    }
 }
 
 function selectStage(idx) {
@@ -1193,7 +1413,7 @@ function selectStage(idx) {
     showSolution = false;
     if (answerBtn) {
         answerBtn.classList.remove('active');
-        answerBtn.textContent = '答え合わせ';
+        answerBtn.innerHTML = '<span class="btn-main-label">答え合わせ</span><span class="btn-key-badge">.</span>';
     }
     phase = 'place';
     man = makeMan();
@@ -1205,10 +1425,13 @@ function selectStage(idx) {
     updateBlockBadge();
     updateLegendUI();
     render();
+
+    // ステージ入場時アナウンスを表示
+    triggerStageAnnounce();
 }
 
 function bgLoop() {
-    if (phase === 'place') render();
+    if (phase === 'place' && currentView === 'game') render();
     requestAnimationFrame(bgLoop);
 }
 
@@ -1225,42 +1448,30 @@ window.addEventListener('DOMContentLoaded', () => {
     statusBar = document.getElementById('statusBar');
     hintText = document.getElementById('hintText');
     stageCurrentTitle = document.getElementById('stageCurrentTitle');
-    stageCurrentBtn = document.getElementById('stageCurrentBtn');
-    stageMenuPopup = document.getElementById('stageMenuPopup');
-    stageMenuGrid = document.getElementById('stageMenuGrid');
     prevStageBtn = document.getElementById('prevStageBtn');
     nextStageBtn = document.getElementById('nextStageBtn');
     blockCountVal = document.getElementById('blockCountVal');
     legendWrap = document.getElementById('legendWrap');
 
-    initStageMenuGrid();
-    updateStageNavUI();
-    updateBlockBadge();
-    updateLegendUI();
+    // ホーム画面ボタン
+    const homeStartBtn = document.getElementById('homeStartBtn');
+    const homeSelectBtn = document.getElementById('homeSelectBtn');
+    const homeHelpBtn = document.getElementById('homeHelpBtn');
 
-    // Stage dropdown popup handlers
-    stageCurrentBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleStageMenu();
-    });
+    // ステージ選択画面ボタン
+    const selectBackToHomeBtn = document.getElementById('selectBackToHomeBtn');
 
-    document.addEventListener('click', () => {
-        closeStageMenu();
-    });
+    // ゲーム画面トップバーボタン
+    const gameBackToHomeBtn = document.getElementById('gameBackToHomeBtn');
+    const gameToSelectBtn = document.getElementById('gameToSelectBtn');
 
-    if (prevStageBtn) {
-        prevStageBtn.addEventListener('click', () => {
-            selectStage(currentStageIndex - 1);
-        });
-    }
+    // クリアモーダル内ボタン
+    const clearNextStageBtn = document.getElementById('clearNextStageBtn');
+    const clearRetryBtn = document.getElementById('clearRetryBtn');
+    const clearSelectBtn = document.getElementById('clearSelectBtn');
+    const clearModalOverlay = document.getElementById('clearModalOverlay');
 
-    if (nextStageBtn) {
-        nextStageBtn.addEventListener('click', () => {
-            selectStage(currentStageIndex + 1);
-        });
-    }
-
-    // Help Modal handlers
+    // 遊び方モーダル
     const helpBtn = document.getElementById('helpBtn');
     const helpModalOverlay = document.getElementById('helpModalOverlay');
     const modalCloseBtn = document.getElementById('modalCloseBtn');
@@ -1272,6 +1483,74 @@ window.addEventListener('DOMContentLoaded', () => {
         if (helpModalOverlay) helpModalOverlay.classList.remove('open');
     }
 
+    // ホーム画面ボタンイベント
+    if (homeStartBtn) {
+        homeStartBtn.addEventListener('click', () => {
+            switchView('game');
+            selectStage(currentStageIndex);
+        });
+    }
+    if (homeSelectBtn) {
+        homeSelectBtn.addEventListener('click', () => {
+            switchView('select');
+        });
+    }
+    if (homeHelpBtn) {
+        homeHelpBtn.addEventListener('click', () => {
+            openHelpModal();
+        });
+    }
+
+    // ステージ選択画面ボタンイベント
+    if (selectBackToHomeBtn) {
+        selectBackToHomeBtn.addEventListener('click', () => {
+            switchView('home');
+        });
+    }
+
+    // ゲーム画面トップバーボタンイベント
+    if (gameBackToHomeBtn) {
+        gameBackToHomeBtn.addEventListener('click', () => {
+            switchView('home');
+        });
+    }
+    if (gameToSelectBtn) {
+        gameToSelectBtn.addEventListener('click', () => {
+            switchView('select');
+        });
+    }
+
+    if (prevStageBtn) {
+        prevStageBtn.addEventListener('click', () => {
+            selectStage(currentStageIndex - 1);
+        });
+    }
+    if (nextStageBtn) {
+        nextStageBtn.addEventListener('click', () => {
+            selectStage(currentStageIndex + 1);
+        });
+    }
+
+    // クリアモーダル内ボタンイベント
+    if (clearNextStageBtn) {
+        clearNextStageBtn.addEventListener('click', () => {
+            proceedToNextStage();
+        });
+    }
+    if (clearRetryBtn) {
+        clearRetryBtn.addEventListener('click', () => {
+            closeClearModal();
+            triggerReset();
+        });
+    }
+    if (clearSelectBtn) {
+        clearSelectBtn.addEventListener('click', () => {
+            closeClearModal();
+            switchView('select');
+        });
+    }
+
+    // 遊び方モーダルボタンイベント
     if (helpBtn) {
         helpBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1286,12 +1565,6 @@ window.addEventListener('DOMContentLoaded', () => {
             if (e.target === helpModalOverlay) closeHelpModal();
         });
     }
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && helpModalOverlay && helpModalOverlay.classList.contains('open')) {
-            closeHelpModal();
-            e.preventDefault();
-        }
-    });
 
     // Mouse input for block placement
     canvas.addEventListener('click', e => {
@@ -1359,6 +1632,17 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // ブロック同士の連結チェック (2個以上の場合はひっついておく必要がある)
+        if (!areBlocksConnected()) {
+            statusBar.innerHTML = '<span class="status-fail">ブロック同士をすべてくっつけて配置してください！</span>';
+            setTimeout(() => {
+                if (phase === 'place') {
+                    updateBlockBadge();
+                }
+            }, 2000);
+            return;
+        }
+
         startBtn.disabled = true;
 
         // スタート前のブロック配置をバックアップ
@@ -1413,17 +1697,74 @@ window.addEventListener('DOMContentLoaded', () => {
     startBtn.addEventListener('click', triggerStart);
     resetBtn.addEventListener('click', triggerReset);
     if (answerBtn) {
-        answerBtn.addEventListener('click', (e) => {
-            toggleSolution(e.shiftKey);
-        });
-        answerBtn.addEventListener('dblclick', () => {
-            applySolutionToGrid();
+        answerBtn.addEventListener('click', () => {
+            toggleSolution();
         });
     }
 
     // Keyboard input
     window.addEventListener('keydown', e => {
         const key = e.key.toLowerCase();
+
+        // 遊び方モーダルが開いている場合はEscapeで閉じる
+        if (helpModalOverlay && helpModalOverlay.classList.contains('open')) {
+            if (e.key === 'Escape') {
+                closeHelpModal();
+                e.preventDefault();
+            }
+            return;
+        }
+
+        // クリアモーダルが開いている時のキーボードショートカット
+        if (clearModalOverlay && clearModalOverlay.classList.contains('open')) {
+            if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') {
+                proceedToNextStage();
+                e.preventDefault();
+                return;
+            }
+            if (key === 'm') {
+                closeClearModal();
+                triggerReset();
+                e.preventDefault();
+                return;
+            }
+            if (e.key === 'Escape') {
+                closeClearModal();
+                switchView('select');
+                e.preventDefault();
+                return;
+            }
+            return;
+        }
+
+        // ホーム画面の場合
+        if (currentView === 'home') {
+            if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') {
+                switchView('game');
+                selectStage(currentStageIndex);
+                e.preventDefault();
+            }
+            return;
+        }
+
+        // ステージ選択画面の場合
+        if (currentView === 'select') {
+            if (e.key === 'Escape') {
+                switchView('home');
+                e.preventDefault();
+            }
+            return;
+        }
+
+        // これ以降は currentView === 'game' の時のみ
+        if (currentView !== 'game') return;
+
+        // Escapeでステージ選択へ戻る
+        if (e.key === 'Escape') {
+            switchView('select');
+            e.preventDefault();
+            return;
+        }
 
         // 'm' key or Shift for Reset
         if (key === 'm' || e.key === 'Shift') {
@@ -1471,6 +1812,13 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // '?' キーで遊び方モーダルを開く
+        if (e.key === '?' || e.key === '/') {
+            openHelpModal();
+            e.preventDefault();
+            return;
+        }
+
         if (phase !== 'place') return;
 
         for (let r = 0; r < ROWS; r++) {
@@ -1483,6 +1831,14 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    updateStageNavUI();
+    updateBlockBadge();
+    updateLegendUI();
+    updateSelectScreenUI();
+
+    // 初期画面はホーム
+    switchView('home');
 
     render();
     requestAnimationFrame(bgLoop);
