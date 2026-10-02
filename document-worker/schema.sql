@@ -50,3 +50,21 @@ VALUES (1, '課題論文', '', datetime('now'));
 -- 初期データ（志願理由書 id=2 を作成）
 INSERT OR IGNORE INTO essays (id, title, current_content, updated_at)
 VALUES (2, '志願理由書', '', datetime('now'));
+
+-- ================================================================
+-- 文化祭 人数カウントシステム — count_records
+-- ================================================================
+CREATE TABLE IF NOT EXISTS count_records (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  people_count INTEGER NOT NULL DEFAULT 1,
+  play_count   INTEGER NOT NULL DEFAULT 1,
+  unit_price   INTEGER NOT NULL DEFAULT 100,
+  total_amount INTEGER NOT NULL DEFAULT 100,
+  note         TEXT    NOT NULL DEFAULT '',
+  device_id    TEXT    NOT NULL DEFAULT '',
+  game_type    TEXT    NOT NULL DEFAULT 'コインピッチ',
+  created_at   TEXT    NOT NULL DEFAULT (datetime('now', '+9 hours'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_count_records_created_at ON count_records(created_at);
+

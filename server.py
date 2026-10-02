@@ -48,6 +48,7 @@ def main():
     print(f"  → http://localhost:{PORT}/dev/game/     (ハコゲーム)")
     print(f"  → http://localhost:{PORT}/dev/statement-of-purpose/")
     print(f"  → http://localhost:{PORT}/dev/document/")
+    print(f"  → http://localhost:{PORT}/dev/count/    (文化祭カウント)")
     print(f"  ─────────────────────────────────────────")
     print(f"  Ctrl+C で停止")
     print(f"\033[0m")

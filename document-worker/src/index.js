@@ -57,6 +57,30 @@ const runMigration = async (db) => {
     if (stmts.length > 0) {
       await db.batch(stmts);
     }
+
+    // 文化祭 人数カウントシステム用テーブル作成
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS count_records (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        people_count INTEGER NOT NULL DEFAULT 1,
+        play_count   INTEGER NOT NULL DEFAULT 1,
+        unit_price   INTEGER NOT NULL DEFAULT 100,
+        total_amount INTEGER NOT NULL DEFAULT 100,
+        note         TEXT    NOT NULL DEFAULT '',
+        device_id    TEXT    NOT NULL DEFAULT '',
+        game_type    TEXT    NOT NULL DEFAULT 'コインピッチ',
+        created_at   TEXT    NOT NULL DEFAULT (datetime('now', '+9 hours'))
+      )
+    `).run();
+
+    const countCols = (await db.prepare("PRAGMA table_info(count_records)").all()).results.map(c => c.name);
+    if (!countCols.includes('game_type')) {
+      await db.prepare("ALTER TABLE count_records ADD COLUMN game_type TEXT NOT NULL DEFAULT 'コインピッチ'").run();
+    }
+
+    await db.prepare(`
+      CREATE INDEX IF NOT EXISTS idx_count_records_created_at ON count_records(created_at)
+    `).run();
   } catch (e) {
     console.warn("Migration check skipped or failed:", e);
   }
@@ -600,6 +624,215 @@ app.post('/sop/api/reviews/:id/submit', async (c) => {
   ).bind(reviewId).run();
 
   return c.json({ success: true });
+});
+
+// ================================================================
+// 文化祭 人数カウントシステム API — /document/api/count/*
+// ================================================================
+
+/** 日本時間 (JST) ヘルパー */
+const getJSTDateStrings = () => {
+  const now = new Date();
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const Y = jst.getUTCFullYear();
+  const M = String(jst.getUTCMonth() + 1).padStart(2, '0');
+  const D = String(jst.getUTCDate()).padStart(2, '0');
+  const h = String(jst.getUTCHours()).padStart(2, '0');
+  const m = String(jst.getUTCMinutes()).padStart(2, '0');
+  const s = String(jst.getUTCSeconds()).padStart(2, '0');
+  return {
+    today: `${Y}-${M}-${D}`,
+    full: `${Y}-${M}-${D} ${h}:${m}:${s}`,
+  };
+};
+
+/** サマリー集計共通処理 */
+const fetchCountSummary = async (db) => {
+  const { today } = getJSTDateStrings();
+  const total = await db.prepare(`
+    SELECT
+      COUNT(*) AS total_records,
+      COALESCE(SUM(people_count), 0) AS total_people,
+      COALESCE(SUM(play_count), 0) AS total_plays,
+      COALESCE(SUM(total_amount), 0) AS total_revenue
+    FROM count_records
+  `).first();
+
+  const todayData = await db.prepare(`
+    SELECT
+      COUNT(*) AS today_records,
+      COALESCE(SUM(people_count), 0) AS today_people,
+      COALESCE(SUM(play_count), 0) AS today_plays,
+      COALESCE(SUM(total_amount), 0) AS today_revenue
+    FROM count_records
+    WHERE created_at LIKE ?
+  `).bind(`${today}%`).first();
+
+  // ゲーム別集計（コインピッチ・タブトス）
+  const gamesResult = await db.prepare(`
+    SELECT
+      COALESCE(game_type, 'コインピッチ') AS game_type,
+      COUNT(*) AS records,
+      COALESCE(SUM(people_count), 0) AS people,
+      COALESCE(SUM(play_count), 0) AS plays,
+      COALESCE(SUM(total_amount), 0) AS revenue
+    FROM count_records
+    GROUP BY COALESCE(game_type, 'コインピッチ')
+  `).all();
+
+  const games = {
+    'コインピッチ': { records: 0, people: 0, plays: 0, revenue: 0 },
+    'タブトス': { records: 0, people: 0, plays: 0, revenue: 0 },
+  };
+  for (const row of gamesResult.results || []) {
+    games[row.game_type] = {
+      records: row.records,
+      people: row.people,
+      plays: row.plays,
+      revenue: row.revenue,
+    };
+  }
+
+  return {
+    total: {
+      total_records: total?.total_records || 0,
+      total_people: total?.total_people || 0,
+      total_plays: total?.total_plays || 0,
+      total_revenue: total?.total_revenue || 0,
+    },
+    today: {
+      today_records: todayData?.today_records || 0,
+      today_people: todayData?.today_people || 0,
+      today_plays: todayData?.today_plays || 0,
+      today_revenue: todayData?.today_revenue || 0,
+    },
+    games,
+    date_jst: today,
+  };
+};
+
+/**
+ * GET /document/api/count/records
+ * 記録一覧（降順）とサマリー統計を取得
+ */
+app.get('/document/api/count/records', async (c) => {
+  const db = c.env.DB;
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '200', 10), 1), 1000);
+  const offset = Math.max(parseInt(c.req.query('offset') || '0', 10), 0);
+
+  const recordsResult = await db.prepare(`
+    SELECT * FROM count_records
+    ORDER BY created_at DESC, id DESC
+    LIMIT ? OFFSET ?
+  `).bind(limit, offset).all();
+
+  const summary = await fetchCountSummary(db);
+  const { full: serverTimeJST } = getJSTDateStrings();
+
+  return c.json({
+    success: true,
+    records: recordsResult.results || [],
+    summary: summary.total,
+    todaySummary: summary.today,
+    gamesSummary: summary.games,
+    serverTimeJST,
+  });
+});
+
+/**
+ * GET /document/api/count/summary
+ * サマリー統計のみ取得（5分ポーリング・軽量確認用）
+ */
+app.get('/document/api/count/summary', async (c) => {
+  const db = c.env.DB;
+  const summary = await fetchCountSummary(db);
+  const { full: serverTimeJST } = getJSTDateStrings();
+
+  return c.json({
+    success: true,
+    summary: summary.total,
+    todaySummary: summary.today,
+    gamesSummary: summary.games,
+    serverTimeJST,
+  });
+});
+
+/**
+ * POST /document/api/count/records
+ * 新規カウント保存
+ */
+app.post('/document/api/count/records', async (c) => {
+  const db = c.env.DB;
+  let body;
+  try {
+    body = await c.req.json();
+  } catch {
+    return err(c, 400, 'Invalid JSON body');
+  }
+
+  const peopleCount = Math.max(parseInt(body.people_count || '1', 10), 1);
+  const playCount = Math.max(parseInt(body.play_count || '1', 10), 1);
+  const unitPrice = parseInt(body.unit_price !== undefined ? body.unit_price : '100', 10);
+  
+  // total_amount が明示されていればそれを採用、なければ計算 (デフォルト: 合計プレイ回数 × 単価)
+  let totalAmount = parseInt(body.total_amount, 10);
+  if (isNaN(totalAmount)) {
+    totalAmount = playCount * unitPrice;
+  }
+
+  const note = typeof body.note === 'string' ? body.note.trim() : '';
+  const deviceId = typeof body.device_id === 'string' ? body.device_id.trim() : '';
+  const gameType = typeof body.game_type === 'string' && body.game_type.trim() ? body.game_type.trim() : 'コインピッチ';
+
+  // クライアントから渡されたJST日時があればバリデーションして使用、なければサーバーJST現在時刻
+  const { full: defaultJST } = getJSTDateStrings();
+  let createdAt = defaultJST;
+  if (body.created_at && typeof body.created_at === 'string') {
+    const trimmed = body.created_at.trim();
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)) {
+      createdAt = trimmed;
+    }
+  }
+
+  const result = await db.prepare(`
+    INSERT INTO count_records (people_count, play_count, unit_price, total_amount, note, device_id, created_at, game_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(peopleCount, playCount, unitPrice, totalAmount, note, deviceId, createdAt, gameType).run();
+
+  const newId = result.meta.last_row_id;
+  const newRecord = await db.prepare('SELECT * FROM count_records WHERE id = ?').bind(newId).first();
+  const summary = await fetchCountSummary(db);
+
+  return c.json({
+    success: true,
+    record: newRecord,
+    summary: summary.total,
+    todaySummary: summary.today,
+    gamesSummary: summary.games,
+  }, 201);
+});
+
+/**
+ * DELETE /document/api/count/records/:id
+ * レコード削除（誤入力取り消し用）
+ */
+app.delete('/document/api/count/records/:id', async (c) => {
+  const db = c.env.DB;
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return err(c, 400, 'Invalid id');
+
+  const existing = await db.prepare('SELECT id FROM count_records WHERE id = ?').bind(id).first();
+  if (!existing) return err(c, 404, 'Record not found');
+
+  await db.prepare('DELETE FROM count_records WHERE id = ?').bind(id).run();
+  const summary = await fetchCountSummary(db);
+
+  return c.json({
+    success: true,
+    deletedId: id,
+    summary: summary.total,
+    todaySummary: summary.today,
+  });
 });
 
 // ── 404 fallback ────────────────────────────────────────────────
