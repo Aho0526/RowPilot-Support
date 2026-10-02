@@ -239,58 +239,17 @@ function applyGimmickBlockMoves() {
         let curC = originCol;
         let curR = originRow;
         let currentDir = g.dir;
+        let currentMode = g.type; // 'dash' または 'step'
+        let remainingSteps = (currentMode === 'step') ? 1 : Infinity;
+
         const path = [{ col: curC, row: curR }];
+        const visited = new Set();
+        visited.add(`${curC},${curR},${currentDir},${currentMode}`);
 
-        if (g.type === 'dash') {
-            // 水色(青): 矢印の方向に端まで移動。
-            // 途中に緑矢印(step)マスがあればその方向に向きを変え「1マスのみ動く」！
-            const maxSteps = COLS * ROWS;
-            for (let step = 0; step < maxSteps; step++) {
-                let nextC = curC;
-                let nextR = curR;
-                if (currentDir === 'right') nextC++;
-                else if (currentDir === 'left') nextC--;
-                else if (currentDir === 'up') nextR--;
-                else if (currentDir === 'down') nextR++;
+        const maxTotalSteps = COLS * ROWS * 2;
+        let totalStepsTaken = 0;
 
-                // 壁（グリッド境界）に衝突
-                if (nextC < 0 || nextC >= COLS || nextR < 0 || nextR >= ROWS) {
-                    break;
-                }
-                // 他のブロックまたは配置禁止マスに衝突
-                if (grid[nextR][nextC] || isForbidden(nextC, nextR)) {
-                    break;
-                }
-
-                // 1マス進む
-                curC = nextC;
-                curR = nextR;
-                path.push({ col: curC, row: curR });
-
-                // 移動経路上のマスに緑矢印(step)があるかチェック
-                const tileGimmick = getGimmick(curC, curR);
-                if (tileGimmick && tileGimmick.type === 'step') {
-                    // 緑矢印の方向に向きを変え、その方向へ1マスのみ動いて停止！
-                    let stepNextC = curC;
-                    let stepNextR = curR;
-                    if (tileGimmick.dir === 'right') stepNextC++;
-                    else if (tileGimmick.dir === 'left') stepNextC--;
-                    else if (tileGimmick.dir === 'up') stepNextR--;
-                    else if (tileGimmick.dir === 'down') stepNextR++;
-
-                    if (stepNextC >= 0 && stepNextC < COLS && stepNextR >= 0 && stepNextR < ROWS) {
-                        if (!grid[stepNextR][stepNextC] && !isForbidden(stepNextC, stepNextR)) {
-                            curC = stepNextC;
-                            curR = stepNextR;
-                            path.push({ col: curC, row: curR });
-                        }
-                    }
-                    // 1マス動いたらダッシュ終了！
-                    break;
-                }
-            }
-        } else if (g.type === 'step') {
-            // 緑色: 1マスだけ矢印の方向に移動
+        while (totalStepsTaken < maxTotalSteps) {
             let nextC = curC;
             let nextR = curR;
             if (currentDir === 'right') nextC++;
@@ -298,13 +257,54 @@ function applyGimmickBlockMoves() {
             else if (currentDir === 'up') nextR--;
             else if (currentDir === 'down') nextR++;
 
-            if (nextC >= 0 && nextC < COLS && nextR >= 0 && nextR < ROWS) {
-                if (!grid[nextR][nextC] && !isForbidden(nextC, nextR)) {
-                    curC = nextC;
-                    curR = nextR;
-                    path.push({ col: curC, row: curR });
-                }
+            // 壁（グリッド境界）に衝突
+            if (nextC < 0 || nextC >= COLS || nextR < 0 || nextR >= ROWS) {
+                break;
             }
+            // 他のブロックまたは配置禁止マスに衝突
+            if (grid[nextR][nextC] || isForbidden(nextC, nextR)) {
+                break;
+            }
+
+            // 1マス進む
+            curC = nextC;
+            curR = nextR;
+            path.push({ col: curC, row: curR });
+            totalStepsTaken++;
+
+            // 移動先（または通過中）のマスに矢印ギミックがあるかチェック
+            const tileGimmick = getGimmick(curC, curR);
+            if (tileGimmick && tileGimmick.type) {
+                // 矢印マスを踏んだ/着地した！
+                if (tileGimmick.type === 'step') {
+                    // 緑矢印: その方向に向きを変え、そこから1マスのみ動く
+                    currentDir = tileGimmick.dir;
+                    currentMode = 'step';
+                    remainingSteps = 1;
+                } else if (tileGimmick.type === 'dash') {
+                    // 水色(青)矢印: その方向に向きを変え、端までダッシュ
+                    currentDir = tileGimmick.dir;
+                    currentMode = 'dash';
+                    remainingSteps = Infinity;
+                }
+            } else {
+                // 通常マス
+                if (currentMode === 'step') {
+                    remainingSteps--;
+                    if (remainingSteps <= 0) {
+                        // 1マス動いたので停止
+                        break;
+                    }
+                }
+                // dash の場合は壁や障害物、次の矢印に当たるまで継続
+            }
+
+            // 無限ループ検知
+            const stateKey = `${curC},${curR},${currentDir},${currentMode}`;
+            if (visited.has(stateKey)) {
+                break;
+            }
+            visited.add(stateKey);
         }
 
         const destCol = curC;
