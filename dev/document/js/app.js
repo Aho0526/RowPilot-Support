@@ -1097,7 +1097,7 @@ function initResizablePanels() {
       const parts = [];
       for (let i = 0; i < 3; i++) {
         if (collapsed[i]) {
-          parts.push('44px');
+          parts.push('48px');
         } else {
           parts.push(`${cols[i]}fr`);
         }
@@ -1122,11 +1122,13 @@ function initResizablePanels() {
     if (btnCl) {
       btnCl.classList.toggle('panel-toggle-btn--active', !collapsed[1]);
       btnCl.setAttribute('aria-pressed', String(!collapsed[1]));
+      btnCl.title = collapsed[1] ? '審査要件を表示する（現在最小化中）' : '審査要件を最小化する';
     }
     const btnCm = document.getElementById('toggle-panel-comments');
     if (btnCm) {
       btnCm.classList.toggle('panel-toggle-btn--active', !collapsed[2]);
       btnCm.setAttribute('aria-pressed', String(!collapsed[2]));
+      btnCm.title = collapsed[2] ? '先生の評価を表示する（現在最小化中）' : '先生の評価を最小化する';
     }
 
     // ディバイダーの無効化/有効化
@@ -1147,6 +1149,12 @@ function initResizablePanels() {
     if (collapsed.every(c => c)) {
       collapsed[0] = false;
     }
+    if (!isCollapsed) {
+      // 展開時に幅が狭すぎたら見やすいデフォルト幅を確保
+      if (cols[idx] < 20) {
+        cols[idx] = 30;
+      }
+    }
     if (idx === 1) localStorage.setItem('rp_panel_collapsed_checklist', collapsed[1] ? '1' : '0');
     if (idx === 2) localStorage.setItem('rp_panel_collapsed_comments', collapsed[2] ? '1' : '0');
     applyGridCols();
@@ -1161,8 +1169,8 @@ function initResizablePanels() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const target = btn.dataset.panel;
-      if (target === 'checklist') togglePanel(1);
-      if (target === 'comments') togglePanel(2);
+      if (target === 'checklist') setPanelCollapsed(1, true);
+      if (target === 'comments') setPanelCollapsed(2, true);
     });
   });
 
@@ -1172,6 +1180,14 @@ function initResizablePanels() {
       const target = bar.dataset.panel;
       if (target === 'checklist') setPanelCollapsed(1, false);
       if (target === 'comments') setPanelCollapsed(2, false);
+    });
+    bar.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const target = bar.dataset.panel;
+        if (target === 'checklist') setPanelCollapsed(1, false);
+        if (target === 'comments') setPanelCollapsed(2, false);
+      }
     });
   });
 
