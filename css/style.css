@@ -1691,15 +1691,14 @@ footer {
     font-weight: 700;
 }
 .lang-code-badge {
-    font-size: 0.68rem;
-    padding: 0.1rem 0.35rem;
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--text-muted);
+    font-size: 1.05rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .lang-dropdown-item.active .lang-code-badge {
-    background: rgba(77, 203, 255, 0.25);
-    color: var(--accent);
+    filter: drop-shadow(0 0 3px rgba(77, 203, 255, 0.6));
 }
 
 /* Mobile Language Selector */

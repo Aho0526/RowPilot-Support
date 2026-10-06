@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 import glob
-from nav_helper import update_html_lang_switcher
+from nav_helper import update_entire_navbar
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -22,7 +22,7 @@ def main():
         if os.path.exists(fpath):
             with open(fpath, 'r', encoding='utf-8') as f:
                 content = f.read()
-            new_content = update_html_lang_switcher(content, 'ja', p)
+            new_content = update_entire_navbar(content, 'ja', p)
             with open(fpath, 'w', encoding='utf-8') as f:
                 f.write(new_content)
             print(f"Updated ja: {p}")
@@ -33,7 +33,7 @@ def main():
         if os.path.exists(fpath):
             with open(fpath, 'r', encoding='utf-8') as f:
                 content = f.read()
-            new_content = update_html_lang_switcher(content, 'en', p)
+            new_content = update_entire_navbar(content, 'en', p)
             with open(fpath, 'w', encoding='utf-8') as f:
                 f.write(new_content)
             print(f"Updated en: {p}")

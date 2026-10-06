@@ -7,7 +7,7 @@ Languages to build: de, fr, es, it, zh, ko
 
 import os
 import re
-from nav_helper import update_html_lang_switcher, LANGUAGES
+from nav_helper import update_entire_navbar, LANGUAGES
 from translations_home import HOME_TRANSLATIONS
 from translations_home_sections import HOME_SECTIONS_TRANSLATIONS
 from translations_pages import PAGE_TITLES, SUPPORT_CONTENT
@@ -17,9 +17,9 @@ EN_DIR = os.path.join(REPO_ROOT, 'en')
 
 NEW_LANGS = ['de', 'fr', 'es', 'it', 'zh', 'ko']
 
-NAV_LABELS = {
-    'ja': {'home': 'ホーム', 'feat': '機能', 'plans': 'プラン', 'news': 'お知らせ', 'support': 'サポート', 'privacy': 'プライバシー', 'terms': '利用規約'},
-    'en': {'home': 'Home', 'feat': 'Features', 'plans': 'Plans', 'news': 'News', 'support': 'Support', 'privacy': 'Privacy', 'terms': 'Terms'},
+FOOTER_LABELS = {
+    'ja': {'home': 'ホーム', 'feat': '機能', 'plans': 'プラン', 'news': 'お知らせ', 'support': 'サポート', 'privacy': 'プライバシーポリシー', 'terms': '利用規約'},
+    'en': {'home': 'Home', 'feat': 'Features', 'plans': 'Plans', 'news': 'Updates', 'support': 'Support', 'privacy': 'Privacy Policy', 'terms': 'Terms of Use'},
     'de': {'home': 'Startseite', 'feat': 'Funktionen', 'plans': 'Pläne', 'news': 'Aktuelles', 'support': 'Support', 'privacy': 'Datenschutz', 'terms': 'Nutzungsbedingungen'},
     'fr': {'home': 'Accueil', 'feat': 'Fonctionnalités', 'plans': 'Tarifs', 'news': 'Actualités', 'support': 'Support', 'privacy': 'Confidentialité', 'terms': 'Conditions'},
     'es': {'home': 'Inicio', 'feat': 'Funciones', 'plans': 'Planes', 'news': 'Noticias', 'support': 'Soporte', 'privacy': 'Privacidad', 'terms': 'Términos'},
@@ -28,23 +28,21 @@ NAV_LABELS = {
     'ko': {'home': '홈', 'feat': '기능', 'plans': '요금제', 'news': '공지사항', 'support': '고객지원', 'privacy': '개인정보처리방침', 'terms': '이용약관'},
 }
 
-def update_nav_links(html, lang, is_top=True):
-    nl = NAV_LABELS[lang]
-    # Replace navigation text
-    replacements = [
-        (r'>Home<', f'>{nl["home"]}<'),
-        (r'>Features<', f'>{nl["feat"]}<'),
-        (r'>Plans<', f'>{nl["plans"]}<'),
-        (r'>News<', f'>{nl["news"]}<'),
-        (r'>Support<', f'>{nl["support"]}<'),
-        (r'>Privacy Policy<', f'>{nl["privacy"]}<'),
-        (r'>Privacy<', f'>{nl["privacy"]}<'),
-        (r'>Terms of Use<', f'>{nl["terms"]}<'),
-        (r'>Terms<', f'>{nl["terms"]}<'),
-    ]
-    for pattern, repl in replacements:
-        html = re.sub(pattern, repl, html)
-    return html
+def update_footer_links(html, lang):
+    fl = FOOTER_LABELS[lang]
+    def replace_footer(match):
+        footer_html = match.group(0)
+        footer_html = footer_html.replace('>Home<', f'>{fl["home"]}<')
+        footer_html = footer_html.replace('>Features<', f'>{fl["feat"]}<')
+        footer_html = footer_html.replace('>Plans<', f'>{fl["plans"]}<')
+        footer_html = footer_html.replace('>News<', f'>{fl["news"]}<')
+        footer_html = footer_html.replace('>Updates<', f'>{fl["news"]}<')
+        footer_html = footer_html.replace('>Support<', f'>{fl["support"]}<')
+        footer_html = footer_html.replace('>Privacy Policy<', f'>{fl["privacy"]}<')
+        footer_html = footer_html.replace('>Terms of Use<', f'>{fl["terms"]}<')
+        return footer_html
+    return re.sub(r'<div class="footer-links">.*?</div>', replace_footer, html, flags=re.DOTALL)
+
 
 def build_index_page(lang):
     en_path = os.path.join(EN_DIR, 'index.html')
@@ -101,12 +99,10 @@ def build_index_page(lang):
 
     # Footer
     html = re.sub(r'<p class="footer-copy">.*?</p>', f'<p class="footer-copy">{ht["footer_copy"]}</p>', html, flags=re.DOTALL)
+    html = update_footer_links(html, lang)
 
-    # Nav
-    html = update_nav_links(html, lang, is_top=True)
-
-    # Multi-language selector
-    html = update_html_lang_switcher(html, lang, 'index.html')
+    # Nav & language selector
+    html = update_entire_navbar(html, lang, 'index.html')
 
     out_dir = os.path.join(REPO_ROOT, lang)
     os.makedirs(out_dir, exist_ok=True)
@@ -136,8 +132,8 @@ def build_support_page(lang):
     html = html.replace('Bluetooth &amp; Connection', sc['cat_conn'])
     html = html.replace('Data &amp; Backup', sc['cat_data'])
 
-    html = update_nav_links(html, lang, is_top=False)
-    html = update_html_lang_switcher(html, lang, 'support/index.html')
+    html = update_footer_links(html, lang)
+    html = update_entire_navbar(html, lang, 'support/index.html')
 
     out_dir = os.path.join(REPO_ROOT, lang, 'support')
     os.makedirs(out_dir, exist_ok=True)
@@ -156,8 +152,8 @@ def build_terms_page(lang):
     html = re.sub(r'<title>.*?</title>', f'<title>{title}</title>', html)
     html = re.sub(r'<meta name="description" content="[^"]*"', f'<meta name="description" content="{desc}"', html)
 
-    html = update_nav_links(html, lang, is_top=False)
-    html = update_html_lang_switcher(html, lang, 'terms/index.html')
+    html = update_footer_links(html, lang)
+    html = update_entire_navbar(html, lang, 'terms/index.html')
 
     out_dir = os.path.join(REPO_ROOT, lang, 'terms')
     os.makedirs(out_dir, exist_ok=True)
@@ -176,8 +172,8 @@ def build_privacy_page(lang):
     html = re.sub(r'<title>.*?</title>', f'<title>{title}</title>', html)
     html = re.sub(r'<meta name="description" content="[^"]*"', f'<meta name="description" content="{desc}"', html)
 
-    html = update_nav_links(html, lang, is_top=False)
-    html = update_html_lang_switcher(html, lang, 'privacy-policy/index.html')
+    html = update_footer_links(html, lang)
+    html = update_entire_navbar(html, lang, 'privacy-policy/index.html')
 
     out_dir = os.path.join(REPO_ROOT, lang, 'privacy-policy')
     os.makedirs(out_dir, exist_ok=True)
@@ -198,8 +194,8 @@ def build_news_pages(lang):
     html = re.sub(r'<html\s+lang="[^"]*"', f'<html lang="{lang}"', html)
     html = re.sub(r'<title>.*?</title>', f'<title>{title}</title>', html)
     html = re.sub(r'<meta name="description" content="[^"]*"', f'<meta name="description" content="{desc}"', html)
-    html = update_nav_links(html, lang, is_top=False)
-    html = update_html_lang_switcher(html, lang, 'news/index.html')
+    html = update_footer_links(html, lang)
+    html = update_entire_navbar(html, lang, 'news/index.html')
     with open(os.path.join(out_dir, 'index.html'), 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"Generated {lang}/news/index.html")
@@ -209,8 +205,8 @@ def build_news_pages(lang):
     with open(en_path, 'r', encoding='utf-8') as f:
         html = f.read()
     html = re.sub(r'<html\s+lang="[^"]*"', f'<html lang="{lang}"', html)
-    html = update_nav_links(html, lang, is_top=False)
-    html = update_html_lang_switcher(html, lang, 'news/pricing-revision.html')
+    html = update_footer_links(html, lang)
+    html = update_entire_navbar(html, lang, 'news/pricing-revision.html')
     with open(os.path.join(out_dir, 'pricing-revision.html'), 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"Generated {lang}/news/pricing-revision.html")
@@ -220,8 +216,8 @@ def build_news_pages(lang):
     with open(en_path, 'r', encoding='utf-8') as f:
         html = f.read()
     html = re.sub(r'<html\s+lang="[^"]*"', f'<html lang="{lang}"', html)
-    html = update_nav_links(html, lang, is_top=False)
-    html = update_html_lang_switcher(html, lang, 'news/team-migration-policy.html')
+    html = update_footer_links(html, lang)
+    html = update_entire_navbar(html, lang, 'news/team-migration-policy.html')
     with open(os.path.join(out_dir, 'team-migration-policy.html'), 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"Generated {lang}/news/team-migration-policy.html")
