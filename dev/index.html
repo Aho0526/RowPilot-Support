@@ -97,6 +97,33 @@
         </div>
       </article>
 
+      <!-- Section: Games & Interactive -->
+      <div class="section-header-block section-games">
+        <div class="section-meta-top">
+          <span class="section-code">// 1 &middot; PLAYGROUND &amp; WORKSHOP</span>
+          <div class="section-status-pill live">
+            <span class="status-pulse-dot"></span>
+            <span>3 Apps Active</span>
+          </div>
+        </div>
+        <div class="section-main-row">
+          <div class="section-title-wrap">
+            <div class="section-icon-box icon-games">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="6" width="20" height="12" rx="3" />
+                <line x1="6" y1="12" x2="10" y2="12" />
+                <line x1="8" y1="10" x2="8" y2="14" />
+                <circle cx="15" cy="13" r="0.8" fill="currentColor" />
+                <circle cx="18" cy="11" r="0.8" fill="currentColor" />
+              </svg>
+            </div>
+            <h2 class="section-title-text">Interactive Games &amp; Experiences</h2>
+          </div>
+          <p class="section-desc-text">ブラウザ上で動作検証可能なWebゲームおよび体験型ワークショップ教材</p>
+        </div>
+        <div class="section-line-accent"></div>
+      </div>
+
       <!-- Game Card 1: Crime Avoiding Game -->
       <article class="project-card card-crime-game">
         <div class="card-glow"></div>
@@ -180,6 +207,75 @@
         </div>
       </article>
 
+      <!-- Game Card 3: Trial Admission Game (Space Invaders) -->
+      <article class="project-card card-trial-game">
+        <div class="card-glow"></div>
+        <div class="card-content">
+          <div class="card-header">
+            <div class="icon-wrap trial-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="6" y1="12" x2="10" y2="12"></line>
+                <line x1="8" y1="10" x2="8" y2="14"></line>
+                <line x1="15" y1="13" x2="15.01" y2="13"></line>
+                <line x1="18" y1="11" x2="18.01" y2="11"></line>
+                <rect x="2" y="6" width="20" height="12" rx="3"></rect>
+              </svg>
+            </div>
+            <div class="status-indicator live">
+              <span class="pulse-dot"></span>
+              <span>Ready</span>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="project-meta">
+              <span class="path-badge">/trial-admission</span>
+              <span class="type-badge">Workshop Game</span>
+            </div>
+            <h2 class="project-title">体験入学生徒用ゲーム</h2>
+            <p class="project-subtitle">SPACE INVADERS WORKSHOP</p>
+            <p class="project-description">
+              体験入学生が config.js や style.css を編集して、色や速度・敵の配置を改造しながらゲーム制作を実感できる教材。
+            </p>
+          </div>
+
+          <div class="card-footer">
+            <a href="/dev/trial-admission/" class="btn btn-primary" id="btn-open-trial-game">
+              <span>ゲームを起動</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Section: Campus & Internal Tools (Suspended) -->
+      <div class="section-header-block section-tools">
+        <div class="section-meta-top">
+          <span class="section-code">// 2 &middot; CAMPUS OPERATIONS &amp; UTILITIES</span>
+          <div class="section-status-pill paused">
+            <span class="status-pulse-dot"></span>
+            <span>Access Restricted &middot; 3 Paused</span>
+          </div>
+        </div>
+        <div class="section-main-row">
+          <div class="section-title-wrap">
+            <div class="section-icon-box icon-tools">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <h2 class="section-title-text">Campus &amp; Internal Tools</h2>
+          </div>
+          <p class="section-desc-text">校務添削支援および学内イベント運営システム（現在管理者により利用停止中）</p>
+        </div>
+        <div class="section-line-accent"></div>
+      </div>
+
       <!-- Statement of Purpose Card (Bottom Left) -->
       <article class="project-card card-sop">
         <div class="card-glow"></div>
@@ -192,15 +288,14 @@
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
               </svg>
             </div>
-            <div class="status-indicator live">
+            <div class="status-indicator paused">
               <span class="pulse-dot"></span>
-              <span>Ready</span>
+              <span>Pause</span>
             </div>
           </div>
 
           <div class="card-body">
             <div class="project-meta">
-              <span class="path-badge">/statement-of-purpose</span>
               <span class="type-badge">Review Tool</span>
             </div>
             <h2 class="project-title">志願理由書 添削ツール</h2>
@@ -211,13 +306,13 @@
           </div>
 
           <div class="card-footer">
-            <a href="/dev/statement-of-purpose/" class="btn btn-primary" id="btn-open-sop">
+            <button type="button" class="btn btn-primary btn-suspended" id="btn-open-sop">
               <span>ツールを開く</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
-            </a>
+            </button>
           </div>
         </div>
       </article>
@@ -235,15 +330,14 @@
                 <path d="M8 7h8m-8 4h8" />
               </svg>
             </div>
-            <div class="status-indicator live">
+            <div class="status-indicator paused">
               <span class="pulse-dot"></span>
-              <span>Ready</span>
+              <span>Pause</span>
             </div>
           </div>
 
           <div class="card-body">
             <div class="project-meta">
-              <span class="path-badge">/document</span>
               <span class="type-badge">Essay Review</span>
             </div>
             <h2 class="project-title">課題論文 添削ツール</h2>
@@ -254,13 +348,13 @@
           </div>
 
           <div class="card-footer">
-            <a href="/dev/document/" class="btn btn-primary" id="btn-open-doc">
+            <button type="button" class="btn btn-primary btn-suspended" id="btn-open-doc">
               <span>ツールを開く</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
-            </a>
+            </button>
           </div>
         </div>
       </article>
@@ -279,15 +373,14 @@
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
               </svg>
             </div>
-            <div class="status-indicator live">
+            <div class="status-indicator paused">
               <span class="pulse-dot"></span>
-              <span>D1 Sync Ready</span>
+              <span>Pause</span>
             </div>
           </div>
 
           <div class="card-body">
             <div class="project-meta">
-              <span class="path-badge">/dev/count</span>
               <span class="type-badge">Festival Tool</span>
             </div>
             <h2 class="project-title">文化祭 カウントシステム</h2>
@@ -298,13 +391,13 @@
           </div>
 
           <div class="card-footer">
-            <a href="/dev/count/" class="btn btn-primary" id="btn-open-count" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+            <button type="button" class="btn btn-primary btn-suspended" id="btn-open-count">
               <span>カウンターを開く</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
-            </a>
+            </button>
           </div>
         </div>
       </article>
@@ -318,6 +411,56 @@
       </div>
     </footer>
   </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toastContainer = document.getElementById('toast-container');
+      let activeToastTimeout = null;
+
+      function showAccessDeniedNotice() {
+        if (!toastContainer) return;
+
+        toastContainer.innerHTML = '';
+        if (activeToastTimeout) {
+          clearTimeout(activeToastTimeout);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.innerHTML = `
+          <div class="toast-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+            </svg>
+          </div>
+          <span class="toast-message">管理者によってこの機能へのアクセスは停止されました</span>
+        `;
+
+        toastContainer.appendChild(toast);
+
+        activeToastTimeout = setTimeout(() => {
+          toast.classList.add('hide');
+          setTimeout(() => {
+            if (toast.parentNode === toastContainer) {
+              toastContainer.removeChild(toast);
+            }
+          }, 300);
+        }, 3500);
+      }
+
+      document.querySelectorAll('.btn-suspended').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          btn.classList.add('btn-shake');
+          setTimeout(() => btn.classList.remove('btn-shake'), 400);
+          showAccessDeniedNotice();
+        });
+      });
+    });
+  </script>
 </body>
 
 </html>
