@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" id="jp.ac.trial.invader" version="1.0.0">
+  <name>スペースインベーダー体験プロジェクト</name>
+  <description>Monaca Education 体験入学用 スペースインベーダーゲーム</description>
+  <author email="info@example.com" href="https://monaca.education/">体験入学担当</author>
+  <content src="index.html"/>
+  <access origin="*"/>
+  <preference name="Orientation" value="portrait"/>
+  <preference name="DisallowOverscroll" value="true"/>
+  <preference name="EnableViewportScale" value="false"/>
+</widget>

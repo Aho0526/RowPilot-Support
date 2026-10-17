@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>スペースインベーダー</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div class="canvas-wrapper">
+            <canvas id="gameCanvas" width="480" height="560" tabindex="0"></canvas>
+            
+            <!-- ゲーム開始オーバーレイ -->
+            <div id="start-overlay" class="game-overlay">
+                <button type="button" id="btn-game-start" class="start-btn">
+                    <span class="start-icon">▶</span>
+                    <span>ゲーム開始</span>
+                </button>
+                <div class="start-hint">または [Space] キーでスタート</div>
+            </div>
+        </div>
+
+        <div class="controls-hint">
+            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動　/　<span class="key-tag">Space</span> 攻撃　/　<span class="key-tag">Esc</span> スタートへ
+        </div>
+    </div>
+
+    <!-- 設定ファイル（体験入学生が編集するファイル） -->
+    <script src="config.js"></script>
+    
+    <!-- コアエンジン -->
+    <script src="core.js"></script>
+</body>
+</html>
