@@ -77,6 +77,52 @@ function jsonResponse(data, headers, status = 200) {
     });
 }
 
+// 制限時間（秒）: 15分
+const TIME_LIMIT_SEC = 900;
+
+function nodeGridInfo(mapType) {
+    return { size: mapType === '4x4' ? 5 : 4, minDist: mapType === '4x4' ? 4 : 3 };
+}
+function nodeDist(a, b) {
+    const [ax, ay] = a.split('_').slice(1).map(Number);
+    const [bx, by] = b.split('_').slice(1).map(Number);
+    return Math.abs(ax - bx) + Math.abs(ay - by);
+}
+function allNodes(size) {
+    const all = [];
+    for (let x = 0; x < size; x++) for (let y = 0; y < size; y++) all.push(`node_${x}_${y}`);
+    return all;
+}
+function randPick(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+// ランダム開始位置（被害者・犯罪者）
+function pickStartNodes(mapType, goalNode) {
+    const { size, minDist } = nodeGridInfo(mapType);
+    const all = allNodes(size);
+    for (let d = minDist; d >= 1; d--) {
+        const vc = all.filter(n => n !== goalNode && nodeDist(n, goalNode) >= d);
+        if (vc.length === 0) continue;
+        const victim = randPick(vc);
+        const cc = all.filter(n => n !== goalNode && n !== victim && nodeDist(n, victim) >= d);
+        if (cc.length === 0) continue;
+        return { victim, criminal: randPick(cc) };
+    }
+    const victim = randPick(all.filter(n => n !== goalNode));
+    return { victim, criminal: randPick(all.filter(n => n !== goalNode && n !== victim)) };
+}
+// ホストの位置を踏まえた参加者側の開始位置
+function pickPartnerStart(mapType, goalNode, hostRole, hostNode) {
+    const { size, minDist } = nodeGridInfo(mapType);
+    const all = allNodes(size);
+    for (let d = minDist; d >= 1; d--) {
+        const cands = all.filter(n => n !== goalNode && n !== hostNode && nodeDist(n, hostNode) >= d
+            && (hostRole === 'victim' || nodeDist(n, goalNode) >= d));
+        if (cands.length > 0) return randPick(cands);
+    }
+    return randPick(all.filter(n => n !== goalNode && n !== hostNode));
+}
+
 // ルーム作成
 async function handleCreateRoom(request, env, headers) {
     const { hostName, preferredRole, mapType = '3x3', isAiMode = false } = await request.json();
@@ -85,13 +131,13 @@ async function handleCreateRoom(request, env, headers) {
     const playerId = 'p_' + Math.random().toString(36).substring(2, 10);
     const now = Date.now();
 
-    // 初期配置の候補（3x3の場合: 16ノード）
-    // 犯罪者と被害者はある程度離れた位置からスタート
+    // 初期配置はランダム（ゴールから離れ、互いにも離れた位置）
     const is4x4 = mapType === '4x4';
-    const victimStart = is4x4 ? 'node_0_4' : 'node_0_3';
-    const criminalStart = is4x4 ? 'node_4_0' : 'node_3_0';
     const victimGoal = is4x4 ? 'node_4_4' : 'node_3_3';
     const maxTurns = is4x4 ? 16 : 12;
+    const startNodes = pickStartNodes(mapType, victimGoal);
+    const victimStart = startNodes.victim;
+    const criminalStart = startNodes.criminal;
 
     const hostRole = preferredRole === 'criminal' ? 'criminal' : 'victim';
     const guestRole = hostRole === 'criminal' ? 'victim' : 'criminal';
@@ -102,7 +148,7 @@ async function handleCreateRoom(request, env, headers) {
 
     await db.prepare(`
         INSERT INTO rooms (id, status, map_type, time_limit, max_turns, victim_goal_node, created_at, started_at)
-        VALUES (?, ?, ?, 120, ?, ?, ?, ?)
+        VALUES (?, ?, ?, 900, ?, ?, ?, ?)
     `).bind(roomId, initialStatus, mapType, maxTurns, victimGoal, now, startedAt).run();
 
     const hostStartNode = hostRole === 'victim' ? victimStart : criminalStart;
@@ -137,6 +183,7 @@ async function handleCreateRoom(request, env, headers) {
         roomId,
         playerId,
         role: hostRole,
+        startNode: hostStartNode,
         isAiMode,
     }, headers);
 }
@@ -167,7 +214,7 @@ async function handleJoinRoom(request, env, headers) {
 
     const hostPlayer = existingPlayers.results[0];
     const role = hostPlayer.role === 'criminal' ? 'victim' : 'criminal';
-    const startNode = role === 'victim' ? 'node_0_3' : 'node_3_0';
+    const startNode = pickPartnerStart(room.map_type, room.victim_goal_node, hostPlayer.role, hostPlayer.current_node);
     const playerId = 'p_' + Math.random().toString(36).substring(2, 10);
     const now = Date.now();
 
@@ -181,6 +228,7 @@ async function handleJoinRoom(request, env, headers) {
         roomId: room.id,
         playerId,
         role,
+        startNode,
         mapType: room.map_type,
     }, headers);
 }
@@ -511,9 +559,11 @@ async function handleTurnAction(request, env, headers) {
         otherPlayer
     ];
 
+    const moveRecords = {};
     for (const p of playersInRoom) {
         const fromNode = p.current_node;
         const targetNode = p.pending_move_node || p.current_node;
+        moveRecords[p.id] = { from: fromNode, to: targetNode };
 
         // 位置更新
         await db.prepare('UPDATE players SET current_node = ?, pending_move_node = NULL, pending_chat_text = NULL, is_turn_ready = 0 WHERE id = ?').bind(targetNode, p.id).run();
@@ -543,18 +593,26 @@ async function handleTurnAction(request, env, headers) {
     let finishReason = null;
 
     if (victim && criminal) {
-        if (victim.current_node === criminal.current_node) {
+        const vm = moveRecords[victim.id];
+        const cm = moveRecords[criminal.id];
+        const sameNode = victim.current_node === criminal.current_node;
+        // すれ違い（入れ替わり）判定
+        const swapped = vm && cm && vm.from !== vm.to && vm.from === cm.to && vm.to === cm.from;
+        // 接触判定はゴール判定より優先
+        if (sameNode || swapped) {
             isGameOver = true;
             winner = 'criminal';
-            finishReason = `第${currentTurn}ターン：犯罪者が同じ交差点で被害者を確保しました！`;
+            finishReason = sameNode
+                ? `第${currentTurn}ターン：犯罪者が同じ交差点で被害者を確保しました！`
+                : `第${currentTurn}ターン：すれ違いざまに犯罪者に接触されました！`;
         } else if (victim.current_node === room.victim_goal_node) {
             isGameOver = true;
             winner = 'victim';
             finishReason = `第${currentTurn}ターン：被害者が目的地（安全地帯）に逃げ込みました！`;
-        } else if (currentTurn >= (room.max_turns || 12)) {
+        } else if (room.started_at && now - room.started_at >= (room.time_limit || TIME_LIMIT_SEC) * 1000) {
             isGameOver = true;
             winner = 'victim';
-            finishReason = `全${room.max_turns || 12}ターン逃走成功！警察が到着して安全が確保されました！`;
+            finishReason = '制限時間（15分）逃げ切り成功！警察が到着して安全が確保されました！';
         }
     }
 

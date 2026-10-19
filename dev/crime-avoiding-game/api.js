@@ -63,6 +63,35 @@ class ApiService {
         }
     }
 
+    // 制限時間（秒）: 15分
+    get TIME_LIMIT_SEC() { return 900; }
+
+    // ランダム開始位置の抽選（ゴールから離れ、互いにも離れた地点）
+    pickStartNodes(mapType, goalNode) {
+        const size = mapType === '4x4' ? 5 : 4;
+        const minDist = mapType === '4x4' ? 4 : 3;
+        const parse = id => id.split('_').slice(1).map(Number);
+        const dist = (a, b) => {
+            const [ax, ay] = parse(a), [bx, by] = parse(b);
+            return Math.abs(ax - bx) + Math.abs(ay - by);
+        };
+        const all = [];
+        for (let x = 0; x < size; x++) {
+            for (let y = 0; y < size; y++) all.push(`node_${x}_${y}`);
+        }
+        const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+        for (let d = minDist; d >= 1; d--) {
+            const vc = all.filter(n => n !== goalNode && dist(n, goalNode) >= d);
+            if (vc.length === 0) continue;
+            const victim = pick(vc);
+            const cc = all.filter(n => n !== goalNode && n !== victim && dist(n, victim) >= d);
+            if (cc.length === 0) continue;
+            return { victim, criminal: pick(cc) };
+        }
+        const victim = pick(all.filter(n => n !== goalNode));
+        return { victim, criminal: pick(all.filter(n => n !== goalNode && n !== victim)) };
+    }
+
     // ==========================================
     // API メソッド群
     // ==========================================
@@ -86,9 +115,10 @@ class ApiService {
         const hostRole = preferredRole === 'criminal' ? 'criminal' : 'victim';
         const guestRole = hostRole === 'criminal' ? 'victim' : 'criminal';
 
-        const victimStart = mapType === '4x4' ? 'node_0_4' : 'node_0_3';
-        const criminalStart = mapType === '4x4' ? 'node_4_0' : 'node_3_0';
         const victimGoal = mapType === '4x4' ? 'node_4_4' : 'node_3_3';
+        const startNodes = this.pickStartNodes(mapType, victimGoal);
+        const victimStart = startNodes.victim;
+        const criminalStart = startNodes.criminal;
 
         const now = Date.now();
         const data = this.getLocalData();
@@ -99,6 +129,8 @@ class ApiService {
             map_type: mapType,
             current_turn: 1,
             max_turns: 12,
+            time_limit: this.TIME_LIMIT_SEC,
+            start_nodes: startNodes,
             started_at: isAiMode ? now : null,
             ended_at: null,
             winner: null,
@@ -168,6 +200,7 @@ class ApiService {
             roomId,
             playerId,
             role: hostRole,
+            startNode: hostStartNode,
             isAiMode
         };
     }
@@ -199,9 +232,8 @@ class ApiService {
 
         const hostPlayer = existingPlayers[0];
         const role = hostPlayer.role === 'criminal' ? 'victim' : 'criminal';
-        const startNode = role === 'victim'
-            ? (room.map_type === '4x4' ? 'node_0_4' : 'node_0_3')
-            : (room.map_type === '4x4' ? 'node_4_0' : 'node_3_0');
+        const startNodes = room.start_nodes || this.pickStartNodes(room.map_type, room.victim_goal_node);
+        const startNode = role === 'victim' ? startNodes.victim : startNodes.criminal;
 
         const playerId = 'p_' + Math.random().toString(36).substring(2, 8);
         const now = Date.now();
@@ -226,6 +258,7 @@ class ApiService {
             roomId,
             playerId,
             role,
+            startNode,
             mapType: room.map_type
         };
     }
@@ -333,6 +366,18 @@ class ApiService {
                 elapsed_seconds: m.elapsed_seconds
             }));
 
+        let remainingTime = null;
+        if (room.status === 'playing' && room.started_at) {
+            remainingTime = Math.max(0, this.TIME_LIMIT_SEC - Math.floor((now - room.started_at) / 1000));
+            if (remainingTime <= 0) {
+                room.status = 'finished';
+                room.ended_at = now;
+                room.winner = 'victim';
+                room.finish_reason = '制限時間（15分）逃げ切り成功！警察が到着して安全が確保されました！';
+                this.saveLocalData(data);
+            }
+        }
+
         return {
             room: {
                 id: room.id,
@@ -340,6 +385,8 @@ class ApiService {
                 mapType: room.map_type,
                 currentTurn: room.current_turn || 1,
                 maxTurns: room.max_turns || 12,
+                timeLimit: this.TIME_LIMIT_SEC,
+                remainingTime,
                 victimGoalNode: room.victim_goal_node,
                 winner: room.winner,
                 finishReason: room.finish_reason,
@@ -404,11 +451,13 @@ class ApiService {
         const currentTurn = room.current_turn;
 
         const playersInRoom = [mover, opponent];
+        const moveRecords = {};
 
         for (const p of playersInRoom) {
             const fromNode = p.current_node;
             const targetNode = p.pending_move_node || p.current_node;
             p.current_node = targetNode;
+            moveRecords[p.id] = { from: fromNode, to: targetNode };
 
             // 移動ログ記録
             data.moves.push({
@@ -453,11 +502,19 @@ class ApiService {
         let finishReason = null;
 
         if (victimPlayer && criminalPlayer) {
-            // 接触判定
-            if (victimPlayer.current_node === criminalPlayer.current_node) {
+            const vm = moveRecords[victimPlayer.id];
+            const cm = moveRecords[criminalPlayer.id];
+            const sameNode = vm.to === cm.to;
+            // すれ違い（入れ替わり）判定: 隣り合う地点で互いに逆方向へ移動
+            const swapped = vm.from !== vm.to && vm.from === cm.to && vm.to === cm.from;
+
+            // 接触判定（ゴール判定より優先）
+            if (sameNode || swapped) {
                 isGameOver = true;
                 winner = 'criminal';
-                finishReason = `第${currentTurn}ターン：犯罪者が同じ交差点で被害者を確保しました！`;
+                finishReason = sameNode
+                    ? `第${currentTurn}ターン：犯罪者が同じ交差点で被害者を確保しました！`
+                    : `第${currentTurn}ターン：すれ違いざまに犯罪者に接触されました！`;
             }
             // 目的地ゴール判定
             else if (victimPlayer.current_node === room.victim_goal_node) {
@@ -465,11 +522,11 @@ class ApiService {
                 winner = 'victim';
                 finishReason = `第${currentTurn}ターン：被害者が目的地（安全地帯）に逃げ込みました！`;
             }
-            // 最大ターン数到達（タイムアップ逃走成功）
-            else if (currentTurn >= room.max_turns) {
+            // 制限時間（15分）到達
+            else if (room.started_at && now - room.started_at >= this.TIME_LIMIT_SEC * 1000) {
                 isGameOver = true;
                 winner = 'victim';
-                finishReason = `全${room.max_turns}ターン逃走成功！警察が到着して安全が確保されました！`;
+                finishReason = '制限時間（15分）逃げ切り成功！警察が到着して安全が確保されました！';
             }
         }
 

@@ -170,6 +170,7 @@ class ResultManager {
                 role: m.role,
                 turn: m.turn || 1,
                 node: m.to_node,
+                from_node: m.from_node,
                 timestamp: m.timestamp,
                 elapsed: m.elapsed_seconds
             });
@@ -255,6 +256,11 @@ class ResultManager {
         const is4x4 = this.reviewData?.room?.map_type === '4x4';
         let victimNode = is4x4 ? 'node_0_4' : 'node_0_3';
         let criminalNode = is4x4 ? 'node_4_0' : 'node_3_0';
+        // 開始位置はランダムのため、最初の移動イベントから取得
+        const firstVictim = this.timelineEvents.find(e => e.type === 'move' && e.role === 'victim');
+        const firstCriminal = this.timelineEvents.find(e => e.type === 'move' && e.role === 'criminal');
+        if (firstVictim) victimNode = firstVictim.from_node || firstVictim.node;
+        if (firstCriminal) criminalNode = firstCriminal.from_node || firstCriminal.node;
         const victimTrail = [];
         const criminalTrail = [];
         let currentTurn = 1;
@@ -317,8 +323,7 @@ class ResultManager {
         const secStr = Math.floor(elapsed % 60).toString().padStart(2, '0');
 
         if (stepEl) {
-            const maxTurns = this.reviewData?.room?.max_turns || 12;
-            stepEl.textContent = `第 ${currentTurn} ターン / 全 ${maxTurns} ターン`;
+            stepEl.textContent = `第 ${currentTurn} ターン`;
         }
 
         if (timeEl) {

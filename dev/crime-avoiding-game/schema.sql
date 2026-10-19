@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS rooms (
     id TEXT PRIMARY KEY,
     status TEXT NOT NULL DEFAULT 'waiting', -- waiting, playing, finished
     map_type TEXT NOT NULL DEFAULT '3x3',
-    time_limit INTEGER NOT NULL DEFAULT 120,
+    time_limit INTEGER NOT NULL DEFAULT 900,
     current_turn INTEGER NOT NULL DEFAULT 1,
     max_turns INTEGER NOT NULL DEFAULT 12,
     started_at INTEGER,

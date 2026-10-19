@@ -176,7 +176,7 @@ class RoomManager {
                 console.log('Solo game started state confirmed:', e.message);
             }
 
-            const startNode = 'node_0_3';
+            const startNode = res.startNode || 'node_0_3';
             window.playerManager.setMe(res.playerId, playerName, role, startNode);
             window.mapManager.initMapData(mapType);
 
@@ -205,9 +205,9 @@ class RoomManager {
             this.roomId = res.roomId;
             this.isHost = true;
 
-            const startNode = mapType === '4x4'
+            const startNode = res.startNode || (mapType === '4x4'
                 ? (role === 'victim' ? 'node_0_4' : 'node_4_0')
-                : (role === 'victim' ? 'node_0_3' : 'node_3_0');
+                : (role === 'victim' ? 'node_0_3' : 'node_3_0'));
 
             window.playerManager.setMe(res.playerId, playerName, role, startNode);
             window.mapManager.initMapData(mapType);
@@ -243,7 +243,7 @@ class RoomManager {
             this.roomId = res.roomId;
             this.isHost = false;
 
-            const startNode = res.role === 'victim' ? 'node_0_3' : 'node_3_0';
+            const startNode = res.startNode || (res.role === 'victim' ? 'node_0_3' : 'node_3_0');
             window.playerManager.setMe(res.playerId, playerName, res.role, startNode);
 
             this.showLobby(res.roomId, res.role);

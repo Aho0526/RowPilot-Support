@@ -107,9 +107,11 @@ class GameManager {
         // ターン数表示
         const turnEl = document.getElementById('gameTurnDisplay');
         if (turnEl) {
+            const rem = Math.max(0, this.remainingTime != null ? this.remainingTime : 900);
+            const remText = `${Math.floor(rem / 60)}:${String(rem % 60).padStart(2, '0')}`;
             turnEl.textContent = lm.t('turnDisplayFormat')
                 .replace('{current}', this.currentTurn || 1)
-                .replace('{max}', this.maxTurns || 12);
+                .replace('{remaining}', remText);
         }
 
         // 相手待ち / 自ターンバッジ
@@ -356,17 +358,20 @@ class GameManager {
             this.goalNodeId = room.victimGoalNode;
             this.currentTurn = room.currentTurn || 1;
             this.maxTurns = room.maxTurns || 12;
+            this.remainingTime = (room.remainingTime != null) ? room.remainingTime : (room.timeLimit || 900);
 
             // ターン表示更新
             const turnEl = document.getElementById('gameTurnDisplay');
             const lm = window.languageManager;
             if (turnEl) {
+                const rem = Math.max(0, this.remainingTime);
+                const remText = `${Math.floor(rem / 60)}:${String(rem % 60).padStart(2, '0')}`;
                 if (lm) {
                     turnEl.textContent = lm.t('turnDisplayFormat')
                         .replace('{current}', this.currentTurn)
-                        .replace('{max}', this.maxTurns);
+                        .replace('{remaining}', remText);
                 } else {
-                    turnEl.textContent = `第 ${this.currentTurn} ターン / 全 ${this.maxTurns} ターン`;
+                    turnEl.textContent = `第 ${this.currentTurn} ターン / 残り ${remText}`;
                 }
             }
 
