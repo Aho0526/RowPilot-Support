@@ -1,57 +1,57 @@
 // ===============================================================
-// ⚙️ Space Invaders Studio Controller (ide.js)
+// Space Invaders Studio Controller (ide.js)
 // ===============================================================
 
 (function() {
     'use strict';
 
-    // 仮想ファイルシステム
+    // 仮想ファイルシステム (全ファイル編集可能)
     const files = {
-        'www/config.js': {
+        'config.js': {
             name: 'config.js',
-            path: 'www/config.js',
+            path: '../config.js',
             type: 'javascript',
             editable: true,
             isDirty: false,
-            content: `// ゲーム設定ファイル (config.js)\nconst GameConfig = {\n    player: { speed: 5, color: "#00FF66", lives: 3, maxBullets: 2 },\n    bullet: { speed: -8, color: "#FFFF00", width: 3, height: 12 },\n    enemy: { rows: 5, cols: 10, speed: 1.0, dropAmount: 14, shootInterval: 60, bulletSpeed: 3.5 },\n    bunker: { enabled: true, count: 4, color: "#33FF33" },\n    ufo: { enabled: true, speed: 2.2, interval: 18, color: "#FF0033", bonusScore: 300 },\n    display: { background: "space-bg", sound: false }\n};`
+            content: `// ゲーム設定ファイル (config.js)\nconst GameConfig = {};`
         },
-        'www/style.css': {
+        'style.css': {
             name: 'style.css',
-            path: 'www/style.css',
+            path: '../style.css',
             type: 'css',
             editable: true,
             isDirty: false,
             content: `/* スタイル設定 (style.css) */`
         },
-        'www/core.js': {
+        'core.js': {
             name: 'core.js',
-            path: 'www/core.js',
+            path: '../core.js',
             type: 'javascript',
-            editable: false,
+            editable: true,
             isDirty: false,
             content: `// ゲームエンジン (core.js)`
         },
-        'www/index.html': {
+        'index.html': {
             name: 'index.html',
-            path: 'www/index.html',
+            path: '../index.html',
             type: 'html',
-            editable: false,
+            editable: true,
             isDirty: false,
             content: `<!-- ゲームHTML -->`
         }
     };
 
-    let openTabs = ['www/config.js', 'www/style.css'];
-    let currentFileKey = 'www/config.js';
+    let openTabs = ['config.js', 'style.css'];
+    let currentFileKey = 'config.js';
 
     // 状態管理
-    let isMuted = true; // デフォルトでミュート
+    let isMuted = true;
     const SCALE_PRESETS = [0.75, 0.85, 1.0, 1.15, 1.3, 1.5];
     let currentScaleIndex = 2; // 1.0 (100%)
 
     // DOM要素
     const tabContainer = document.getElementById('editor-tabs');
-    const lineNumbers = document.getElementById('line-numbers');
+    const lineNumbersInner = document.getElementById('line-numbers-inner');
     const codeTextarea = document.getElementById('code-textarea');
     const codeHighlight = document.getElementById('code-highlight');
     const previewIframe = document.getElementById('preview-iframe');
@@ -61,36 +61,32 @@
     const toastMsg = document.getElementById('ide-toast-msg');
 
     const btnSoundToggle = document.getElementById('btn-sound-toggle');
-    const soundIcon = document.getElementById('sound-icon');
     const soundText = document.getElementById('sound-text');
     const btnScaleDown = document.getElementById('btn-scale-down');
     const btnScaleUp = document.getElementById('btn-scale-up');
     const scaleIndicator = document.getElementById('scale-indicator');
 
     // ─────────────────────────────────────────────
-    // 🌐 実ファイルの自動フェッチ
+    // 実ファイルの自動フェッチ
     // ─────────────────────────────────────────────
     async function loadRealFiles() {
-        const fileMap = {
-            'www/config.js': 'monaca-project/www/config.js',
-            'www/style.css': 'monaca-project/www/style.css',
-            'www/core.js': 'monaca-project/www/core.js',
-            'www/index.html': 'monaca-project/www/index.html'
-        };
-
-        for (let key in fileMap) {
+        for (let key in files) {
             try {
-                const resp = await fetch(fileMap[key] + '?t=' + Date.now());
+                const resp = await fetch(files[key].path + '?t=' + Date.now());
                 if (resp.ok) {
                     files[key].content = await resp.text();
+                    files[key].isDirty = false;
                 }
-            } catch(e) {}
+            } catch(e) {
+                console.warn('ファイルの読み込みに失敗しました:', key, e);
+            }
         }
         renderEditor();
+        updatePreview();
     }
 
     // ─────────────────────────────────────────────
-    // 🎨 シンタックスハイライター (ワンパストークナイザ)
+    // シンタックスハイライター
     // ─────────────────────────────────────────────
     function escapeHtml(text) {
         return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -151,7 +147,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 📝 エディタ描画 & 行番号同期
+    // エディタ描画 & 行番号完全ピクセル同期
     // ─────────────────────────────────────────────
     function renderEditor() {
         const file = files[currentFileKey];
@@ -162,6 +158,7 @@
         updateCodeHighlight();
         updateTabsUI();
         updateSidebarUI();
+        syncScroll();
     }
 
     function updateCodeHighlight() {
@@ -171,22 +168,29 @@
         const text = codeTextarea.value;
         file.content = text;
 
+        // 行番号の生成 (各行を固定高divで生成し、行番号のズレを完全に排除)
         const lines = text.split('\n');
+        const lineCount = lines.length;
         let lineHtml = '';
-        for (let i = 1; i <= lines.length; i++) {
-            lineHtml += i + '<br>';
+        for (let i = 1; i <= lineCount; i++) {
+            lineHtml += '<div class="line-num">' + i + '</div>';
         }
-        lineNumbers.innerHTML = lineHtml;
+        lineNumbersInner.innerHTML = lineHtml;
 
+        // シンタックスハイライト
         codeHighlight.innerHTML = highlightSyntax(text, file.type) + '\n';
     }
 
-    // スクロール同期
-    codeTextarea.addEventListener('scroll', () => {
-        codeHighlight.scrollTop = codeTextarea.scrollTop;
-        codeHighlight.scrollLeft = codeTextarea.scrollLeft;
-        lineNumbers.scrollTop = codeTextarea.scrollTop;
-    });
+    function syncScroll() {
+        const scrollTop = codeTextarea.scrollTop;
+        const scrollLeft = codeTextarea.scrollLeft;
+        codeHighlight.scrollTop = scrollTop;
+        codeHighlight.scrollLeft = scrollLeft;
+        // translateY方式により、スクロール天井制限に関わらず1ピクセルも狂わずに完全同期
+        lineNumbersInner.style.transform = `translateY(-${scrollTop}px)`;
+    }
+
+    codeTextarea.addEventListener('scroll', syncScroll);
 
     codeTextarea.addEventListener('input', () => {
         const file = files[currentFileKey];
@@ -206,13 +210,14 @@
             const val = codeTextarea.value;
             codeTextarea.value = val.substring(0, start) + '    ' + val.substring(end);
             codeTextarea.selectionStart = codeTextarea.selectionEnd = start + 4;
+            codeTextarea.dispatchEvent(new Event('input'));
         } else if (e.key === 'Escape') {
             codeTextarea.blur();
         }
     });
 
     // ─────────────────────────────────────────────
-    // ⌨️ キーボード操作の中継 (エディタ外のキーをゲームに転送)
+    // キーボード操作の中継 (エディタ外の操作キーをゲームに転送)
     // ─────────────────────────────────────────────
     const GAME_KEYS = ["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyA", "KeyD", "KeyZ", "Escape"];
 
@@ -253,7 +258,7 @@
     });
 
     // ─────────────────────────────────────────────
-    // 📑 タブ & サイドバー UI
+    // タブ & サイドバー UI
     // ─────────────────────────────────────────────
     function updateTabsUI() {
         tabContainer.innerHTML = '';
@@ -306,16 +311,14 @@
     });
 
     // ─────────────────────────────────────────────
-    // 🔊 サウンド切り替え (デフォでミュート)
+    // サウンド切り替え
     // ─────────────────────────────────────────────
     function updateSoundUI() {
         if (isMuted) {
             btnSoundToggle.className = 'action-btn sound-toggle-btn muted';
-            soundIcon.textContent = '🔇';
-            soundText.textContent = 'ミュート中';
+            soundText.textContent = '消音中';
         } else {
             btnSoundToggle.className = 'action-btn sound-toggle-btn active';
-            soundIcon.textContent = '🔊';
             soundText.textContent = '音声ON';
         }
     }
@@ -329,24 +332,19 @@
                 enabled: !isMuted
             }, '*');
         } catch(e) {}
-        showToast(isMuted ? '🔇 音声をミュートしました' : '🔊 音声をONにしました');
+        showToast(isMuted ? '音声をミュートしました' : '音声をONにしました');
     }
 
     btnSoundToggle?.addEventListener('click', toggleSound);
 
     // ─────────────────────────────────────────────
-    // 📐 画面サイズの自由調整 (ドラッグリサイズ & スケール)
+    // 表示倍率 & ドラッグリサイズ
     // ─────────────────────────────────────────────
-    // 1. スケールボタン
     function applyScale() {
         const scale = SCALE_PRESETS[currentScaleIndex];
         scaleIndicator.textContent = Math.round(scale * 100) + '%';
-        try {
-            previewIframe.contentWindow.postMessage({
-                type: 'SET_CANVAS_SCALE',
-                scale: scale
-            }, '*');
-        } catch(e) {}
+        previewIframe.style.transform = `scale(${scale})`;
+        previewIframe.style.transformOrigin = 'center center';
     }
 
     btnScaleDown?.addEventListener('click', () => {
@@ -363,13 +361,13 @@
         }
     });
 
-    // 2. ドラッグ式スプリッターリサイザー
+    // ドラッグ式リサイザー
     let isDragging = false;
     paneResizer?.addEventListener('mousedown', (e) => {
         isDragging = true;
         paneResizer.classList.add('dragging');
         document.body.style.cursor = 'col-resize';
-        previewIframe.style.pointerEvents = 'none'; // ドラッグ中にiframeにイベントを吸われないようにする
+        previewIframe.style.pointerEvents = 'none';
         e.preventDefault();
     });
 
@@ -391,7 +389,7 @@
     });
 
     // ─────────────────────────────────────────────
-    // 💾 保存 & プレビュー更新
+    // プレビュー合成 & 保存
     // ─────────────────────────────────────────────
     function showToast(msg) {
         toastMsg.textContent = msg;
@@ -399,49 +397,87 @@
         setTimeout(() => toast.classList.remove('show'), 2000);
     }
 
+    function buildCompositeHtml() {
+        let html = files['index.html'].content || '';
+        const css = files['style.css'].content || '';
+        const config = files['config.js'].content || '';
+        const core = files['core.js'].content || '';
+
+        // 相対パスのベースを上位階層に設定（assetsなどを正しく読み込む）
+        if (!html.includes('<base')) {
+            html = html.replace('<head>', '<head><base href="../">');
+        }
+
+        // style.css の差し替え
+        if (html.includes('<link rel="stylesheet" href="style.css">')) {
+            html = html.replace('<link rel="stylesheet" href="style.css">', `<style>${css}</style>`);
+        } else {
+            html = html.replace('</head>', `<style>${css}</style></head>`);
+        }
+
+        // config.js と core.js の差し替え
+        if (html.includes('<script src="config.js"></script>')) {
+            html = html.replace('<script src="config.js"></script>', `<script>${config}<\/script>`);
+        }
+        if (html.includes('<script src="core.js"></script>')) {
+            html = html.replace('<script src="core.js"></script>', `<script>${core}<\/script>`);
+        }
+
+        return html;
+    }
+
+    function updatePreview() {
+        const fullHtml = buildCompositeHtml();
+        previewIframe.srcdoc = fullHtml;
+    }
+
     function saveAndApplyChanges() {
+        // config.js のみの変更なら即時リロードを試みる
+        const onlyConfigDirty = files['config.js'].isDirty && !files['style.css'].isDirty && !files['core.js'].isDirty && !files['index.html'].isDirty;
+
         for (let k in files) {
             files[k].isDirty = false;
         }
         updateTabsUI();
 
-        try {
-            const win = previewIframe.contentWindow;
-            if (win && typeof win.reloadGameWithNewConfig === 'function') {
-                const configCode = files['www/config.js'].content;
-                const fn = new Function(configCode + '; return GameConfig;');
-                const newConfig = fn();
-                // サウンド状態の同期
-                if (newConfig.display) {
-                    newConfig.display.sound = !isMuted;
+        if (onlyConfigDirty) {
+            try {
+                const win = previewIframe.contentWindow;
+                if (win && typeof win.reloadGameWithNewConfig === 'function') {
+                    const configCode = files['config.js'].content;
+                    const fn = new Function(configCode + '; return GameConfig;');
+                    const newConfig = fn();
+                    if (newConfig.display) {
+                        newConfig.display.sound = !isMuted;
+                    }
+                    win.reloadGameWithNewConfig(newConfig);
+                    showToast('保存しました（ゲームに即時反映）');
+                    return;
                 }
-                win.reloadGameWithNewConfig(newConfig);
-                applyScale();
-                showToast('💾 保存しました（ゲームに即時反映）');
-                return;
-            }
-        } catch(e) {}
+            } catch(e) {}
+        }
 
-        previewIframe.src = 'monaca-project/www/index.html?t=' + Date.now();
-        showToast('💾 保存しました（プレビュー再読込）');
+        updatePreview();
+        showToast('保存しました（プレビュー更新）');
     }
 
     // ─────────────────────────────────────────────
-    // 🔌 アクションボタン
+    // アクションボタン
     // ─────────────────────────────────────────────
     document.getElementById('btn-save')?.addEventListener('click', saveAndApplyChanges);
 
     document.getElementById('btn-copy-code')?.addEventListener('click', () => {
-        const text = files['www/config.js'].content;
-        navigator.clipboard.writeText(text).then(() => {
-            showToast('📋 config.js をコピーしました');
+        const currentFile = files[currentFileKey];
+        if (!currentFile) return;
+        navigator.clipboard.writeText(currentFile.content).then(() => {
+            showToast(`${currentFile.name} をコピーしました`);
         });
     });
 
     document.getElementById('btn-reset')?.addEventListener('click', () => {
-        if (confirm('設定を初期状態に戻しますか？')) {
+        if (confirm('すべてのファイルを初期状態に戻しますか？')) {
             loadRealFiles();
-            showToast('🔄 初期設定に戻しました');
+            showToast('初期設定に戻しました');
         }
     });
 
@@ -459,9 +495,5 @@
             }, '*');
         } catch(e) {}
     });
-
-    setTimeout(() => {
-        previewIframe.src = 'monaca-project/www/index.html';
-    }, 100);
 
 })();

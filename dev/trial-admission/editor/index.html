@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Space Invaders Studio - エディタ</title>
+    <link rel="stylesheet" href="ide.css?v=3.0">
+</head>
+<body>
+    <!-- ヘッダーツールバー -->
+    <header class="studio-header">
+        <div class="header-brand">
+            <span class="brand-title">Invader Studio</span>
+            <span class="brand-divider">/</span>
+            <span class="brand-sub">Workshop Editor</span>
+        </div>
+
+        <div class="header-actions">
+            <!-- 画面サイズ調整 -->
+            <div class="size-control-group" title="ゲーム画面の表示倍率">
+                <span class="control-label">表示:</span>
+                <button type="button" id="btn-scale-down" class="scale-btn" aria-label="縮小">－</button>
+                <span id="scale-indicator" class="scale-indicator">100%</span>
+                <button type="button" id="btn-scale-up" class="scale-btn" aria-label="拡大">＋</button>
+            </div>
+
+            <!-- サウンド切り替え -->
+            <button type="button" id="btn-sound-toggle" class="action-btn sound-toggle-btn muted" title="クリックで効果音のON/OFFを切り替え">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <line class="mute-stroke" x1="23" y1="9" x2="17" y2="15"></line>
+                    <line class="mute-stroke" x1="17" y1="9" x2="23" y2="15"></line>
+                </svg>
+                <span id="sound-text">消音中</span>
+            </button>
+
+            <!-- 保存して反映ボタン -->
+            <button type="button" id="btn-save" class="action-btn save-btn" title="コードを保存してゲームに反映 (⌘S / Ctrl+S)">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>保存して反映</span>
+                <kbd class="key-shortcut">⌘S</kbd>
+            </button>
+
+            <!-- コードコピー -->
+            <button type="button" id="btn-copy-code" class="action-btn secondary-btn" title="開いているファイルのコードをコピー">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>コピー</span>
+            </button>
+
+            <!-- 初期設定に戻す -->
+            <button type="button" id="btn-reset" class="action-btn secondary-btn" title="ファイルを初期状態にリセット">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                <span>リセット</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- メインワークスペース -->
+    <main class="studio-workspace">
+        <!-- 左サイドバー: ファイル一覧 -->
+        <aside class="studio-sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-label">FILES</span>
+            </div>
+            <nav class="file-list" id="file-list">
+                <button type="button" class="file-item active" data-path="config.js">
+                    <span class="file-name">config.js</span>
+                    <span class="file-dot-badge" title="編集可能"></span>
+                </button>
+                <button type="button" class="file-item" data-path="style.css">
+                    <span class="file-name">style.css</span>
+                    <span class="file-dot-badge" title="編集可能"></span>
+                </button>
+                <button type="button" class="file-item" data-path="core.js">
+                    <span class="file-name">core.js</span>
+                    <span class="file-dot-badge" title="編集可能"></span>
+                </button>
+                <button type="button" class="file-item" data-path="index.html">
+                    <span class="file-name">index.html</span>
+                    <span class="file-dot-badge" title="編集可能"></span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- 中央: コードエディタ -->
+        <section class="studio-editor-pane" id="editor-pane">
+            <div class="editor-tabs" id="editor-tabs">
+                <!-- 動的生成 -->
+            </div>
+
+            <div class="editor-body">
+                <div class="line-numbers" id="line-numbers">
+                    <div class="line-numbers-inner" id="line-numbers-inner"></div>
+                </div>
+                <div class="editor-code-container">
+                    <pre class="code-highlight" id="code-highlight" aria-hidden="true"></pre>
+                    <textarea class="code-textarea" id="code-textarea" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- ドラッグ式リサイザーバー -->
+        <div class="pane-resizer" id="pane-resizer" title="ドラッグして画面幅を調整"></div>
+
+        <!-- 右ペイン: プレビュー画面 -->
+        <section class="studio-preview-pane" id="preview-pane">
+            <div class="preview-stage-container" id="preview-stage">
+                <iframe class="preview-iframe" id="preview-iframe" title="ゲームプレビュー" src="about:blank"></iframe>
+            </div>
+        </section>
+    </main>
+
+    <!-- トースト通知 -->
+    <div class="toast-notice" id="ide-toast">
+        <span id="ide-toast-msg">保存しました</span>
+    </div>
+
+    <script src="ide.js?v=3.0"></script>
+</body>
+</html>

@@ -156,7 +156,7 @@
     };
 
     // ─────────────────────────────────────────────
-    // 👾 ピクセルアートスプライト (ビットマップパターン)
+    // スプライト（ドット絵）定義
     // ─────────────────────────────────────────────
     // 1: ピクセル描画, 0: 透明
     const SPRITES = {
@@ -286,11 +286,46 @@
         ]
     };
 
-    // ピクセルパターン描画関数
+    // 動的スプライト取得ヘルパー（GameConfig.sprites で上書き可能）
+    function getSprite(key, frame = 0) {
+        if (window.GameConfig && window.GameConfig.sprites && window.GameConfig.sprites[key]) {
+            const custom = window.GameConfig.sprites[key];
+            if (Array.isArray(custom) && custom.length > 0) {
+                if (Array.isArray(custom[0])) {
+                    return custom[frame % custom.length] || custom[0];
+                }
+                return custom;
+            }
+        }
+        const def = SPRITES[key];
+        if (Array.isArray(def) && Array.isArray(def[0])) {
+            return def[frame % def.length];
+        }
+        return def;
+    }
+
+    // スプライトの幅と高さを動的計算
+    function getSpriteDimensions(pattern, pixelSize = 2) {
+        if (!pattern || !pattern.length) return { width: 16, height: 16 };
+        let maxCols = 0;
+        for (let r = 0; r < pattern.length; r++) {
+            if (pattern[r] && pattern[r].length > maxCols) {
+                maxCols = pattern[r].length;
+            }
+        }
+        return {
+            width: Math.max(8, maxCols * pixelSize),
+            height: Math.max(8, pattern.length * pixelSize)
+        };
+    }
+
+    // ピクセルパターン描画関数（堅牢版: 欠損行や空文字でも停止しない）
     function drawPixelPattern(pattern, x, y, pixelSize, color) {
+        if (!pattern || !pattern.length) return;
         ctx.fillStyle = color;
         for (let r = 0; r < pattern.length; r++) {
             const row = pattern[r];
+            if (!row) continue;
             for (let c = 0; c < row.length; c++) {
                 if (row[c] === '1') {
                     ctx.fillRect(x + c * pixelSize, y + r * pixelSize, pixelSize, pixelSize);
@@ -475,34 +510,35 @@
     };
 
     // ─────────────────────────────────────────────
-    // 🕹️ インベーダーの初期化
+    // インベーダーの初期化
     // ─────────────────────────────────────────────
     function initEnemies() {
         enemies = [];
         const cfg = window.GameConfig ? window.GameConfig.enemy : {};
-        const rows = safeNum(cfg.rows, 1, 6, 5);
-        const cols = safeNum(cfg.cols, 1, 11, 10);
+        const rows = safeNum(cfg.rows, 1, 10, 5);
+        const cols = safeNum(cfg.cols, 1, 16, 10);
         const colors = cfg.colors || ["#FFFF00", "#00FFFF", "#00FFFF", "#FF3399", "#FF3399"];
         const scores = cfg.scores || [30, 20, 20, 10, 10];
 
-        const startX = 40;
-        const startY = 90 + Math.min(wave * 8, 40); // ウェーブごとに少し下から出現
-        const spacingX = 36;
+        // 画面幅に合わせた等間隔配置（列数が多くてもはみ出さない）
+        const maxW = V_WIDTH - 60;
+        const spacingX = Math.min(36, Math.floor(maxW / Math.max(1, cols)));
+        const startX = Math.max(20, Math.floor((V_WIDTH - (cols - 1) * spacingX - 24) / 2));
+        const startY = 85 + Math.min(wave * 8, 40);
         const spacingY = 28;
 
         for (let r = 0; r < rows; r++) {
-            // スプライト種類の決定: 0行目=squid, 1-2行目=crab, 3-4行目=octopus
+            // スプライト種類の決定: 0行目=squid, 1-2行目=crab, 3行目以降=octopus
             let type = "octopus";
             let pixelSize = 2;
-            let width = 24;
-            let height = 16;
             if (r === 0) {
                 type = "squid";
-                width = 16;
             } else if (r === 1 || r === 2) {
                 type = "crab";
-                width = 22;
             }
+
+            const spritePattern = getSprite(type, 0);
+            const dims = getSpriteDimensions(spritePattern, pixelSize);
 
             const rowColor = colors[r % colors.length] || "#00FFFF";
             const rowScore = scores[r % scores.length] || 10;
@@ -512,8 +548,8 @@
                     x: startX + c * spacingX,
                     y: startY + r * spacingY,
                     origX: startX + c * spacingX,
-                    width: width,
-                    height: height,
+                    width: dims.width,
+                    height: dims.height,
                     type: type,
                     pixelSize: pixelSize,
                     color: rowColor,
@@ -526,19 +562,21 @@
         }
 
         enemyDir = 1;
-        stepInterval = Math.max(12, 50 - wave * 4);
+        stepInterval = Math.max(8, 50 - wave * 4);
         stepTimer = 0;
     }
 
     // ─────────────────────────────────────────────
-    // 🛡️ 防壁の初期化
+    // 防壁の初期化
     // ─────────────────────────────────────────────
     function initBunkers() {
         bunkers = [];
         const cfg = window.GameConfig ? window.GameConfig.bunker : {};
         if (cfg.enabled === false) return;
 
-        const count = safeNum(cfg.count, 2, 4, 4);
+        const count = safeNum(cfg.count, 0, 8, 4);
+        if (count <= 0) return;
+
         const color = cfg.color || "#33FF33";
         const bunkerWidth = 40;
         const spacing = (V_WIDTH - (count * bunkerWidth)) / (count + 1);
@@ -551,7 +589,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🎮 ゲームの開始 & リセット
+    // ゲームの開始 & リセット
     // ─────────────────────────────────────────────
     function startGame() {
         initAudio();
@@ -563,11 +601,21 @@
 
     function resetGame(fullReset = true, autoStart = false) {
         const pCfg = window.GameConfig ? window.GameConfig.player : {};
-        player.speed = safeNum(pCfg.speed, 1, 20, 5);
+        const pSprite = getSprite("player");
+        const pDims = getSpriteDimensions(pSprite, player.pixelSize);
+        player.width = pDims.width;
+        player.height = pDims.height;
+        player.speed = safeNum(pCfg.speed, 0, 50, 5);
         player.color = pCfg.color || "#00FF66";
         player.x = V_WIDTH / 2 - player.width / 2;
         player.y = V_HEIGHT - 60;
         player.dyingTimer = 0;
+
+        const uCfg = window.GameConfig ? window.GameConfig.ufo : {};
+        if (uCfg) {
+            ufo.speed = safeNum(uCfg.speed, 0.5, 30, 2.2);
+            ufo.color = uCfg.color || "#FF0033";
+        }
 
         playerBullets = [];
         enemyBullets = [];
@@ -577,7 +625,7 @@
         Sound.stopUFO();
 
         if (fullReset) {
-            lives = safeNum(pCfg.lives, 1, 9, 3);
+            lives = safeNum(pCfg.lives, 1, 99999, 3);
             score = 0;
             wave = 1;
             initBunkers();
@@ -729,19 +777,19 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🔫 弾の発射
+    // 弾の発射
     // ─────────────────────────────────────────────
     function firePlayerBullet() {
         if (gameState !== "PLAYING") return;
         const bCfg = window.GameConfig ? window.GameConfig.bullet : {};
         const pCfg = window.GameConfig ? window.GameConfig.player : {};
-        const maxBullets = safeNum(pCfg.maxBullets, 1, 5, 1);
+        const maxBullets = safeNum(pCfg.maxBullets, 1, 100, 2);
 
         if (playerBullets.length >= maxBullets) return;
 
-        const bw = safeNum(bCfg.width, 1, 10, 3);
-        const bh = safeNum(bCfg.height, 4, 30, 12);
-        const spd = safeNum(bCfg.speed, -25, -2, -8);
+        const bw = safeNum(bCfg.width, 1, 100, 3);
+        const bh = safeNum(bCfg.height, 2, 100, 12);
+        const spd = safeNum(bCfg.speed, -100, -1, -8);
         const col = bCfg.color || "#FFFF00";
 
         playerBullets.push({
@@ -1106,15 +1154,14 @@
 
         // 3. UFO 描画
         if (ufo.active) {
-            drawPixelPattern(SPRITES.ufo, ufo.x, ufo.y, 2, ufo.color);
+            drawPixelPattern(getSprite("ufo"), ufo.x, ufo.y, 2, ufo.color);
         }
 
         // 4. インベーダー描画
         for (let e of enemies) {
             if (!e.alive) continue;
-            const spriteFrames = SPRITES[e.type];
-            if (spriteFrames) {
-                const pattern = spriteFrames[animFrame];
+            const pattern = getSprite(e.type, animFrame);
+            if (pattern) {
                 drawPixelPattern(pattern, e.x, e.y, e.pixelSize, e.color);
             }
         }
@@ -1133,7 +1180,6 @@
         // 7. 敵の弾描画 (ジグザグ・雷型)
         for (let eb of enemyBullets) {
             ctx.fillStyle = "#FFFFFF";
-            // ギザギザ弾
             ctx.fillRect(eb.x, eb.y, eb.width, 3);
             ctx.fillRect(eb.x + 2, eb.y + 3, eb.width, 3);
             ctx.fillRect(eb.x - 2, eb.y + 6, eb.width, 3);
@@ -1143,12 +1189,11 @@
         // 8. 爆発エフェクト
         for (let exp of explosions) {
             if (exp.scoreText) {
-                // UFO撃破ボーナス得点ポップアップ
                 ctx.fillStyle = "#FF0033";
                 ctx.font = "bold 16px 'Courier New', monospace";
                 ctx.fillText(exp.scoreText, exp.x, exp.y);
             } else {
-                drawPixelPattern(SPRITES.explosion, exp.x, exp.y, 2, exp.color || "#FFFFFF");
+                drawPixelPattern(getSprite("explosion"), exp.x, exp.y, 2, exp.color || "#FFFFFF");
             }
         }
 
@@ -1157,20 +1202,26 @@
             const blowFrame = Math.floor(player.dyingTimer / 8) % 2;
             drawPixelPattern(SPRITES.playerBlow[blowFrame], player.x, player.y, player.pixelSize, "#FF3333");
         } else if (gameState !== "GAME_OVER") {
-            drawPixelPattern(SPRITES.player, player.x, player.y, player.pixelSize, player.color);
+            drawPixelPattern(getSprite("player"), player.x, player.y, player.pixelSize, player.color);
         }
 
-        // 10. 最下部の赤い境界線とステータス（残機数・クレジット表示）
+        // 10. 最下部の境界線とステータス（残機数・クレジット表示）
         const groundY = V_HEIGHT - 32;
         ctx.fillStyle = "#FF0033";
         ctx.fillRect(0, groundY, V_WIDTH, 2);
 
-        // 残機表示 (数値 + ミニアイコン)
+        // 残機表示 (残機が多い場合はアイコン×数字、少ない場合はアイコン並べ)
         ctx.fillStyle = "#FFFFFF";
         ctx.font = "14px 'Courier New', monospace";
-        ctx.fillText(lives, 25, groundY + 8);
-        for (let i = 0; i < Math.max(0, lives - 1); i++) {
-            drawPixelPattern(SPRITES.player, 45 + i * 28, groundY + 6, 1.5, player.color);
+        const playerPattern = getSprite("player");
+        if (lives <= 5) {
+            ctx.fillText(lives, 25, groundY + 8);
+            for (let i = 0; i < Math.max(0, lives - 1); i++) {
+                drawPixelPattern(playerPattern, 45 + i * 28, groundY + 6, 1.5, player.color);
+            }
+        } else {
+            drawPixelPattern(playerPattern, 25, groundY + 6, 1.5, player.color);
+            ctx.fillText(`× ${lives}`, 55, groundY + 8);
         }
 
         // 右下のクレジット表示

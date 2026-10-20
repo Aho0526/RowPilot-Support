@@ -2,103 +2,34 @@
 <html lang="ja">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>スペースインベーダー Studio</title>
-    <link rel="stylesheet" href="ide.css?v=2.1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>スペースインベーダー</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- ミニマルで洗練されたトップバー -->
-    <header class="studio-header">
-        <div class="header-brand">
-            <span class="brand-title">Invader Studio</span>
-            <span class="brand-divider">/</span>
-            <span class="brand-sub">Workshop</span>
+    <div id="game-container">
+        <div class="canvas-wrapper">
+            <canvas id="gameCanvas" width="480" height="560" tabindex="0"></canvas>
+            
+            <!-- ゲーム開始オーバーレイ -->
+            <div id="start-overlay" class="game-overlay">
+                <button type="button" id="btn-game-start" class="start-btn">
+                    <span class="start-icon">▶</span>
+                    <span>ゲーム開始</span>
+                </button>
+                <div class="start-hint">または [Space] キーでスタート</div>
+            </div>
         </div>
 
-        <div class="header-actions">
-            <!-- 画面サイズ調整コントロール -->
-            <div class="size-control-group">
-                <span class="control-label">サイズ:</span>
-                <button type="button" id="btn-scale-down" class="scale-btn" title="画面を小さく">－</button>
-                <span id="scale-indicator" class="scale-indicator">100%</span>
-                <button type="button" id="btn-scale-up" class="scale-btn" title="画面を大きく">＋</button>
-            </div>
-
-            <!-- サウンド切り替え（デフォでミュート） -->
-            <button type="button" id="btn-sound-toggle" class="action-btn sound-toggle-btn muted" title="クリックで音声をON/OFF">
-                <span id="sound-icon">🔇</span>
-                <span id="sound-text">ミュート中</span>
-            </button>
-
-            <!-- 保存ボタン -->
-            <button type="button" id="btn-save" class="action-btn save-btn" title="保存してゲームに反映 (⌘S / Ctrl+S)">
-                <span>保存して反映</span>
-                <kbd class="key-shortcut">⌘S</kbd>
-            </button>
-
-            <button type="button" id="btn-copy-code" class="action-btn secondary-btn" title="config.js をコピー">
-                <span>コードをコピー</span>
-            </button>
-            <button type="button" id="btn-reset" class="action-btn icon-only-btn" title="初期設定に戻す">
-                <span>🔄</span>
-            </button>
+        <div class="controls-hint">
+            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動　/　<span class="key-tag">Space</span> 攻撃　/　<span class="key-tag">Esc</span> リスタート
         </div>
-    </header>
-
-    <!-- メインワークスペース -->
-    <main class="studio-workspace">
-        <!-- ── 左サイドバー: ファイル一覧（絵文字なし） ── -->
-        <aside class="studio-sidebar">
-            <div class="sidebar-label">FILES</div>
-            <nav class="file-list">
-                <button type="button" class="file-item active" data-path="www/config.js">
-                    <span class="file-name">config.js</span>
-                    <span class="file-dot-badge" title="編集可能"></span>
-                </button>
-                <button type="button" class="file-item" data-path="www/style.css">
-                    <span class="file-name">style.css</span>
-                    <span class="file-dot-badge" title="編集可能"></span>
-                </button>
-                <button type="button" class="file-item" data-path="www/core.js">
-                    <span class="file-name">core.js</span>
-                </button>
-                <button type="button" class="file-item" data-path="www/index.html">
-                    <span class="file-name">index.html</span>
-                </button>
-            </nav>
-        </aside>
-
-        <!-- ── 中央: コードエディタ ── -->
-        <section class="studio-editor-pane" id="editor-pane">
-            <div class="editor-tabs" id="editor-tabs">
-                <!-- 動的生成 -->
-            </div>
-
-            <div class="editor-body">
-                <div class="line-numbers" id="line-numbers"></div>
-                <div class="editor-code-container">
-                    <pre class="code-highlight" id="code-highlight" aria-hidden="true"></pre>
-                    <textarea class="code-textarea" id="code-textarea" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
-                </div>
-            </div>
-        </section>
-
-        <!-- ── ドラッグ式リサイザーバー（エディタとプレビューの幅を自由に調整） ── -->
-        <div class="pane-resizer" id="pane-resizer" title="ドラッグして画面サイズを調整"></div>
-
-        <!-- ── 右ペイン: プレビュー画面（サイズ自由調整対応） ── -->
-        <section class="studio-preview-pane" id="preview-pane">
-            <div class="preview-stage-container" id="preview-stage">
-                <iframe class="preview-iframe" id="preview-iframe" title="ゲーム画面" src="about:blank"></iframe>
-            </div>
-        </section>
-    </main>
-
-    <!-- トースト通知 -->
-    <div class="toast-notice" id="ide-toast">
-        <span id="ide-toast-msg">💾 保存しました</span>
     </div>
 
-    <script src="ide.js?v=2.1"></script>
+    <!-- 設定ファイル -->
+    <script src="config.js"></script>
+    
+    <!-- コアエンジン -->
+    <script src="core.js"></script>
 </body>
 </html>
