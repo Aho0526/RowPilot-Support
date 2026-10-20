@@ -4,9 +4,30 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>スペースインベーダー</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3.1">
 </head>
 <body>
+    <!-- 上部バー（エディタへ移動ボタン） -->
+    <header class="game-top-bar" id="game-top-bar">
+        <div class="top-bar-left">
+            <span class="game-brand-title">Space Invaders</span>
+        </div>
+        <div class="top-bar-right">
+            <a href="editor/" id="btn-goto-editor" class="goto-editor-btn" title="コードエディタを開く">
+                <svg class="editor-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                <span>エディタへ移動</span>
+                <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+        </div>
+    </header>
+
+    <!-- メインゲーム画面 -->
     <div id="game-container">
         <div class="canvas-wrapper">
             <canvas id="gameCanvas" width="480" height="560" tabindex="0"></canvas>
@@ -26,10 +47,61 @@
         </div>
     </div>
 
+    <!-- シームレス遷移用モックエディタ（左側からふわっと出現） -->
+    <div class="editor-transition-mock" id="editor-mock" aria-hidden="true">
+        <div class="mock-header">
+            <div class="mock-brand">Invader Studio <span>/ Workshop Editor</span></div>
+        </div>
+        <div class="mock-body">
+            <div class="mock-sidebar">
+                <div class="mock-item active"><span class="mock-dot"></span> config.js</div>
+                <div class="mock-item"><span class="mock-dot"></span> style.css</div>
+                <div class="mock-item"><span class="mock-dot"></span> core.js</div>
+                <div class="mock-item"><span class="mock-dot"></span> index.html</div>
+            </div>
+            <div class="mock-editor">
+                <div class="mock-tabs">
+                    <div class="mock-tab active">config.js</div>
+                    <div class="mock-tab">style.css</div>
+                </div>
+                <div class="mock-code">
+                    <div class="mock-line-nums">
+                        <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>10</div>
+                    </div>
+                    <div class="mock-code-lines">
+                        <div class="mock-code-bar" style="width: 55%;"></div>
+                        <div class="mock-code-bar" style="width: 70%;"></div>
+                        <div class="mock-code-bar" style="width: 40%;"></div>
+                        <div class="mock-code-bar" style="width: 85%;"></div>
+                        <div class="mock-code-bar" style="width: 60%;"></div>
+                        <div class="mock-code-bar" style="width: 30%;"></div>
+                        <div class="mock-code-bar" style="width: 75%;"></div>
+                        <div class="mock-code-bar" style="width: 50%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 設定ファイル -->
     <script src="config.js"></script>
     
     <!-- コアエンジン -->
     <script src="core.js"></script>
+
+    <!-- シームレス画面遷移スクリプト -->
+    <script>
+        if (window.self !== window.top) {
+            document.body.classList.add('in-iframe');
+        }
+
+        document.getElementById('btn-goto-editor')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.body.classList.add('transitioning-to-editor');
+            setTimeout(function() {
+                window.location.href = 'editor/?from=game';
+            }, 420);
+        });
+    </script>
 </body>
 </html>

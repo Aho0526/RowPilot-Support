@@ -496,4 +496,23 @@
         } catch(e) {}
     });
 
+    // ─────────────────────────────────────────────
+    // シームレス画面遷移 (ゲーム画面との相互連携)
+    // ─────────────────────────────────────────────
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('from') === 'game') {
+        document.body.classList.add('animate-from-game');
+        setTimeout(() => {
+            document.body.classList.remove('animate-from-game');
+        }, 600);
+    }
+
+    document.getElementById('btn-back-to-game')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.body.classList.add('transitioning-to-game');
+        setTimeout(() => {
+            window.location.href = '../';
+        }, 400);
+    });
+
 })();
