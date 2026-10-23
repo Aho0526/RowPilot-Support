@@ -1,5 +1,5 @@
 // ===============================================================
-// ⚙️ 本格スペースインベーダー コアエンジン (core.js) ⚙️
+// スペースインベーダー コアエンジン (core.js)
 // ※ 基本的に編集不要ですが、コードを読んで改造してもOK！
 // ===============================================================
 
@@ -24,7 +24,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🔊 レトロサウンドエンジン (Web Audio API)
+    // レトロサウンドエンジン (Web Audio API)
     // ─────────────────────────────────────────────
     let audioCtx = null;
     function initAudio() {
@@ -286,6 +286,16 @@
         ]
     };
 
+    // 敵キャラ(1コマ形式)の2コマ目を自動生成: 下3行を1ドット右にずらして足踏みを表現
+    const WALKING_KEYS = ["squid", "crab", "octopus"];
+    function makeWalkFrame(pattern) {
+        const legStart = Math.max(0, pattern.length - 3);
+        return pattern.map((row, i) => {
+            if (i < legStart) return row;
+            return "0" + row.slice(0, row.length - 1);
+        });
+    }
+
     // 動的スプライト取得ヘルパー（GameConfig.sprites で上書き可能）
     function getSprite(key, frame = 0) {
         if (window.GameConfig && window.GameConfig.sprites && window.GameConfig.sprites[key]) {
@@ -293,6 +303,9 @@
             if (Array.isArray(custom) && custom.length > 0) {
                 if (Array.isArray(custom[0])) {
                     return custom[frame % custom.length] || custom[0];
+                }
+                if (WALKING_KEYS.includes(key) && frame % 2 === 1) {
+                    return makeWalkFrame(custom);
                 }
                 return custom;
             }
@@ -335,7 +348,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🛡️ 防壁（トーチカ・バンカー）ピクセルモデル
+    // 防壁（トーチカ・バンカー）ピクセルモデル
     // ─────────────────────────────────────────────
     // 22 x 16 ドットのドーム形状
     const BUNKER_TEMPLATE = [
@@ -449,7 +462,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🌌 背景画像管理
+    // 背景画像管理
     // ─────────────────────────────────────────────
     const bgImages = {
         "space-bg": new Image(),
@@ -500,6 +513,43 @@
             maxBullets: 6
         }
     };
+
+    // 難易度による補正 (config.js の値を NORMAL として、そこからの増減)
+    //   lives: 残機の増減 / interval: 敵の発射間隔の倍率 / speed: 敵弾速度の倍率
+    const DIFFICULTY_MODS = {
+        easy:   { lives: 2,  interval: 1.4,  speed: 0.8, noPassThrough: false },
+        normal: { lives: 0,  interval: 1.0,  speed: 1.0, noPassThrough: false },
+        hard:   { lives: -1, interval: 0.65, speed: 1.2, noPassThrough: true }
+    };
+    function diffMod() {
+        return DIFFICULTY_MODS[currentDifficulty] || DIFFICULTY_MODS.normal;
+    }
+
+    // ホーム画面で選んだ項目は優先し、未選択の場合は config.js の game 設定を使う
+    let difficultyChosen = false;
+    let wavesChosen = false;
+    function applyGameSettings() {
+        const gCfg = (window.GameConfig && window.GameConfig.game) || {};
+        if (!difficultyChosen) {
+            const d = String(gCfg.difficulty || "normal");
+            currentDifficulty = DIFFICULTY_MODS[d] ? d : "normal";
+        }
+        if (!wavesChosen) {
+            maxWaves = safeNum(gCfg.maxWaves, 1, 10, 3);
+        }
+        syncHomeButtons();
+    }
+
+    function syncHomeButtons() {
+        document.querySelectorAll("#diff-options .arcade-pill").forEach(b => {
+            b.classList.toggle("active", b.getAttribute("data-diff") === currentDifficulty);
+        });
+        document.querySelectorAll("#wave-options .arcade-pill").forEach(b => {
+            b.classList.toggle("active", parseInt(b.getAttribute("data-waves"), 10) === maxWaves);
+        });
+        const hs = document.getElementById("home-hiscore");
+        if (hs) hs.textContent = String(hiScore).padStart(5, "0");
+    }
 
     // プレイヤー
     let player = {
@@ -695,12 +745,11 @@
         Sound.stopUFO();
 
         if (fullReset) {
-            const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
-            lives = safeNum(pCfg.lives, 1, 99999, preset.lives);
+            applyGameSettings();
+            lives = Math.max(1, safeNum(pCfg.lives, 1, 99999, 3) + diffMod().lives);
             score = 0;
             wave = 1;
             playerPowerLevel = 1;
-            maxWaves = safeNum(gCfg.maxWaves, 1, 10, maxWaves);
             initBunkers();
         }
 
@@ -735,6 +784,9 @@
         }
         if (code === "Space" || code === "KeyZ") {
             keys.shoot = true;
+            if (document.activeElement && document.activeElement !== canvas && document.activeElement.blur) {
+                document.activeElement.blur();
+            }
             if (gameState === "READY") {
                 startGame();
             } else if (gameState === "GAME_OVER" || gameState === "CLEAR") {
@@ -835,11 +887,19 @@
 
         function updateSprites() {
             homeAnimFrame = 1 - homeAnimFrame;
-            drawToCanvas("preview-ufo", "ufo", "#FF3344", 2, 0);
-            drawToCanvas("preview-squid", "squid", "#FFFF00", 2, homeAnimFrame);
-            drawToCanvas("preview-crab", "crab", "#00FFFF", 2, homeAnimFrame);
-            drawToCanvas("preview-octopus", "octopus", "#FF3399", 2, homeAnimFrame);
-            drawToCanvas("preview-player", "player", "#00FF66", 2, 0);
+            const cfg = window.GameConfig || {};
+            const eColors = (cfg.enemy && cfg.enemy.colors) || [];
+            const ufoColor = (cfg.ufo && cfg.ufo.color) || "#FF3344";
+            const squidColor = eColors[0] || "#FFFF00";
+            const crabColor = eColors[1] || "#00FFFF";
+            const octopusColor = eColors[3] || eColors[eColors.length - 1] || "#FF3399";
+            const playerColor = (cfg.player && cfg.player.color) || "#00FF66";
+
+            drawToCanvas("preview-ufo", "ufo", ufoColor, 2, 0);
+            drawToCanvas("preview-squid", "squid", squidColor, 2, homeAnimFrame);
+            drawToCanvas("preview-crab", "crab", crabColor, 2, homeAnimFrame);
+            drawToCanvas("preview-octopus", "octopus", octopusColor, 2, homeAnimFrame);
+            drawToCanvas("preview-player", "player", playerColor, 2, 0);
         }
 
         updateSprites();
@@ -862,10 +922,10 @@
         diffButtons.forEach(btn => {
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
-                diffButtons.forEach(b => b.classList.remove("active"));
-                btn.classList.add("active");
+                difficultyChosen = true;
                 currentDifficulty = btn.getAttribute("data-diff") || "normal";
                 resetGame(true, false);
+                btn.blur();
             });
         });
 
@@ -874,9 +934,10 @@
         waveButtons.forEach(btn => {
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
-                waveButtons.forEach(b => b.classList.remove("active"));
-                btn.classList.add("active");
+                wavesChosen = true;
                 maxWaves = parseInt(btn.getAttribute("data-waves") || "3", 10);
+                syncHomeButtons();
+                btn.blur();
             });
         });
 
@@ -925,7 +986,7 @@
             btnSound.addEventListener("click", () => {
                 initAudio();
                 Sound.enabled = !Sound.enabled;
-                btnSound.textContent = Sound.enabled ? "🔊" : "🔇";
+                btnSound.textContent = Sound.enabled ? "ON" : "OFF";
             });
         }
     }
@@ -1015,7 +1076,7 @@
     function fireEnemyBullet(enemy) {
         const eCfg = window.GameConfig ? window.GameConfig.enemy : {};
         const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
-        const spd = safeNum(eCfg.bulletSpeed, 1, 10, preset.bulletSpeed);
+        const spd = safeNum(eCfg.bulletSpeed, 1, 10, 3.5) * diffMod().speed;
 
         // Wave 2以降、一部の弾をプレイヤー狙いのエイム弾にする
         let vx = 0;
@@ -1224,7 +1285,7 @@
         }
 
         // ── 敵の射撃 ──
-        const shootInterval = safeNum(eCfg.shootInterval, 10, 200, preset.shootInterval);
+        const shootInterval = Math.max(10, safeNum(eCfg.shootInterval, 10, 200, 50) * diffMod().interval);
         if (Math.random() < (1.0 / shootInterval)) {
             const bottomEnemies = [];
             const colMap = {};
@@ -1299,7 +1360,7 @@
 
             // 防壁との判定 (自弾が貫通するかどうか)
             const bCfg = window.GameConfig ? window.GameConfig.bunker : {};
-            const passThrough = (bCfg.passThroughPlayer !== undefined) ? bCfg.passThroughPlayer : preset.passThroughPlayer;
+            const passThrough = (bCfg.passThroughPlayer !== false) && !diffMod().noPassThrough;
 
             if (!passThrough) {
                 for (let bunker of bunkers) {
@@ -1353,7 +1414,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🎨 描画ループ (Draw Loop)
+    // 描画ループ (Draw Loop)
     // ─────────────────────────────────────────────
     function draw() {
         ctx.clearRect(0, 0, V_WIDTH, V_HEIGHT);
@@ -1535,7 +1596,11 @@
 
     // 設定変更時のリスタート用グローバル関数（IDEからの更新連携用）
     window.reloadGameWithNewConfig = function(newConfig) {
+        const wasPlaying = (gameState !== "READY");
         if (newConfig) window.GameConfig = newConfig;
-        resetGame(true);
+        difficultyChosen = false;
+        wavesChosen = false;
+        resetGame(true, wasPlaying);
+        renderHomePreviewSprites();
     };
 })();

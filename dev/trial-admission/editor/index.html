@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Space Invaders Studio - エディタ</title>
+    <title>スペースインベーダー - エディタ</title>
     <link rel="stylesheet" href="ide.css?v=3.0">
 </head>
 <body>
@@ -18,9 +18,9 @@
                 <span>ゲームへ</span>
             </a>
             <div class="header-brand">
-                <span class="brand-title">Invader Studio</span>
+                <span class="brand-title">スペースインベーダー</span>
                 <span class="brand-divider">/</span>
-                <span class="brand-sub">Workshop Editor</span>
+                <span class="brand-sub">エディタ</span>
             </div>
         </div>
 
@@ -96,8 +96,9 @@
                     <span class="file-name">index.html</span>
                     <span class="file-dot-badge" title="編集可能"></span>
                 </button>
+            </nav>
             <div class="sidebar-header" style="margin-top: 14px;">
-                <span class="sidebar-label">DESIGN TOOLS</span>
+                <span class="sidebar-label">ツール</span>
             </div>
             <nav class="file-list">
                 <button type="button" class="file-item tool-item" id="btn-open-sprite-editor">
@@ -120,6 +121,32 @@
                 <div class="editor-code-container">
                     <pre class="code-highlight" id="code-highlight" aria-hidden="true"></pre>
                     <textarea class="code-textarea" id="code-textarea" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+                </div>
+            </div>
+
+            <!-- 構文チェック・診断バー（初心者向けエラー表示） -->
+            <div class="editor-diagnostics-bar" id="editor-diagnostics-bar">
+                <div class="diagnostics-summary" id="diagnostics-summary">
+                    <span class="diagnostics-status-dot ok" id="diagnostics-status-dot">●</span>
+                    <span class="diagnostics-status-text" id="diagnostics-status-text">エラーはありません（正常）</span>
+                </div>
+                <div class="diagnostics-actions">
+                    <button type="button" class="diagnostics-toggle-btn" id="btn-toggle-diagnostics">詳細を表示</button>
+                </div>
+            </div>
+
+            <!-- 診断パネル（展開式＆リサイズ可能） -->
+            <div class="editor-diagnostics-panel" id="editor-diagnostics-panel" style="display: none;">
+                <!-- ドラッグ式リサイザーバー -->
+                <div class="diagnostics-panel-resizer" id="diagnostics-panel-resizer" title="ドラッグしてエラーパネルの高さを調整（ダブルクリックで既定値）">
+                    <div class="resizer-handle-grip"></div>
+                </div>
+                <div class="diagnostics-panel-header">
+                    <span class="diagnostics-panel-title" id="diagnostics-panel-title">構文チェック結果</span>
+                    <span class="diagnostics-panel-subtitle">項目をクリックすると、そのファイルの該当行へジャンプします</span>
+                </div>
+                <div class="diagnostics-list" id="diagnostics-list">
+                    <!-- 動的生成 -->
                 </div>
             </div>
         </section>
@@ -149,7 +176,9 @@
                         <input type="checkbox" id="sprite-symmetry" checked>
                         <span>左右対称描画</span>
                     </label>
-                    <button type="button" id="btn-sprite-clear" class="sprite-btn secondary">消去</button>
+                    <button type="button" id="btn-sprite-undo" class="sprite-btn secondary" title="元に戻す (Ctrl+Z)" disabled>元に戻す</button>
+                    <button type="button" id="btn-sprite-redo" class="sprite-btn secondary" title="やり直す (Ctrl+Shift+Z)" disabled>やり直す</button>
+                    <button type="button" id="btn-sprite-clear" class="sprite-btn secondary">全消去</button>
                     <button type="button" id="btn-sprite-reset" class="sprite-btn secondary">初期形状</button>
                     <button type="button" id="btn-sprite-apply" class="sprite-btn primary">config.jsに適用して反映</button>
                 </div>
@@ -186,6 +215,7 @@
         <span id="ide-toast-msg">保存しました</span>
     </div>
 
+    <script src="linter.js?v=1.0"></script>
     <script src="ide.js?v=3.0"></script>
 </body>
 </html>

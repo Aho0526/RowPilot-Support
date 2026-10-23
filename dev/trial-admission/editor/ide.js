@@ -48,6 +48,10 @@
     let isMuted = true;
     const SCALE_PRESETS = [0.75, 0.85, 1.0, 1.15, 1.3, 1.5];
     let currentScaleIndex = 2; // 1.0 (100%)
+    try {
+        const savedScale = parseInt(localStorage.getItem('invader_editor_scale'), 10);
+        if (savedScale >= 0 && savedScale < SCALE_PRESETS.length) currentScaleIndex = savedScale;
+    } catch (e) {}
 
     // DOM要素
     const tabContainer = document.getElementById('editor-tabs');
@@ -66,6 +70,31 @@
     const btnScaleUp = document.getElementById('btn-scale-up');
     const scaleIndicator = document.getElementById('scale-indicator');
 
+    // 構文チェック・診断関連 DOM要素
+    const diagnosticsBar = document.getElementById('editor-diagnostics-bar');
+    const diagnosticsStatusDot = document.getElementById('diagnostics-status-dot');
+    const diagnosticsStatusText = document.getElementById('diagnostics-status-text');
+    const btnToggleDiagnostics = document.getElementById('btn-toggle-diagnostics');
+    const diagnosticsPanel = document.getElementById('editor-diagnostics-panel');
+    const diagnosticsList = document.getElementById('diagnostics-list');
+    const diagnosticsSummary = document.getElementById('diagnostics-summary');
+    const diagnosticsPanelResizer = document.getElementById('diagnostics-panel-resizer');
+
+    // 診断状態
+    let currentFileIssues = [];
+    let errorLineSet = new Set();
+    let warningLineSet = new Set();
+    let diagnosticsPanelOpen = false;
+    let diagnosticsDebounceTimer = null;
+
+    // パネルの保存された高さを復元
+    try {
+        const savedDiagHeight = parseInt(localStorage.getItem('invader_editor_diagnostics_height'), 10);
+        if (savedDiagHeight >= 60 && savedDiagHeight <= 500 && diagnosticsPanel) {
+            diagnosticsPanel.style.height = savedDiagHeight + 'px';
+        }
+    } catch (e) {}
+
     // ─────────────────────────────────────────────
     // 実ファイルの自動フェッチ
     // ─────────────────────────────────────────────
@@ -75,6 +104,7 @@
                 const resp = await fetch(files[key].path + '?t=' + Date.now());
                 if (resp.ok) {
                     files[key].content = await resp.text();
+                    files[key].baselineContent = files[key].content;
                     files[key].isDirty = false;
                 }
             } catch(e) {
@@ -147,6 +177,7 @@
     }
 
     // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────
     // エディタ描画 & 行番号完全ピクセル同期
     // ─────────────────────────────────────────────
     function renderEditor() {
@@ -155,11 +186,253 @@
 
         codeTextarea.value = file.content;
         codeTextarea.readOnly = !file.editable;
+        runDiagnostics(currentFileKey, true);
         updateCodeHighlight();
         updateTabsUI();
         updateSidebarUI();
         syncScroll();
     }
+
+    // ─────────────────────────────────────────────
+    // 構文診断 (Linter) 連携 & 初心者向けエラー表示
+    // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────
+    // 構文診断 (Linter) 連携 & 初心者向けエラー表示
+    // ─────────────────────────────────────────────
+    function runDiagnostics(fileKey, skipHighlightUpdate) {
+        const file = files[fileKey];
+        if (!file || !window.Linter) {
+            currentFileIssues = [];
+            errorLineSet.clear();
+            warningLineSet.clear();
+            updateDiagnosticsUI(fileKey);
+            return;
+        }
+
+        // ベースラインとの差分行を計算（あなたが編集した箇所を推測）
+        const changedLines = window.Linter.computeChangedLines(file.baselineContent || '', file.content);
+
+        currentFileIssues = window.Linter.lint(fileKey, file.content, {
+            baselineCode: file.baselineContent,
+            changedLines: changedLines
+        });
+
+        // 各issueにファイル名を明示
+        currentFileIssues.forEach(item => {
+            item.filename = fileKey;
+        });
+
+        errorLineSet.clear();
+        warningLineSet.clear();
+
+        currentFileIssues.forEach(item => {
+            if (item.severity === 'error') {
+                errorLineSet.add(item.line);
+            } else if (item.severity === 'warning') {
+                warningLineSet.add(item.line);
+            }
+        });
+
+        updateDiagnosticsUI(fileKey);
+
+        if (!skipHighlightUpdate) {
+            updateLineNumberIndicators();
+        }
+    }
+
+    function updateLineNumberIndicators() {
+        const lineNums = lineNumbersInner.querySelectorAll('.line-num');
+        lineNums.forEach(el => {
+            const line = parseInt(el.getAttribute('data-line'), 10);
+            el.className = 'line-num';
+            if (errorLineSet.has(line)) {
+                el.classList.add('has-error');
+            } else if (warningLineSet.has(line)) {
+                el.classList.add('has-warning');
+            }
+        });
+    }
+
+    function updateDiagnosticsUI(fileKey) {
+        if (!diagnosticsBar || !diagnosticsStatusText || !diagnosticsStatusDot) return;
+        fileKey = fileKey || currentFileKey;
+
+        const errorCount = currentFileIssues.filter(i => i.severity === 'error').length;
+        const warningCount = currentFileIssues.filter(i => i.severity === 'warning').length;
+
+        diagnosticsBar.className = 'editor-diagnostics-bar';
+
+        if (errorCount > 0) {
+            diagnosticsBar.classList.add('has-errors');
+            diagnosticsStatusDot.className = 'diagnostics-status-dot error';
+            diagnosticsStatusDot.textContent = '●';
+            diagnosticsStatusText.textContent = `[${fileKey}] エラーが ${errorCount} 件あります（下のヒントを確認して修正してください）`;
+        } else if (warningCount > 0) {
+            diagnosticsBar.classList.add('has-warnings-only');
+            diagnosticsStatusDot.className = 'diagnostics-status-dot warning';
+            diagnosticsStatusDot.textContent = '●';
+            diagnosticsStatusText.textContent = `[${fileKey}] 注意・未復元箇所が ${warningCount} 件あります`;
+        } else {
+            diagnosticsStatusDot.className = 'diagnostics-status-dot ok';
+            diagnosticsStatusDot.textContent = '●';
+            diagnosticsStatusText.textContent = `[${fileKey}] 構文エラーはありません（正常）`;
+        }
+
+        renderDiagnosticsList(fileKey);
+    }
+
+    function renderDiagnosticsList(fileKey) {
+        if (!diagnosticsList) return;
+        fileKey = fileKey || currentFileKey;
+
+        if (currentFileIssues.length === 0) {
+            diagnosticsList.innerHTML = `
+                <div style="padding: 16px 12px; text-align: center; color: #64748b; font-size: 11.5px;">
+                    [${escapeHtml(fileKey)}] 構文エラーや未復元箇所はありません。コードは正常です。
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        currentFileIssues.forEach(item => {
+            const isErr = item.severity === 'error';
+            const itemClass = isErr ? 'severity-error' : 'severity-warning';
+            const icon = isErr ? '⚠️' : '💡';
+            const fileBadge = `<span class="diagnostic-file-badge">${escapeHtml(item.filename || fileKey)}</span>`;
+            const lineBadge = `<span class="diagnostic-line-badge">行 ${item.line}</span>`;
+            const editedBadge = item.isChangedByUser ? `<span class="diagnostic-edited-badge" title="あなたが編集した行です">編集箇所</span>` : '';
+            const previewHtml = item.lineText ? `<div class="diagnostic-code-preview">&gt; ${escapeHtml(item.lineText.trim())}</div>` : '';
+
+            html += `
+                <div class="diagnostic-item ${itemClass} ${item.isChangedByUser ? 'is-edited' : ''}" 
+                     data-file="${escapeHtml(item.filename || fileKey)}" 
+                     data-line="${item.line}" 
+                     data-col="${item.col}" 
+                     title="クリックして [${escapeHtml(item.filename || fileKey)}] の 行 ${item.line} へ移動">
+                    <div class="diagnostic-badges">
+                        ${fileBadge}
+                        ${lineBadge}
+                        ${editedBadge}
+                    </div>
+                    <div class="diagnostic-content">
+                        <div class="diagnostic-message">${icon} ${escapeHtml(item.message)}</div>
+                        <div class="diagnostic-hint">${escapeHtml(item.hint)}</div>
+                        ${previewHtml}
+                    </div>
+                </div>
+            `;
+        });
+
+        diagnosticsList.innerHTML = html;
+
+        // アイテムクリックで行ジャンプ（別ファイルならファイル切り替えも行う）
+        diagnosticsList.querySelectorAll('.diagnostic-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const targetFile = el.getAttribute('data-file');
+                const line = parseInt(el.getAttribute('data-line'), 10);
+                const col = parseInt(el.getAttribute('data-col'), 10) || 1;
+
+                if (targetFile && targetFile !== currentFileKey && files[targetFile]) {
+                    switchToFile(targetFile);
+                    setTimeout(() => jumpToLine(line, col), 50);
+                } else {
+                    jumpToLine(line, col);
+                }
+            });
+        });
+    }
+
+    function toggleDiagnosticsPanel(forceState) {
+        if (!diagnosticsPanel) return;
+        diagnosticsPanelOpen = forceState !== undefined ? forceState : !diagnosticsPanelOpen;
+        diagnosticsPanel.style.display = diagnosticsPanelOpen ? 'flex' : 'none';
+        if (btnToggleDiagnostics) {
+            btnToggleDiagnostics.textContent = diagnosticsPanelOpen ? '詳細を閉じる' : '詳細を表示';
+        }
+    }
+
+    diagnosticsSummary?.addEventListener('click', () => toggleDiagnosticsPanel());
+    btnToggleDiagnostics?.addEventListener('click', () => toggleDiagnosticsPanel());
+
+    // ─────────────────────────────────────────────
+    // 診断パネルのドラッグ式上下リサイザー
+    // ─────────────────────────────────────────────
+    let isResizingDiag = false;
+    let startDiagY = 0;
+    let startDiagHeight = 140;
+
+    diagnosticsPanelResizer?.addEventListener('mousedown', (e) => {
+        isResizingDiag = true;
+        startDiagY = e.clientY;
+        startDiagHeight = diagnosticsPanel.offsetHeight || 140;
+        diagnosticsPanelResizer.classList.add('dragging');
+        document.body.style.cursor = 'row-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    diagnosticsPanelResizer?.addEventListener('dblclick', () => {
+        // ダブルクリックで既定値（140px）にリセット
+        diagnosticsPanel.style.height = '140px';
+        try { localStorage.setItem('invader_editor_diagnostics_height', '140'); } catch(e) {}
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isResizingDiag || !diagnosticsPanel) return;
+        // 上にドラッグすると高さが増加（clientYが小さくなる）
+        const delta = startDiagY - e.clientY;
+        const newHeight = Math.max(60, Math.min(500, startDiagHeight + delta));
+        diagnosticsPanel.style.height = newHeight + 'px';
+        try { localStorage.setItem('invader_editor_diagnostics_height', String(Math.round(newHeight))); } catch(e) {}
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isResizingDiag) {
+            isResizingDiag = false;
+            diagnosticsPanelResizer?.classList.remove('dragging');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+    });
+
+    /**
+     * 指定行へスクロール＆キャレット移動
+     */
+    function jumpToLine(line, col) {
+        if (!codeTextarea) return;
+        const text = codeTextarea.value;
+        const lines = text.split('\n');
+        line = Math.max(1, Math.min(line, lines.length));
+
+        // 行の文字インデックスを計算
+        let charIndex = 0;
+        for (let i = 0; i < line - 1; i++) {
+            charIndex += lines[i].length + 1; // +1 for '\n'
+        }
+        if (col && col > 1) {
+            charIndex += Math.min(col - 1, lines[line - 1].length);
+        }
+
+        codeTextarea.focus();
+        codeTextarea.setSelectionRange(charIndex, charIndex);
+
+        // スクロール位置計算 (22px line-height, 見えやすい位置へスクロール)
+        const lineHeight = 22;
+        const editorHeight = codeTextarea.clientHeight || 400;
+        const targetScrollTop = Math.max(0, (line - 1) * lineHeight - (editorHeight / 3));
+
+        codeTextarea.scrollTop = targetScrollTop;
+        syncScroll();
+    }
+
+    lineNumbersInner?.addEventListener('click', (e) => {
+        const item = e.target.closest('.line-num');
+        if (item) {
+            const line = parseInt(item.getAttribute('data-line'), 10);
+            if (line) jumpToLine(line, 1);
+        }
+    });
 
     function updateCodeHighlight() {
         const file = files[currentFileKey];
@@ -173,7 +446,13 @@
         const lineCount = lines.length;
         let lineHtml = '';
         for (let i = 1; i <= lineCount; i++) {
-            lineHtml += '<div class="line-num">' + i + '</div>';
+            let cls = 'line-num';
+            if (errorLineSet.has(i)) {
+                cls += ' has-error';
+            } else if (warningLineSet.has(i)) {
+                cls += ' has-warning';
+            }
+            lineHtml += `<div class="${cls}" data-line="${i}">${i}</div>`;
         }
         lineNumbersInner.innerHTML = lineHtml;
 
@@ -196,8 +475,16 @@
         const file = files[currentFileKey];
         if (file) {
             file.isDirty = true;
+            file.content = codeTextarea.value;
             updateCodeHighlight();
             updateTabsUI();
+            updateSidebarUI();
+
+            // リアルタイム診断 (200ms デバウンス)
+            clearTimeout(diagnosticsDebounceTimer);
+            diagnosticsDebounceTimer = setTimeout(() => {
+                runDiagnostics(currentFileKey);
+            }, 200);
         }
     });
 
@@ -284,12 +571,28 @@
     }
 
     function updateSidebarUI() {
-        document.querySelectorAll('.file-item').forEach(item => {
+        document.querySelectorAll('.file-item[data-path]').forEach(item => {
             const path = item.getAttribute('data-path');
             if (path === currentFileKey) {
                 item.classList.add('active');
             } else {
                 item.classList.remove('active');
+            }
+
+            // 未復元箇所 (TODO) の残数をバッジ表示
+            const file = files[path];
+            const count = file ? (file.content.match(/TODO/g) || []).length : 0;
+            let badge = item.querySelector('.todo-count');
+            if (count > 0) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'todo-count';
+                    item.appendChild(badge);
+                }
+                badge.textContent = count;
+                badge.title = `未復元の箇所 (TODO) が ${count} 件あります`;
+            } else if (badge) {
+                badge.remove();
             }
         });
     }
@@ -369,6 +672,7 @@
     // ─────────────────────────────────────────────
     function applyScale() {
         const scale = SCALE_PRESETS[currentScaleIndex];
+        try { localStorage.setItem('invader_editor_scale', String(currentScaleIndex)); } catch (e) {}
         scaleIndicator.textContent = Math.round(scale * 100) + '%';
         previewIframe.style.transform = `scale(${scale})`;
         previewIframe.style.transformOrigin = 'center center';
@@ -404,6 +708,7 @@
         const newPreviewWidth = containerRect.right - e.clientX;
         const clampedWidth = Math.max(300, Math.min(containerRect.width - 280, newPreviewWidth));
         previewPane.style.width = clampedWidth + 'px';
+        try { localStorage.setItem('invader_editor_pane_width', String(Math.round(clampedWidth))); } catch (e) {}
     });
 
     window.addEventListener('mouseup', () => {
@@ -418,10 +723,15 @@
     // ─────────────────────────────────────────────
     // プレビュー合成 & 保存
     // ─────────────────────────────────────────────
-    function showToast(msg) {
+    function showToast(msg, isError) {
         toastMsg.textContent = msg;
+        if (isError) {
+            toast.classList.add('toast-error');
+        } else {
+            toast.classList.remove('toast-error');
+        }
         toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2000);
+        setTimeout(() => toast.classList.remove('show'), isError ? 3500 : 2000);
     }
 
     function buildCompositeHtml() {
@@ -435,19 +745,22 @@
             html = html.replace('<head>', '<head><base href="../">');
         }
 
-        // style.css の差し替え
-        if (html.includes('<link rel="stylesheet" href="style.css">')) {
-            html = html.replace('<link rel="stylesheet" href="style.css">', `<style>${css}</style>`);
+        // style.css の差し替え (?v=... クエリパラメータ付きにも対応)
+        const cssLinkRegex = /<link\s+[^>]*href=["']style\.css(?:\?[^"']*)?["'][^>]*>/i;
+        if (cssLinkRegex.test(html)) {
+            html = html.replace(cssLinkRegex, () => `<style>${css}</style>`);
         } else {
-            html = html.replace('</head>', `<style>${css}</style></head>`);
+            html = html.replace('</head>', () => `<style>${css}</style></head>`);
         }
 
-        // config.js と core.js の差し替え
-        if (html.includes('<script src="config.js"></script>')) {
-            html = html.replace('<script src="config.js"></script>', `<script>${config}<\/script>`);
+        // config.js と core.js の差し替え ($記号の特殊展開を防ぐため関数で返す)
+        const configScriptRegex = /<script\s+[^>]*src=["']config\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script>/i;
+        if (configScriptRegex.test(html)) {
+            html = html.replace(configScriptRegex, () => `<script>${config}<\/script>`);
         }
-        if (html.includes('<script src="core.js"></script>')) {
-            html = html.replace('<script src="core.js"></script>', `<script>${core}<\/script>`);
+        const coreScriptRegex = /<script\s+[^>]*src=["']core\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script>/i;
+        if (coreScriptRegex.test(html)) {
+            html = html.replace(coreScriptRegex, () => `<script>${core}<\/script>`);
         }
 
         return html;
@@ -459,12 +772,39 @@
     }
 
     function saveAndApplyChanges() {
+        // 現在開いているファイル、および変更されている全ファイルの構文チェック
+        if (window.Linter) {
+            for (let k in files) {
+                if (k === currentFileKey || files[k].isDirty) {
+                    const changedLines = window.Linter.computeChangedLines(files[k].baselineContent || '', files[k].content);
+                    const issues = window.Linter.lint(k, files[k].content, {
+                        baselineCode: files[k].baselineContent,
+                        changedLines: changedLines
+                    });
+                    const errors = issues.filter(i => i.severity === 'error');
+                    if (errors.length > 0) {
+                        // エラーがある場合は対象ファイルへ切り替えて保存をブロック
+                        if (currentFileKey !== k) {
+                            switchToFile(k);
+                        } else {
+                            runDiagnostics(k);
+                        }
+                        showToast(`⚠️ 構文エラーが ${errors.length} 件あるため保存できません`, true);
+                        toggleDiagnosticsPanel(true);
+                        jumpToLine(errors[0].line, errors[0].col);
+                        return;
+                    }
+                }
+            }
+        }
+
         // config.js のみの変更なら即時リロードを試みる
         const onlyConfigDirty = files['config.js'].isDirty && !files['style.css'].isDirty && !files['core.js'].isDirty && !files['index.html'].isDirty;
 
         for (let k in files) {
             files[k].isDirty = false;
         }
+        runDiagnostics(currentFileKey);
         updateTabsUI();
 
         if (onlyConfigDirty) {
@@ -481,7 +821,9 @@
                     showToast('保存しました（ゲームに即時反映）');
                     return;
                 }
-            } catch(e) {}
+            } catch(e) {
+                console.warn('即時リロードに失敗したためプレビュー全体を更新します:', e);
+            }
         }
 
         updatePreview();
@@ -489,7 +831,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🎨 ドット絵エディタ (Pixel Studio)
+    // ドット絵エディタ
     // ─────────────────────────────────────────────
     const DEFAULT_SPRITES = {
         player: [
@@ -538,15 +880,21 @@
             "0011111111111100",
             "0110110110110110",
             "1111111111111111",
-            "000110001110000",
+            "0001110001110000",
             "0000100000100000"
         ]
     };
 
+    const WALKING_SPRITES = ['squid', 'crab', 'octopus'];
+    const HISTORY_LIMIT = 30;
+
     let currentSpriteKey = 'player';
-    let spriteGridData = []; // 2次元配列 [rows][cols]
+    let spriteGridData = [];     // [行][列] 0 or 1
+    let spriteUndoStack = [];
+    let spriteRedoStack = [];
     let isDrawingPixel = false;
-    let drawMode = 1; // 1: 塗る, 0: 消す
+    let drawMode = 1;            // 1: 塗る, 0: 消す
+    let previewFrame = 0;
 
     const spriteSelect = document.getElementById('sprite-select');
     const spriteGrid = document.getElementById('sprite-grid');
@@ -556,36 +904,98 @@
     const btnSpriteClear = document.getElementById('btn-sprite-clear');
     const btnSpriteReset = document.getElementById('btn-sprite-reset');
     const btnSpriteApply = document.getElementById('btn-sprite-apply');
+    const btnSpriteUndo = document.getElementById('btn-sprite-undo');
+    const btnSpriteRedo = document.getElementById('btn-sprite-redo');
 
-    function loadSpriteFromConfig() {
-        const key = currentSpriteKey;
-        const configText = files['config.js']?.content || '';
-        
-        // config.js から現在のスプライト配列を抽出
-        let lines = null;
+    // config.js のテキストから設定オブジェクトを取り出す (失敗時は null)
+    function readConfigObject() {
         try {
-            const regex = new RegExp(`${key}:\\s*\\[([\\s\\S]*?)\\]`, 'm');
-            const match = configText.match(regex);
-            if (match && match[1]) {
-                const rowMatches = match[1].match(/"([01]+)"/g);
-                if (rowMatches && rowMatches.length > 0) {
-                    lines = rowMatches.map(s => s.replace(/"/g, ''));
-                }
-            }
-        } catch(e) {}
-
-        if (!lines || lines.length === 0) {
-            lines = DEFAULT_SPRITES[key] || DEFAULT_SPRITES.player;
+            const code = files['config.js'].content;
+            return new Function(code + '; return GameConfig;')();
+        } catch (e) {
+            return null;
         }
-
-        spriteGridData = lines.map(row => row.split('').map(ch => ch === '1' ? 1 : 0));
     }
 
+    // キャラクターごとの表示色を config.js から取得
+    function getSpriteColor(key) {
+        const cfg = readConfigObject();
+        if (!cfg) return '#00FF66';
+        const enemyColors = (cfg.enemy && cfg.enemy.colors) || [];
+        switch (key) {
+            case 'player': return (cfg.player && cfg.player.color) || '#00FF66';
+            case 'squid': return enemyColors[0] || '#FFFF00';
+            case 'crab': return enemyColors[1] || '#00FFFF';
+            case 'octopus': return enemyColors[3] || enemyColors[enemyColors.length - 1] || '#FF3399';
+            case 'ufo': return (cfg.ufo && cfg.ufo.color) || '#FF0033';
+            default: return '#00FF66';
+        }
+    }
+
+    function gridToStrings(grid) {
+        return grid.map(row => row.join(''));
+    }
+
+    function stringsToGrid(lines) {
+        return lines.map(row => row.split('').map(ch => ch === '1' ? 1 : 0));
+    }
+
+    function cloneGrid(grid) {
+        return grid.map(row => row.slice());
+    }
+
+    function loadSpriteFromConfig() {
+        const cfg = readConfigObject();
+        let lines = null;
+        const custom = cfg && cfg.sprites ? cfg.sprites[currentSpriteKey] : null;
+        if (Array.isArray(custom) && custom.length > 0) {
+            lines = Array.isArray(custom[0]) ? custom[0] : custom;
+        }
+        if (!lines) {
+            lines = DEFAULT_SPRITES[currentSpriteKey] || DEFAULT_SPRITES.player;
+        }
+        spriteGridData = stringsToGrid(lines);
+        spriteUndoStack = [];
+        spriteRedoStack = [];
+        updateHistoryButtons();
+    }
+
+    // ── 履歴 (元に戻す / やり直す) ──
+    function pushHistory() {
+        spriteUndoStack.push(cloneGrid(spriteGridData));
+        if (spriteUndoStack.length > HISTORY_LIMIT) spriteUndoStack.shift();
+        spriteRedoStack = [];
+        updateHistoryButtons();
+    }
+
+    function undoSprite() {
+        if (spriteUndoStack.length === 0) return;
+        spriteRedoStack.push(cloneGrid(spriteGridData));
+        spriteGridData = spriteUndoStack.pop();
+        renderSpriteGrid();
+        updateHistoryButtons();
+    }
+
+    function redoSprite() {
+        if (spriteRedoStack.length === 0) return;
+        spriteUndoStack.push(cloneGrid(spriteGridData));
+        spriteGridData = spriteRedoStack.pop();
+        renderSpriteGrid();
+        updateHistoryButtons();
+    }
+
+    function updateHistoryButtons() {
+        if (btnSpriteUndo) btnSpriteUndo.disabled = spriteUndoStack.length === 0;
+        if (btnSpriteRedo) btnSpriteRedo.disabled = spriteRedoStack.length === 0;
+    }
+
+    // ── グリッド描画 ──
     function renderSpriteGrid() {
         if (!spriteGrid || spriteGridData.length === 0) return;
 
         const rows = spriteGridData.length;
         const cols = spriteGridData[0].length;
+        const color = getSpriteColor(currentSpriteKey);
 
         spriteGrid.innerHTML = '';
         spriteGrid.style.gridTemplateColumns = `repeat(${cols}, 26px)`;
@@ -595,31 +1005,30 @@
             spriteSizeInfo.textContent = `${cols} x ${rows} ドット`;
         }
 
-        const midCol = Math.floor(cols / 2);
+        const showSymLine = !!(spriteSymmetry && spriteSymmetry.checked);
+        const symCol = Math.floor((cols - 1) / 2);
 
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
                 const cell = document.createElement('div');
-                cell.className = 'sprite-cell' + (spriteGridData[r][c] === 1 ? ' active' : '');
-                if (c === midCol - 1 && cols % 2 === 0) {
+                cell.className = 'sprite-cell';
+                if (showSymLine && c === symCol) {
                     cell.classList.add('symmetry-line');
                 }
-                cell.dataset.r = r;
-                cell.dataset.c = c;
-
+                if (spriteGridData[r][c] === 1) {
+                    cell.classList.add('active');
+                    cell.style.backgroundColor = color;
+                }
                 cell.addEventListener('mousedown', (e) => {
                     e.preventDefault();
                     isDrawingPixel = true;
                     drawMode = spriteGridData[r][c] === 1 ? 0 : 1;
+                    pushHistory();
                     applyPixel(r, c, drawMode);
                 });
-
                 cell.addEventListener('mouseenter', () => {
-                    if (isDrawingPixel) {
-                        applyPixel(r, c, drawMode);
-                    }
+                    if (isDrawingPixel) applyPixel(r, c, drawMode);
                 });
-
                 spriteGrid.appendChild(cell);
             }
         }
@@ -628,33 +1037,27 @@
     }
 
     function applyPixel(r, c, val) {
-        const rows = spriteGridData.length;
         const cols = spriteGridData[0].length;
-        if (r < 0 || r >= rows || c < 0 || c >= cols) return;
-
-        spriteGridData[r][c] = val;
-        updateCellUI(r, c, val);
-
-        // 左右対称描画
+        setPixel(r, c, val);
         if (spriteSymmetry && spriteSymmetry.checked) {
             const mirrorC = cols - 1 - c;
-            if (mirrorC !== c) {
-                spriteGridData[r][mirrorC] = val;
-                updateCellUI(r, mirrorC, val);
-            }
+            if (mirrorC !== c) setPixel(r, mirrorC, val);
         }
-
         drawMiniPreview();
     }
 
-    function updateCellUI(r, c, val) {
-        if (!spriteGrid) return;
+    function setPixel(r, c, val) {
+        if (!spriteGridData[r] || spriteGridData[r][c] === undefined) return;
+        spriteGridData[r][c] = val;
         const cols = spriteGridData[0].length;
-        const index = r * cols + c;
-        const cell = spriteGrid.children[index];
-        if (cell) {
-            if (val === 1) cell.classList.add('active');
-            else cell.classList.remove('active');
+        const cell = spriteGrid.children[r * cols + c];
+        if (!cell) return;
+        if (val === 1) {
+            cell.classList.add('active');
+            cell.style.backgroundColor = getSpriteColor(currentSpriteKey);
+        } else {
+            cell.classList.remove('active');
+            cell.style.backgroundColor = '';
         }
     }
 
@@ -662,70 +1065,98 @@
         isDrawingPixel = false;
     });
 
+    // ── プレビュー (敵キャラは足踏みの2コマを交互に表示) ──
+    function makeWalkFrame(lines) {
+        const legStart = Math.max(0, lines.length - 3);
+        return lines.map((row, i) => i < legStart ? row : '0' + row.slice(0, row.length - 1));
+    }
+
     function drawMiniPreview() {
         if (!spriteMiniCanvas || spriteGridData.length === 0) return;
         const ctx = spriteMiniCanvas.getContext('2d');
-        const rows = spriteGridData.length;
-        const cols = spriteGridData[0].length;
+        let lines = gridToStrings(spriteGridData);
+        if (WALKING_SPRITES.includes(currentSpriteKey) && previewFrame === 1) {
+            lines = makeWalkFrame(lines);
+        }
 
+        const rows = lines.length;
+        const cols = lines[0].length;
         ctx.clearRect(0, 0, spriteMiniCanvas.width, spriteMiniCanvas.height);
 
         const pixelSize = Math.max(2, Math.floor(Math.min(spriteMiniCanvas.width / cols, spriteMiniCanvas.height / rows)));
         const startX = Math.floor((spriteMiniCanvas.width - cols * pixelSize) / 2);
         const startY = Math.floor((spriteMiniCanvas.height - rows * pixelSize) / 2);
 
-        ctx.fillStyle = '#00FF66';
+        ctx.fillStyle = getSpriteColor(currentSpriteKey);
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
-                if (spriteGridData[r][c] === 1) {
+                if (lines[r][c] === '1') {
                     ctx.fillRect(startX + c * pixelSize, startY + r * pixelSize, pixelSize, pixelSize);
                 }
             }
         }
     }
 
-    // コントロールイベント
+    setInterval(() => {
+        previewFrame = 1 - previewFrame;
+        if (spritePane && spritePane.style.display !== 'none') drawMiniPreview();
+    }, 480);
+
+    // ── 操作ボタン ──
     spriteSelect?.addEventListener('change', () => {
         currentSpriteKey = spriteSelect.value;
         loadSpriteFromConfig();
         renderSpriteGrid();
     });
 
+    spriteSymmetry?.addEventListener('change', () => {
+        renderSpriteGrid();
+    });
+
     btnSpriteClear?.addEventListener('click', () => {
-        const rows = spriteGridData.length;
-        const cols = spriteGridData[0].length;
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-                spriteGridData[r][c] = 0;
-            }
-        }
+        pushHistory();
+        spriteGridData = spriteGridData.map(row => row.map(() => 0));
         renderSpriteGrid();
     });
 
     btnSpriteReset?.addEventListener('click', () => {
-        const templ = DEFAULT_SPRITES[currentSpriteKey] || DEFAULT_SPRITES.player;
-        spriteGridData = templ.map(row => row.split('').map(ch => ch === '1' ? 1 : 0));
+        pushHistory();
+        spriteGridData = stringsToGrid(DEFAULT_SPRITES[currentSpriteKey] || DEFAULT_SPRITES.player);
         renderSpriteGrid();
+    });
+
+    btnSpriteUndo?.addEventListener('click', undoSprite);
+    btnSpriteRedo?.addEventListener('click', redoSprite);
+
+    window.addEventListener('keydown', (e) => {
+        if (!spritePane || spritePane.style.display === 'none') return;
+        if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
+        e.preventDefault();
+        if (e.shiftKey) redoSprite();
+        else undoSprite();
     });
 
     btnSpriteApply?.addEventListener('click', () => {
         if (spriteGridData.length === 0) return;
 
-        const patternStrings = spriteGridData.map(row => row.join(''));
-        const formattedCode = '[\n' + patternStrings.map(row => `            "${row}"`).join(',\n') + '\n        ]';
+        const rowsText = gridToStrings(spriteGridData).map(row => `            "${row}"`).join(',\n');
+        const formattedCode = '[\n' + rowsText + '\n        ]';
 
-        let configCode = files['config.js'].content;
-        const regex = new RegExp(`(${currentSpriteKey}:\\s*)\\[[\\s\\S]*?\\]`, 'm');
+        const configCode = files['config.js'].content;
+        const regex = new RegExp(`(\\b${currentSpriteKey}:\\s*)\\[[\\s\\S]*?\\]`);
 
-        if (regex.test(configCode)) {
-            files['config.js'].content = configCode.replace(regex, `$1${formattedCode}`);
-            files['config.js'].isDirty = true;
-            updateCodeHighlight();
-            saveAndApplyChanges();
-            showToast(`${currentSpriteKey} のドット絵をconfig.jsに適用しました`);
-        } else {
-            showToast(`config.js 内に ${currentSpriteKey} の定義が見つかりませんでした`);
+        if (!regex.test(configCode)) {
+            showToast(`config.js に ${currentSpriteKey} の定義が見つかりません`);
+            return;
         }
+        files['config.js'].content = configCode.replace(regex, (m, head) => head + formattedCode);
+        files['config.js'].isDirty = true;
+        if (currentFileKey === 'config.js') {
+            codeTextarea.value = files['config.js'].content;
+            updateCodeHighlight();
+        }
+        saveAndApplyChanges();
+        showToast('config.js に反映しました');
     });
 
     document.getElementById('tab-sprite-editor')?.addEventListener('click', showSpriteEditorPane);
@@ -751,6 +1182,10 @@
     });
 
     // 初期化
+    try {
+        const savedWidth = parseInt(localStorage.getItem('invader_editor_pane_width'), 10);
+        if (savedWidth >= 300) previewPane.style.width = savedWidth + 'px';
+    } catch (e) {}
     updateSoundUI();
     renderEditor();
     loadRealFiles();

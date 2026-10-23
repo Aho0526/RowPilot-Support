@@ -395,6 +395,42 @@ body {
 .line-num {
     height: var(--editor-line-height);
     line-height: var(--editor-line-height);
+    padding-left: 6px;
+    padding-right: 4px;
+    position: relative;
+    cursor: default;
+    transition: background-color 0.1s, color 0.1s;
+}
+
+.line-num.has-error {
+    color: #f87171 !important;
+    background-color: rgba(239, 68, 68, 0.18);
+    font-weight: 700;
+}
+
+.line-num.has-error::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: #ef4444;
+}
+
+.line-num.has-warning {
+    color: #fbbf24 !important;
+    background-color: rgba(245, 158, 11, 0.12);
+}
+
+.line-num.has-warning::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: #f59e0b;
 }
 
 /* コードエリア（textareaとhighlight） */
@@ -753,7 +789,25 @@ body.transitioning-to-game .studio-preview-pane {
 
 .sprite-cell.active {
     background-color: #00ff66;
-    box-shadow: 0 0 6px rgba(0, 255, 102, 0.6);
+}
+
+.sprite-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+}
+
+.todo-count {
+    margin-left: auto;
+    min-width: 18px;
+    padding: 0 6px;
+    border-radius: 9px;
+    background-color: #d29922;
+    color: #0d1117;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 18px;
 }
 
 .sprite-cell.symmetry-line {
@@ -800,4 +854,288 @@ body.transitioning-to-game .studio-preview-pane {
     font-size: 11px;
     font-family: 'Courier New', monospace;
     color: #58a6ff;
+}
+
+/* ─────────────────────────────────────────────
+   構文チェック・診断ステータスバー & パネル
+   ───────────────────────────────────────────── */
+.editor-diagnostics-bar {
+    height: 30px;
+    background-color: #0f141c;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    font-size: 11.5px;
+    font-family: var(--font-code);
+    flex-shrink: 0;
+    user-select: none;
+    z-index: 5;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.editor-diagnostics-bar.has-errors {
+    background-color: #2a1215;
+    border-top-color: #ef4444;
+}
+
+.editor-diagnostics-bar.has-warnings-only {
+    background-color: #241a0d;
+    border-top-color: #f59e0b;
+}
+
+.diagnostics-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.diagnostics-status-dot {
+    font-size: 10px;
+    display: inline-block;
+}
+
+.diagnostics-status-dot.ok {
+    color: #10b981;
+}
+
+.diagnostics-status-dot.error {
+    color: #ef4444;
+}
+
+.diagnostics-status-dot.warning {
+    color: #f59e0b;
+}
+
+.diagnostics-status-text {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.editor-diagnostics-bar.has-errors .diagnostics-status-text {
+    color: #fca5a5;
+    font-weight: 600;
+}
+
+.editor-diagnostics-bar.has-warnings-only .diagnostics-status-text {
+    color: #fde68a;
+    font-weight: 600;
+}
+
+.diagnostics-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.diagnostics-toggle-btn {
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    border-radius: 3px;
+    color: #94a3b8;
+    font-size: 11px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.diagnostics-toggle-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+/* 診断詳細パネル（リサイズ可能） */
+.editor-diagnostics-panel {
+    height: 140px;
+    min-height: 60px;
+    max-height: 500px;
+    background-color: #0b0f17;
+    border-top: 1px solid #1e2633;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+    z-index: 5;
+    position: relative;
+}
+
+/* 診断パネルのドラッグリサイザー */
+.diagnostics-panel-resizer {
+    height: 6px;
+    background-color: transparent;
+    cursor: row-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.diagnostics-panel-resizer:hover,
+.diagnostics-panel-resizer.dragging {
+    background-color: #38bdf8;
+}
+
+.resizer-handle-grip {
+    width: 32px;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 1px;
+}
+
+.diagnostics-panel-resizer:hover .resizer-handle-grip,
+.diagnostics-panel-resizer.dragging .resizer-handle-grip {
+    background-color: #ffffff;
+}
+
+.diagnostics-panel-header {
+    height: 26px;
+    padding: 0 12px;
+    background-color: #111722;
+    border-bottom: 1px solid #1e2633;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #8b949e;
+    user-select: none;
+}
+
+.diagnostics-panel-title {
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.diagnostics-panel-subtitle {
+    font-size: 10.5px;
+    color: #64748b;
+}
+
+.diagnostics-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+    scrollbar-width: thin;
+}
+
+.diagnostic-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.1s;
+    border-left: 3px solid transparent;
+}
+
+.diagnostic-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.diagnostic-item.severity-error {
+    border-left-color: #ef4444;
+}
+
+.diagnostic-item.severity-warning {
+    border-left-color: #f59e0b;
+}
+
+.diagnostic-item.is-edited {
+    background-color: rgba(56, 189, 248, 0.06);
+}
+
+.diagnostic-badges {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.diagnostic-file-badge {
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 10.5px;
+    font-weight: 700;
+    font-family: var(--font-code);
+    white-space: nowrap;
+    background-color: #1e293b;
+    color: #38bdf8;
+    border: 1px solid #334155;
+}
+
+.diagnostic-line-badge {
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 10.5px;
+    font-weight: 700;
+    font-family: var(--font-code);
+    white-space: nowrap;
+}
+
+.diagnostic-edited-badge {
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 9.5px;
+    font-weight: 700;
+    font-family: sans-serif;
+    white-space: nowrap;
+    background-color: #064e3b;
+    color: #6ee7b7;
+    border: 1px solid #059669;
+}
+
+.diagnostic-item.severity-error .diagnostic-line-badge {
+    background-color: rgba(239, 68, 68, 0.22);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+}
+
+.diagnostic-item.severity-warning .diagnostic-line-badge {
+    background-color: rgba(245, 158, 11, 0.22);
+    color: #fde68a;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.diagnostic-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11.5px;
+}
+
+.diagnostic-message {
+    color: #f8fafc;
+    font-weight: 600;
+}
+
+.diagnostic-hint {
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.diagnostic-code-preview {
+    margin-top: 3px;
+    font-family: var(--font-code);
+    font-size: 10.5px;
+    color: #cbd5e1;
+    background-color: rgba(0, 0, 0, 0.4);
+    padding: 2px 8px;
+    border-radius: 3px;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* トーストのエラー表示強化 */
+.toast-notice.toast-error {
+    background-color: #991b1b;
+    border: 1px solid #ef4444;
+    color: #ffffff;
 }

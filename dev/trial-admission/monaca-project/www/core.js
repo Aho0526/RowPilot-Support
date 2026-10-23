@@ -1,5 +1,5 @@
 // ===============================================================
-// ⚙️ 本格スペースインベーダー コアエンジン (core.js) ⚙️
+// スペースインベーダー コアエンジン (core.js)
 // ※ 基本的に編集不要ですが、コードを読んで改造してもOK！
 // ===============================================================
 
@@ -24,7 +24,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🔊 レトロサウンドエンジン (Web Audio API)
+    // レトロサウンドエンジン (Web Audio API)
     // ─────────────────────────────────────────────
     let audioCtx = null;
     function initAudio() {
@@ -286,6 +286,16 @@
         ]
     };
 
+    // 敵キャラ(1コマ形式)の2コマ目を自動生成: 下3行を1ドット右にずらして足踏みを表現
+    const WALKING_KEYS = ["squid", "crab", "octopus"];
+    function makeWalkFrame(pattern) {
+        const legStart = Math.max(0, pattern.length - 3);
+        return pattern.map((row, i) => {
+            if (i < legStart) return row;
+            return "0" + row.slice(0, row.length - 1);
+        });
+    }
+
     // 動的スプライト取得ヘルパー（GameConfig.sprites で上書き可能）
     function getSprite(key, frame = 0) {
         if (window.GameConfig && window.GameConfig.sprites && window.GameConfig.sprites[key]) {
@@ -293,6 +303,9 @@
             if (Array.isArray(custom) && custom.length > 0) {
                 if (Array.isArray(custom[0])) {
                     return custom[frame % custom.length] || custom[0];
+                }
+                if (WALKING_KEYS.includes(key) && frame % 2 === 1) {
+                    return makeWalkFrame(custom);
                 }
                 return custom;
             }
@@ -335,7 +348,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🛡️ 防壁（トーチカ・バンカー）ピクセルモデル
+    // 防壁（トーチカ・バンカー）ピクセルモデル
     // ─────────────────────────────────────────────
     // 22 x 16 ドットのドーム形状
     const BUNKER_TEMPLATE = [
@@ -449,7 +462,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🌌 背景画像管理
+    // 背景画像管理
     // ─────────────────────────────────────────────
     const bgImages = {
         "space-bg": new Image(),
@@ -459,16 +472,84 @@
     bgImages["space-nebula"].src = "assets/space-nebula.jpg";
 
     // ─────────────────────────────────────────────
-    // 🎮 ゲーム状態
+    // ゲーム状態
     // ─────────────────────────────────────────────
     let gameState = "READY"; // "READY", "PLAYING", "PLAYER_DYING", "GAME_OVER", "CLEAR"
     let score = 0;
     let hiScore = parseInt(localStorage.getItem("invader_hiscore") || "0", 10);
     let wave = 1;
+    let maxWaves = 3; // クリアに必要なウェーブ数 (3 または 5)
+    let currentDifficulty = "normal"; // "easy", "normal", "hard"
     let lives = 3;
+    let playerPowerLevel = 1; // 自機のショット段階 (1: 通常, 2: 2連装, 3: 3WAY)
     let animFrame = 0; // 0 or 1
     let stepTimer = 0;
-    let stepInterval = 45; // インベーダー歩行間隔（フレーム数）
+    let stepInterval = 45; // インベーダー歩行間隔 (フレーム数)
+
+    // 難易度プリセット
+    const DIFFICULTY_PRESETS = {
+        easy: {
+            lives: 5,
+            shootInterval: 70,
+            bulletSpeed: 2.8,
+            passThroughPlayer: true,
+            fireInterval: 8,
+            maxBullets: 10
+        },
+        normal: {
+            lives: 3,
+            shootInterval: 50,
+            bulletSpeed: 3.5,
+            passThroughPlayer: true,
+            fireInterval: 10,
+            maxBullets: 8
+        },
+        hard: {
+            lives: 2,
+            shootInterval: 32,
+            bulletSpeed: 4.2,
+            passThroughPlayer: false,
+            fireInterval: 14,
+            maxBullets: 6
+        }
+    };
+
+    // 難易度による補正 (config.js の値を NORMAL として、そこからの増減)
+    //   lives: 残機の増減 / interval: 敵の発射間隔の倍率 / speed: 敵弾速度の倍率
+    const DIFFICULTY_MODS = {
+        easy:   { lives: 2,  interval: 1.4,  speed: 0.8, noPassThrough: false },
+        normal: { lives: 0,  interval: 1.0,  speed: 1.0, noPassThrough: false },
+        hard:   { lives: -1, interval: 0.65, speed: 1.2, noPassThrough: true }
+    };
+    function diffMod() {
+        return DIFFICULTY_MODS[currentDifficulty] || DIFFICULTY_MODS.normal;
+    }
+
+    // ホーム画面で選んだ項目は優先し、未選択の場合は config.js の game 設定を使う
+    let difficultyChosen = false;
+    let wavesChosen = false;
+    function applyGameSettings() {
+        const gCfg = (window.GameConfig && window.GameConfig.game) || {};
+        if (!difficultyChosen) {
+            const d = String(gCfg.difficulty || "normal");
+            currentDifficulty = DIFFICULTY_MODS[d] ? d : "normal";
+        }
+        if (!wavesChosen) {
+            maxWaves = safeNum(gCfg.maxWaves, 1, 10, 3);
+        }
+        syncHomeButtons();
+    }
+
+    function syncHomeButtons() {
+        document.querySelectorAll("#diff-options .arcade-pill").forEach(b => {
+            b.classList.toggle("active", b.getAttribute("data-diff") === currentDifficulty);
+        });
+        document.querySelectorAll("#wave-options .arcade-pill").forEach(b => {
+            b.classList.toggle("active", parseInt(b.getAttribute("data-waves"), 10) === maxWaves);
+        });
+        const hs = document.getElementById("home-hiscore");
+        if (hs) hs.textContent = String(hiScore).padStart(5, "0");
+    }
 
     // プレイヤー
     let player = {
@@ -510,7 +591,7 @@
     };
 
     // ─────────────────────────────────────────────
-    // インベーダーの初期化
+    // インベーダーの初期化 (ウェーブ別フォーメーション)
     // ─────────────────────────────────────────────
     function initEnemies() {
         enemies = [];
@@ -520,11 +601,11 @@
         const colors = cfg.colors || ["#FFFF00", "#00FFFF", "#00FFFF", "#FF3399", "#FF3399"];
         const scores = cfg.scores || [30, 20, 20, 10, 10];
 
-        // 画面幅に合わせた等間隔配置（列数が多くてもはみ出さない）
+        // 画面幅に合わせた等間隔配置
         const maxW = V_WIDTH - 60;
         const spacingX = Math.min(36, Math.floor(maxW / Math.max(1, cols)));
         const startX = Math.max(20, Math.floor((V_WIDTH - (cols - 1) * spacingX - 24) / 2));
-        const startY = 85 + Math.min(wave * 8, 40);
+        const baseStartY = 85;
         const spacingY = 28;
 
         for (let r = 0; r < rows; r++) {
@@ -544,9 +625,40 @@
             const rowScore = scores[r % scores.length] || 10;
 
             for (let c = 0; c < cols; c++) {
+                // ウェーブごとのフォーメーション変位
+                let offsetY = 0;
+                let active = true;
+
+                if (wave === 2) {
+                    // Wave 2: V字フォーメーション (中央が奥、両端が手前)
+                    const centerCol = (cols - 1) / 2;
+                    offsetY = (Math.abs(c - centerCol)) * 6;
+                } else if (wave === 3) {
+                    // Wave 3: ピラミッド型 (上段を少なく、下段を広く)
+                    const centerCol = (cols - 1) / 2;
+                    const allowedWidth = (r + 1) * 2;
+                    if (Math.abs(c - centerCol) > allowedWidth / 2) {
+                        active = false;
+                    }
+                } else if (wave === 4) {
+                    // Wave 4: 菱形陣形
+                    const centerCol = (cols - 1) / 2;
+                    const centerRow = (rows - 1) / 2;
+                    const dist = Math.abs(c - centerCol) + Math.abs(r - centerRow);
+                    if (dist > 4) {
+                        active = false;
+                    }
+                } else if (wave >= 5) {
+                    // Wave 5: 逆V字突撃陣 (中央が突出)
+                    const centerCol = (cols - 1) / 2;
+                    offsetY = - (Math.abs(c - centerCol)) * 6;
+                }
+
+                if (!active) continue;
+
                 enemies.push({
                     x: startX + c * spacingX,
-                    y: startY + r * spacingY,
+                    y: baseStartY + r * spacingY + offsetY,
                     origX: startX + c * spacingX,
                     width: dims.width,
                     height: dims.height,
@@ -561,8 +673,15 @@
             }
         }
 
+        // 敵が存在しない場合の安全対策 (フォールバック)
+        if (enemies.length === 0) {
+            wave = 1;
+            initEnemies();
+            return;
+        }
+
         enemyDir = 1;
-        stepInterval = Math.max(8, 50 - wave * 4);
+        stepInterval = Math.max(10, 52 - wave * 5);
         stepTimer = 0;
     }
 
@@ -601,6 +720,7 @@
 
     function resetGame(fullReset = true, autoStart = false) {
         const pCfg = window.GameConfig ? window.GameConfig.player : {};
+        const gCfg = window.GameConfig ? window.GameConfig.game : {};
         const pSprite = getSprite("player");
         const pDims = getSpriteDimensions(pSprite, player.pixelSize);
         player.width = pDims.width;
@@ -625,9 +745,11 @@
         Sound.stopUFO();
 
         if (fullReset) {
-            lives = safeNum(pCfg.lives, 1, 99999, 3);
+            applyGameSettings();
+            lives = Math.max(1, safeNum(pCfg.lives, 1, 99999, 3) + diffMod().lives);
             score = 0;
             wave = 1;
+            playerPowerLevel = 1;
             initBunkers();
         }
 
@@ -662,13 +784,18 @@
         }
         if (code === "Space" || code === "KeyZ") {
             keys.shoot = true;
+            if (document.activeElement && document.activeElement !== canvas && document.activeElement.blur) {
+                document.activeElement.blur();
+            }
             if (gameState === "READY") {
                 startGame();
-            } else if (gameState === "GAME_OVER") {
+            } else if (gameState === "GAME_OVER" || gameState === "CLEAR") {
                 resetGame(true, false);
             } else if (shootCooldown <= 0) {
                 firePlayerBullet();
-                shootCooldown = 12;
+                const pCfg = window.GameConfig ? window.GameConfig.player : {};
+                const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
+                shootCooldown = safeNum(pCfg.fireInterval, 2, 60, preset.fireInterval);
             }
         }
     }
@@ -723,18 +850,101 @@
         initAudio();
         if (gameState === "READY") {
             startGame();
+        } else if (gameState === "GAME_OVER" || gameState === "CLEAR") {
+            resetGame(true, false);
         }
     });
 
-    const btnStart = document.getElementById("btn-game-start");
-    if (btnStart) {
-        btnStart.addEventListener("click", (e) => {
-            e.stopPropagation();
-            startGame();
-        });
+    // ホーム画面 (本格アーケード演出 & 難易度選択) の初期化
+    let homeAnimFrame = 0;
+    let homeAnimTimer = null;
+
+    function renderHomePreviewSprites() {
+        function drawToCanvas(canvasId, spriteKey, color, pixelSize = 2, frame = 0) {
+            const cvs = document.getElementById(canvasId);
+            if (!cvs) return;
+            const cCtx = cvs.getContext("2d");
+            cCtx.clearRect(0, 0, cvs.width, cvs.height);
+            const pattern = getSprite(spriteKey, frame);
+            if (!pattern) return;
+            
+            cCtx.fillStyle = color;
+            const rows = pattern.length;
+            const cols = pattern[0].length;
+            const startX = Math.floor((cvs.width - cols * pixelSize) / 2);
+            const startY = Math.floor((cvs.height - rows * pixelSize) / 2);
+
+            for (let r = 0; r < rows; r++) {
+                const row = pattern[r];
+                if (!row) continue;
+                for (let c = 0; c < row.length; c++) {
+                    if (row[c] === '1') {
+                        cCtx.fillRect(startX + c * pixelSize, startY + r * pixelSize, pixelSize, pixelSize);
+                    }
+                }
+            }
+        }
+
+        function updateSprites() {
+            homeAnimFrame = 1 - homeAnimFrame;
+            const cfg = window.GameConfig || {};
+            const eColors = (cfg.enemy && cfg.enemy.colors) || [];
+            const ufoColor = (cfg.ufo && cfg.ufo.color) || "#FF3344";
+            const squidColor = eColors[0] || "#FFFF00";
+            const crabColor = eColors[1] || "#00FFFF";
+            const octopusColor = eColors[3] || eColors[eColors.length - 1] || "#FF3399";
+            const playerColor = (cfg.player && cfg.player.color) || "#00FF66";
+
+            drawToCanvas("preview-ufo", "ufo", ufoColor, 2, 0);
+            drawToCanvas("preview-squid", "squid", squidColor, 2, homeAnimFrame);
+            drawToCanvas("preview-crab", "crab", crabColor, 2, homeAnimFrame);
+            drawToCanvas("preview-octopus", "octopus", octopusColor, 2, homeAnimFrame);
+            drawToCanvas("preview-player", "player", playerColor, 2, 0);
+        }
+
+        updateSprites();
+        if (!homeAnimTimer) {
+            homeAnimTimer = setInterval(updateSprites, 480);
+        }
     }
 
-    // 画面下部のオンスクリーンボタン（存在する場合のみフォールバック動作）
+    function setupHomeUI() {
+        const btnStart = document.getElementById("btn-game-start");
+        if (btnStart) {
+            btnStart.addEventListener("click", (e) => {
+                e.stopPropagation();
+                startGame();
+            });
+        }
+
+        // 難易度ボタンの選択
+        const diffButtons = document.querySelectorAll("#diff-options .arcade-pill");
+        diffButtons.forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                difficultyChosen = true;
+                currentDifficulty = btn.getAttribute("data-diff") || "normal";
+                resetGame(true, false);
+                btn.blur();
+            });
+        });
+
+        // クリア条件 (ウェーブ数) ボタンの選択
+        const waveButtons = document.querySelectorAll("#wave-options .arcade-pill");
+        waveButtons.forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                wavesChosen = true;
+                maxWaves = parseInt(btn.getAttribute("data-waves") || "3", 10);
+                syncHomeButtons();
+                btn.blur();
+            });
+        });
+
+        renderHomePreviewSprites();
+    }
+
+    // 画面下部のオンスクリーンボタン
     function setupTouchControls() {
         const btnLeft = document.getElementById("btn-left");
         const btnRight = document.getElementById("btn-right");
@@ -763,27 +973,33 @@
         bindTouch(btnRight, () => keys.right = true, () => keys.right = false);
         bindTouch(btnFire, () => {
             keys.shoot = true;
-            firePlayerBullet();
-            if (gameState === "GAME_OVER") resetGame(true);
+            if (gameState === "READY") {
+                startGame();
+            } else if (gameState === "GAME_OVER" || gameState === "CLEAR") {
+                resetGame(true, false);
+            } else {
+                firePlayerBullet();
+            }
         }, () => keys.shoot = false);
 
         if (btnSound) {
             btnSound.addEventListener("click", () => {
                 initAudio();
                 Sound.enabled = !Sound.enabled;
-                btnSound.textContent = Sound.enabled ? "🔊" : "🔇";
+                btnSound.textContent = Sound.enabled ? "ON" : "OFF";
             });
         }
     }
 
     // ─────────────────────────────────────────────
-    // 弾の発射
+    // 弾の発射 (連射 & パワーアップショット)
     // ─────────────────────────────────────────────
     function firePlayerBullet() {
         if (gameState !== "PLAYING") return;
         const bCfg = window.GameConfig ? window.GameConfig.bullet : {};
         const pCfg = window.GameConfig ? window.GameConfig.player : {};
-        const maxBullets = safeNum(pCfg.maxBullets, 1, 100, 2);
+        const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
+        const maxBullets = safeNum(pCfg.maxBullets, 1, 100, preset.maxBullets);
 
         if (playerBullets.length >= maxBullets) return;
 
@@ -792,25 +1008,87 @@
         const spd = safeNum(bCfg.speed, -100, -1, -8);
         const col = bCfg.color || "#FFFF00";
 
-        playerBullets.push({
-            x: player.x + player.width / 2 - bw / 2,
-            y: player.y - bh,
-            width: bw,
-            height: bh,
-            speed: spd,
-            color: col
-        });
+        if (playerPowerLevel === 1) {
+            // Level 1: 通常単発
+            playerBullets.push({
+                x: player.x + player.width / 2 - bw / 2,
+                y: player.y - bh,
+                vx: 0,
+                width: bw,
+                height: bh,
+                speed: spd,
+                color: col
+            });
+        } else if (playerPowerLevel === 2) {
+            // Level 2: 2連装平行ショット
+            playerBullets.push({
+                x: player.x + 3,
+                y: player.y - bh,
+                vx: 0,
+                width: bw,
+                height: bh,
+                speed: spd,
+                color: col
+            });
+            playerBullets.push({
+                x: player.x + player.width - 3 - bw,
+                y: player.y - bh,
+                vx: 0,
+                width: bw,
+                height: bh,
+                speed: spd,
+                color: col
+            });
+        } else {
+            // Level 3+: 3WAYショット
+            playerBullets.push({
+                x: player.x + player.width / 2 - bw / 2,
+                y: player.y - bh,
+                vx: 0,
+                width: bw,
+                height: bh,
+                speed: spd,
+                color: col
+            });
+            playerBullets.push({
+                x: player.x + 2,
+                y: player.y - bh,
+                vx: -1.2,
+                width: bw,
+                height: bh,
+                speed: spd,
+                color: col
+            });
+            playerBullets.push({
+                x: player.x + player.width - 2 - bw,
+                y: player.y - bh,
+                vx: 1.2,
+                width: bw,
+                height: bh,
+                speed: spd,
+                color: col
+            });
+        }
 
         Sound.playShoot();
     }
 
     function fireEnemyBullet(enemy) {
         const eCfg = window.GameConfig ? window.GameConfig.enemy : {};
-        const spd = safeNum(eCfg.bulletSpeed, 1, 10, 3.5);
+        const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
+        const spd = safeNum(eCfg.bulletSpeed, 1, 10, 3.5) * diffMod().speed;
+
+        // Wave 2以降、一部の弾をプレイヤー狙いのエイム弾にする
+        let vx = 0;
+        if (wave >= 2 && Math.random() < 0.35) {
+            const dx = (player.x + player.width / 2) - (enemy.x + enemy.width / 2);
+            vx = Math.max(-1.4, Math.min(1.4, dx / 70));
+        }
 
         enemyBullets.push({
             x: enemy.x + enemy.width / 2 - 1.5,
             y: enemy.y + enemy.height,
+            vx: vx,
             width: 3,
             height: 10,
             speed: spd,
@@ -819,7 +1097,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🛸 UFO ロジック
+    // UFO ロジック
     // ─────────────────────────────────────────────
     function updateUFO() {
         const uCfg = window.GameConfig ? window.GameConfig.ufo : {};
@@ -834,14 +1112,12 @@
             if (ufo.timer >= interval) {
                 ufo.active = true;
                 ufo.timer = 0;
-                // 出現方向をランダムに決定
                 ufo.dir = Math.random() < 0.5 ? 1 : -1;
                 ufo.x = ufo.dir === 1 ? -40 : V_WIDTH + 10;
                 Sound.startUFO();
             }
         } else {
             ufo.x += ufo.speed * ufo.dir;
-            // 画面外に出たら終了
             if ((ufo.dir === 1 && ufo.x > V_WIDTH + 40) || (ufo.dir === -1 && ufo.x < -60)) {
                 ufo.active = false;
                 Sound.stopUFO();
@@ -850,11 +1126,12 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🔄 メイン更新 (Update Loop)
+    // メイン更新 (Update Loop)
     // ─────────────────────────────────────────────
     function update() {
         const eCfg = window.GameConfig ? window.GameConfig.enemy : {};
         const pCfg = window.GameConfig ? window.GameConfig.player : {};
+        const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
 
         if (window.GameConfig && window.GameConfig.display && typeof window.GameConfig.display.sound === 'boolean') {
             Sound.enabled = window.GameConfig.display.sound;
@@ -883,20 +1160,21 @@
         if (keys.right) player.x += player.speed;
         player.x = Math.max(10, Math.min(V_WIDTH - player.width - 10, player.x));
 
-        // プレイヤー射撃（押しっぱなし連射対応）
+        // プレイヤー射撃 (押しっぱなし連射)
         if (keys.shoot) {
             shootCooldown--;
             if (shootCooldown <= 0) {
                 firePlayerBullet();
-                shootCooldown = 15;
+                shootCooldown = safeNum(pCfg.fireInterval, 2, 60, preset.fireInterval);
             }
         }
 
         // プレイヤーの弾移動
         for (let i = playerBullets.length - 1; i >= 0; i--) {
             const b = playerBullets[i];
+            b.x += (b.vx || 0);
             b.y += b.speed;
-            if (b.y < 35) {
+            if (b.y < 35 || b.x < 0 || b.x > V_WIDTH) {
                 playerBullets.splice(i, 1);
             }
         }
@@ -905,9 +1183,9 @@
         for (let i = enemyBullets.length - 1; i >= 0; i--) {
             const eb = enemyBullets[i];
             eb.y += eb.speed;
+            eb.x += (eb.vx || 0);
             eb.wiggleTimer++;
-            // ジグザグ横揺れ
-            eb.x += Math.sin(eb.wiggleTimer * 0.4) * 0.8;
+            eb.x += Math.sin(eb.wiggleTimer * 0.4) * 0.6;
             if (eb.y > V_HEIGHT - 30) {
                 enemyBullets.splice(i, 1);
             }
@@ -927,14 +1205,34 @@
         // ── インベーダーの行進 ──
         const aliveEnemies = enemies.filter(e => e.alive);
         if (aliveEnemies.length === 0) {
-            // 全滅！ウェーブクリア
+            // 全滅！ウェーブクリア判定
             wave++;
             Sound.stopUFO();
+
+            if (wave > maxWaves) {
+                // 全ウェーブ走破！ゲームクリア
+                gameState = "CLEAR";
+                Sound.playUFOHit();
+                return;
+            }
+
+            // 次のウェーブへ
+            playerPowerLevel = Math.min(3, wave);
+
+            // 防壁の毎ウェーブ再生
+            const bCfg = window.GameConfig ? window.GameConfig.bunker : {};
+            const regenerate = (bCfg.regenerateEachWave !== false);
+            if (regenerate) {
+                initBunkers();
+            }
+
+            playerBullets = [];
+            enemyBullets = [];
             initEnemies();
             return;
         }
 
-        // 残り匹数に応じて行進テンポを動的にアップ！
+        // 残り匹数に応じた行進テンポの加速
         const baseSpeed = safeNum(eCfg.speed, 0.2, 5, 1.0);
         const aliveRatio = aliveEnemies.length / enemies.length;
         stepInterval = Math.max(4, Math.floor((40 * aliveRatio) / baseSpeed));
@@ -942,10 +1240,9 @@
         stepTimer++;
         if (stepTimer >= stepInterval) {
             stepTimer = 0;
-            animFrame = 1 - animFrame; // 2コマアニメ反転
+            animFrame = 1 - animFrame;
             Sound.playWalk();
 
-            // 端に達しているかチェック
             let hitEdge = false;
             const stepDx = 6 * enemyDir;
             for (let e of aliveEnemies) {
@@ -969,18 +1266,17 @@
                 }
             }
 
-            // 防壁の侵食チェック（敵が防壁にぶつかったら削る）
+            // 防壁の侵食チェック
             for (let e of aliveEnemies) {
                 for (let bunker of bunkers) {
                     bunker.corrode(e.x, e.y, e.width, e.height);
                 }
             }
 
-            // 最前線到達チェック（自機の高度または防衛ライン）
+            // 最前線到達チェック
             const invasionLine = player.y - 10;
             for (let e of aliveEnemies) {
                 if (e.y + e.height >= invasionLine) {
-                    // インベーダー到達！即座にゲームオーバー
                     gameState = "GAME_OVER";
                     Sound.playPlayerHit();
                     return;
@@ -989,9 +1285,8 @@
         }
 
         // ── 敵の射撃 ──
-        const shootInterval = safeNum(eCfg.shootInterval, 10, 200, 60);
+        const shootInterval = Math.max(10, safeNum(eCfg.shootInterval, 10, 200, 50) * diffMod().interval);
         if (Math.random() < (1.0 / shootInterval)) {
-            // 生きている列ごとに最下段のインベーダーを抽出
             const bottomEnemies = [];
             const colMap = {};
             for (let e of aliveEnemies) {
@@ -1002,7 +1297,7 @@
             for (let col in colMap) {
                 bottomEnemies.push(colMap[col]);
             }
-            if (bottomEnemies.length > 0 && enemyBullets.length < 4) {
+            if (bottomEnemies.length > 0 && enemyBullets.length < 5) {
                 const shooter = bottomEnemies[Math.floor(Math.random() * bottomEnemies.length)];
                 fireEnemyBullet(shooter);
             }
@@ -1063,12 +1358,17 @@
 
             if (bulletRemoved) continue;
 
-            // 防壁との判定 (プレイヤー弾)
-            for (let bunker of bunkers) {
-                if (bunker.checkHit(pb.x, pb.y, pb.width, pb.height)) {
-                    bunker.damage(pb.x + pb.width / 2, pb.y, 4);
-                    playerBullets.splice(bi, 1);
-                    break;
+            // 防壁との判定 (自弾が貫通するかどうか)
+            const bCfg = window.GameConfig ? window.GameConfig.bunker : {};
+            const passThrough = (bCfg.passThroughPlayer !== false) && !diffMod().noPassThrough;
+
+            if (!passThrough) {
+                for (let bunker of bunkers) {
+                    if (bunker.checkHit(pb.x, pb.y, pb.width, pb.height)) {
+                        bunker.damage(pb.x + pb.width / 2, pb.y, 4);
+                        playerBullets.splice(bi, 1);
+                        break;
+                    }
                 }
             }
         }
@@ -1114,7 +1414,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 🎨 描画ループ (Draw Loop)
+    // 描画ループ (Draw Loop)
     // ─────────────────────────────────────────────
     function draw() {
         ctx.clearRect(0, 0, V_WIDTH, V_HEIGHT);
@@ -1230,27 +1530,49 @@
 
         // 11. ゲームオーバー・クリア画面
         if (gameState === "GAME_OVER") {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
-            ctx.fillRect(0, 180, V_WIDTH, 200);
+            ctx.fillStyle = "rgba(10, 14, 20, 0.88)";
+            ctx.fillRect(0, 160, V_WIDTH, 220);
 
-            ctx.fillStyle = "#FF0033";
-            ctx.font = "bold 32px 'Courier New', monospace";
+            ctx.fillStyle = "#FF3344";
+            ctx.font = "bold 30px 'Courier New', monospace";
             ctx.textAlign = "center";
-            ctx.fillText("GAME OVER", V_WIDTH / 2, 220);
+            ctx.fillText("GAME OVER", V_WIDTH / 2, 210);
 
             ctx.fillStyle = "#FFFF00";
-            ctx.font = "16px 'Courier New', monospace";
-            ctx.fillText("FINAL SCORE: " + score, V_WIDTH / 2, 270);
+            ctx.font = "15px 'Courier New', monospace";
+            ctx.fillText("FINAL SCORE: " + score, V_WIDTH / 2, 260);
 
             ctx.fillStyle = "#00FFFF";
+            ctx.font = "13px 'Courier New', monospace";
+            ctx.fillText("PRESS [SPACE] TO RETURN TO TITLE", V_WIDTH / 2, 310);
+            ctx.textAlign = "left";
+        } else if (gameState === "CLEAR") {
+            ctx.fillStyle = "rgba(10, 14, 20, 0.90)";
+            ctx.fillRect(0, 140, V_WIDTH, 250);
+
+            ctx.fillStyle = "#00FF66";
+            ctx.font = "bold 30px 'Courier New', monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("GAME CLEAR", V_WIDTH / 2, 190);
+
+            ctx.fillStyle = "#FFFF00";
             ctx.font = "14px 'Courier New', monospace";
-            ctx.fillText("PRESS [SPACE] OR TAP FIRE TO RETRY", V_WIDTH / 2, 320);
-            ctx.textAlign = "left"; // リセット
+            ctx.fillText("ALL " + maxWaves + " WAVES COMPLETED", V_WIDTH / 2, 225);
+
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "15px 'Courier New', monospace";
+            ctx.fillText("FINAL SCORE: " + score, V_WIDTH / 2, 265);
+            ctx.fillText("REMAINING LIVES: " + lives, V_WIDTH / 2, 295);
+
+            ctx.fillStyle = "#00FFFF";
+            ctx.font = "13px 'Courier New', monospace";
+            ctx.fillText("PRESS [SPACE] TO RETURN TO TITLE", V_WIDTH / 2, 345);
+            ctx.textAlign = "left";
         }
     }
 
     // ─────────────────────────────────────────────
-    // 🚀 メインループ
+    // メインループ
     // ─────────────────────────────────────────────
     function loop() {
         update();
@@ -1260,6 +1582,7 @@
 
     // 起動
     function start() {
+        setupHomeUI();
         setupTouchControls();
         resetGame(true);
         requestAnimationFrame(loop);
@@ -1273,7 +1596,11 @@
 
     // 設定変更時のリスタート用グローバル関数（IDEからの更新連携用）
     window.reloadGameWithNewConfig = function(newConfig) {
+        const wasPlaying = (gameState !== "READY");
         if (newConfig) window.GameConfig = newConfig;
-        resetGame(true);
+        difficultyChosen = false;
+        wavesChosen = false;
+        resetGame(true, wasPlaying);
+        renderHomePreviewSprites();
     };
 })();
