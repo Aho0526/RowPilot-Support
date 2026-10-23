@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <title>ハコゲーム - 技術仕様ドキュメント & ライブエディタ</title>
+    <link rel="stylesheet" href="style.css?v=20">
+    <style>
+        /* ========================================================
+           全体ベーススタイル（引き算のデザイン / ミニマル & クリーン）
+           ======================================================== */
+        body {
+            overflow-y: auto !important;
+            height: auto !important;
+            min-height: 100vh;
+            padding: 24px 16px 80px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            background: #1e293b;
+            color: #1e293b;
+            transition: padding 0.3s ease;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .main-wrapper {
+            width: 100%;
+            max-width: 960px;
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            gap: 0;
+            transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .doc-container {
+            width: 100%;
+            max-width: 960px;
+            background: #ffffff;
+            border: 3px solid #0f172a;
+            box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.35);
+            border-radius: 8px;
+            padding: 32px 36px;
+            box-sizing: border-box;
+            line-height: 1.7;
+            z-index: 10;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto;
+        }
+
+        .playground-panel {
+            display: none;
+            background: #0f172a;
+            border: 3px solid #000;
+            border-radius: 8px;
+            box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.45);
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 20;
+            box-sizing: border-box;
+            min-width: 320px;
+        }
+
+        /* 左右リサイザー（ドラッグで幅変更） */
+        .h-resizer {
+            display: none;
+            width: 14px;
+            cursor: col-resize;
+            background: transparent;
+            position: relative;
+            z-index: 30;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .h-resizer::after {
+            content: '';
+            width: 4px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 2px;
+            transition: background 0.15s ease, height 0.15s ease;
+        }
+
+        .h-resizer:hover::after, .h-resizer.dragging::after {
+            background: #38bdf8;
+            height: 72px;
+        }
+
+        /* スプリットビュー（ライブエディタ有効時） */
+        body.playground-active {
+            padding: 10px 14px !important;
+            overflow: hidden !important;
+            height: 100vh !important;
+        }
+
+        body.playground-active .main-wrapper {
+            max-width: 100%;
+            height: calc(100vh - 20px);
+            justify-content: flex-start;
+        }
+
+        body.playground-active .doc-container {
+            max-width: none;
+            flex: 0 0 48%;
+            height: 100%;
+            overflow-y: auto !important;
+            padding: 22px 24px;
+            box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.25);
+        }
+
+        body.playground-active .h-resizer {
+            display: flex;
+        }
+
+        body.playground-active .playground-panel {
+            display: flex;
+            flex: 1;
+            height: 100%;
+            animation: slideInPlayground 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideInPlayground {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ----------------------------------------------------
+           プレイグラウンド内部ヘッダー
+           ---------------------------------------------------- */
+        .pg-header {
+            background: #1e293b;
+            border-bottom: 2px solid #000;
+            padding: 6px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .pg-badge {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            background: #38bdf8;
+            color: #0f172a;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .pg-title-text {
+            color: #f8fafc;
+            font-size: 11.5px;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        .pg-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pg-btn {
+            background: #334155;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 10.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+        .pg-btn:hover {
+            background: #475569;
+            color: #38bdf8;
+        }
+
+        .pg-btn.danger {
+            background: #dc2626;
+            border-color: #b91c1c;
+        }
+        .pg-btn.danger:hover {
+            background: #b91c1c;
+            color: #fff;
+        }
+
+        /* プレビュー画面（Canvas最大化） */
+        .preview-section {
+            height: 50%;
+            min-height: 180px;
+            background: #020617;
+            position: relative;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .preview-iframe-wrapper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: #38bdf8;
+        }
+
+        .preview-iframe-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* 上下リサイザー */
+        .v-resizer {
+            height: 8px;
+            background: #1e293b;
+            border-top: 1px solid #334155;
+            border-bottom: 2px solid #000;
+            cursor: row-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            user-select: none;
+            z-index: 25;
+        }
+
+        .v-resizer::after {
+            content: '';
+            width: 36px;
+            height: 2px;
+            background: #64748b;
+            border-radius: 1px;
+            transition: background 0.15s ease;
+        }
+
+        .v-resizer:hover::after, .v-resizer.dragging::after {
+            background: #38bdf8;
+            height: 3px;
+        }
+
+        /* ----------------------------------------------------
+           コードエディタ（行番号 ＋ ミニマップ付き）
+           ---------------------------------------------------- */
+        .editor-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0f172a;
+            min-height: 160px;
+            overflow: hidden;
+        }
+
+        .editor-toolbar {
+            background: #1e293b;
+            padding: 5px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #000;
+            flex-shrink: 0;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .file-tabs-group {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+        }
+
+        .file-tab-btn {
+            background: #0f172a;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            white-space: nowrap;
+        }
+
+        .file-tab-btn:hover {
+            color: #f8fafc;
+            border-color: #64748b;
+        }
+
+        .file-tab-btn.active {
+            background: #2563eb;
+            color: #ffffff;
+            border-color: #1d4ed8;
+        }
+
+        .editor-actions-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pg-save-btn {
+            background: #16a34a;
+            color: #fff;
+            font-size: 10.5px;
+            padding: 5px 12px;
+            border: 1px solid #15803d;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.1s ease;
+        }
+        .pg-save-btn:hover {
+            background: #22c55e;
+            color: #000;
+        }
+
+        /* エディタのメインエリア（行番号 + テキストエリア + ミニマップ） */
+        .editor-main-body {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            position: relative;
+            background: #0b1120;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* 行番号カラム */
+        .line-numbers-col {
+            width: 44px;
+            background: #0b1120;
+            color: #475569;
+            border-right: 1px solid #1e293b;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 12px;
+            line-height: 20px;
+            padding: 8px 6px 8px 0;
+            text-align: right;
+            user-select: none;
+            overflow: hidden;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        .line-num {
+            height: 20px;
+            display: block;
+        }
+        .line-num.highlighted {
+            color: #fbbf24;
+            font-weight: bold;
+            background: rgba(251, 191, 36, 0.18);
+        }
+
+        /* テキストエリア本体 */
+        .editor-text-wrapper {
+            flex: 1;
+            position: relative;
+            min-width: 0;
+            height: 100%;
+        }
+
+        .editor-textarea {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            color: #e2e8f0;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 12px;
+            line-height: 20px;
+            padding: 8px 10px;
+            tab-size: 2;
+            box-sizing: border-box;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow: auto;
+        }
+
+        /* ミニマップ (VS Code 風コードマップ) */
+        .minimap-col {
+            width: 52px;
+            background: #070d17;
+            border-left: 1px solid #1e293b;
+            position: relative;
+            flex-shrink: 0;
+            overflow: hidden;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .minimap-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* ミニマップ上の現在位置スライダー（表示範囲） */
+        .minimap-slider {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.14);
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+            transition: top 0.05s ease;
+        }
+
+        .editor-status-bar {
+            background: #1e293b;
+            border-top: 1px solid #334155;
+            padding: 4px 10px;
+            font-size: 10.5px;
+            color: #94a3b8;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* ----------------------------------------------------
+           教材ドキュメント スタイル
+           ---------------------------------------------------- */
+        .doc-header {
+            text-align: center;
+            border-bottom: 2px dashed #cbd5e1;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
+
+        .doc-badge {
+            display: inline-block;
+            background: #0f172a;
+            color: #38bdf8;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .doc-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 8px;
+            line-height: 1.4;
+        }
+
+        .doc-subtitle {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 600;
+            margin: 0 0 14px;
+        }
+
+        .header-nav {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .header-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            color: #0f172a;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 7px 12px;
+            border: 1.5px solid #0f172a;
+            border-radius: 4px;
+            transition: all 0.1s ease;
+            cursor: pointer;
+        }
+
+        .header-link-btn:hover {
+            background: #e2e8f0;
+            transform: translate(-1px, -1px);
+        }
+
+        .header-link-btn.primary {
+            background: #2563eb;
+            color: #fff;
+            border-color: #1d4ed8;
+        }
+        .header-link-btn.primary:hover {
+            background: #1d4ed8;
+        }
+
+        .header-link-btn.try-btn {
+            background: #0f172a;
+            color: #38bdf8;
+            border-color: #38bdf8;
+        }
+        .header-link-btn.try-btn:hover {
+            background: #38bdf8;
+            color: #0f172a;
+        }
+
+        /* タブナビゲーション */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            border-bottom: 2px solid #0f172a;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding-bottom: 0;
+        }
+
+        .tab-btn {
+            background: #f1f5f9;
+            border: 1.5px solid #0f172a;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            padding: 8px 12px;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .tab-btn.active {
+            background: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+            transform: translateY(1px);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* セクションスタイル */
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-heading {
+            font-size: 17px;
+            font-weight: 800;
+            color: #0f172a;
+            border-left: 4px solid #2563eb;
+            padding-left: 10px;
+            margin: 0 0 14px;
+        }
+
+        .subsection-heading {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 20px 0 8px;
+        }
+
+        p {
+            margin: 0 0 12px;
+            font-size: 13.5px;
+            color: #334155;
+        }
+
+        /* コードジャンプボタン */
+        .code-jump-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            margin: 6px 0 10px;
+            transition: all 0.1s ease;
+        }
+        .code-jump-btn:hover {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            transform: translateX(2px);
+        }
+
+        /* カード / ノートボックス */
+        .info-card {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 14px 16px;
+            margin: 14px 0;
+            font-size: 13px;
+        }
+
+        .info-card.tip {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+        }
+
+        .info-card.warning {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .card-title {
+            font-weight: 800;
+            margin-bottom: 6px;
+            color: #0f172a;
+        }
+
+        /* コードブロック */
+        .code-container {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            margin: 14px 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e293b;
+            padding: 6px 12px;
+            border-bottom: 1px solid #334155;
+            font-size: 11px;
+            color: #94a3b8;
+            font-family: monospace;
+        }
+
+        .code-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .copy-btn {
+            background: #334155;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        .copy-btn:hover {
+            background: #475569;
+            color: #38bdf8;
+        }
+
+        pre {
+            margin: 0;
+            padding: 12px 14px;
+            overflow-x: auto;
+            color: #f8fafc;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        p code, li code {
+            background: #e2e8f0;
+            color: #0f172a;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        /* テーブル */
+        .doc-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0;
+            font-size: 12.5px;
+        }
+
+        .doc-table th, .doc-table td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .doc-table th {
+            background: #f1f5f9;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .doc-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        /* 座標系図解 */
+        .grid-visualizer {
+            display: inline-grid;
+            grid-template-columns: repeat(5, 48px);
+            grid-template-rows: repeat(5, 48px);
+            gap: 3px;
+            background: #0f172a;
+            padding: 8px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+
+        .grid-cell {
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            border-radius: 3px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 9.5px;
+            font-family: monospace;
+        }
+
+        .grid-cell .cell-coord {
+            color: #38bdf8;
+            font-weight: bold;
+        }
+
+        .grid-cell .cell-key {
+            color: #fbbf24;
+            font-size: 8.5px;
+        }
+
+        .footer-note {
+            text-align: center;
+            border-top: 1px dashed #cbd5e1;
+            padding-top: 16px;
+            margin-top: 32px;
+            font-size: 12px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper" id="mainWrapper">
+        <!-- ======================================================== -->
+        <!-- 左カラム: 教材技術ドキュメント -->
+        <!-- ======================================================== -->
+        <div class="doc-container" id="docContainer">
+            <header class="doc-header">
+                <div class="doc-badge">TECHNICAL SPECIFICATION</div>
+                <h1 class="doc-title">ハコゲーム 技術解説書</h1>
+                <p class="doc-subtitle">ファイル構成・エンジン構造・ステージ作成・既存コード完全解説</p>
+                <div class="header-nav">
+                    <button class="header-link-btn try-btn" id="openPlaygroundBtn" onclick="togglePlayground(true)">ライブエディタを開く</button>
+                    <a href="index.html" class="header-link-btn primary">ゲーム本編を開く</a>
+                    <a href="how-to-play.html" target="_blank" class="header-link-btn">操作ガイド</a>
+                </div>
+            </header>
+
+            <!-- タブナビゲーション -->
+            <nav class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('architecture')">1. アーキテクチャ概要</button>
+                <button class="tab-btn" onclick="switchTab('code-walkthrough')">2. ソースコード解説</button>
+                <button class="tab-btn" onclick="switchTab('engine')">3. コアアルゴリズム</button>
+                <button class="tab-btn" onclick="switchTab('stages')">4. ステージ作成ガイド</button>
+                <button class="tab-btn" onclick="switchTab('tips')">5. デバッグ・発展課題</button>
+            </nav>
+
+            <!-- TAB 1: アーキテクチャ概要 -->
+            <div id="tab-architecture" class="tab-content active">
+                <div class="section">
+                    <h2 class="section-heading">設計思想と技術スタック</h2>
+                    <p>
+                        本システムは、ブラウザ標準の <b>HTML5 Canvas</b>、<b>Vanilla JavaScript</b>、<b>Vanilla CSS</b> のみで構築されています。<br>
+                        フレームワーク非依存であるため、ブラウザで開くだけで即座に動作し、DOM操作・描画ループ・状態管理・配列アルゴリズムといったWeb技術の本質を直接学習できる構造になっています。
+                    </p>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-heading">4つのファイルの役割と連携</h2>
+                    <table class="doc-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 120px;">ファイル名</th>
+                                <th style="width: 130px;">レイヤー</th>
+                                <th>役割</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><b>stages.js</b></td>
+                                <td>データ層 (Model)</td>
+                                <td>ロジックを持たない純粋なデータ定義。全19ステージの初期状態、ギミック、解法配置を保持します。</td>
+                            </tr>
+                            <tr>
+                                <td><b>main.js</b></td>
+                                <td>エンジン (Controller)</td>
+                                <td>Canvas描画パイプライン、ブロック連鎖移動シミュレーション、経路走査、アニメーション制御を担当します。</td>
+                            </tr>
+                            <tr>
+                                <td><b>index.html</b></td>
+                                <td>画面構造 (View)</td>
+                                <td>Canvas要素（800x450）、UIコントロール、モーダルダイアログを定義します。</td>
+                            </tr>
+                            <tr>
+                                <td><b>style.css</b></td>
+                                <td>装飾 (Presentation)</td>
+                                <td>レトロデザイン、立体押しボタンのシャドウ表現、レスポンシブ配置を制御します。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-heading">状態遷移（ライフサイクル）</h2>
+                    <p>変数 <code>phase</code> による状態管理を行っています。</p>
+                    <table class="doc-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 140px;">フェーズ</th>
+                                <th>内容</th>
+                                <th style="width: 160px;">次の遷移</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>'place'</code></td>
+                                <td>ブロック配置中（プレイヤーが自由に設置・削除可能）</td>
+                                <td>スタートボタン押下</td>
+                            </tr>
+                            <tr>
+                                <td><code>'block_move'</code></td>
+                                <td>ギミックによるブロックのスライド移動アニメーション中</td>
+                                <td>全ブロックの移動完了</td>
+                            </tr>
+                            <tr>
+                                <td><code>'running'</code></td>
+                                <td>キャラクターが土管から出発し、ブロック上を走査中</td>
+                                <td>ゴール到達 / 落下 / 激突</td>
+                            </tr>
+                            <tr>
+                                <td><code>'clear'</code></td>
+                                <td>クリア演出（花火・メッセージ）</td>
+                                <td>次ステージ / リセット</td>
+                            </tr>
+                            <tr>
+                                <td><code>'gameover'</code></td>
+                                <td>ミス演出（放物線リスポーン）後に自動復旧</td>
+                                <td>自動で 'place' へ復帰</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 2: ソースコード解説（行数・ジャンプ付き） -->
+            <div id="tab-code-walkthrough" class="tab-content">
+                <div class="section">
+                    <h2 class="section-heading">既存ソースコード完全解説</h2>
+                    <p>
+                        各ファイルの実装内容を、実際の行番号とともに解説します。ボタンを押すと右側のエディタが該当行へ自動移動します。
+                    </p>
+                </div>
+
+                <!-- stages.js 解説 -->
+                <div class="section">
+                    <h3 class="subsection-heading">1. stages.js のコード構造</h3>
+                    <p>全ステージの定義データ配列 <code>STAGES</code> の構造です。</p>
+
+                    <button class="code-jump-btn" onclick="jumpToCode('stages.js', 5)">コードの位置を表示 [stages.js: 5行目] →</button>
+
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span>stages.js (5〜38行目: ステージ1の定義)</span>
+                            <div class="code-header-right">
+                                <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+                            </div>
+                        </div>
+                        <pre><code>// stages.js (L5-L38)
+const STAGES = [
+    {
+        id: 1,
+        title: 'ステージ 1',
+        subtitle: 'ブロックが滑る新ギミック！',
+        maxBlocks: 7,          // 配置可能な最大ブロック数
+        startRow: 3,           // スタート土管の行位置 (0〜4)
+        goalRow: 1,            // ゴールブロックの行位置 (0〜4)
+        forbidden: [           // 配置禁止マス（赤の斜線）
+            { col: 3, row: 0 }, { col: 4, row: 1 },
+            { col: 3, row: 2 }, { col: 3, row: 3 }
+        ],
+        gimmicks: [            // 矢印ギミック
+            // 水色矢印: 端まで直進スライド (紫枠も兼用)
+            { col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: true },
+            { col: 2, row: 1, type: 'dash', dir: 'left', purpleBorder: false },
+            // 緑色矢印: 1マスのみ移動
+            { col: 3, row: 1, type: 'step', dir: 'left', steps: 1 }
+        ],
+        solution: [            // 答え合わせ用の正解配置
+            { col: 3, row: 1 },
+            { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 4, row: 2 },
+            { col: 0, row: 3 }, { col: 1, row: 3 }, { col: 4, row: 3 }
+        ]
+    },
+    ...
+];</code></pre>
+                    </div>
+                </div>
+
+                <!-- main.js 解説 -->
+                <div class="section">
+                    <h3 class="subsection-heading">2. main.js の重要ロジック解説</h3>
+
+                    <p><b>① 連結判定アルゴリズム (checkConnected)</b></p>
+                    <p>複数ブロックが置かれた際、上下左右斜め（8方向）にすべて連結しているかを深さ優先探索（DFS）で検証します。</p>
+                    <button class="code-jump-btn" onclick="jumpToCode('main.js', 240)">コードの位置を表示 [main.js: 240行目付近] →</button>
+
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span>main.js (連結チェック関数)</span>
+                            <div class="code-header-right">
+                                <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+                            </div>
+                        </div>
+                        <pre><code>// main.js: 8近傍DFS探索
+function checkConnected() {
+    const blocks = [];
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (grid[r][c]) blocks.push({ c, r });
+        }
+    }
+    if (blocks.length <= 1) return true;
+
+    const visited = new Set();
+    function dfs(c, r) {
+        const key = `${c},${r}`;
+        if (visited.has(key)) return;
+        visited.add(key);
+        // 上下左右斜めの8近傍を再帰探索
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue;
+                const nc = c + dc, nr = r + dr;
+                if (nc >= 0 && nc < COLS && nr >= 0 && nr < ROWS && grid[nr][nc]) {
+                    dfs(nc, nr);
+                }
+            }
+        }
+    }
+    dfs(blocks[0].c, blocks[0].r);
+    return visited.size === blocks.length;
+}</code></pre>
+                    </div>
+
+                    <p><b>② 毎フレーム描画ループ (render)</b></p>
+                    <p>奥の背景から手前のUIへと順番にCanvasへレイヤー描画します。</p>
+                    <button class="code-jump-btn" onclick="jumpToCode('main.js', 700)">コードの位置を表示 [main.js: 700行目付近] →</button>
+
+                    <p><b>③ キャラクタールート走査 (solveRoute)</b></p>
+                    <p>キャラクターが1列進むごとに「正面にブロックがあるか」「足元に足場があるか」「落下するか」をシミュレートし、アニメーション用のキーフレームを生成します。</p>
+                    <button class="code-jump-btn" onclick="jumpToCode('main.js', 950)">コードの位置を表示 [main.js: 950行目付近] →</button>
+                </div>
+            </div>
+
+            <!-- TAB 3: コアアルゴリズム -->
+            <div id="tab-engine" class="tab-content">
+                <div class="section">
+                    <h2 class="section-heading">ギミックの連鎖移動ロジック</h2>
+                    <p>
+                        複数ブロックの同時移動時、進行方向に応じた優先ソートを行うことで、前方のブロックから順に衝突なく移動させます。また、無限循環移動ギミックに対しては訪問履歴Setによるループ検知で安全に停止します。
+                    </p>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-heading">歩行・ジャンプ判定仕様</h2>
+                    <table class="doc-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 140px;">条件</th>
+                                <th style="width: 150px;">判定式</th>
+                                <th>結果動作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>正面にブロック（1段）</td>
+                                <td><code>getBlock(col, curY)</code></td>
+                                <td>上へジャンプ。ただし頭上（curY-1）にブロックがあれば衝突ミス。</td>
+                            </tr>
+                            <tr>
+                                <td>足元に足場あり</td>
+                                <td><code>getBlock(col, curY + 1)</code></td>
+                                <td>同じ高さを維持して水平歩行。</td>
+                            </tr>
+                            <tr>
+                                <td>足場なし</td>
+                                <td>足元ブロックなし</td>
+                                <td>下方のブロックを探して着地。1つもなければ奈落落下でミス。</td>
+                            </tr>
+                            <tr>
+                                <td>ゴール列到達</td>
+                                <td><code>col === 5</code></td>
+                                <td>ゴールと同じ高さ、または1マス下からの登りジャンプでクリア。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 4: ステージ作成ガイド -->
+            <div id="tab-stages" class="tab-content">
+                <div class="section">
+                    <h2 class="section-heading">5×5 グリッド座標系</h2>
+                    <p>横方向（列 col: 0〜4）、縦方向（行 row: 0〜4）の0オリジンで定義します。</p>
+
+                    <div style="text-align: center; margin: 12px 0;">
+                        <div class="grid-visualizer">
+                            <div class="grid-cell"><span class="cell-coord">0,0</span><span class="cell-key">Q</span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,0</span><span class="cell-key">W</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,0</span><span class="cell-key">E</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,0</span><span class="cell-key">R</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,0</span><span class="cell-key">T</span></div>
+
+                            <div class="grid-cell"><span class="cell-coord">0,1</span><span class="cell-key">A</span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,1</span><span class="cell-key">S</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,1</span><span class="cell-key">D</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,1</span><span class="cell-key">F</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,1</span><span class="cell-key">G</span></div>
+
+                            <div class="grid-cell"><span class="cell-coord">0,2</span><span class="cell-key">Z</span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,2</span><span class="cell-key">X</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,2</span><span class="cell-key">C</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,2</span><span class="cell-key">V</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,2</span><span class="cell-key">B</span></div>
+
+                            <div class="grid-cell"><span class="cell-coord">0,3</span><span class="cell-key">Y</span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,3</span><span class="cell-key">U</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,3</span><span class="cell-key">I</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,3</span><span class="cell-key">O</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,3</span><span class="cell-key">P</span></div>
+
+                            <div class="grid-cell"><span class="cell-coord">0,4</span><span class="cell-key">H</span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,4</span><span class="cell-key">J</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,4</span><span class="cell-key">K</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,4</span><span class="cell-key">L</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,4</span><span class="cell-key">N</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-heading">新ステージ定義のテンプレート</h2>
+                    <p><code>stages.js</code> の配列末尾に追加して作成します。右側のエディタで直接編集・テストが可能です。</p>
+
+                    <button class="code-jump-btn" onclick="openPlaygroundWithTemplate()">エディタでテンプレートを挿入して試す →</button>
+
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span>新規ステージ用テンプレート</span>
+                            <div class="code-header-right">
+                                <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+                            </div>
+                        </div>
+                        <pre><code>    {
+        id: 20,                          // ステージ番号
+        title: 'ステージ 20',             // タイトル
+        subtitle: '連鎖移動の応用',        // サブタイトル
+        maxBlocks: 6,                    // 最大ブロック数
+        startRow: 3,                     // スタート土管の行 (0〜4)
+        goalRow: 1,                      // ゴールブロックの行 (0〜4)
+        hasCeiling: false,               // 最上部の天井バー有無
+
+        forbidden: [                     // 配置不可マス
+            { col: 1, row: 0 }, { col: 3, row: 2 }
+        ],
+        gimmicks: [                      // ギミック
+            { col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: true },
+            { col: 3, row: 1, type: 'step', dir: 'left', steps: 1 }
+        ],
+        solution: [                      // 正解配置
+            { col: 1, row: 3 }, { col: 2, row: 2 }, { col: 3, row: 1 }
+        ]
+    },</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: デバッグ・発展課題 -->
+            <div id="tab-tips" class="tab-content">
+                <div class="section">
+                    <h2 class="section-heading">クリアできない時のチェックリスト</h2>
+                    <div class="info-card warning">
+                        <div class="card-title">主な失敗原因</div>
+                        <ul>
+                            <li><b>1. 1列目の足場不足:</b> スタート土管直前（列0）に足場がないと即落下します。</li>
+                            <li><b>2. 頭上衝突:</b> 1段ブロックを登る際、真上のマスにブロックがあると激突します。</li>
+                            <li><b>3. ゴール高さ不一致:</b> ゴール位置（goalRow）と同じ高さ、または1マス下からの進入でなければ壁衝突になります。</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-heading">コンソールデバッグコマンド</h2>
+                    <div class="code-container">
+                        <div class="code-header"><span>開発者ツール用コマンド</span></div>
+                        <pre><code>// 現在のステージ確認
+console.log(getStage());
+
+// 正解配置を自動適用
+applySolution();
+
+// 経路走査のキーフレームをシミュレート
+console.log(solveRoute());</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="footer-note">
+                ハコゲーム - 技術仕様ドキュメント | 著者：中平 開登 / Antigravity AI
+            </footer>
+        </div>
+
+        <!-- 左右スプリッター（リサイザー） -->
+        <div class="h-resizer" id="hResizer" title="ドラッグして教材とエディタの幅を変更"></div>
+
+        <!-- ======================================================== -->
+        <!-- 右カラム: プレイグラウンド（エディタ & ゲーム画面） -->
+        <!-- ======================================================== -->
+        <div class="playground-panel" id="playgroundPanel">
+            <div class="pg-header">
+                <div class="pg-badge-group">
+                    <span class="pg-badge">PLAYGROUND</span>
+                    <span class="pg-title-text">マルチファイル・エディタ & リアルタイム検証</span>
+                </div>
+                <div class="pg-actions">
+                    <button class="pg-btn" onclick="reloadPreview()" title="ゲームを再読み込み">再読み込み</button>
+                    <button class="pg-btn danger" onclick="togglePlayground(false)">閉じる</button>
+                </div>
+            </div>
+
+            <!-- 右上：ゲームプレビュー（余計なバーなし・最大化） -->
+            <div class="preview-section" id="previewSection">
+                <div class="preview-iframe-wrapper">
+                    <iframe id="gamePreviewFrame" src="index.html?v=20"></iframe>
+                </div>
+            </div>
+
+            <!-- 上下スプリッター（リサイザー） -->
+            <div class="v-resizer" id="vResizer" title="ドラッグしてゲーム画面とエディタの高さを変更"></div>
+
+            <!-- 右下：コードエディタ（行番号 ＋ ミニマップ付き） -->
+            <div class="editor-section" id="editorSection">
+                <div class="editor-toolbar">
+                    <div class="file-tabs-group">
+                        <button class="file-tab-btn active" id="tab-stages.js" onclick="switchEditorFile('stages.js')">stages.js</button>
+                        <button class="file-tab-btn" id="tab-main.js" onclick="switchEditorFile('main.js')">main.js</button>
+                        <button class="file-tab-btn" id="tab-index.html" onclick="switchEditorFile('index.html')">index.html</button>
+                        <button class="file-tab-btn" id="tab-style.css" onclick="switchEditorFile('style.css')">style.css</button>
+                    </div>
+                    <div class="editor-actions-group">
+                        <button class="pg-btn" id="templateInsertBtn" onclick="insertStageTemplate()" title="新規ステージ用テンプレートを挿入">雛形コードを挿入</button>
+                        <button class="pg-save-btn" id="runStageBtn" onclick="applyEditorContent()">変更をゲームに反映</button>
+                    </div>
+                </div>
+
+                <!-- エディタメインエリア（行番号 + テキストエリア + ミニマップ） -->
+                <div class="editor-main-body">
+                    <!-- 行番号カラム -->
+                    <div class="line-numbers-col" id="lineNumbersCol"></div>
+
+                    <!-- テキストエリア -->
+                    <div class="editor-text-wrapper">
+                        <textarea id="stageCodeEditor" class="editor-textarea" spellcheck="false" placeholder="コードを読み込み中..."></textarea>
+                    </div>
+
+                    <!-- ミニマップ (コード全体の縮小ビュー) -->
+                    <div class="minimap-col" id="minimapCol" title="クリックまたはドラッグして素早く移動">
+                        <canvas class="minimap-canvas" id="minimapCanvas"></canvas>
+                        <div class="minimap-slider" id="minimapSlider"></div>
+                    </div>
+                </div>
+
+                <div class="editor-status-bar" id="editorStatusBar">
+                    <span id="editorStatusText">ファイルタブを切り替えて各コードを確認・編集できます。</span>
+                    <span id="cursorPosText">Line: 1, Col: 1</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 外部スクリプト読込 -->
+    <script src="stages.js"></script>
+    <script>
+        // タブ切り替え
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => {
+                const onclick = btn.getAttribute('onclick');
+                return onclick && onclick.includes(tabId);
+            });
+            if (targetBtn) targetBtn.classList.add('active');
+
+            const targetContent = document.getElementById('tab-' + tabId);
+            if (targetContent) targetContent.classList.add('active');
+
+            window.location.hash = tabId;
+        }
+
+        // ========================================================
+        // マルチファイル管理
+        // ========================================================
+        const FILES = {
+            'stages.js': '',
+            'main.js': '',
+            'index.html': '',
+            'style.css': ''
+        };
+        let currentFile = 'stages.js';
+
+        async function fetchProjectFiles() {
+            for (const filename of Object.keys(FILES)) {
+                try {
+                    const res = await fetch(filename + '?t=' + Date.now());
+                    if (res.ok) {
+                        FILES[filename] = await res.text();
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch ' + filename, e);
+                }
+            }
+
+            if (!FILES['stages.js'] && window.STAGES) {
+                FILES['stages.js'] = 'const STAGES = ' + JSON.stringify(window.STAGES, null, 2) + ';';
+            }
+
+            const editor = document.getElementById('stageCodeEditor');
+            if (editor && FILES[currentFile]) {
+                editor.value = FILES[currentFile];
+                updateLineNumbersAndMinimap();
+            }
+        }
+
+        function switchEditorFile(filename, targetLine) {
+            const editor = document.getElementById('stageCodeEditor');
+            if (editor) {
+                FILES[currentFile] = editor.value;
+            }
+
+            currentFile = filename;
+            document.querySelectorAll('.file-tab-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById('tab-' + filename);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            if (editor) {
+                editor.value = FILES[filename] || '// ' + filename + ' を読み込み中...';
+                updateLineNumbersAndMinimap();
+
+                if (targetLine !== undefined) {
+                    scrollToLine(targetLine);
+                } else {
+                    editor.scrollTop = 0;
+                }
+            }
+
+            const tplBtn = document.getElementById('templateInsertBtn');
+            if (tplBtn) {
+                tplBtn.style.display = (filename === 'stages.js') ? 'inline-block' : 'none';
+            }
+
+            setStatus(`ファイル [${filename}] を表示中`, '#94a3b8');
+        }
+
+        // ========================================================
+        // 行番号 ＆ ミニマップ レンダリング
+        // ========================================================
+        const LINE_HEIGHT = 20;
+
+        function updateLineNumbersAndMinimap() {
+            const editor = document.getElementById('stageCodeEditor');
+            const lineCol = document.getElementById('lineNumbersCol');
+            if (!editor || !lineCol) return;
+
+            const lines = editor.value.split('\n');
+            const count = lines.length;
+
+            // 行番号 HTML 更新
+            let numsHtml = '';
+            for (let i = 1; i <= count; i++) {
+                numsHtml += `<span class="line-num" id="ln-${i}">${i}</span>`;
+            }
+            lineCol.innerHTML = numsHtml;
+
+            // ミニマップ描画
+            drawMinimap(lines);
+            syncScroll();
+        }
+
+        function drawMinimap(lines) {
+            const canvas = document.getElementById('minimapCanvas');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const w = canvas.parentElement.clientWidth;
+            const h = canvas.parentElement.clientHeight;
+            canvas.width = w;
+            canvas.height = h;
+
+            ctx.clearRect(0, 0, w, h);
+
+            if (!lines || lines.length === 0) return;
+
+            const totalLines = lines.length;
+            const rowH = Math.max(1, Math.min(2.5, h / totalLines));
+
+            for (let i = 0; i < totalLines; i++) {
+                const line = lines[i];
+                const y = (i / totalLines) * h;
+                const len = Math.min(w - 6, Math.max(2, line.trim().length * 1.5));
+
+                if (line.trim().startsWith('//')) {
+                    ctx.fillStyle = '#475569';
+                } else if (line.includes('function') || line.includes('const') || line.includes('let')) {
+                    ctx.fillStyle = '#38bdf8';
+                } else {
+                    ctx.fillStyle = '#64748b';
+                }
+
+                ctx.fillRect(4, y, len, Math.max(1, rowH - 0.5));
+            }
+        }
+
+        // スクロール同期（テキストエリア ➔ 行番号 ＆ ミニマップスライダー）
+        function syncScroll() {
+            const editor = document.getElementById('stageCodeEditor');
+            const lineCol = document.getElementById('lineNumbersCol');
+            const slider = document.getElementById('minimapSlider');
+            const minimap = document.getElementById('minimapCol');
+
+            if (!editor || !lineCol || !slider || !minimap) return;
+
+            // 行番号のスクロール同期
+            lineCol.scrollTop = editor.scrollTop;
+
+            // ミニマップスライダーの位置・高さ計算
+            const totalH = editor.scrollHeight;
+            const visibleH = editor.clientHeight;
+            const mapH = minimap.clientHeight;
+
+            if (totalH > 0) {
+                const sliderH = Math.max(16, (visibleH / totalH) * mapH);
+                const sliderTop = (editor.scrollTop / totalH) * mapH;
+                slider.style.height = `${sliderH}px`;
+                slider.style.top = `${sliderTop}px`;
+            }
+        }
+
+        // 指定行へジャンプスクロール & 一時ハイライト
+        function scrollToLine(lineNum) {
+            const editor = document.getElementById('stageCodeEditor');
+            if (!editor) return;
+
+            const targetScrollTop = Math.max(0, (lineNum - 1) * LINE_HEIGHT - 60);
+            editor.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+
+            // 行番号ハイライト
+            document.querySelectorAll('.line-num').forEach(el => el.classList.remove('highlighted'));
+            const targetEl = document.getElementById(`ln-${lineNum}`);
+            if (targetEl) {
+                targetEl.classList.add('highlighted');
+                setTimeout(() => targetEl.classList.remove('highlighted'), 2000);
+            }
+        }
+
+        // 解説文からのコードジャンプ
+        function jumpToCode(filename, lineNum) {
+            togglePlayground(true);
+            setTimeout(() => {
+                switchEditorFile(filename, lineNum);
+            }, 100);
+        }
+
+        // ミニマップクリックによるスクロール移動
+        const minimapCol = document.getElementById('minimapCol');
+        if (minimapCol) {
+            let isMapDragging = false;
+
+            const handleMapSeek = (e) => {
+                const rect = minimapCol.getBoundingClientRect();
+                const ratio = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+                const editor = document.getElementById('stageCodeEditor');
+                if (editor) {
+                    editor.scrollTop = ratio * editor.scrollHeight - (editor.clientHeight / 2);
+                }
+            };
+
+            minimapCol.addEventListener('mousedown', (e) => {
+                isMapDragging = true;
+                handleMapSeek(e);
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (isMapDragging) handleMapSeek(e);
+            });
+            window.addEventListener('mouseup', () => {
+                isMapDragging = false;
+            });
+        }
+
+        // ========================================================
+        // プレイグラウンドの開閉トグル
+        // ========================================================
+        function togglePlayground(open) {
+            const body = document.body;
+            const openBtn = document.getElementById('openPlaygroundBtn');
+            const shouldOpen = (open !== undefined) ? open : !body.classList.contains('playground-active');
+
+            if (shouldOpen) {
+                body.classList.add('playground-active');
+                if (openBtn) openBtn.textContent = '教材全画面に戻る';
+
+                const editor = document.getElementById('stageCodeEditor');
+                if (!editor.value.trim()) {
+                    fetchProjectFiles();
+                }
+
+                ensureIframeGameView();
+                setTimeout(updateLineNumbersAndMinimap, 150);
+            } else {
+                body.classList.remove('playground-active');
+                if (openBtn) openBtn.textContent = 'ライブエディタを開く';
+            }
+        }
+
+        function openPlaygroundWithTemplate() {
+            togglePlayground(true);
+            setTimeout(() => {
+                insertStageTemplate();
+            }, 200);
+        }
+
+        function ensureIframeGameView() {
+            const iframe = document.getElementById('gamePreviewFrame');
+            if (!iframe) return;
+
+            const tryInit = () => {
+                try {
+                    const win = iframe.contentWindow;
+                    const doc = iframe.contentDocument || (win && win.document);
+                    if (doc) {
+                        doc.documentElement.classList.add('in-iframe');
+                        if (doc.body) doc.body.classList.add('in-iframe');
+                    }
+                    if (win && typeof win.switchView === 'function') {
+                        win.switchView('game');
+                    }
+                } catch (e) {}
+            };
+
+            if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+                setTimeout(tryInit, 150);
+            } else {
+                iframe.addEventListener('load', () => setTimeout(tryInit, 250), { once: true });
+            }
+        }
+
+        function reloadPreview() {
+            const iframe = document.getElementById('gamePreviewFrame');
+            if (iframe) {
+                iframe.src = iframe.src;
+                ensureIframeGameView();
+                setStatus('ゲームプレビューを再読み込みしました', '#38bdf8');
+            }
+        }
+
+        // ========================================================
+        // エディタコードの即時反映
+        // ========================================================
+        function applyEditorContent() {
+            const editor = document.getElementById('stageCodeEditor');
+            const code = editor.value.trim();
+            const iframe = document.getElementById('gamePreviewFrame');
+
+            if (!code) {
+                setStatus('エディタが空です。', '#f59e0b');
+                return;
+            }
+
+            FILES[currentFile] = code;
+
+            if (currentFile === 'stages.js') {
+                try {
+                    let cleanedCode = code.replace(/const\s+STAGES\s*=/, 'var STAGES =');
+                    cleanedCode = cleanedCode.replace(/let\s+STAGES\s*=/, 'var STAGES =');
+                    const fn = new Function(cleanedCode + '; return (typeof STAGES !== "undefined") ? STAGES : null;');
+                    const extractedStages = fn();
+
+                    if (!extractedStages || !Array.isArray(extractedStages)) {
+                        throw new Error('STAGES 配列が見つかりません。');
+                    }
+
+                    const win = iframe.contentWindow;
+                    if (win && typeof win.applyCustomStages === 'function') {
+                        const targetIdx = extractedStages.length - 1;
+                        win.applyCustomStages(extractedStages, targetIdx);
+                        onApplySuccess(extractedStages[targetIdx].title || 'ステージ更新');
+                    } else {
+                        win.postMessage({ type: 'UPDATE_STAGES', stages: extractedStages, targetIndex: extractedStages.length - 1 }, '*');
+                        onApplySuccess('ステージ更新');
+                    }
+                } catch (err) {
+                    setStatus('stages.js 構文エラー: ' + err.message, '#ef4444');
+                }
+            } else if (currentFile === 'style.css') {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    let styleTag = iframeDoc.getElementById('custom-injected-style');
+                    if (!styleTag) {
+                        styleTag = iframeDoc.createElement('style');
+                        styleTag.id = 'custom-injected-style';
+                        iframeDoc.head.appendChild(styleTag);
+                    }
+                    styleTag.textContent = code;
+                    onApplySuccess('style.css の変更を適用しました');
+                } catch (err) {
+                    setStatus('CSS適用エラー: ' + err.message, '#ef4444');
+                }
+            } else {
+                setStatus(`${currentFile} を保存しました。プレビューを更新します...`, '#38bdf8');
+                reloadPreview();
+            }
+        }
+
+        function onApplySuccess(title) {
+            setStatus(`反映完了: ${title}`, '#22c55e');
+
+            const btn = document.getElementById('runStageBtn');
+            const originalText = btn.textContent;
+            btn.textContent = '反映完了';
+            btn.style.background = '#22c55e';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 1200);
+        }
+
+        function setStatus(msg, color) {
+            const el = document.getElementById('editorStatusText');
+            if (el) {
+                el.innerHTML = msg;
+                el.style.color = color || '#94a3b8';
+            }
+        }
+
+        function insertStageTemplate() {
+            if (currentFile !== 'stages.js') {
+                switchEditorFile('stages.js');
+            }
+            const editor = document.getElementById('stageCodeEditor');
+            const templateCode = `
+    // ------------------------------------------
+    // 新規作成ステージ
+    // ------------------------------------------
+    {
+        id: 99,
+        title: 'カスタムステージ',
+        subtitle: '自作ステージのテストプレイ',
+        maxBlocks: 6,
+        startRow: 3,
+        goalRow: 1,
+        hasCeiling: false,
+        forbidden: [
+            { col: 1, row: 0 },
+            { col: 3, row: 2 }
+        ],
+        gimmicks: [
+            { col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: true },
+            { col: 3, row: 1, type: 'step', dir: 'left', steps: 1 }
+        ],
+        solution: [
+            { col: 1, row: 3 },
+            { col: 2, row: 2 },
+            { col: 3, row: 1 }
+        ]
+    },`;
+
+            const val = editor.value;
+            const lastBracket = val.lastIndexOf(']');
+            if (lastBracket !== -1) {
+                editor.value = val.substring(0, lastBracket) + templateCode + '\n' + val.substring(lastBracket);
+            } else {
+                editor.value += templateCode;
+            }
+            updateLineNumbersAndMinimap();
+            scrollToLine(val.split('\n').length);
+            setStatus('新規ステージの雛形を挿入しました。「変更をゲームに反映」を押してください。', '#fbbf24');
+        }
+
+        // ========================================================
+        // スプリッター・リサイザー
+        // ========================================================
+        const hResizer = document.getElementById('hResizer');
+        const vResizer = document.getElementById('vResizer');
+        const docContainer = document.getElementById('docContainer');
+        const previewSection = document.getElementById('previewSection');
+        const iframeWrapper = document.querySelector('.preview-iframe-wrapper');
+
+        let isHDragging = false;
+        hResizer.addEventListener('mousedown', (e) => {
+            isHDragging = true;
+            hResizer.classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+            if (iframeWrapper) iframeWrapper.style.pointerEvents = 'none';
+            e.preventDefault();
+        });
+
+        let isVDragging = false;
+        vResizer.addEventListener('mousedown', (e) => {
+            isVDragging = true;
+            vResizer.classList.add('dragging');
+            document.body.style.cursor = 'row-resize';
+            if (iframeWrapper) iframeWrapper.style.pointerEvents = 'none';
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isHDragging) {
+                const totalW = window.innerWidth;
+                const newLeftW = Math.max(280, Math.min(e.clientX, totalW - 320));
+                docContainer.style.flex = `0 0 ${newLeftW}px`;
+                updateLineNumbersAndMinimap();
+            }
+            if (isVDragging) {
+                const panel = document.getElementById('playgroundPanel');
+                const panelRect = panel.getBoundingClientRect();
+                const offsetY = e.clientY - panelRect.top;
+                const newH = Math.max(140, Math.min(offsetY, panelRect.height - 140));
+                previewSection.style.height = `${newH}px`;
+                updateLineNumbersAndMinimap();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isHDragging || isVDragging) {
+                isHDragging = false;
+                isVDragging = false;
+                hResizer.classList.remove('dragging');
+                vResizer.classList.remove('dragging');
+                document.body.style.cursor = '';
+                if (iframeWrapper) iframeWrapper.style.pointerEvents = '';
+            }
+        });
+
+        // エディタスクロール & キーイベント連動
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchProjectFiles();
+
+            const editor = document.getElementById('stageCodeEditor');
+            if (editor) {
+                editor.addEventListener('scroll', syncScroll);
+
+                editor.addEventListener('input', () => {
+                    updateLineNumbersAndMinimap();
+                });
+
+                editor.addEventListener('keydown', (e) => {
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        const start = editor.selectionStart;
+                        const end = editor.selectionEnd;
+                        editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+                        editor.selectionStart = editor.selectionEnd = start + 2;
+                        updateLineNumbersAndMinimap();
+                    }
+                });
+
+                // カーソル行・列の表示更新
+                const updateCursorPos = () => {
+                    const text = editor.value.substring(0, editor.selectionStart);
+                    const lines = text.split('\n');
+                    const row = lines.length;
+                    const col = lines[lines.length - 1].length + 1;
+                    const el = document.getElementById('cursorPosText');
+                    if (el) el.textContent = `Line: ${row}, Col: ${col}`;
+                };
+
+                editor.addEventListener('keyup', updateCursorPos);
+                editor.addEventListener('click', updateCursorPos);
+            }
+
+            const hash = window.location.hash.replace('#', '');
+            if (hash && ['architecture', 'code-walkthrough', 'engine', 'stages', 'tips'].includes(hash)) {
+                switchTab(hash);
+            }
+        });
+
+        // コードコピー機能
+        function copyCode(btn) {
+            const pre = btn.closest('.code-container').querySelector('pre code');
+            if (!pre) return;
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                const origText = btn.textContent;
+                btn.textContent = 'COPIED';
+                btn.style.background = '#22c55e';
+                btn.style.color = '#fff';
+                setTimeout(() => {
+                    btn.textContent = origText;
+                    btn.style.background = '';
+                    btn.style.color = '';
+                }, 1200);
+            });
+        }
+    </script>
+</body>
+</html>

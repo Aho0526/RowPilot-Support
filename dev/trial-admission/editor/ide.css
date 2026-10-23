@@ -601,3 +601,203 @@ body.transitioning-to-game .studio-preview-pane {
     from { opacity: 0.85; transform: translateX(20px); }
     to { opacity: 1; transform: translateX(0); }
 }
+
+/* ─────────────────────────────────────────────
+   ドット絵エディタ (studio-sprite-pane)
+   ───────────────────────────────────────────── */
+.studio-sprite-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-editor, #0d1117);
+    overflow: hidden;
+    position: relative;
+    user-select: none;
+}
+
+.sprite-header-tabs {
+    display: flex;
+    align-items: center;
+    height: 38px;
+    background-color: var(--bg-sidebar, #161b22);
+    border-bottom: 1px solid var(--border-color, #30363d);
+    padding: 0 10px;
+}
+
+.sprite-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background-color: rgba(22, 27, 34, 0.7);
+    border-bottom: 1px solid var(--border-color, #30363d);
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.sprite-control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sprite-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary, #8b949e);
+}
+
+.sprite-select {
+    background-color: #21262d;
+    border: 1px solid #30363d;
+    color: #f0f6fc;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+}
+
+.sprite-select:focus {
+    border-color: #58a6ff;
+}
+
+.sprite-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #c9d1d9;
+    cursor: pointer;
+}
+
+.sprite-checkbox-label input {
+    cursor: pointer;
+    accent-color: #38bdf8;
+}
+
+.sprite-btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+}
+
+.sprite-btn.secondary {
+    background-color: #21262d;
+    border-color: #30363d;
+    color: #c9d1d9;
+}
+
+.sprite-btn.secondary:hover {
+    background-color: #30363d;
+    color: #ffffff;
+}
+
+.sprite-btn.primary {
+    background-color: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+}
+
+.sprite-btn.primary:hover {
+    background-color: #0369a1;
+    border-color: #7dd3fc;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.5);
+}
+
+/* ワークスペース */
+.sprite-workspace {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    padding: 24px;
+    overflow: auto;
+}
+
+.sprite-grid-outer {
+    background-color: #161b22;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid #30363d;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.sprite-grid {
+    display: grid;
+    gap: 2px;
+    background-color: #21262d;
+    padding: 2px;
+    border-radius: 4px;
+    user-select: none;
+}
+
+.sprite-cell {
+    width: 26px;
+    height: 26px;
+    background-color: #0d1117;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background-color 0.08s ease;
+}
+
+.sprite-cell:hover {
+    background-color: #1f293d;
+}
+
+.sprite-cell.active {
+    background-color: #00ff66;
+    box-shadow: 0 0 6px rgba(0, 255, 102, 0.6);
+}
+
+.sprite-cell.symmetry-line {
+    border-right: 2px dashed rgba(56, 189, 248, 0.4);
+}
+
+/* プレビューサイドボックス */
+.sprite-side-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    background-color: #161b22;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #30363d;
+    min-width: 140px;
+}
+
+.preview-heading {
+    font-size: 11px;
+    font-weight: 700;
+    color: #8b949e;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.mini-canvas-box {
+    width: 80px;
+    height: 80px;
+    background-color: #000000;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mini-canvas-box canvas {
+    image-rendering: pixelated;
+}
+
+.sprite-size-indicator {
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    color: #58a6ff;
+}

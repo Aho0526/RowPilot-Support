@@ -96,6 +96,14 @@
                     <span class="file-name">index.html</span>
                     <span class="file-dot-badge" title="編集可能"></span>
                 </button>
+            <div class="sidebar-header" style="margin-top: 14px;">
+                <span class="sidebar-label">DESIGN TOOLS</span>
+            </div>
+            <nav class="file-list">
+                <button type="button" class="file-item tool-item" id="btn-open-sprite-editor">
+                    <span class="file-name">ドット絵エディタ</span>
+                    <span class="file-dot-badge" style="background-color: #38bdf8;" title="ツール"></span>
+                </button>
             </nav>
         </aside>
 
@@ -112,6 +120,52 @@
                 <div class="editor-code-container">
                     <pre class="code-highlight" id="code-highlight" aria-hidden="true"></pre>
                     <textarea class="code-textarea" id="code-textarea" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- 中央: ドット絵エディタ (ツール) -->
+        <section class="studio-sprite-pane" id="sprite-pane" style="display: none;">
+            <div class="sprite-header-tabs">
+                <div class="editor-tab active" id="tab-sprite-editor">
+                    <span>ドット絵エディタ</span>
+                </div>
+            </div>
+
+            <div class="sprite-toolbar">
+                <div class="sprite-control-group">
+                    <label for="sprite-select" class="sprite-label">対象キャラクター:</label>
+                    <select id="sprite-select" class="sprite-select">
+                        <option value="player">自機 (player) [13 x 8]</option>
+                        <option value="squid">敵1: イカ (squid) [8 x 8]</option>
+                        <option value="crab">敵2: カニ (crab) [11 x 8]</option>
+                        <option value="octopus">敵3: タコ (octopus) [12 x 8]</option>
+                        <option value="ufo">ボーナス敵: UFO [16 x 7]</option>
+                    </select>
+                </div>
+
+                <div class="sprite-control-group">
+                    <label class="sprite-checkbox-label">
+                        <input type="checkbox" id="sprite-symmetry" checked>
+                        <span>左右対称描画</span>
+                    </label>
+                    <button type="button" id="btn-sprite-clear" class="sprite-btn secondary">消去</button>
+                    <button type="button" id="btn-sprite-reset" class="sprite-btn secondary">初期形状</button>
+                    <button type="button" id="btn-sprite-apply" class="sprite-btn primary">config.jsに適用して反映</button>
+                </div>
+            </div>
+
+            <div class="sprite-workspace">
+                <div class="sprite-grid-outer">
+                    <div id="sprite-grid" class="sprite-grid"></div>
+                </div>
+
+                <div class="sprite-side-preview">
+                    <div class="preview-heading">プレビュー</div>
+                    <div class="mini-canvas-box">
+                        <canvas id="sprite-mini-canvas" width="64" height="64"></canvas>
+                    </div>
+                    <div class="sprite-size-indicator" id="sprite-size-info">13 x 8 ドット</div>
                 </div>
             </div>
         </section>

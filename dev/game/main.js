@@ -56,8 +56,11 @@ let phase = 'place';
 let actionHistory = [];
 let showSolution = false;
 
-// Sliding block animations queue: [{ fromCol, toCol, row, progress, startTime, duration }]
+// Sliding block animations queue & Multi-round gimmick animation state
 let slidingBlocks = [];
+let blockAnimationRounds = [];
+let currentRoundIndex = 0;
+let roundStartTime = null;
 
 function makeMan() {
     const st = getStage();
@@ -202,137 +205,241 @@ function placeBlock(col, row) {
     render();
 }
 
-// MARK: - Gimmick Block Movements at Start
-function applyGimmickBlockMoves() {
+// MARK: - Gimmick Block Movements at Start (連鎖・複数ステップ対応シミュレーション)
+function simulateGimmickBlockMoves() {
     const st = getStage();
-    const moves = [];
+    const rounds = [];
+    // シミュレーション作業用の一時グリッド
+    const simGrid = grid.map(r => [...r]);
 
-    // Find all blocks placed on gimmick tiles that have directional movement
-    st.gimmicks.forEach(g => {
-        if (g.type && grid[g.row][g.col]) {
-            moves.push({
-                gimmick: g,
-                fromCol: g.col,
-                fromRow: g.row
-            });
+    const maxRounds = 20;
+    let roundCount = 0;
+
+    while (roundCount < maxRounds) {
+        roundCount++;
+        // 矢印ギミック（step または dash）の上にブロックが乗っているか？
+        const candidateMoves = [];
+        st.gimmicks.forEach(g => {
+            if ((g.type === 'step' || g.type === 'dash') && simGrid[g.row][g.col]) {
+                candidateMoves.push({
+                    gimmick: g,
+                    fromCol: g.col,
+                    fromRow: g.row
+                });
+            }
+        });
+
+        if (candidateMoves.length === 0) {
+            // 動くブロックがもうない -> シミュレーション完了
+            break;
         }
-    });
 
-    if (moves.length === 0) return false;
+        // 衝突を避ける自然な順序でソート（先頭側のブロックから動かす）
+        const upMoves = candidateMoves.filter(m => m.gimmick.dir === 'up').sort((a, b) => a.fromRow - b.fromRow);
+        const downMoves = candidateMoves.filter(m => m.gimmick.dir === 'down').sort((a, b) => b.fromRow - a.fromRow);
+        const leftMoves = candidateMoves.filter(m => m.gimmick.dir === 'left').sort((a, b) => a.fromCol - b.fromCol);
+        const rightMoves = candidateMoves.filter(m => m.gimmick.dir === 'right').sort((a, b) => b.fromCol - a.fromCol);
 
-    // Order moves depending on direction to avoid collisions
-    const upMoves = moves.filter(m => m.gimmick.dir === 'up').sort((a, b) => a.fromRow - b.fromRow);
-    const downMoves = moves.filter(m => m.gimmick.dir === 'down').sort((a, b) => b.fromRow - a.fromRow);
-    const leftMoves = moves.filter(m => m.gimmick.dir === 'left').sort((a, b) => a.fromCol - b.fromCol);
-    const rightMoves = moves.filter(m => m.gimmick.dir === 'right').sort((a, b) => b.fromCol - a.fromCol);
+        const orderedMoves = [...upMoves, ...downMoves, ...leftMoves, ...rightMoves];
+        const roundMoves = [];
 
-    let hasAnyMove = false;
+        orderedMoves.forEach(m => {
+            const g = m.gimmick;
+            const originCol = m.fromCol;
+            const originRow = m.fromRow;
 
-    function executeMove(m) {
-        const g = m.gimmick;
-        const originCol = m.fromCol;
-        const originRow = m.fromRow;
+            // すでに他のブロックが移動してこのマスが変わっていないか確認
+            if (!simGrid[originRow][originCol]) return;
 
-        // 一旦自身をグリッドから外して移動経路を計算
-        grid[originRow][originCol] = false;
+            // 一旦自身を simGrid から外す
+            simGrid[originRow][originCol] = false;
 
-        let curC = originCol;
-        let curR = originRow;
-        let currentDir = g.dir;
-        let currentMode = g.type; // 'dash' または 'step'
-        let remainingSteps = (currentMode === 'step') ? 1 : Infinity;
+            let curC = originCol;
+            let curR = originRow;
+            let currentDir = g.dir;
+            let currentMode = g.type; // 'dash' または 'step'
+            let remainingSteps = (currentMode === 'step') ? 1 : Infinity;
 
-        const path = [{ col: curC, row: curR }];
-        const visited = new Set();
-        visited.add(`${curC},${curR},${currentDir},${currentMode}`);
+            const path = [{ col: curC, row: curR }];
+            const visited = new Set();
+            visited.add(`${curC},${curR},${currentDir},${currentMode}`);
 
-        const maxTotalSteps = COLS * ROWS * 2;
-        let totalStepsTaken = 0;
+            const maxTotalSteps = COLS * ROWS * 2;
+            let totalStepsTaken = 0;
 
-        while (totalStepsTaken < maxTotalSteps) {
-            let nextC = curC;
-            let nextR = curR;
-            if (currentDir === 'right') nextC++;
-            else if (currentDir === 'left') nextC--;
-            else if (currentDir === 'up') nextR--;
-            else if (currentDir === 'down') nextR++;
+            while (totalStepsTaken < maxTotalSteps) {
+                let nextC = curC;
+                let nextR = curR;
+                if (currentDir === 'right') nextC++;
+                else if (currentDir === 'left') nextC--;
+                else if (currentDir === 'up') nextR--;
+                else if (currentDir === 'down') nextR++;
 
-            // 壁（グリッド境界）に衝突
-            if (nextC < 0 || nextC >= COLS || nextR < 0 || nextR >= ROWS) {
-                break;
-            }
-            // 他のブロックまたは配置禁止マスに衝突
-            if (grid[nextR][nextC] || isForbidden(nextC, nextR)) {
-                break;
-            }
-
-            // 1マス進む
-            curC = nextC;
-            curR = nextR;
-            path.push({ col: curC, row: curR });
-            totalStepsTaken++;
-
-            // 移動先（または通過中）のマスに矢印ギミックがあるかチェック
-            const tileGimmick = getGimmick(curC, curR);
-            if (tileGimmick && tileGimmick.type) {
-                // 矢印マスを踏んだ/着地した！
-                if (tileGimmick.type === 'step') {
-                    // 緑矢印: その方向に向きを変え、そこから1マスのみ動く
-                    currentDir = tileGimmick.dir;
-                    currentMode = 'step';
-                    remainingSteps = 1;
-                } else if (tileGimmick.type === 'dash') {
-                    // 水色(青)矢印: その方向に向きを変え、端までダッシュ
-                    currentDir = tileGimmick.dir;
-                    currentMode = 'dash';
-                    remainingSteps = Infinity;
+                // 壁（グリッド境界）に衝突
+                if (nextC < 0 || nextC >= COLS || nextR < 0 || nextR >= ROWS) {
+                    break;
                 }
-            } else {
-                // 通常マス
-                if (currentMode === 'step') {
-                    remainingSteps--;
-                    if (remainingSteps <= 0) {
-                        // 1マス動いたので停止
-                        break;
+                // 他のブロックに衝突（※赤斜線 isForbidden は通過・停止可能）
+                if (simGrid[nextR][nextC]) {
+                    break;
+                }
+
+                // 1マス進む
+                curC = nextC;
+                curR = nextR;
+                path.push({ col: curC, row: curR });
+                totalStepsTaken++;
+
+                // 移動先（または通過中）のマスに矢印ギミックがあるかチェック
+                const tileGimmick = getGimmick(curC, curR);
+                if (tileGimmick && tileGimmick.type) {
+                    // 矢印マスを踏んだ/着地した！
+                    if (tileGimmick.type === 'step') {
+                        currentDir = tileGimmick.dir;
+                        currentMode = 'step';
+                        remainingSteps = 1;
+                    } else if (tileGimmick.type === 'dash') {
+                        currentDir = tileGimmick.dir;
+                        currentMode = 'dash';
+                        remainingSteps = Infinity;
+                    }
+                } else {
+                    // 通常マス
+                    if (currentMode === 'step') {
+                        remainingSteps--;
+                        if (remainingSteps <= 0) {
+                            break;
+                        }
                     }
                 }
-                // dash の場合は壁や障害物、次の矢印に当たるまで継続
+
+                // ループ検知
+                const stateKey = `${curC},${curR},${currentDir},${currentMode}`;
+                if (visited.has(stateKey)) {
+                    break;
+                }
+                visited.add(stateKey);
             }
 
-            // 無限ループ検知
-            const stateKey = `${curC},${curR},${currentDir},${currentMode}`;
-            if (visited.has(stateKey)) {
-                break;
+            const destCol = curC;
+            const destRow = curR;
+
+            // 最終位置にブロックを配置
+            simGrid[destRow][destCol] = true;
+
+            if (destCol !== originCol || destRow !== originRow) {
+                roundMoves.push({
+                    fromCol: originCol,
+                    fromRow: originRow,
+                    toCol: destCol,
+                    toRow: destRow,
+                    path: path,
+                    duration: Math.max(220, (path.length - 1) * 90)
+                });
             }
-            visited.add(stateKey);
+        });
+
+        if (roundMoves.length === 0) {
+            // このラウンドで動けたブロックがない -> 終了
+            break;
         }
 
-        const destCol = curC;
-        const destRow = curR;
-        // 最終位置にブロックを配置
-        grid[destRow][destCol] = true;
+        rounds.push(roundMoves);
+    }
 
-        if (destCol !== originCol || destRow !== originRow) {
-            hasAnyMove = true;
-            slidingBlocks.push({
-                fromCol: originCol,
-                toCol: destCol,
-                fromRow: originRow,
-                toRow: destRow,
-                path: path,
-                startTime: performance.now(),
-                duration: Math.max(250, (path.length - 1) * 110)
-            });
+    return { rounds, finalGrid: simGrid };
+}
+
+function animateBlockMove(ts) {
+    if (phase !== 'block_move') return;
+
+    const currentTime = ts || performance.now();
+    const currentMoves = blockAnimationRounds[currentRoundIndex];
+    if (!currentMoves || currentMoves.length === 0) {
+        finishBlockMove();
+        return;
+    }
+
+    const maxDuration = Math.max(...currentMoves.map(m => m.duration));
+    const elapsed = Math.max(0, currentTime - roundStartTime);
+    const roundProgress = Math.min(1, elapsed / maxDuration);
+
+    renderBlockMoveState(currentMoves, roundProgress);
+
+    if (roundProgress >= 1) {
+        // このラウンドの移動を実際の grid に反映
+        currentMoves.forEach(m => {
+            grid[m.fromRow][m.fromCol] = false;
+            grid[m.toRow][m.toCol] = true;
+        });
+
+        currentRoundIndex++;
+        if (currentRoundIndex < blockAnimationRounds.length) {
+            roundStartTime = performance.now();
+            animId = requestAnimationFrame(animateBlockMove);
+        } else {
+            finishBlockMove();
+        }
+    } else {
+        animId = requestAnimationFrame(animateBlockMove);
+    }
+}
+
+function renderBlockMoveState(activeMoves, progress) {
+    ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
+    drawBackground();
+    drawGround();
+    drawGridLines();
+    drawCeiling();
+
+    const st = getStage();
+    st.forbidden.forEach(f => drawForbiddenTile(f.col, f.row));
+    st.gimmicks.forEach(g => drawGimmickTile(g));
+    drawSolutionOverlay();
+
+    // 静止しているブロックを描画
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (grid[r][c]) {
+                const isMoving = activeMoves.some(m => m.fromCol === c && m.fromRow === r);
+                if (!isMoving) {
+                    drawMarioBlock(c, r);
+                }
+            }
         }
     }
 
-    // Execute in collision-safe order
-    upMoves.forEach(executeMove);
-    downMoves.forEach(executeMove);
-    leftMoves.forEach(executeMove);
-    rightMoves.forEach(executeMove);
+    // 移動中のブロックを描画（path に沿った補間位置）
+    activeMoves.forEach(m => {
+        let currentC = m.fromCol;
+        let currentR = m.fromRow;
+        if (m.path && m.path.length > 1) {
+            const totalSegments = m.path.length - 1;
+            const segProgress = progress * totalSegments;
+            const segIdx = Math.min(Math.floor(segProgress), totalSegments - 1);
+            const subT = segProgress - segIdx;
+            const p0 = m.path[segIdx];
+            const p1 = m.path[segIdx + 1];
+            currentC = p0.col + (p1.col - p0.col) * subT;
+            currentR = p0.row + (p1.row - p0.row) * subT;
+        } else {
+            currentC = m.fromCol + (m.toCol - m.fromCol) * progress;
+            currentR = m.fromRow + (m.toRow - m.fromRow) * progress;
+        }
+        drawMarioBlock(currentC, currentR);
+    });
 
-    return hasAnyMove;
+    drawPipe();
+    drawGoal();
+    drawStickman(-1.5, st.startRow);
+}
+
+function finishBlockMove() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    blockAnimationRounds = [];
+    currentRoundIndex = 0;
+    statusBar.innerHTML = '<span class="status-run"> GO GO GO!!</span>';
+    startRun();
 }
 
 // MARK: - Drawing Helpers
@@ -345,26 +452,100 @@ function drawBackground() {
 }
 
 function drawGround() {
-    const gy = ROWS * CELL;
-    // Grass
-    ctx.fillStyle = '#54c418';
-    ctx.fillRect(0, gy, TOTAL_W, 10);
-    for (let x = 0; x < TOTAL_W; x += 14) ctx.fillRect(x, gy, 7, 4);
-    // Dirt
-    ctx.fillStyle = '#c87830';
-    ctx.fillRect(0, gy + 10, TOTAL_W, 34);
-    // Brick lines
-    const bw = 26, bh = 13;
-    ctx.fillStyle = '#a05820';
-    for (let row = 0; row * bh < 34; row++) {
-        const off = (row % 2) ? bw / 2 : 0;
-        for (let bx = -bw + off; bx < TOTAL_W + bw; bx += bw) {
-            ctx.fillRect(bx + 1, gy + 10 + row * bh + 1, bw - 2, bh - 2);
+    const st = getStage();
+    const gridLeft = GX;
+    const gridRight = GX + COLS * CELL;
+
+    // スタート位置（st.startRow）の足元に合わせて左側地面の上面高さを決定
+    // キャラクターの足元・土管の設置面は (st.startRow + 1) * CELL
+    const startGroundY = GY + (st.startRow + 1) * CELL;
+
+    // ゴール位置（st.goalRow）の足元に合わせて右側地面の上面高さを決定
+    const goalGroundY = GY + (st.goalRow + 1) * CELL;
+
+    function renderGroundSection(startX, width, topY) {
+        if (width <= 0) return;
+        const totalHeight = TOTAL_H - topY;
+        if (totalHeight <= 0) return;
+
+        // 草 (Grass)
+        ctx.fillStyle = '#54c418';
+        ctx.fillRect(startX, topY, width, 10);
+        for (let x = startX; x < startX + width; x += 14) {
+            ctx.fillRect(x, topY, 7, 4);
         }
+
+        // 土 (Dirt)
         ctx.fillStyle = '#c87830';
-        ctx.fillRect(0, gy + 10 + row * bh, TOTAL_W, 1);
+        ctx.fillRect(startX, topY + 10, width, totalHeight - 10);
+
+        // レンガ模様 (Brick lines)
+        const bw = 26, bh = 13;
         ctx.fillStyle = '#a05820';
+        for (let row = 0; row * bh < totalHeight - 10; row++) {
+            const off = (row % 2) ? bw / 2 : 0;
+            const by = topY + 10 + row * bh;
+            for (let bx = startX - bw + off; bx < startX + width + bw; bx += bw) {
+                if (bx + 1 >= startX && bx + bw - 1 <= startX + width) {
+                    const blockH = Math.min(bh - 2, topY + totalHeight - by - 2);
+                    if (blockH > 0) {
+                        ctx.fillRect(bx + 1, by + 1, bw - 2, blockH);
+                    }
+                }
+            }
+        }
     }
+
+    // 左側の足場 (スタート位置に合わせて地面を上まで伸ばす)
+    renderGroundSection(0, gridLeft, startGroundY);
+
+    // 右側の足場 (ゴール位置に合わせて地面を上まで伸ばす)
+    renderGroundSection(gridRight, TOTAL_W - gridRight, goalGroundY);
+
+    // 中央グリッド下の奈落演出（底なしの穴・崖）
+    ctx.save();
+    // 崖の左端の影 (startGroundY から TOTAL_H まで)
+    const leftShadow = ctx.createLinearGradient(gridLeft, startGroundY, gridLeft + 14, startGroundY);
+    leftShadow.addColorStop(0, 'rgba(0,0,0,0.4)');
+    leftShadow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = leftShadow;
+    ctx.fillRect(gridLeft, startGroundY, 14, TOTAL_H - startGroundY);
+
+    // 崖の右端の影 (goalGroundY から TOTAL_H まで)
+    const rightShadow = ctx.createLinearGradient(gridRight - 14, goalGroundY, gridRight, goalGroundY);
+    rightShadow.addColorStop(0, 'rgba(0,0,0,0)');
+    rightShadow.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = rightShadow;
+    ctx.fillRect(gridRight - 14, goalGroundY, 14, TOTAL_H - goalGroundY);
+
+    // 奈落の最下部グラデーション
+    const pitGrad = ctx.createLinearGradient(0, ROWS * CELL, 0, TOTAL_H);
+    pitGrad.addColorStop(0, 'rgba(15, 23, 42, 0.12)');
+    pitGrad.addColorStop(1, 'rgba(15, 23, 42, 0.50)');
+    ctx.fillStyle = pitGrad;
+    ctx.fillRect(gridLeft, ROWS * CELL, gridRight - gridLeft, TOTAL_H - ROWS * CELL);
+
+    ctx.restore();
+}
+
+// 天井の描画 (Canvaに天井があるステージ用)
+function drawCeiling() {
+    const st = getStage();
+    if (!st.hasCeiling) return;
+
+    const cy = GY;
+    const gridLeft = GX;
+    const gridRight = GX + COLS * CELL;
+
+    ctx.save();
+    // オレンジ色の頑丈な天井バー
+    ctx.fillStyle = '#ff9800';
+    ctx.fillRect(gridLeft - 12, cy - 6, (gridRight - gridLeft) + 24, 8);
+
+    ctx.strokeStyle = '#e65100';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(gridLeft - 12, cy - 6, (gridRight - gridLeft) + 24, 8);
+    ctx.restore();
 }
 
 // Gimmick tile drawing
@@ -372,6 +553,7 @@ function drawGimmickTile(gimmick) {
     const x = GX + gimmick.col * CELL;
     const y = GY + gimmick.row * CELL;
     const pulse = (Math.sin(Date.now() / 200) + 1) / 2;
+    const isBlockPlacedHere = (grid[gimmick.row] && grid[gimmick.row][gimmick.col]);
 
     function getDirAngle(dir) {
         if (dir === 'down') return Math.PI / 2;
@@ -435,12 +617,15 @@ function drawGimmickTile(gimmick) {
 
         ctx.restore();
     } else if (gimmick.purpleBorder) {
-        // 矢印のない紫枠マス
-        ctx.fillStyle = 'rgba(168, 85, 247, 0.16)';
-        ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
+        // 矢印のない紫枠マス（ブロックが置かれていない場合のみ背景表示）
+        if (!isBlockPlacedHere) {
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.16)';
+            ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
+        }
     }
 
-    if (gimmick.purpleBorder) {
+    // ブロックが置かれているマスでは紫枠を描画しない（ブロックの周りが紫色になるバグを防止）
+    if (gimmick.purpleBorder && !isBlockPlacedHere) {
         ctx.strokeStyle = '#a855f7';
         ctx.lineWidth = 4;
         ctx.strokeRect(x + 2, y + 2, CELL - 4, CELL - 4);
@@ -530,14 +715,6 @@ function drawPipe() {
     ctx.textAlign = 'center';
     ctx.fillText('START', px + pw / 2, py - 14);
     ctx.textAlign = 'left';
-
-    // Start orange platform guide line under pipe
-    ctx.strokeStyle = '#ff9800';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(px, py + ph);
-    ctx.lineTo(GX, py + ph);
-    ctx.stroke();
 }
 
 // Flag pole + goal block on right
@@ -548,22 +725,6 @@ function drawGoal() {
     const bx = GX + COLS * CELL;
     const by = GY + st.goalRow * CELL;
     const bw = 56, bh = CELL;
-
-    // Right wall orange boundary line (オレンジ色の壁: ゴール以外のマス)
-    ctx.strokeStyle = '#ff9800';
-    ctx.lineWidth = 4;
-    if (st.goalRow > 0) {
-        ctx.beginPath();
-        ctx.moveTo(bx, GY);
-        ctx.lineTo(bx, by);
-        ctx.stroke();
-    }
-    if (st.goalRow < ROWS - 1) {
-        ctx.beginPath();
-        ctx.moveTo(bx, by + bh);
-        ctx.lineTo(bx, GY + ROWS * CELL);
-        ctx.stroke();
-    }
 
     // Goal block
     const alpha = 0.18 + Math.sin(goalPulse * Math.PI * 2) * 0.14;
@@ -802,6 +963,7 @@ function render() {
 
     // Draw grid lines
     drawGridLines();
+    drawCeiling();
 
     const st = getStage();
 
@@ -891,15 +1053,24 @@ function solveRoute() {
         // Reach goal column
         if (nextCol === COLS) {
             if (curY === st.goalRow) {
-                // Clear!
+                // 水平歩行でゴールイン！
                 keyframes[curKfIdx].type = 'walk';
                 curTime += (COLS - 0.5 + 0.15 - curX) / WALK_SPEED * 16.67;
                 curX = COLS - 0.5 + 0.15;
                 keyframes.push({ x: curX, y: curY, type: 'done', time: curTime });
                 return keyframes;
+            } else if (curY === st.goalRow + 1) {
+                // ゴール手前の左下（高さ1マス差）から1マス登ってゴールイン！
+                keyframes[curKfIdx].type = 'jump';
+                curTime += (COLS - 0.5 + 0.15 - curX) / JUMP_SPEED * 16.67;
+                curX = COLS - 0.5 + 0.15;
+                curY = st.goalRow;
+                keyframes.push({ x: curX, y: curY, type: 'done', time: curTime });
+                return keyframes;
             } else {
-                // オレンジ色の右壁に当たった時点で即アウト！（壁を貫通せず手前でピタッと止まる）
-                const wallHitX = COLS - 0.65; // 壁の境界線に鼻先が触れる位置
+                // それ以外の高さ（上空 curY < st.goalRow や 2マス以上下）は右壁衝突でアウト！
+                // 上から落下してゴールする不正侵入を完全に防止
+                const wallHitX = COLS - 0.65;
                 keyframes[curKfIdx].type = 'walk';
                 curTime += Math.max(0.05, wallHitX - curX) / WALK_SPEED * 16.67;
                 curX = wallHitX;
@@ -914,11 +1085,12 @@ function solveRoute() {
         if (blockAhead) {
             // Jump
             const jumpY = curY - 1;
-            const outOfTop = jumpY < 0;
-            const jumpBlocked = !outOfTop && getBlock(nextCol, jumpY);
-            const ceilBlocked = (c >= 0) && getBlock(c, curY - 1);
+            // 天井があるステージ（st.hasCeiling）のみ画面上部(jumpY < 0)を天井クラッシュとする
+            const ceilHit = st.hasCeiling && (jumpY < 0);
+            const jumpBlocked = (jumpY >= 0) && getBlock(nextCol, jumpY);
+            const ceilBlocked = (c >= 0 && curY - 1 >= 0) && getBlock(c, curY - 1);
 
-            if (outOfTop || jumpBlocked || ceilBlocked) {
+            if (ceilHit || jumpBlocked || ceilBlocked) {
                 // 壁・天井に衝突 -> 即アウト！
                 keyframes[curKfIdx].type = 'crash';
                 const cd = Math.min(0.35, nextCol - curX - 0.05);
@@ -938,8 +1110,8 @@ function solveRoute() {
         }
 
         // Walk or Fall
-        // 次の列の足元にブロックがあるか、または地面(y >= ROWS)に接地しているか
-        const hasFloor = getBlock(nextCol, curY + 1) || (curY + 1 >= ROWS);
+        // 次の列の足元にブロックがあるか
+        const hasFloor = getBlock(nextCol, curY + 1);
         if (hasFloor) {
             keyframes[curKfIdx].type = 'walk';
             curTime += (nextCol - curX) / WALK_SPEED * 16.67;
@@ -948,8 +1120,8 @@ function solveRoute() {
             continue;
         }
 
-        // 足元にブロックがない場合、下方の足場(ブロック、または最下段の地面)を探す
-        let landY = ROWS - 1; // 地面に着地
+        // 足元にブロックがない場合、下方の足場(ブロック)を探す
+        let landY = null;
         for (let y = curY + 1; y < ROWS; y++) {
             if (getBlock(nextCol, y + 1)) {
                 landY = y;
@@ -957,14 +1129,26 @@ function solveRoute() {
             }
         }
 
-        // 着地足場（ブロックまたは地面）へ落下して着地
-        keyframes[curKfIdx].type = 'walk';
-        curTime += (nextCol - curX) / WALK_SPEED * 16.67;
-        curX = nextCol;
-        keyframes.push({ x: curX, y: curY, type: 'fall', time: curTime });
-        curTime += (landY - curY) * 60;
-        curY = landY;
-        keyframes.push({ x: curX, y: curY, type: 'walk', time: curTime });
+        if (landY !== null) {
+            // 下方のブロックに着地
+            keyframes[curKfIdx].type = 'walk';
+            curTime += (nextCol - curX) / WALK_SPEED * 16.67;
+            curX = nextCol;
+            keyframes.push({ x: curX, y: curY, type: 'fall', time: curTime });
+            curTime += (landY - curY) * 60;
+            curY = landY;
+            keyframes.push({ x: curX, y: curY, type: 'walk', time: curTime });
+        } else {
+            // 下にブロックがない！奈落（くり抜かれた地面の穴）へ落下してミス！
+            keyframes[curKfIdx].type = 'walk';
+            curTime += (nextCol - curX) / WALK_SPEED * 16.67;
+            curX = nextCol;
+            keyframes.push({ x: curX, y: curY, type: 'fall', time: curTime });
+            curTime += (ROWS + 1.2 - curY) * 55;
+            curY = ROWS + 1.2;
+            keyframes.push({ x: curX, y: curY, type: 'fail', time: curTime });
+            return keyframes;
+        }
     }
 
     keyframes[keyframes.length - 1].type = 'fail';
@@ -1132,6 +1316,8 @@ function completeRespawn() {
         grid = originalGrid.map(r => [...r]);
     }
     slidingBlocks = [];
+    blockAnimationRounds = [];
+    currentRoundIndex = 0;
     phase = 'place';
     man = makeMan();
     startBtn.disabled = false;
@@ -1309,7 +1495,7 @@ function showClear() {
     }
     if (modalSub) {
         modalSub.textContent = isLastStage
-            ? '🎉 おめでとうございます！全19ステージを完全制覇しました！ 🎉'
+            ? 'おめでとうございます！全19ステージを完全制覇しました！'
             : `お見事！ステージ ${currentStageIndex + 1} をクリア！次のステージを解放しました！`;
     }
     if (nextBtn) {
@@ -1405,6 +1591,9 @@ function selectStage(idx) {
     grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
     actionHistory = [];
     slidingBlocks = [];
+    blockAnimationRounds = [];
+    currentRoundIndex = 0;
+    originalGrid = null;
     showSolution = false;
     if (answerBtn) {
         answerBtn.classList.remove('active');
@@ -1452,6 +1641,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const homeStartBtn = document.getElementById('homeStartBtn');
     const homeSelectBtn = document.getElementById('homeSelectBtn');
     const homeHelpBtn = document.getElementById('homeHelpBtn');
+    const homeTechBtn = document.getElementById('homeTechBtn');
 
     // ステージ選択画面ボタン
     const selectBackToHomeBtn = document.getElementById('selectBackToHomeBtn');
@@ -1493,6 +1683,11 @@ window.addEventListener('DOMContentLoaded', () => {
     if (homeHelpBtn) {
         homeHelpBtn.addEventListener('click', () => {
             openHelpModal();
+        });
+    }
+    if (homeTechBtn) {
+        homeTechBtn.addEventListener('click', (e) => {
+            // aタグの標準動作でtech-doc.htmlへ遷移
         });
     }
 
@@ -1643,21 +1838,17 @@ window.addEventListener('DOMContentLoaded', () => {
         // スタート前のブロック配置をバックアップ
         originalGrid = grid.map(r => [...r]);
 
-        // スタート直後にブロック移動ギミックを適用
-        const hasMove = applyGimmickBlockMoves();
+        // スタート直後にブロック連鎖移動ギミックをシミュレーション
+        const { rounds } = simulateGimmickBlockMoves();
 
-        if (hasMove) {
+        if (rounds.length > 0) {
             phase = 'block_move';
+            blockAnimationRounds = rounds;
+            currentRoundIndex = 0;
+            roundStartTime = performance.now();
             statusBar.innerHTML = '<span class="status-run">ブロック移動中...</span>';
             hintText.textContent = '';
-            render();
-
-            // ブロックの移動アニメーション完了後にキャラクターが走り出す
-            setTimeout(() => {
-                if (phase !== 'block_move') return;
-                statusBar.innerHTML = '<span class="status-run"> GO GO GO!!</span>';
-                startRun();
-            }, 400);
+            animId = requestAnimationFrame(animateBlockMove);
         } else {
             statusBar.innerHTML = '<span class="status-run"> GO GO GO!!</span>';
             hintText.textContent = '';
@@ -1668,6 +1859,8 @@ window.addEventListener('DOMContentLoaded', () => {
     function triggerReset() {
         if (animId) { cancelAnimationFrame(animId); animId = null; }
         slidingBlocks = [];
+        blockAnimationRounds = [];
+        currentRoundIndex = 0;
 
         // スタート後（実行中や結果画面）なら、スタート前の配置に復元して再挑戦しやすくする
         if (phase !== 'place' && originalGrid) {
@@ -1837,4 +2030,22 @@ window.addEventListener('DOMContentLoaded', () => {
 
     render();
     requestAnimationFrame(bgLoop);
+});
+
+// MARK: - External Playground / Editor API
+// 教材ページや外部エディタからステージデータを即時注入してテストするためのAPI
+window.applyCustomStages = function(newStages, targetIndex = 0) {
+    if (!Array.isArray(newStages) || newStages.length === 0) return false;
+    STAGES.length = 0;
+    newStages.forEach(st => STAGES.push(st));
+    if (typeof updateSelectScreenUI === 'function') updateSelectScreenUI();
+    if (typeof switchView === 'function') switchView('game');
+    if (typeof selectStage === 'function') selectStage(Math.max(0, Math.min(targetIndex, STAGES.length - 1)));
+    return true;
+};
+
+window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'UPDATE_STAGES') {
+        window.applyCustomStages(event.data.stages, event.data.targetIndex || 0);
+    }
 });

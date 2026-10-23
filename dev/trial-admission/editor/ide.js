@@ -300,15 +300,42 @@
         if (!openTabs.includes(key)) {
             openTabs.push(key);
         }
+        showCodeEditorPane();
         renderEditor();
     }
 
-    document.querySelectorAll('.file-item').forEach(item => {
+    document.querySelectorAll('.file-item[data-path]').forEach(item => {
         item.addEventListener('click', () => {
             const path = item.getAttribute('data-path');
             if (path && files[path]) switchToFile(path);
         });
     });
+
+    // ─────────────────────────────────────────────
+    // ペイン表示切り替え (コードエディタ ⇔ ドット絵エディタ)
+    // ─────────────────────────────────────────────
+    const editorPane = document.getElementById('editor-pane');
+    const spritePane = document.getElementById('sprite-pane');
+    const btnOpenSpriteEditor = document.getElementById('btn-open-sprite-editor');
+
+    function showCodeEditorPane() {
+        if (editorPane) editorPane.style.display = 'flex';
+        if (spritePane) spritePane.style.display = 'none';
+        if (btnOpenSpriteEditor) btnOpenSpriteEditor.classList.remove('active');
+        updateSidebarUI();
+    }
+
+    function showSpriteEditorPane() {
+        if (editorPane) editorPane.style.display = 'none';
+        if (spritePane) spritePane.style.display = 'flex';
+        document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll('.editor-tab').forEach(tab => tab.classList.remove('active'));
+        if (btnOpenSpriteEditor) btnOpenSpriteEditor.classList.add('active');
+        loadSpriteFromConfig();
+        renderSpriteGrid();
+    }
+
+    btnOpenSpriteEditor?.addEventListener('click', showSpriteEditorPane);
 
     // ─────────────────────────────────────────────
     // サウンド切り替え
@@ -460,6 +487,248 @@
         updatePreview();
         showToast('保存しました（プレビュー更新）');
     }
+
+    // ─────────────────────────────────────────────
+    // 🎨 ドット絵エディタ (Pixel Studio)
+    // ─────────────────────────────────────────────
+    const DEFAULT_SPRITES = {
+        player: [
+            "0000001000000",
+            "0000011100000",
+            "0000011100000",
+            "0111111111110",
+            "1111111111111",
+            "1111111111111",
+            "1111111111111",
+            "1111111111111"
+        ],
+        squid: [
+            "00011000",
+            "00111100",
+            "01111110",
+            "11011011",
+            "11111111",
+            "00100100",
+            "01011010",
+            "10100101"
+        ],
+        crab: [
+            "00100000100",
+            "00010001000",
+            "00111111100",
+            "01101110110",
+            "11111111111",
+            "10111111101",
+            "10100000101",
+            "00011011000"
+        ],
+        octopus: [
+            "000011110000",
+            "011111111110",
+            "111111111111",
+            "111001100111",
+            "111111111111",
+            "000110011000",
+            "001101101100",
+            "110000000011"
+        ],
+        ufo: [
+            "0000011111100000",
+            "0001111111111000",
+            "0011111111111100",
+            "0110110110110110",
+            "1111111111111111",
+            "000110001110000",
+            "0000100000100000"
+        ]
+    };
+
+    let currentSpriteKey = 'player';
+    let spriteGridData = []; // 2次元配列 [rows][cols]
+    let isDrawingPixel = false;
+    let drawMode = 1; // 1: 塗る, 0: 消す
+
+    const spriteSelect = document.getElementById('sprite-select');
+    const spriteGrid = document.getElementById('sprite-grid');
+    const spriteSymmetry = document.getElementById('sprite-symmetry');
+    const spriteMiniCanvas = document.getElementById('sprite-mini-canvas');
+    const spriteSizeInfo = document.getElementById('sprite-size-info');
+    const btnSpriteClear = document.getElementById('btn-sprite-clear');
+    const btnSpriteReset = document.getElementById('btn-sprite-reset');
+    const btnSpriteApply = document.getElementById('btn-sprite-apply');
+
+    function loadSpriteFromConfig() {
+        const key = currentSpriteKey;
+        const configText = files['config.js']?.content || '';
+        
+        // config.js から現在のスプライト配列を抽出
+        let lines = null;
+        try {
+            const regex = new RegExp(`${key}:\\s*\\[([\\s\\S]*?)\\]`, 'm');
+            const match = configText.match(regex);
+            if (match && match[1]) {
+                const rowMatches = match[1].match(/"([01]+)"/g);
+                if (rowMatches && rowMatches.length > 0) {
+                    lines = rowMatches.map(s => s.replace(/"/g, ''));
+                }
+            }
+        } catch(e) {}
+
+        if (!lines || lines.length === 0) {
+            lines = DEFAULT_SPRITES[key] || DEFAULT_SPRITES.player;
+        }
+
+        spriteGridData = lines.map(row => row.split('').map(ch => ch === '1' ? 1 : 0));
+    }
+
+    function renderSpriteGrid() {
+        if (!spriteGrid || spriteGridData.length === 0) return;
+
+        const rows = spriteGridData.length;
+        const cols = spriteGridData[0].length;
+
+        spriteGrid.innerHTML = '';
+        spriteGrid.style.gridTemplateColumns = `repeat(${cols}, 26px)`;
+        spriteGrid.style.gridTemplateRows = `repeat(${rows}, 26px)`;
+
+        if (spriteSizeInfo) {
+            spriteSizeInfo.textContent = `${cols} x ${rows} ドット`;
+        }
+
+        const midCol = Math.floor(cols / 2);
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'sprite-cell' + (spriteGridData[r][c] === 1 ? ' active' : '');
+                if (c === midCol - 1 && cols % 2 === 0) {
+                    cell.classList.add('symmetry-line');
+                }
+                cell.dataset.r = r;
+                cell.dataset.c = c;
+
+                cell.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    isDrawingPixel = true;
+                    drawMode = spriteGridData[r][c] === 1 ? 0 : 1;
+                    applyPixel(r, c, drawMode);
+                });
+
+                cell.addEventListener('mouseenter', () => {
+                    if (isDrawingPixel) {
+                        applyPixel(r, c, drawMode);
+                    }
+                });
+
+                spriteGrid.appendChild(cell);
+            }
+        }
+
+        drawMiniPreview();
+    }
+
+    function applyPixel(r, c, val) {
+        const rows = spriteGridData.length;
+        const cols = spriteGridData[0].length;
+        if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+
+        spriteGridData[r][c] = val;
+        updateCellUI(r, c, val);
+
+        // 左右対称描画
+        if (spriteSymmetry && spriteSymmetry.checked) {
+            const mirrorC = cols - 1 - c;
+            if (mirrorC !== c) {
+                spriteGridData[r][mirrorC] = val;
+                updateCellUI(r, mirrorC, val);
+            }
+        }
+
+        drawMiniPreview();
+    }
+
+    function updateCellUI(r, c, val) {
+        if (!spriteGrid) return;
+        const cols = spriteGridData[0].length;
+        const index = r * cols + c;
+        const cell = spriteGrid.children[index];
+        if (cell) {
+            if (val === 1) cell.classList.add('active');
+            else cell.classList.remove('active');
+        }
+    }
+
+    window.addEventListener('mouseup', () => {
+        isDrawingPixel = false;
+    });
+
+    function drawMiniPreview() {
+        if (!spriteMiniCanvas || spriteGridData.length === 0) return;
+        const ctx = spriteMiniCanvas.getContext('2d');
+        const rows = spriteGridData.length;
+        const cols = spriteGridData[0].length;
+
+        ctx.clearRect(0, 0, spriteMiniCanvas.width, spriteMiniCanvas.height);
+
+        const pixelSize = Math.max(2, Math.floor(Math.min(spriteMiniCanvas.width / cols, spriteMiniCanvas.height / rows)));
+        const startX = Math.floor((spriteMiniCanvas.width - cols * pixelSize) / 2);
+        const startY = Math.floor((spriteMiniCanvas.height - rows * pixelSize) / 2);
+
+        ctx.fillStyle = '#00FF66';
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (spriteGridData[r][c] === 1) {
+                    ctx.fillRect(startX + c * pixelSize, startY + r * pixelSize, pixelSize, pixelSize);
+                }
+            }
+        }
+    }
+
+    // コントロールイベント
+    spriteSelect?.addEventListener('change', () => {
+        currentSpriteKey = spriteSelect.value;
+        loadSpriteFromConfig();
+        renderSpriteGrid();
+    });
+
+    btnSpriteClear?.addEventListener('click', () => {
+        const rows = spriteGridData.length;
+        const cols = spriteGridData[0].length;
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                spriteGridData[r][c] = 0;
+            }
+        }
+        renderSpriteGrid();
+    });
+
+    btnSpriteReset?.addEventListener('click', () => {
+        const templ = DEFAULT_SPRITES[currentSpriteKey] || DEFAULT_SPRITES.player;
+        spriteGridData = templ.map(row => row.split('').map(ch => ch === '1' ? 1 : 0));
+        renderSpriteGrid();
+    });
+
+    btnSpriteApply?.addEventListener('click', () => {
+        if (spriteGridData.length === 0) return;
+
+        const patternStrings = spriteGridData.map(row => row.join(''));
+        const formattedCode = '[\n' + patternStrings.map(row => `            "${row}"`).join(',\n') + '\n        ]';
+
+        let configCode = files['config.js'].content;
+        const regex = new RegExp(`(${currentSpriteKey}:\\s*)\\[[\\s\\S]*?\\]`, 'm');
+
+        if (regex.test(configCode)) {
+            files['config.js'].content = configCode.replace(regex, `$1${formattedCode}`);
+            files['config.js'].isDirty = true;
+            updateCodeHighlight();
+            saveAndApplyChanges();
+            showToast(`${currentSpriteKey} のドット絵をconfig.jsに適用しました`);
+        } else {
+            showToast(`config.js 内に ${currentSpriteKey} の定義が見つかりませんでした`);
+        }
+    });
+
+    document.getElementById('tab-sprite-editor')?.addEventListener('click', showSpriteEditorPane);
 
     // ─────────────────────────────────────────────
     // アクションボタン

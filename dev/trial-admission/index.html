@@ -4,7 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>スペースインベーダー</title>
-    <link rel="stylesheet" href="style.css?v=3.1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=3.2">
 </head>
 <body>
     <!-- 上部バー（エディタへ移動ボタン） -->
@@ -32,13 +35,81 @@
         <div class="canvas-wrapper">
             <canvas id="gameCanvas" width="480" height="560" tabindex="0"></canvas>
             
-            <!-- ゲーム開始オーバーレイ -->
+            <!-- ホーム画面 (本格アーケード・タイトルスクリーン) -->
             <div id="start-overlay" class="game-overlay">
-                <button type="button" id="btn-game-start" class="start-btn">
-                    <span class="start-icon">▶</span>
-                    <span>ゲーム開始</span>
-                </button>
-                <div class="start-hint">または [Space] キーでスタート</div>
+                <div class="arcade-home-container">
+                    <!-- タイトルヘッダー -->
+                    <div class="arcade-title-box">
+                        <div class="arcade-coin-tag">★ 1 COIN 1 PLAY ★</div>
+                        <h1 class="arcade-main-title">SPACE INVADERS</h1>
+                    </div>
+
+                    <!-- スコアアドバンステーブル -->
+                    <div class="arcade-score-table">
+                        <div class="score-table-header">*SCORE ADVANCE TABLE*</div>
+                        <div class="score-row">
+                            <canvas class="sprite-preview-cell" id="preview-ufo" width="32" height="14"></canvas>
+                            <span class="score-desc text-ufo">= ?? PT</span>
+                        </div>
+                        <div class="score-row">
+                            <canvas class="sprite-preview-cell" id="preview-squid" width="20" height="18"></canvas>
+                            <span class="score-desc text-squid">= 30 PT</span>
+                        </div>
+                        <div class="score-row">
+                            <canvas class="sprite-preview-cell" id="preview-crab" width="24" height="18"></canvas>
+                            <span class="score-desc text-crab">= 20 PT</span>
+                        </div>
+                        <div class="score-row">
+                            <canvas class="sprite-preview-cell" id="preview-octopus" width="26" height="18"></canvas>
+                            <span class="score-desc text-octopus">= 10 PT</span>
+                        </div>
+                    </div>
+
+                    <!-- セレクターパネル (難易度・クリア条件) -->
+                    <div class="arcade-options-panel">
+                        <div class="option-row">
+                            <span class="option-caption">DIFFICULTY:</span>
+                            <div class="option-pill-group" id="diff-options">
+                                <button type="button" class="arcade-pill" data-diff="easy">
+                                    <span class="pill-name">EASY</span>
+                                </button>
+                                <button type="button" class="arcade-pill active" data-diff="normal">
+                                    <span class="pill-name">NORMAL</span>
+                                </button>
+                                <button type="button" class="arcade-pill" data-diff="hard">
+                                    <span class="pill-name">HARD</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="option-row">
+                            <span class="option-caption">CLEAR GOAL:</span>
+                            <div class="option-pill-group" id="wave-options">
+                                <button type="button" class="arcade-pill active" data-waves="3">
+                                    <span class="pill-name">3 WAVES</span>
+                                </button>
+                                <button type="button" class="arcade-pill" data-waves="5">
+                                    <span class="pill-name">5 WAVES</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- アーケード特大スタートボタン (dev/game風の押し込みボタン) -->
+                    <div class="arcade-action-wrap">
+                        <button type="button" id="btn-game-start" class="arcade-play-btn">
+                            <div class="btn-player-icon-box">
+                                <canvas id="preview-player" width="26" height="16"></canvas>
+                            </div>
+                            <div class="btn-label-group">
+                                <span class="btn-label-main">ゲーム開始</span>
+                                <span class="btn-label-sub">1 PLAYER START</span>
+                            </div>
+                            <span class="btn-blink-arrow">▶</span>
+                        </button>
+                        <div class="arcade-start-hint">[SPACE] KEY TO START</div>
+                    </div>
+                </div>
             </div>
         </div>
 

@@ -170,7 +170,7 @@ body {
     color: #ffe060;
     text-shadow: 2px 2px 0 #854d0e;
     letter-spacing: 0.18em;
-    margin: 0 0 34px;
+    margin: 0 0 22px;
     text-align: center;
 }
 
@@ -179,9 +179,9 @@ body {
     display: flex;
     align-items: flex-end;
     gap: 24px;
-    margin-bottom: 46px;
+    margin-bottom: 32px;
     height: 100px;
-    transform: scale(1.2);
+    transform: scale(1.15);
 }
 
 .hero-pipe-wrap {
@@ -279,7 +279,7 @@ body {
 .home-menu-box {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 11px;
     width: 100%;
     max-width: 440px;
     box-sizing: border-box;
@@ -291,7 +291,7 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 13px 20px;
+    padding: 10px 18px;
     border: 3.5px solid #000;
     border-radius: 8px;
     cursor: pointer;
@@ -302,13 +302,13 @@ body {
                 filter 0.15s ease;
     box-sizing: border-box;
     /* ブロックの厚みと立体影（ボクセル風押し出し） */
-    box-shadow: 0 7px 0 #000, 0 11px 14px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 6px 0 #000, 0 10px 12px rgba(0, 0, 0, 0.35);
 }
 
 /* ボタン内のブロックアイコン（ミニキューブ） */
 .home-btn-block-icon {
-    width: 44px;
-    height: 44px;
+    width: 42px;
+    height: 42px;
     flex-shrink: 0;
     border: 2.5px solid #000;
     border-radius: 6px;
@@ -339,7 +339,7 @@ body {
 
 .home-btn-main {
     font-family: 'Press Start 2P', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
-    font-size: 1.15rem;
+    font-size: 1.12rem;
     font-weight: 900;
     color: #ffffff;
     letter-spacing: 0.06em;
@@ -350,10 +350,10 @@ body {
 
 .home-btn-sub {
     font-family: 'Press Start 2P', monospace;
-    font-size: 0.58rem;
+    font-size: 0.56rem;
     color: #fff9c4;
     letter-spacing: 0.16em;
-    margin-top: 4px;
+    margin-top: 3px;
     text-shadow: 1px 1px 0 #000;
     opacity: 0.95;
 }
@@ -372,7 +372,7 @@ body {
 /* 1. ゲーム開始ボタン（草原・パイプグリーンブロック） */
 .btn-play {
     background: linear-gradient(180deg, #4ade80 0%, #22c55e 50%, #15803d 100%);
-    box-shadow: inset 4px 4px 0 #86efac, inset -4px -4px 0 #14532d, 0 7px 0 #000, 0 11px 14px rgba(0,0,0,0.35);
+    box-shadow: inset 4px 4px 0 #86efac, inset -4px -4px 0 #14532d, 0 6px 0 #000, 0 10px 12px rgba(0,0,0,0.35);
 }
 
 .btn-play .home-btn-block-icon {
@@ -383,7 +383,7 @@ body {
 /* 2. ステージ選択ボタン（スカイブルー・ワールドマップブロック） */
 .btn-select {
     background: linear-gradient(180deg, #38bdf8 0%, #0284c7 50%, #0369a1 100%);
-    box-shadow: inset 4px 4px 0 #bae6fd, inset -4px -4px 0 #0c4a6e, 0 7px 0 #000, 0 11px 14px rgba(0,0,0,0.35);
+    box-shadow: inset 4px 4px 0 #bae6fd, inset -4px -4px 0 #0c4a6e, 0 6px 0 #000, 0 10px 12px rgba(0,0,0,0.35);
 }
 
 .btn-select .home-btn-block-icon {
@@ -394,12 +394,31 @@ body {
 /* 3. あそびかたボタン（ハテナブロック・ゴールデンアンバー） */
 .btn-how {
     background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #b45309 100%);
-    box-shadow: inset 4px 4px 0 #fef08a, inset -4px -4px 0 #78350f, 0 7px 0 #000, 0 11px 14px rgba(0,0,0,0.35);
+    box-shadow: inset 4px 4px 0 #fef08a, inset -4px -4px 0 #78350f, 0 6px 0 #000, 0 10px 12px rgba(0,0,0,0.35);
 }
 
 .btn-how .home-btn-block-icon {
     background: #b45309;
     border-color: #451a03;
+}
+
+/* 4. 勉強・開発ボタン（テックバイオレット・コードブロック） */
+.btn-tech {
+    background: linear-gradient(180deg, #a855f7 0%, #7e22ce 50%, #581c87 100%);
+    box-shadow: inset 4px 4px 0 #e9d5ff, inset -4px -4px 0 #3b0764, 0 6px 0 #000, 0 10px 12px rgba(0,0,0,0.35);
+}
+
+.btn-tech .home-btn-block-icon {
+    background: #581c87;
+    border-color: #2e0854;
+}
+
+.btn-tech .btn-block-inner {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.95rem;
+    font-weight: 900;
+    letter-spacing: -0.05em;
+    color: #ffffff;
 }
 
 /* ホバー時のブロック浮き上がり */
@@ -1252,9 +1271,12 @@ body {
 
 .help-modal-footer {
     border-top: 2px solid #e2e8f0;
-    padding: 12px 20px;
-    text-align: right;
+    padding: 14px 20px;
     background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
 }
 
 .modal-full-guide-link {
@@ -1262,24 +1284,28 @@ body {
     font-weight: bold;
     text-decoration: none;
     font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.15s ease;
+}
+
+.modal-full-guide-link:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+.modal-tech-link {
+    color: #7c3aed;
+}
+
+.modal-tech-link:hover {
+    color: #6d28d9;
 }
 
 /* Build Notice Badge */
 .dev-notice {
-    position: fixed;
-    bottom: 8px;
-    right: 12px;
-    font-size: 11px;
-    color: #ffffff;
-    background: rgba(0, 0, 0, 0.78);
-    border: 1.5px solid rgba(255, 255, 255, 0.7);
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-weight: 700;
-    pointer-events: none;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", monospace;
-    z-index: 100;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.45);
+    display: none !important;
 }
 
 /* ==========================================
@@ -1496,5 +1522,374 @@ body {
 
     .status-bar {
         font-size: 0.7rem;
+    }
+}
+
+/* ==========================================
+   iframe 埋め込み時 / プレイグラウンド専用最適化
+   (スクロール完全ゼロ & Canvas最大化 & 1行コントロールバー)
+   ========================================== */
+html.in-iframe, html.in-iframe body,
+body.in-iframe {
+    height: 100% !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    padding: 4px 8px !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+}
+
+html.in-iframe, html.in-iframe body,
+body.in-iframe {
+    height: 100% !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    padding: 4px 8px !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+}
+
+html.in-iframe #gameScreen.active,
+body.in-iframe #gameScreen.active,
+.in-iframe #gameScreen.active {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    overflow: hidden !important;
+}
+
+/* ヘッダー: 1行にスマートに収める */
+html.in-iframe .game-top-bar,
+body.in-iframe .game-top-bar,
+.in-iframe .game-top-bar {
+    margin: 0 0 4px 0 !important;
+    gap: 6px !important;
+    padding: 0 !important;
+    transform: none !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+html.in-iframe .top-nav-btn,
+body.in-iframe .top-nav-btn,
+.in-iframe .top-nav-btn {
+    font-size: 0.62rem !important;
+    padding: 4px 8px !important;
+    border-width: 2px !important;
+    box-shadow: 2px 2px 0 #000 !important;
+    border-radius: 4px !important;
+}
+
+html.in-iframe .stage-nav-pill,
+body.in-iframe .stage-nav-pill,
+.in-iframe .stage-nav-pill {
+    padding: 2px 6px !important;
+    border-width: 2px !important;
+    gap: 4px !important;
+    box-shadow: 2px 2px 0 #000 !important;
+    border-radius: 6px !important;
+}
+
+html.in-iframe .stage-pill-title,
+body.in-iframe .stage-pill-title,
+.in-iframe .stage-pill-title {
+    font-size: 0.62rem !important;
+    padding: 0 4px !important;
+}
+
+html.in-iframe .stage-nav-arrow,
+body.in-iframe .stage-nav-arrow,
+.in-iframe .stage-nav-arrow {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 9px !important;
+    border-radius: 4px !important;
+}
+
+html.in-iframe .help-btn,
+body.in-iframe .help-btn,
+.in-iframe .help-btn {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.75rem !important;
+    border-width: 2px !important;
+    box-shadow: 2px 2px 0 #000 !important;
+    border-radius: 4px !important;
+}
+
+/* メインエリア: 上下がCanvas、最下部が横1列コントロール */
+html.in-iframe .game-main-area,
+body.in-iframe .game-main-area,
+.in-iframe .game-main-area {
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    height: calc(100% - 36px) !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+}
+
+/* 左カラム (Canvas親領域): 利用可能スペースを最大限活用 */
+html.in-iframe .game-left-col,
+body.in-iframe .game-left-col,
+.in-iframe .game-left-col {
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+}
+
+html.in-iframe .game-wrapper,
+body.in-iframe .game-wrapper,
+.in-iframe .game-wrapper {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35) !important;
+    background: transparent !important;
+}
+
+html.in-iframe #gameCanvas,
+body.in-iframe #gameCanvas,
+.in-iframe #gameCanvas {
+    max-height: 100% !important;
+    max-width: 100% !important;
+    width: auto !important;
+    height: 100% !important;
+    aspect-ratio: 496 / 324 !important;
+    object-fit: contain !important;
+    display: block !important;
+    border-radius: 6px !important;
+}
+
+/* 右カラム (操作パネル): 最下部に横1列でスマートに配置 */
+html.in-iframe .game-right-col,
+body.in-iframe .game-right-col,
+.in-iframe .game-right-col {
+    flex: 0 0 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    padding: 0 4px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+/* ステータスバー */
+html.in-iframe .status-wrap-large,
+body.in-iframe .status-wrap-large,
+.in-iframe .status-wrap-large {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 70px !important;
+    max-width: 240px !important;
+    margin: 0 !important;
+    padding: 3px 8px !important;
+    border-radius: 5px !important;
+    border-width: 2px !important;
+    background: #000000 !important;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.3) !important;
+    box-sizing: border-box !important;
+}
+
+html.in-iframe .status-bar,
+body.in-iframe .status-bar,
+.in-iframe .status-bar {
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    min-height: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-align: center !important;
+    padding: 0 !important;
+}
+
+/* ブロック数バッジ */
+html.in-iframe .block-count-badge,
+body.in-iframe .block-count-badge,
+.in-iframe .block-count-badge,
+html.in-iframe .block-count-large,
+body.in-iframe .block-count-large,
+.in-iframe .block-count-large {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 3px 8px !important;
+    border-width: 2px !important;
+    border-radius: 5px !important;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px !important;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.3) !important;
+    box-sizing: border-box !important;
+}
+
+html.in-iframe .block-count-badge .badge-label,
+body.in-iframe .block-count-badge .badge-label,
+.in-iframe .block-count-badge .badge-label,
+html.in-iframe .block-count-large .badge-label,
+body.in-iframe .block-count-large .badge-label,
+.in-iframe .block-count-large .badge-label {
+    font-size: 8px !important;
+}
+
+html.in-iframe .block-count-badge .badge-val,
+body.in-iframe .block-count-badge .badge-val,
+.in-iframe .block-count-badge .badge-val,
+html.in-iframe .block-count-large .badge-val,
+body.in-iframe .block-count-large .badge-val,
+.in-iframe .block-count-large .badge-val {
+    font-size: 11px !important;
+}
+
+/* 操作ボタン群 (スタート・リセット・答え合わせ) */
+html.in-iframe .controls-panel,
+body.in-iframe .controls-panel,
+.in-iframe .controls-panel {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: none !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 4px !important;
+    margin: 0 !important;
+}
+
+html.in-iframe .controls-panel .btn-start,
+body.in-iframe .controls-panel .btn-start,
+.in-iframe .controls-panel .btn-start {
+    width: auto !important;
+    max-width: none !important;
+    flex: 0 0 auto !important;
+    padding: 3px 8px !important;
+    font-size: 9.5px !important;
+    height: 26px !important;
+    background: #16a34a !important;
+    color: #ffffff !important;
+}
+
+html.in-iframe .controls-panel .btn-start:hover,
+body.in-iframe .controls-panel .btn-start:hover,
+.in-iframe .controls-panel .btn-start:hover {
+    background: #22c55e !important;
+}
+
+html.in-iframe .controls-sub-row,
+body.in-iframe .controls-sub-row,
+.in-iframe .controls-sub-row {
+    display: flex !important;
+    flex-direction: row !important;
+    width: auto !important;
+    max-width: none !important;
+    grid-template-columns: none !important;
+    gap: 4px !important;
+    flex: 0 0 auto !important;
+}
+
+html.in-iframe .controls-sub-row .btn-large,
+body.in-iframe .controls-sub-row .btn-large,
+.in-iframe .controls-sub-row .btn-large {
+    width: auto !important;
+    max-width: none !important;
+    flex: 0 0 auto !important;
+    padding: 3px 7px !important;
+    font-size: 9.5px !important;
+    height: 26px !important;
+}
+
+html.in-iframe .btn-main-label,
+body.in-iframe .btn-main-label,
+.in-iframe .btn-main-label {
+    width: auto !important;
+    display: inline !important;
+    font-size: 9.5px !important;
+    white-space: nowrap !important;
+}
+
+html.in-iframe .btn-large,
+body.in-iframe .btn-large,
+.in-iframe .btn-large {
+    padding: 3px 7px !important;
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 0 #000 !important;
+    border-width: 2px !important;
+    border-radius: 5px !important;
+    white-space: nowrap !important;
+    min-width: 0 !important;
+    height: 26px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+html.in-iframe .btn-reset,
+body.in-iframe .btn-reset,
+.in-iframe .btn-reset {
+    background: #475569 !important;
+    color: #ffffff !important;
+}
+
+html.in-iframe .btn-answer,
+body.in-iframe .btn-answer,
+.in-iframe .btn-answer {
+    background: #2563eb !important;
+    color: #ffffff !important;
+}
+
+html.in-iframe .legend-wrap, html.in-iframe .hint,
+body.in-iframe .legend-wrap, body.in-iframe .hint,
+.in-iframe .legend-wrap, .in-iframe .hint {
+    display: none !important;
+}
+
+@media (max-width: 580px) {
+    html.in-iframe .status-wrap-large,
+    body.in-iframe .status-wrap-large,
+    .in-iframe .status-wrap-large {
+        display: none !important;
     }
 }

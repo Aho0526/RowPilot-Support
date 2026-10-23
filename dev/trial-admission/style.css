@@ -154,7 +154,9 @@ canvas:focus {
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(56, 189, 248, 0.25);
 }
 
-/* ゲーム開始オーバーレイ */
+/* ===============================================================
+   ホーム画面 (本格アーケード・タイトルスクリーン)
+   =============================================================== */
 .game-overlay {
     position: absolute;
     top: 0;
@@ -162,19 +164,20 @@ canvas:focus {
     right: 0;
     bottom: 0;
     border-radius: 8px;
-    background: rgba(10, 12, 16, 0.75);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    background: rgba(5, 7, 12, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
     user-select: none;
     opacity: 1;
     pointer-events: auto;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
     z-index: 10;
+    padding: 16px 12px;
+    overflow-y: auto;
 }
 
 .game-overlay.hidden {
@@ -183,41 +186,269 @@ canvas:focus {
     visibility: hidden;
 }
 
-.start-btn {
-    background-color: #238636;
-    border: 1px solid #2ea043;
+.arcade-home-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 380px;
+    gap: 12px;
+}
+
+/* タイトルボックス */
+.arcade-title-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.arcade-coin-tag {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #ffcc00;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    animation: arcadeBlink 1.4s steps(2, start) infinite;
+}
+
+.arcade-main-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 19px;
+    letter-spacing: 2px;
     color: #ffffff;
-    font-size: 15px;
-    font-weight: 700;
-    padding: 12px 28px;
-    border-radius: 8px;
+    margin: 0;
+    text-shadow: 2px 2px 0 #000000;
+}
+
+/* スコアアドバンステーブル */
+.arcade-score-table {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    width: 100%;
+    max-width: 270px;
+    background: #0d121c;
+    border: 2px solid #202b3c;
+    border-radius: 4px;
+    padding: 10px 14px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.score-table-header {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #ffffff;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.score-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    height: 20px;
+    padding: 0 10px;
+}
+
+.sprite-preview-cell {
+    width: 28px;
+    height: 18px;
+    image-rendering: pixelated;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.score-desc {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    letter-spacing: 1px;
+}
+
+.text-ufo { color: #ff3344; }
+.text-squid { color: #ffff00; }
+.text-crab { color: #00ffff; }
+.text-octopus { color: #ff3399; }
+
+/* セレクターパネル */
+.arcade-options-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 320px;
+}
+
+.option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.option-caption {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7.5px;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.option-pill-group {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.arcade-pill {
+    background-color: #16202c;
+    border: 2px solid #243447;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: #94a3b8;
     cursor: pointer;
     display: flex;
     align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 0 #0e1620;
+    transition: all 0.1s ease;
+}
+
+.arcade-pill:hover {
+    background-color: #202d3d;
+    border-color: #38bdf8;
+    color: #f1f5f9;
+}
+
+.arcade-pill:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #0e1620;
+}
+
+.arcade-pill.active {
+    background-color: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 3px 0 #082f49;
+}
+
+.pill-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    letter-spacing: 0.5px;
+}
+
+/* 特大アーケードスタートボタン */
+.arcade-action-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 340px;
     gap: 8px;
-    box-shadow: 0 6px 20px rgba(35, 134, 54, 0.4);
-    transition: transform 0.1s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    margin-top: 2px;
 }
 
-.start-btn:hover {
-    background-color: #2ea043;
-    box-shadow: 0 8px 24px rgba(46, 160, 67, 0.6);
-    transform: translateY(-1px);
+.arcade-play-btn {
+    width: 100%;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+    border: 3px solid #000000;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #082f49, 0 10px 16px rgba(0, 0, 0, 0.6);
+    transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
 }
 
-.start-btn:active {
-    background-color: #1a6327;
-    transform: translateY(1px);
+.arcade-play-btn:hover {
+    filter: brightness(1.12);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 0 #082f49, 0 14px 20px rgba(0, 0, 0, 0.7);
 }
 
-.start-icon {
+.arcade-play-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #082f49, 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.btn-player-icon-box {
+    width: 36px;
+    height: 36px;
+    background: #000000;
+    border: 2px solid #38bdf8;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.btn-player-icon-box canvas {
+    image-rendering: pixelated;
+    width: 26px;
+    height: 16px;
+}
+
+.btn-label-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-grow: 1;
+    margin-left: 12px;
+}
+
+.btn-label-main {
+    font-family: 'Press Start 2P', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+}
+
+.btn-label-sub {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6.5px;
+    color: #bae6fd;
+    letter-spacing: 1.5px;
+    margin-top: 2px;
+}
+
+.btn-blink-arrow {
+    font-family: 'Press Start 2P', monospace;
     font-size: 13px;
+    color: #ffffff;
+    text-shadow: 2px 2px 0 #000;
+    animation: arrowPulse 0.8s ease-in-out infinite alternate;
+    flex-shrink: 0;
 }
 
-.start-hint {
-    font-size: 12px;
-    color: #94a3b8;
-    letter-spacing: 0.3px;
+@keyframes arrowPulse {
+    0% { transform: translateX(0); opacity: 0.5; }
+    100% { transform: translateX(3px); opacity: 1; }
+}
+
+.arcade-start-hint {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7.5px;
+    color: #38bdf8;
+    letter-spacing: 1px;
+    animation: arcadeBlink 1.4s steps(2, start) infinite;
+}
+
+@keyframes arcadeBlink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.25; }
 }
 
 /* 操作説明タグ */

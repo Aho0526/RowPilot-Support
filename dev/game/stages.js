@@ -121,7 +121,7 @@ const STAGES = [
         ],
         solution: [
             { col: 1, row: 1 }, { col: 2, row: 1 },
-            { col: 3, row: 2 },
+            { col: 2, row: 2 },
             { col: 1, row: 3 }, { col: 2, row: 3 }
         ],
         legends: [
@@ -155,10 +155,10 @@ const STAGES = [
         solution: [
             { col: 0, row: 0 },
             { col: 0, row: 1 },
-            { col: 1, row: 2 },
+            { col: 1, row: 1 },
             { col: 2, row: 2 },
-            { col: 3, row: 3 },
-            { col: 4, row: 4 }
+            { col: 3, row: 2 },
+            { col: 4, row: 3 }
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
@@ -212,6 +212,7 @@ const STAGES = [
         maxBlocks: 6,
         startRow: 1,
         goalRow: 3,
+        hasCeiling: true,
         forbidden: [
             { col: 2, row: 2 },
             { col: 2, row: 3 }
@@ -277,8 +278,8 @@ const STAGES = [
         title: 'ステージ 9',
         subtitle: '上へ持ち上げられるブロック',
         maxBlocks: 6,
-        startRow: 1,
-        goalRow: 0,
+        startRow: 2,
+        goalRow: 1,
         forbidden: [
             { col: 2, row: 0 },
             { col: 2, row: 3 }
@@ -448,26 +449,24 @@ const STAGES = [
         title: 'ステージ 14',
         subtitle: 'ジグザグの狭路',
         maxBlocks: 5,
-        startRow: 0,
+        startRow: 1,
         goalRow: 3,
         forbidden: [
             { col: 2, row: 0 }, { col: 4, row: 0 },
             { col: 2, row: 1 }, { col: 4, row: 1 },
             { col: 0, row: 2 },
-            { col: 0, row: 3 }, { col: 3, row: 3 },
-            { col: 0, row: 4 }, { col: 3, row: 4 }
+            { col: 0, row: 3 }, { col: 4, row: 3 },
+            { col: 0, row: 4 }, { col: 4, row: 4 }
         ],
         gimmicks: [
             { col: 3, row: 0, type: 'step', dir: 'right', steps: 1 },
             { col: 1, row: 1, type: 'step', dir: 'left', steps: 1 },
             { col: 1, row: 4, type: 'dash', dir: 'right', purpleBorder: true },
-            { col: 2, row: 4, type: 'step', dir: 'up', steps: 1 }
+            { col: 3, row: 4, type: 'step', dir: 'up', steps: 1 }
         ],
         solution: [
-            { col: 3, row: 0 },
-            { col: 1, row: 1 },
-            { col: 1, row: 2 },
-            { col: 2, row: 3 },
+            { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 },
+            { col: 1, row: 3 },
             { col: 1, row: 4 }
         ],
         legends: [
@@ -486,23 +485,23 @@ const STAGES = [
         title: 'ステージ 15',
         subtitle: '外周ギミックを回せ',
         maxBlocks: 6,
-        startRow: 0,
+        startRow: 1,
         goalRow: 3,
         forbidden: [
-            { col: 4, row: 2 },
+            { col: 0, row: 3 },
             { col: 4, row: 3 },
             { col: 4, row: 4 }
         ],
         gimmicks: [
             { col: 0, row: 2, type: 'dash', dir: 'down', purpleBorder: false },
             { col: 1, row: 3, type: 'step', dir: 'up', steps: 1, purpleBorder: true },
-            { col: 3, row: 2, type: 'dash', dir: 'left', purpleBorder: false },
+            { col: 4, row: 2, type: 'dash', dir: 'left', purpleBorder: false },
             { col: 0, row: 4, type: 'dash', dir: 'right', purpleBorder: false }
         ],
         solution: [
-            { col: 0, row: 1 }, { col: 0, row: 2 }, { col: 0, row: 3 },
+            { col: 0, row: 1 }, { col: 0, row: 2 },
             { col: 1, row: 3 }, { col: 2, row: 3 },
-            { col: 0, row: 4 }
+            { col: 0, row: 4 }, { col: 4, row: 2 }
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
@@ -520,8 +519,9 @@ const STAGES = [
         title: 'ステージ 16',
         subtitle: '左右の壁に挟まれた回廊',
         maxBlocks: 5,
-        startRow: 0,
-        goalRow: 0,
+        startRow: 1,
+        goalRow: 1,
+        hasCeiling: true,
         forbidden: [
             { col: 0, row: 1 }, { col: 2, row: 1 }, { col: 4, row: 1 },
             { col: 0, row: 2 }, { col: 4, row: 2 },
@@ -555,7 +555,8 @@ const STAGES = [
         subtitle: '高低差を乗り越えろ',
         maxBlocks: 5,
         startRow: 3,
-        goalRow: 0,
+        goalRow: 1,
+        hasCeiling: true,
         forbidden: [
             { col: 3, row: 2 }
         ],
@@ -584,8 +585,9 @@ const STAGES = [
         title: 'ステージ 18',
         subtitle: '斜め障害物を縫う道',
         maxBlocks: 5,
-        startRow: 0,
-        goalRow: 0,
+        startRow: 1,
+        goalRow: 1,
+        hasCeiling: true,
         forbidden: [
             { col: 3, row: 0 },
             { col: 2, row: 1 },
@@ -618,6 +620,7 @@ const STAGES = [
         maxBlocks: 6,
         startRow: 2,
         goalRow: 2,
+        hasCeiling: true,
         forbidden: [
             { col: 3, row: 0 },
             { col: 3, row: 1 },
