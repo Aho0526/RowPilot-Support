@@ -6,15 +6,33 @@
 (function() {
     'use strict';
 
-    const canvas = document.getElementById("gameCanvas");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    let canvas = document.getElementById("gameCanvas");
+    let ctx = canvas ? canvas.getContext("2d") : null;
 
     // キャンバス基準解像度 (480 x 560)
     const V_WIDTH = 480;
     const V_HEIGHT = 560;
-    canvas.width = V_WIDTH;
-    canvas.height = V_HEIGHT;
+
+    function ensureCanvas() {
+        if (!canvas) {
+            canvas = document.getElementById("gameCanvas");
+            if (canvas) {
+                ctx = canvas.getContext("2d");
+                canvas.width = V_WIDTH;
+                canvas.height = V_HEIGHT;
+            }
+        } else if (!ctx) {
+            ctx = canvas.getContext("2d");
+            canvas.width = V_WIDTH;
+            canvas.height = V_HEIGHT;
+        }
+        return !!(canvas && ctx);
+    }
+
+    if (canvas) {
+        canvas.width = V_WIDTH;
+        canvas.height = V_HEIGHT;
+    }
 
     // 安全な数値取得ヘルパー
     function safeNum(val, min, max, defaultVal) {
@@ -462,7 +480,7 @@
     }
 
     // ─────────────────────────────────────────────
-    // 背景画像管理
+    // 背景画像管理 & スターフィールド
     // ─────────────────────────────────────────────
     const bgImages = {
         "space-bg": new Image(),
@@ -470,6 +488,43 @@
     };
     bgImages["space-bg"].src = "assets/space-bg.jpg";
     bgImages["space-nebula"].src = "assets/space-nebula.jpg";
+
+    // プロシージャル星空（スターフィールド）
+    const stars = [];
+    const STAR_COUNT = 60;
+    for (let i = 0; i < STAR_COUNT; i++) {
+        stars.push({
+            x: Math.random() * V_WIDTH,
+            y: Math.random() * V_HEIGHT,
+            size: Math.random() < 0.25 ? 2 : 1,
+            speed: 0.2 + Math.random() * 0.6,
+            alpha: 0.3 + Math.random() * 0.7,
+            twinkleSpeed: 0.02 + Math.random() * 0.04
+        });
+    }
+
+    function updateStarfield() {
+        for (let s of stars) {
+            s.y += s.speed;
+            if (s.y > V_HEIGHT) {
+                s.y = 0;
+                s.x = Math.random() * V_WIDTH;
+            }
+            s.alpha += Math.sin(Date.now() * s.twinkleSpeed) * 0.02;
+            if (s.alpha < 0.2) s.alpha = 0.2;
+            if (s.alpha > 1.0) s.alpha = 1.0;
+        }
+    }
+
+    function drawStarfield(opacityMult = 1.0) {
+        ctx.save();
+        for (let s of stars) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, Math.max(0, s.alpha * opacityMult))})`;
+            ctx.fillRect(Math.floor(s.x), Math.floor(s.y), s.size, s.size);
+        }
+        ctx.restore();
+    }
+
 
     // ─────────────────────────────────────────────
     // ゲーム状態
@@ -602,16 +657,41 @@
         const scores = cfg.scores || [30, 20, 20, 10, 10];
 
         // 画面幅に合わせた等間隔配置
-        const maxW = V_WIDTH - 60;
-        const spacingX = Math.min(36, Math.floor(maxW / Math.max(1, cols)));
-        const startX = Math.max(20, Math.floor((V_WIDTH - (cols - 1) * spacingX - 24) / 2));
+        // 各種敵スプライトのドット数・寸法を事前調査
+        const types = ["squid", "crab", "octopus"];
+        let maxEnemyCols = 12;
+        let maxEnemyRows = 8;
+        for (let t of types) {
+            const pat = getSprite(t, 0);
+            if (pat && pat.length) {
+                maxEnemyRows = Math.max(maxEnemyRows, pat.length);
+                maxEnemyCols = Math.max(maxEnemyCols, pat[0].length);
+            }
+        }
+
+        // 画面幅 V_WIDTH (480px) の中に cols 列並べたときの最大編隊幅の目安
+        // 画面左右に 50px 以上の移動余白を残すため、編隊幅は最大 350〜370px に収める
+        const maxFormationW = Math.min(370, V_WIDTH - 90);
+        const targetMaxUnitW = Math.floor(maxFormationW / Math.max(1, cols));
+        
+        // 敵のドット数に応じて pixelSize を動的に最適化 (大ドット絵でも画面に綺麗に収まる)
+        let calcPixelSize = 2.0;
+        if (maxEnemyCols * calcPixelSize > targetMaxUnitW) {
+            calcPixelSize = Math.max(1.0, Math.floor((targetMaxUnitW / maxEnemyCols) * 10) / 10);
+        }
+
+        const unitW = maxEnemyCols * calcPixelSize;
+        const unitH = maxEnemyRows * calcPixelSize;
+        const spacingX = Math.max(unitW + 4, Math.floor(maxFormationW / Math.max(1, cols)));
+        const spacingY = Math.max(unitH + 6, 26);
+        const formationW = (cols - 1) * spacingX + unitW;
+        const startX = Math.max(15, Math.floor((V_WIDTH - formationW) / 2));
         const baseStartY = 85;
-        const spacingY = 28;
 
         for (let r = 0; r < rows; r++) {
             // スプライト種類の決定: 0行目=squid, 1-2行目=crab, 3行目以降=octopus
             let type = "octopus";
-            let pixelSize = 2;
+            let pixelSize = calcPixelSize;
             if (r === 0) {
                 type = "squid";
             } else if (r === 1 || r === 2) {
@@ -708,19 +788,81 @@
     }
 
     // ─────────────────────────────────────────────
-    // ゲームの開始 & リセット
+    // ゲームの開始 & リセット & 一時停止 (PAUSE)
     // ─────────────────────────────────────────────
+    let pauseMode = "menu"; // "menu" (2択画面) | "edit" (HUD控えめ表示)
+
+    function pauseGame(mode = "menu") {
+        if (gameState !== "PLAYING" && gameState !== "PAUSED") return;
+        gameState = "PAUSED";
+        pauseMode = mode;
+
+        const pauseOverlay = document.getElementById("pause-overlay");
+        const pauseMenu = document.getElementById("pause-menu-box");
+        const pauseHud = document.getElementById("pause-hud-box");
+        const quickPauseBtn = document.getElementById("btn-quick-pause");
+
+        if (pauseOverlay) {
+            pauseOverlay.style.display = "flex";
+            if (mode === "edit") {
+                pauseOverlay.classList.add("edit-mode");
+            } else {
+                pauseOverlay.classList.remove("edit-mode");
+            }
+        }
+        if (quickPauseBtn) quickPauseBtn.style.display = "none";
+
+        if (mode === "edit") {
+            if (pauseMenu) pauseMenu.style.display = "none";
+            if (pauseHud) pauseHud.style.display = "flex";
+        } else {
+            if (pauseMenu) pauseMenu.style.display = "flex";
+            if (pauseHud) pauseHud.style.display = "none";
+        }
+        draw();
+    }
+
+    function resumeGame() {
+        if (gameState !== "PAUSED") return;
+        gameState = "PLAYING";
+
+        const pauseOverlay = document.getElementById("pause-overlay");
+        const quickPauseBtn = document.getElementById("btn-quick-pause");
+        if (pauseOverlay) {
+            pauseOverlay.style.display = "none";
+            pauseOverlay.classList.remove("edit-mode");
+        }
+        if (quickPauseBtn) quickPauseBtn.style.display = "block";
+
+        canvas.focus();
+    }
+
+    function quitToHome() {
+        const pauseOverlay = document.getElementById("pause-overlay");
+        const quickPauseBtn = document.getElementById("btn-quick-pause");
+        if (pauseOverlay) {
+            pauseOverlay.style.display = "none";
+            pauseOverlay.classList.remove("edit-mode");
+        }
+        if (quickPauseBtn) quickPauseBtn.style.display = "none";
+        resetGame(true, false);
+    }
+
     function startGame() {
         initAudio();
         gameState = "PLAYING";
         const overlay = document.getElementById("start-overlay");
+        const pauseOverlay = document.getElementById("pause-overlay");
+        const quickPauseBtn = document.getElementById("btn-quick-pause");
+
         if (overlay) overlay.classList.add("hidden");
+        if (pauseOverlay) pauseOverlay.style.display = "none";
+        if (quickPauseBtn) quickPauseBtn.style.display = "block";
         canvas.focus();
     }
 
     function resetGame(fullReset = true, autoStart = false) {
         const pCfg = window.GameConfig ? window.GameConfig.player : {};
-        const gCfg = window.GameConfig ? window.GameConfig.game : {};
         const pSprite = getSprite("player");
         const pDims = getSpriteDimensions(pSprite, player.pixelSize);
         player.width = pDims.width;
@@ -728,8 +870,12 @@
         player.speed = safeNum(pCfg.speed, 0, 50, 5);
         player.color = pCfg.color || "#00FF66";
         player.x = V_WIDTH / 2 - player.width / 2;
-        player.y = V_HEIGHT - 60;
+        const groundY = V_HEIGHT - 32;
+        player.y = groundY - 4 - player.height;
         player.dyingTimer = 0;
+        if (pCfg.muzzle) {
+            player.muzzle = { col: pCfg.muzzle.col, row: pCfg.muzzle.row };
+        }
 
         const uCfg = window.GameConfig ? window.GameConfig.ufo : {};
         if (uCfg) {
@@ -756,12 +902,19 @@
         initEnemies();
 
         const overlay = document.getElementById("start-overlay");
+        const pauseOverlay = document.getElementById("pause-overlay");
+        const quickPauseBtn = document.getElementById("btn-quick-pause");
+
+        if (pauseOverlay) pauseOverlay.style.display = "none";
+
         if (autoStart) {
             gameState = "PLAYING";
             if (overlay) overlay.classList.add("hidden");
+            if (quickPauseBtn) quickPauseBtn.style.display = "block";
         } else {
             gameState = "READY";
             if (overlay) overlay.classList.remove("hidden");
+            if (quickPauseBtn) quickPauseBtn.style.display = "none";
         }
     }
 
@@ -772,10 +925,17 @@
 
     function handleKeyDown(code) {
         initAudio();
+
         if (code === "Escape") {
-            resetGame(true, false);
-            return;
+            if (gameState === "PLAYING") {
+                pauseGame("menu");
+                return;
+            } else if (gameState === "PAUSED") {
+                resumeGame();
+                return;
+            }
         }
+
         if (code === "ArrowLeft" || code === "KeyA") {
             keys.left = true;
         }
@@ -787,6 +947,16 @@
             if (document.activeElement && document.activeElement !== canvas && document.activeElement.blur) {
                 document.activeElement.blur();
             }
+
+            if (gameState === "PAUSED") {
+                if (pauseMode === "edit") {
+                    resumeGame();
+                } else {
+                    pauseGame("edit");
+                }
+                return;
+            }
+
             if (gameState === "READY") {
                 startGame();
             } else if (gameState === "GAME_OVER" || gameState === "CLEAR") {
@@ -829,6 +999,12 @@
         if (e.data.type === 'KEY_EVENT') {
             if (e.data.action === 'down') handleKeyDown(e.data.code);
             if (e.data.action === 'up') handleKeyUp(e.data.code);
+        } else if (e.data.type === 'SPRITE_PREVIEW_UPDATE') {
+            if (typeof window.updateLiveSpritePreview === 'function') {
+                const k = e.data.key || e.data.spriteKey;
+                const p = e.data.pattern || e.data.spritePattern;
+                window.updateLiveSpritePreview(k, p, e.data.muzzle);
+            }
         } else if (e.data.type === 'SET_SOUND') {
             initAudio();
             Sound.enabled = !!e.data.enabled;
@@ -866,20 +1042,24 @@
             const cCtx = cvs.getContext("2d");
             cCtx.clearRect(0, 0, cvs.width, cvs.height);
             const pattern = getSprite(spriteKey, frame);
-            if (!pattern) return;
+            if (!pattern || pattern.length === 0) return;
             
-            cCtx.fillStyle = color;
             const rows = pattern.length;
             const cols = pattern[0].length;
-            const startX = Math.floor((cvs.width - cols * pixelSize) / 2);
-            const startY = Math.floor((cvs.height - rows * pixelSize) / 2);
+            if (cols === 0 || rows === 0) return;
 
+            // キャンバス枠に美しく収まるようにスケール自動計算
+            const fitSize = Math.max(1, Math.min(pixelSize, Math.floor(cvs.width / cols), Math.floor(cvs.height / rows)));
+            const startX = Math.floor((cvs.width - cols * fitSize) / 2);
+            const startY = Math.floor((cvs.height - rows * fitSize) / 2);
+
+            cCtx.fillStyle = color;
             for (let r = 0; r < rows; r++) {
                 const row = pattern[r];
                 if (!row) continue;
                 for (let c = 0; c < row.length; c++) {
                     if (row[c] === '1') {
-                        cCtx.fillRect(startX + c * pixelSize, startY + r * pixelSize, pixelSize, pixelSize);
+                        cCtx.fillRect(startX + c * fitSize, startY + r * fitSize, fitSize, fitSize);
                     }
                 }
             }
@@ -905,6 +1085,45 @@
         updateSprites();
         if (!homeAnimTimer) {
             homeAnimTimer = setInterval(updateSprites, 480);
+        }
+    }
+
+    function setupPauseUI() {
+        const quickPauseBtn = document.getElementById("btn-quick-pause");
+        const btnPauseEdit = document.getElementById("btn-pause-edit");
+        const btnPauseQuit = document.getElementById("btn-pause-quit");
+        const btnHudResume = document.getElementById("btn-hud-resume");
+        const btnHudQuit = document.getElementById("btn-hud-quit");
+
+        if (quickPauseBtn) {
+            quickPauseBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                pauseGame("menu");
+            });
+        }
+        if (btnPauseEdit) {
+            btnPauseEdit.addEventListener("click", (e) => {
+                e.stopPropagation();
+                pauseGame("edit");
+            });
+        }
+        if (btnPauseQuit) {
+            btnPauseQuit.addEventListener("click", (e) => {
+                e.stopPropagation();
+                quitToHome();
+            });
+        }
+        if (btnHudResume) {
+            btnHudResume.addEventListener("click", (e) => {
+                e.stopPropagation();
+                resumeGame();
+            });
+        }
+        if (btnHudQuit) {
+            btnHudQuit.addEventListener("click", (e) => {
+                e.stopPropagation();
+                quitToHome();
+            });
         }
     }
 
@@ -941,6 +1160,7 @@
             });
         });
 
+        setupPauseUI();
         renderHomePreviewSprites();
     }
 
@@ -1008,11 +1228,21 @@
         const spd = safeNum(bCfg.speed, -100, -1, -8);
         const col = bCfg.color || "#FFFF00";
 
+        const pSprite = getSprite("player");
+        const cols = (pSprite && pSprite[0]) ? pSprite[0].length : 13;
+        const rows = (pSprite) ? pSprite.length : 8;
+        const mz = (player.muzzle) || (pCfg.muzzle) || { col: Math.floor((cols - 1) / 2), row: 0 };
+        const mzCol = safeNum(mz.col, 0, Math.max(0, cols - 1), Math.floor((cols - 1) / 2));
+        const mzRow = safeNum(mz.row, 0, Math.max(0, rows - 1), 0);
+        const pxSize = player.pixelSize || 2;
+        const muzzleCenterX = player.x + (mzCol + 0.5) * pxSize;
+        const muzzleY = player.y + mzRow * pxSize;
+
         if (playerPowerLevel === 1) {
-            // Level 1: 通常単発
+            // Level 1: 通常単発 (1x1指定グリッドから発射)
             playerBullets.push({
-                x: player.x + player.width / 2 - bw / 2,
-                y: player.y - bh,
+                x: muzzleCenterX - bw / 2,
+                y: muzzleY - bh,
                 vx: 0,
                 width: bw,
                 height: bh,
@@ -1020,10 +1250,11 @@
                 color: col
             });
         } else if (playerPowerLevel === 2) {
-            // Level 2: 2連装平行ショット
+            // Level 2: 2連装平行ショット (指定マズルを中心に左右展開)
+            const offset = Math.max(5, pxSize * 2);
             playerBullets.push({
-                x: player.x + 3,
-                y: player.y - bh,
+                x: muzzleCenterX - offset - bw / 2,
+                y: muzzleY - bh,
                 vx: 0,
                 width: bw,
                 height: bh,
@@ -1031,8 +1262,8 @@
                 color: col
             });
             playerBullets.push({
-                x: player.x + player.width - 3 - bw,
-                y: player.y - bh,
+                x: muzzleCenterX + offset - bw / 2,
+                y: muzzleY - bh,
                 vx: 0,
                 width: bw,
                 height: bh,
@@ -1040,10 +1271,10 @@
                 color: col
             });
         } else {
-            // Level 3+: 3WAYショット
+            // Level 3+: 3WAYショット (指定マズルから放射状に発射)
             playerBullets.push({
-                x: player.x + player.width / 2 - bw / 2,
-                y: player.y - bh,
+                x: muzzleCenterX - bw / 2,
+                y: muzzleY - bh,
                 vx: 0,
                 width: bw,
                 height: bh,
@@ -1051,18 +1282,18 @@
                 color: col
             });
             playerBullets.push({
-                x: player.x + 2,
-                y: player.y - bh,
-                vx: -1.2,
+                x: muzzleCenterX - bw / 2,
+                y: muzzleY - bh,
+                vx: -1.4,
                 width: bw,
                 height: bh,
                 speed: spd,
                 color: col
             });
             playerBullets.push({
-                x: player.x + player.width - 2 - bw,
-                y: player.y - bh,
-                vx: 1.2,
+                x: muzzleCenterX - bw / 2,
+                y: muzzleY - bh,
+                vx: 1.4,
                 width: bw,
                 height: bh,
                 speed: spd,
@@ -1423,16 +1654,33 @@
         const dCfg = window.GameConfig ? window.GameConfig.display : {};
         const bgChoice = (dCfg && dCfg.background) || "space-bg";
 
-        if (bgChoice !== "black" && bgImages[bgChoice] && bgImages[bgChoice].complete) {
-            ctx.drawImage(bgImages[bgChoice], 0, 0, V_WIDTH, V_HEIGHT);
-            // 視認性を保つための半透明オーバーレイ
-            ctx.fillStyle = "rgba(5, 5, 12, 0.65)";
-            ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
-        } else {
-            // クラシック黒背景
+        let bgDrawn = false;
+        if (bgChoice !== "black" && bgImages[bgChoice]) {
+            const img = bgImages[bgChoice];
+            if (img.complete && img.naturalWidth > 0) {
+                try {
+                    ctx.drawImage(img, 0, 0, V_WIDTH, V_HEIGHT);
+                    // 視認性を保つための半透明オーバーレイ
+                    ctx.fillStyle = "rgba(5, 5, 12, 0.65)";
+                    ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+                    bgDrawn = true;
+                } catch (e) {
+                    bgDrawn = false;
+                }
+            }
+        }
+
+        // 画像が無い、またはエラーの時は美しい星空（スターフィールド）を描画
+        if (!bgDrawn) {
             ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, V_WIDTH, V_HEIGHT);
+            drawStarfield();
+        } else {
+            // 画像がある場合も星空を控えめにブレンド
+            drawStarfield(0.35);
         }
+
+
 
         // 2. ヘッダースコア (クラシックなアーケード表示)
         ctx.font = "14px 'Courier New', monospace, monospace";
@@ -1582,6 +1830,10 @@
 
     // 起動
     function start() {
+        if (!ensureCanvas()) {
+            setTimeout(start, 50);
+            return;
+        }
         setupHomeUI();
         setupTouchControls();
         resetGame(true);
@@ -1594,10 +1846,100 @@
         start();
     }
 
+    // ポーズ中・実行中のゲームオブジェクトに設定変更（色・スプライト・スピード等）を即座に反映
+    function applyConfigToActiveGame() {
+        const cfg = window.GameConfig || {};
+        const pCfg = cfg.player || {};
+        const eCfg = cfg.enemy || {};
+        const uCfg = cfg.ufo || {};
+
+        // プレイヤーの更新
+        const pSprite = getSprite("player");
+        const pDims = getSpriteDimensions(pSprite, player.pixelSize);
+        player.width = pDims.width;
+        player.height = pDims.height;
+        player.color = pCfg.color || "#00FF66";
+        player.speed = safeNum(pCfg.speed, 0, 50, player.speed);
+        if (pCfg.muzzle) {
+            player.muzzle = { col: pCfg.muzzle.col, row: pCfg.muzzle.row };
+        }
+
+        // 敵の更新（色、サイズ）
+        const colors = eCfg.colors || [];
+        for (let enemy of enemies) {
+            if (enemy.row === 0) enemy.color = colors[0] || "#FFFF00";
+            else if (enemy.row === 1 || enemy.row === 2) enemy.color = colors[1] || "#00FFFF";
+            else enemy.color = colors[3] || colors[colors.length - 1] || "#FF3399";
+
+            const sprite = getSprite(enemy.type, enemy.animFrame);
+            const dims = getSpriteDimensions(sprite, enemy.pixelSize);
+            enemy.width = dims.width;
+            enemy.height = dims.height;
+        }
+
+        // UFOの更新
+        if (uCfg) {
+            ufo.color = uCfg.color || "#FF0033";
+            ufo.speed = safeNum(uCfg.speed, 0.5, 30, ufo.speed);
+        }
+
+        // 弾の色の更新
+        const bCfg = cfg.bullet || {};
+        for (let b of playerBullets) {
+            b.color = bCfg.playerBulletColor || "#00FF66";
+        }
+    }
+
+    // ドット絵エディタからのリアルタイム更新受け口
+    window.updateLiveSpritePreview = function(key, pattern, muzzle) {
+        if (!key || !pattern || !Array.isArray(pattern)) return;
+        if (!window.GameConfig) window.GameConfig = {};
+        if (!window.GameConfig.sprites) window.GameConfig.sprites = {};
+        window.GameConfig.sprites[key] = pattern;
+
+        // 自機スプライト更新時のサイズ・マズル反映
+        if (key === "player") {
+            const pDims = getSpriteDimensions(pattern, player.pixelSize);
+            player.width = pDims.width;
+            player.height = pDims.height;
+            const groundY = V_HEIGHT - 32;
+            player.y = groundY - 4 - player.height;
+            if (muzzle) {
+                if (!window.GameConfig.player) window.GameConfig.player = {};
+                window.GameConfig.player.muzzle = { col: muzzle.col, row: muzzle.row };
+                player.muzzle = { col: muzzle.col, row: muzzle.row };
+            }
+        } else if (enemies && enemies.length > 0) {
+            // 敵スプライト更新時の反映
+            for (let e of enemies) {
+                if (e.type === key) {
+                    const dims = getSpriteDimensions(pattern, e.pixelSize);
+                    e.width = dims.width;
+                    e.height = dims.height;
+                }
+            }
+        }
+
+        // ホーム画面のプレビュー（「ゲーム開始」ボタン内アイコン、スコア表の敵アイコン）を即時更新！
+        renderHomePreviewSprites();
+
+        // ゲーム画面（キャンバス）も即時再描画
+        draw();
+    };
+
     // 設定変更時のリスタート用グローバル関数（IDEからの更新連携用）
     window.reloadGameWithNewConfig = function(newConfig) {
-        const wasPlaying = (gameState !== "READY");
         if (newConfig) window.GameConfig = newConfig;
+
+        if (gameState === "PAUSED") {
+            // 一時停止中の場合: ゲーム進行を維持したまま、敵や自機の見た目・設定を即座に反映！
+            applyConfigToActiveGame();
+            renderHomePreviewSprites();
+            draw();
+            return;
+        }
+
+        const wasPlaying = (gameState !== "READY");
         difficultyChosen = false;
         wavesChosen = false;
         resetGame(true, wasPlaying);

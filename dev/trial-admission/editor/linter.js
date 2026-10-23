@@ -155,13 +155,16 @@
 
         let inHtmlComment = false;  // <!-- -->
         let inBlockComment = false; // /* */
+        let inTemplateLiteral = false; // `...`
         let inScriptTag = false;    // for HTML <script>
         let inStyleTag = false;     // for HTML <style>
 
         for (let i = 0; i < lines.length; i++) {
             const rawLine = lines[i];
-            let inString = null; // '"', "'", or '`'
+            let inString = null; // '"' or "'"
             let inHtmlTag = false;
+            let prevNonSpace = '';
+            let lastWord = '';
 
             for (let c = 0; c < rawLine.length; c++) {
                 const ch = rawLine[c];
@@ -178,14 +181,14 @@
                         }
                         continue;
                     }
-                    if (!inString && !inBlockComment && next3 === '<!--') {
+                    if (!inString && !inBlockComment && !inTemplateLiteral && next3 === '<!--') {
                         inHtmlComment = true;
                         c += 3;
                         continue;
                     }
 
                     // <script> と <style> の出入り
-                    if (!inString && !inBlockComment) {
+                    if (!inString && !inBlockComment && !inTemplateLiteral) {
                         const lowerRest = rawLine.substring(c).toLowerCase();
                         if (lowerRest.startsWith('<script')) inScriptTag = true;
                         if (lowerRest.startsWith('</script>')) inScriptTag = false;
@@ -214,9 +217,20 @@
                     continue;
                 }
 
-                // --- 文字列リテラル判定 (", ', `) ※コメント開始判定より先に行う ---
+                // --- テンプレートリテラル中 (`...`) ---
+                if (inTemplateLiteral) {
+                    if (ch === '\\' && c + 1 < rawLine.length) {
+                        c++; // エスケープ
+                    } else if (ch === '`') {
+                        inTemplateLiteral = false;
+                    }
+                    // テンプレートリテラル内の全角文字（日本語テキスト）は完全に許容
+                    continue;
+                }
+
+                // --- 通常の文字列リテラル判定 (", ') ---
                 if (inString) {
-                    if (ch === '\\') {
+                    if (ch === '\\' && c + 1 < rawLine.length) {
                         c++; // エスケープ
                     } else if (ch === inString) {
                         inString = null; // 文字列終了
@@ -241,9 +255,41 @@
                     }
                 }
 
-                if (ch === '"' || ch === "'" || (inJsContext && ch === '`')) {
-                    inString = ch;
+                // テンプレートリテラル開始
+                if (inJsContext && ch === '`') {
+                    inTemplateLiteral = true;
+                    prevNonSpace = '`';
+                    lastWord = '';
                     continue;
+                }
+
+                // 通常文字列開始
+                if (ch === '"' || ch === "'") {
+                    inString = ch;
+                    prevNonSpace = ch;
+                    lastWord = '';
+                    continue;
+                }
+
+                // 正規表現リテラルの判定とスキップ
+                if (inJsContext && ch === '/') {
+                    const isRegex = !prevNonSpace || /[(=:;,!&|?+\-*%^~<>{}\\[]/.test(prevNonSpace) || /^(return|case|typeof|delete|void)$/.test(lastWord);
+                    if (isRegex) {
+                        c++;
+                        let inCharClass = false;
+                        while (c < rawLine.length && (inCharClass || rawLine[c] !== '/')) {
+                            if (rawLine[c] === '\\' && c + 1 < rawLine.length) {
+                                c += 2;
+                            } else {
+                                if (rawLine[c] === '[') inCharClass = true;
+                                else if (rawLine[c] === ']') inCharClass = false;
+                                c++;
+                            }
+                        }
+                        prevNonSpace = '/';
+                        lastWord = '';
+                        continue;
+                    }
                 }
 
                 // --- 全角記号チェック ---
@@ -295,17 +341,23 @@
     /**
      * 2. クォート閉じ忘れチェック（コメント外のみ）
      */
+    /**
+     * 2. クォート閉じ忘れチェック（コメント・正規表現外のみ）
+     */
     function checkUnclosedQuotes(filename, code) {
         if (filename.endsWith('.html')) return []; // HTMLは checkHTML 内で属性・タグごとに検査
 
         const issues = [];
         const lines = code.split('\n');
         let inMultiComment = false;
+        let inTemplateLiteral = false;
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             let inString = null;
             let startCol = 0;
+            let prevNonSpace = '';
+            let lastWord = '';
 
             for (let c = 0; c < line.length; c++) {
                 const ch = line[c];
@@ -319,8 +371,17 @@
                     continue;
                 }
 
+                if (inTemplateLiteral) {
+                    if (ch === '\\' && c + 1 < line.length) {
+                        c++;
+                    } else if (ch === '`') {
+                        inTemplateLiteral = false;
+                    }
+                    continue;
+                }
+
                 if (inString) {
-                    if (ch === '\\') {
+                    if (ch === '\\' && c + 1 < line.length) {
                         c++;
                     } else if (ch === inString) {
                         inString = null;
@@ -328,23 +389,67 @@
                     continue;
                 }
 
+                // 一行コメント
+                if (ch === '/' && next === '/') {
+                    break;
+                }
+
+                // 複数行コメント開始
                 if (ch === '/' && next === '*') {
                     inMultiComment = true;
                     c++;
                     continue;
                 }
 
-                if (ch === '/' && next === '/') {
-                    break; // 一行コメント
+                // テンプレートリテラル開始
+                if (ch === '`') {
+                    inTemplateLiteral = true;
+                    prevNonSpace = '`';
+                    lastWord = '';
+                    continue;
                 }
 
+                // 文字列開始
                 if (ch === '"' || ch === "'") {
                     inString = ch;
                     startCol = c + 1;
+                    prevNonSpace = ch;
+                    lastWord = '';
+                    continue;
+                }
+
+                // 正規表現リテラルの判定とスキップ
+                if (ch === '/') {
+                    const isRegex = !prevNonSpace || /[(=:;,!&|?+\-*%^~<>{}\\[]/.test(prevNonSpace) || /^(return|case|typeof|delete|void)$/.test(lastWord);
+                    if (isRegex) {
+                        c++;
+                        let inCharClass = false;
+                        while (c < line.length && (inCharClass || line[c] !== '/')) {
+                            if (line[c] === '\\' && c + 1 < line.length) {
+                                c += 2;
+                            } else {
+                                if (line[c] === '[') inCharClass = true;
+                                else if (line[c] === ']') inCharClass = false;
+                                c++;
+                            }
+                        }
+                        prevNonSpace = '/';
+                        lastWord = '';
+                        continue;
+                    }
+                }
+
+                if (/[a-zA-Z0-9_$]/.test(ch)) {
+                    lastWord += ch;
+                } else if (!/\s/.test(ch)) {
+                    lastWord = '';
+                }
+                if (!/\s/.test(ch)) {
+                    prevNonSpace = ch;
                 }
             }
 
-            if (inString && !inMultiComment) {
+            if (inString && !inMultiComment && !inTemplateLiteral) {
                 issues.push(createIssue(
                     i + 1,
                     startCol,
@@ -369,13 +474,17 @@
         const issues = [];
         const stack = [];
         const lines = code.split('\n');
-        let inBlockComment = false;
 
         const BRACKET_PAIRS = {
             '}': { open: '{', name: '波括弧 { }' },
             ']': { open: '[', name: '角括弧 [ ]' },
             ')': { open: '(', name: '丸括弧 ( )' }
         };
+
+        let inMultiComment = false;
+        let inTemplateLiteral = false;
+        let prevNonSpace = '';
+        let lastWord = '';
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -385,16 +494,28 @@
                 const ch = line[c];
                 const next = line[c + 1];
 
-                if (inBlockComment) {
+                // 複数行コメント中
+                if (inMultiComment) {
                     if (ch === '*' && next === '/') {
-                        inBlockComment = false;
+                        inMultiComment = false;
                         c++;
                     }
                     continue;
                 }
 
+                // テンプレートリテラル中
+                if (inTemplateLiteral) {
+                    if (ch === '\\' && c + 1 < line.length) {
+                        c++;
+                    } else if (ch === '`') {
+                        inTemplateLiteral = false;
+                    }
+                    continue;
+                }
+
+                // 文字列中
                 if (inString) {
-                    if (ch === '\\') {
+                    if (ch === '\\' && c + 1 < line.length) {
                         c++;
                     } else if (ch === inString) {
                         inString = null;
@@ -402,18 +523,54 @@
                     continue;
                 }
 
+                // 一行コメント
                 if (ch === '/' && next === '/') break;
+
+                // 複数行コメント開始
                 if (ch === '/' && next === '*') {
-                    inBlockComment = true;
+                    inMultiComment = true;
                     c++;
                     continue;
                 }
 
-                if (ch === '"' || ch === "'" || ch === '`') {
-                    inString = ch;
+                // テンプレートリテラル開始
+                if (ch === '`') {
+                    inTemplateLiteral = true;
+                    prevNonSpace = '`';
+                    lastWord = '';
                     continue;
                 }
 
+                // 文字列開始
+                if (ch === '"' || ch === "'") {
+                    inString = ch;
+                    prevNonSpace = ch;
+                    lastWord = '';
+                    continue;
+                }
+
+                // 正規表現リテラルスキップ
+                if (ch === '/') {
+                    const isRegex = !prevNonSpace || /[(=:;,!&|?+\-*%^~<>{}\\[]/.test(prevNonSpace) || /^(return|case|typeof|delete|void)$/.test(lastWord);
+                    if (isRegex) {
+                        c++;
+                        let inCharClass = false;
+                        while (c < line.length && (inCharClass || line[c] !== '/')) {
+                            if (line[c] === '\\' && c + 1 < line.length) {
+                                c += 2;
+                            } else {
+                                if (line[c] === '[') inCharClass = true;
+                                else if (line[c] === ']') inCharClass = false;
+                                c++;
+                            }
+                        }
+                        prevNonSpace = '/';
+                        lastWord = '';
+                        continue;
+                    }
+                }
+
+                // 括弧のスタック処理
                 if (ch === '{' || ch === '[' || ch === '(') {
                     stack.push({ char: ch, line: i + 1, col: c + 1, lineText: line });
                 } else if (ch === '}' || ch === ']' || ch === ')') {
@@ -440,6 +597,15 @@
                             ));
                         }
                     }
+                }
+
+                if (/[a-zA-Z0-9_$]/.test(ch)) {
+                    lastWord += ch;
+                } else if (!/\s/.test(ch)) {
+                    lastWord = '';
+                }
+                if (!/\s/.test(ch)) {
+                    prevNonSpace = ch;
                 }
             }
         }
@@ -1317,9 +1483,11 @@
             issues = issues.concat(checkHTML(code, changedLines));
         }
 
-        // 5. TODO警告
-        const warnings = checkTodoWarnings(code);
-        issues = issues.concat(warnings);
+        // 5. TODO警告（config.js の穴埋め箇所のみ対象）
+        if (filename.endsWith('config.js')) {
+            const warnings = checkTodoWarnings(code);
+            issues = issues.concat(warnings);
+        }
 
         // 差分行マーク付け
         if (changedLines && changedLines.size > 0) {

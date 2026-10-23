@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>スペースインベーダー - エディタ</title>
-    <link rel="stylesheet" href="ide.css?v=3.0">
+    <link rel="stylesheet" href="ide.css?v=4.0">
 </head>
 <body>
     <!-- ヘッダーツールバー -->
@@ -80,21 +80,49 @@
                 <span class="sidebar-label">FILES</span>
             </div>
             <nav class="file-list" id="file-list">
-                <button type="button" class="file-item active" data-path="config.js">
+                <!-- assets フォルダ（開閉可能） -->
+                <div class="tree-folder-group is-open" id="folder-group-assets" data-folder="assets">
+                    <button type="button" class="tree-folder-header is-open" id="folder-toggle-assets" data-folder="assets" aria-expanded="true" title="クリックしてフォルダを開閉">
+                        <span class="folder-chevron">▼</span>
+                        <span class="folder-name">assets</span>
+                        <span class="folder-badge" title="2件">2</span>
+                    </button>
+                    <div class="tree-folder-children" id="folder-children-assets">
+                        <button type="button" class="file-item file-nested" data-path="assets/space-bg.jpg" title="宇宙背景画像 (assets/space-bg.jpg)">
+                            <span class="file-icon icon-image">IMG</span>
+                            <span class="file-name">space-bg.jpg</span>
+                        </button>
+                        <button type="button" class="file-item file-nested" data-path="assets/space-nebula.jpg" title="星雲背景画像 (assets/space-nebula.jpg)">
+                            <span class="file-icon icon-image">IMG</span>
+                            <span class="file-name">space-nebula.jpg</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ルート教材ファイル群 -->
+                <button type="button" class="file-item active" data-path="config.js" title="ゲーム設定・パラメータ (config.js)">
+                    <span class="file-icon icon-js">JS</span>
                     <span class="file-name">config.js</span>
-                    <span class="file-dot-badge" title="編集可能"></span>
                 </button>
-                <button type="button" class="file-item" data-path="style.css">
+                <button type="button" class="file-item" data-path="style.css" title="スタイルシート (style.css)">
+                    <span class="file-icon icon-css">CSS</span>
                     <span class="file-name">style.css</span>
-                    <span class="file-dot-badge" title="編集可能"></span>
                 </button>
-                <button type="button" class="file-item" data-path="core.js">
+                <button type="button" class="file-item" data-path="core.js" title="ゲーム本体・コアエンジン (core.js)">
+                    <span class="file-icon icon-js">JS</span>
                     <span class="file-name">core.js</span>
-                    <span class="file-dot-badge" title="編集可能"></span>
                 </button>
-                <button type="button" class="file-item" data-path="index.html">
+                <button type="button" class="file-item" data-path="index.html" title="HTML画面構造 (index.html)">
+                    <span class="file-icon icon-html">&lt;&gt;</span>
                     <span class="file-name">index.html</span>
-                    <span class="file-dot-badge" title="編集可能"></span>
+                </button>
+                <button type="button" class="file-item" data-path="linter.js" title="構文チェック診断エンジン (linter.js)">
+                    <span class="file-icon icon-js">JS</span>
+                    <span class="file-name">linter.js</span>
+                </button>
+                <button type="button" class="file-item" data-path="monaca-bridge.js" title="Monacaクラウド連携スクリプト (monaca-bridge.js)">
+                    <span class="file-icon icon-js">JS</span>
+                    <span class="file-name">monaca-bridge.js</span>
                 </button>
             </nav>
             <div class="sidebar-header" style="margin-top: 14px;">
@@ -102,25 +130,57 @@
             </div>
             <nav class="file-list">
                 <button type="button" class="file-item tool-item" id="btn-open-sprite-editor">
+                    <span class="file-icon icon-tool">DOT</span>
                     <span class="file-name">ドット絵エディタ</span>
-                    <span class="file-dot-badge" style="background-color: #38bdf8;" title="ツール"></span>
                 </button>
             </nav>
         </aside>
 
-        <!-- 中央: コードエディタ -->
+        <!-- 中央: コードエディタ / 画像ビューア -->
         <section class="studio-editor-pane" id="editor-pane">
             <div class="editor-tabs" id="editor-tabs">
                 <!-- 動的生成 -->
             </div>
 
-            <div class="editor-body">
+            <!-- コード編集エリア -->
+            <div class="editor-body" id="editor-body-container">
                 <div class="line-numbers" id="line-numbers">
                     <div class="line-numbers-inner" id="line-numbers-inner"></div>
                 </div>
                 <div class="editor-code-container">
                     <pre class="code-highlight" id="code-highlight" aria-hidden="true"></pre>
                     <textarea class="code-textarea" id="code-textarea" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+                </div>
+            </div>
+
+            <!-- 画像ビューアエリア (画像ファイル選択時に展開) -->
+            <div class="image-viewer-pane" id="image-viewer-pane" style="display: none;">
+                <div class="image-viewer-header">
+                    <div class="image-meta-info">
+                        <span class="image-path-chip" id="image-viewer-path">assets/space-bg.jpg</span>
+                        <span class="image-dim-chip" id="image-viewer-dims">1920 × 1080 px</span>
+                        <span class="image-type-chip">JPEG</span>
+                    </div>
+                    <div class="image-viewer-actions">
+                        <button type="button" class="image-action-btn secondary" id="btn-copy-image-path" title="画像パスをクリップボードにコピー">
+                            <span>パスをコピー</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="image-viewer-viewport">
+                    <div class="image-preview-frame">
+                        <img id="image-viewer-img" src="" alt="画像プレビュー" class="image-preview-element">
+                    </div>
+                </div>
+
+                <div class="image-viewer-footer">
+                    <div class="image-guide-box">
+                        <div class="guide-title">画像の適用方法</div>
+                        <div class="guide-desc" id="image-viewer-guide">
+                            <code>config.js</code> の <code>display.background</code> に <code>"space-bg"</code> と記述することで、ゲーム画面の宇宙背景を差し替えることができます。
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -163,13 +223,44 @@
                 <div class="sprite-control-group">
                     <label for="sprite-select" class="sprite-label">対象キャラクター:</label>
                     <select id="sprite-select" class="sprite-select">
-                        <option value="player">自機 (player) [13 x 8]</option>
-                        <option value="squid">敵1: イカ (squid) [8 x 8]</option>
-                        <option value="crab">敵2: カニ (crab) [11 x 8]</option>
-                        <option value="octopus">敵3: タコ (octopus) [12 x 8]</option>
-                        <option value="ufo">ボーナス敵: UFO [16 x 7]</option>
+                        <option value="player">自機</option>
+                        <option value="squid">イカ</option>
+                        <option value="crab">カニ</option>
+                        <option value="octopus">タコ</option>
+                        <option value="ufo">UFO</option>
                     </select>
                 </div>
+
+                <!-- キャンバスサイズ自由変更コントロール -->
+                <div class="sprite-size-control-row">
+                    <div class="sprite-size-steppers">
+                        <span class="size-ctrl-title">ドット数:</span>
+                        <div class="dim-stepper-box">
+                            <span class="dim-badge">幅</span>
+                            <button type="button" id="btn-col-dec" class="dim-step-btn" title="幅を1ドット縮小">－</button>
+                            <span id="col-count-disp" class="dim-count-value">13</span>
+                            <button type="button" id="btn-col-inc" class="dim-step-btn" title="幅を1ドット拡大">＋</button>
+                        </div>
+                        <span class="dim-multiply">×</span>
+                        <div class="dim-stepper-box">
+                            <span class="dim-badge">高さ</span>
+                            <button type="button" id="btn-row-dec" class="dim-step-btn" title="高さを1ドット縮小">－</button>
+                            <span id="row-count-disp" class="dim-count-value">8</span>
+                            <button type="button" id="btn-row-inc" class="dim-step-btn" title="高さを1ドット拡大">＋</button>
+                        </div>
+                    </div>
+
+                    <div class="sprite-size-presets">
+                        <span class="preset-label">プリセット:</span>
+                        <button type="button" class="preset-chip" data-cols="8" data-rows="8" title="8×8">8×8</button>
+                        <button type="button" class="preset-chip" data-cols="11" data-rows="8" title="11×8">11×8</button>
+                        <button type="button" class="preset-chip" data-cols="13" data-rows="8" title="13×8">13×8</button>
+                        <button type="button" class="preset-chip" data-cols="16" data-rows="10" title="16×10">16×10</button>
+                        <button type="button" class="preset-chip" data-cols="16" data-rows="16" title="16×16">16×16</button>
+                        <button type="button" class="preset-chip" data-cols="20" data-rows="12" title="20×12">20×12</button>
+                    </div>
+                </div>
+
 
                 <div class="sprite-control-group">
                     <label class="sprite-checkbox-label">
@@ -180,7 +271,7 @@
                     <button type="button" id="btn-sprite-redo" class="sprite-btn secondary" title="やり直す (Ctrl+Shift+Z)" disabled>やり直す</button>
                     <button type="button" id="btn-sprite-clear" class="sprite-btn secondary">全消去</button>
                     <button type="button" id="btn-sprite-reset" class="sprite-btn secondary">初期形状</button>
-                    <button type="button" id="btn-sprite-apply" class="sprite-btn primary">config.jsに適用して反映</button>
+                    <button type="button" id="btn-sprite-apply" class="sprite-btn primary" style="display: none;">config.jsに適用して反映</button>
                 </div>
             </div>
 
@@ -192,9 +283,14 @@
                 <div class="sprite-side-preview">
                     <div class="preview-heading">プレビュー</div>
                     <div class="mini-canvas-box">
-                        <canvas id="sprite-mini-canvas" width="64" height="64"></canvas>
+                        <canvas id="sprite-mini-canvas" width="80" height="80"></canvas>
                     </div>
-                    <div class="sprite-size-indicator" id="sprite-size-info">13 x 8 ドット</div>
+                    <div class="sprite-size-indicator" id="sprite-size-info">13 × 8</div>
+                    <div class="sprite-game-fit-box" id="sprite-game-fit-box">
+                        <div class="fit-status-badge" id="sprite-fit-badge">配置OK</div>
+                        <div class="fit-hint-text" id="sprite-fit-hint">自機: 13×8</div>
+                    </div>
+                    <button type="button" id="btn-side-apply" class="sprite-apply-action-btn">反映する</button>
                 </div>
             </div>
         </section>
@@ -215,7 +311,7 @@
         <span id="ide-toast-msg">保存しました</span>
     </div>
 
-    <script src="linter.js?v=1.0"></script>
-    <script src="ide.js?v=3.0"></script>
+    <script src="linter.js?v=4.1"></script>
+    <script src="ide.js?v=4.1"></script>
 </body>
 </html>

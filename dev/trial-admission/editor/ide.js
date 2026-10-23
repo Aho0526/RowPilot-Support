@@ -2,10 +2,10 @@
 // Space Invaders Studio Controller (ide.js)
 // ===============================================================
 
-(function() {
+(function () {
     'use strict';
 
-    // 仮想ファイルシステム (全ファイル編集可能)
+    // 仮想ファイルシステム (教材・ゲーム関連全ファイル管理)
     const files = {
         'config.js': {
             name: 'config.js',
@@ -13,6 +13,7 @@
             type: 'javascript',
             editable: true,
             isDirty: false,
+            desc: 'ゲームパラメータ設定',
             content: `// ゲーム設定ファイル (config.js)\nconst GameConfig = {};`
         },
         'style.css': {
@@ -21,6 +22,7 @@
             type: 'css',
             editable: true,
             isDirty: false,
+            desc: '画面スタイル・デザイン',
             content: `/* スタイル設定 (style.css) */`
         },
         'core.js': {
@@ -29,6 +31,7 @@
             type: 'javascript',
             editable: true,
             isDirty: false,
+            desc: 'ゲームコアエンジン',
             content: `// ゲームエンジン (core.js)`
         },
         'index.html': {
@@ -37,7 +40,48 @@
             type: 'html',
             editable: true,
             isDirty: false,
+            desc: '画面構造・HTMLマークアップ',
             content: `<!-- ゲームHTML -->`
+        },
+        'linter.js': {
+            name: 'linter.js',
+            path: '../linter.js',
+            type: 'javascript',
+            editable: true,
+            isDirty: false,
+            desc: '構文診断・リアルタイムLinter',
+            content: `// 構文診断エンジン (linter.js)`
+        },
+        'monaca-bridge.js': {
+            name: 'monaca-bridge.js',
+            path: '../monaca-bridge.js',
+            type: 'javascript',
+            editable: true,
+            isDirty: false,
+            desc: 'Monaca IDE連携同期スクリプト',
+            content: `// Monacaクラウド連携ブリッジ`
+        },
+        'assets/space-bg.jpg': {
+            name: 'space-bg.jpg',
+            path: '../assets/space-bg.jpg',
+            type: 'image',
+            editable: false,
+            isDirty: false,
+            isBinary: true,
+            folder: 'assets',
+            bgKey: 'space-bg',
+            desc: '宇宙・星空背景画像'
+        },
+        'assets/space-nebula.jpg': {
+            name: 'space-nebula.jpg',
+            path: '../assets/space-nebula.jpg',
+            type: 'image',
+            editable: false,
+            isDirty: false,
+            isBinary: true,
+            folder: 'assets',
+            bgKey: 'space-nebula',
+            desc: '星雲・ネビュラ背景画像'
         }
     };
 
@@ -51,9 +95,10 @@
     try {
         const savedScale = parseInt(localStorage.getItem('invader_editor_scale'), 10);
         if (savedScale >= 0 && savedScale < SCALE_PRESETS.length) currentScaleIndex = savedScale;
-    } catch (e) {}
+    } catch (e) { }
 
     // DOM要素
+    const btnSave = document.getElementById('btn-save');
     const tabContainer = document.getElementById('editor-tabs');
     const lineNumbersInner = document.getElementById('line-numbers-inner');
     const codeTextarea = document.getElementById('code-textarea');
@@ -63,6 +108,19 @@
     const paneResizer = document.getElementById('pane-resizer');
     const toast = document.getElementById('ide-toast');
     const toastMsg = document.getElementById('ide-toast-msg');
+
+    // エディタコンテナ & 画像ビューア DOM要素
+    const editorBodyContainer = document.getElementById('editor-body-container');
+    const imageViewerPane = document.getElementById('image-viewer-pane');
+    const imageViewerPath = document.getElementById('image-viewer-path');
+    const imageViewerDims = document.getElementById('image-viewer-dims');
+    const imageViewerImg = document.getElementById('image-viewer-img');
+    const imageViewerGuide = document.getElementById('image-viewer-guide');
+    const btnCopyImagePath = document.getElementById('btn-copy-image-path');
+
+    // フォルダ開閉DOM要素
+    const folderToggleAssets = document.getElementById('folder-toggle-assets');
+    const folderGroupAssets = document.getElementById('folder-group-assets');
 
     const btnSoundToggle = document.getElementById('btn-sound-toggle');
     const soundText = document.getElementById('sound-text');
@@ -93,13 +151,17 @@
         if (savedDiagHeight >= 60 && savedDiagHeight <= 500 && diagnosticsPanel) {
             diagnosticsPanel.style.height = savedDiagHeight + 'px';
         }
-    } catch (e) {}
+    } catch (e) { }
 
     // ─────────────────────────────────────────────
     // 実ファイルの自動フェッチ
     // ─────────────────────────────────────────────
     async function loadRealFiles() {
         for (let key in files) {
+            if (files[key].isBinary) {
+                // 画像ファイルなどバイナリはテキストfetchしない
+                continue;
+            }
             try {
                 const resp = await fetch(files[key].path + '?t=' + Date.now());
                 if (resp.ok) {
@@ -107,12 +169,21 @@
                     files[key].baselineContent = files[key].content;
                     files[key].isDirty = false;
                 }
-            } catch(e) {
+            } catch (e) {
                 console.warn('ファイルの読み込みに失敗しました:', key, e);
             }
         }
-        renderEditor();
+        if (files[currentFileKey] && files[currentFileKey].isBinary) {
+            renderImageViewer(currentFileKey);
+        } else {
+            renderEditor();
+        }
         updatePreview();
+        if (spritePane && spritePane.style.display !== 'none') {
+            loadSpriteFromConfig();
+            renderSpriteGrid();
+            broadcastLiveSprite();
+        }
     }
 
     // ─────────────────────────────────────────────
@@ -298,7 +369,7 @@
         currentFileIssues.forEach(item => {
             const isErr = item.severity === 'error';
             const itemClass = isErr ? 'severity-error' : 'severity-warning';
-            const icon = isErr ? '⚠️' : '💡';
+            const icon = isErr ? '!' : 'i';
             const fileBadge = `<span class="diagnostic-file-badge">${escapeHtml(item.filename || fileKey)}</span>`;
             const lineBadge = `<span class="diagnostic-line-badge">行 ${item.line}</span>`;
             const editedBadge = item.isChangedByUser ? `<span class="diagnostic-edited-badge" title="あなたが編集した行です">編集箇所</span>` : '';
@@ -375,7 +446,7 @@
     diagnosticsPanelResizer?.addEventListener('dblclick', () => {
         // ダブルクリックで既定値（140px）にリセット
         diagnosticsPanel.style.height = '140px';
-        try { localStorage.setItem('invader_editor_diagnostics_height', '140'); } catch(e) {}
+        try { localStorage.setItem('invader_editor_diagnostics_height', '140'); } catch (e) { }
     });
 
     window.addEventListener('mousemove', (e) => {
@@ -384,7 +455,7 @@
         const delta = startDiagY - e.clientY;
         const newHeight = Math.max(60, Math.min(500, startDiagHeight + delta));
         diagnosticsPanel.style.height = newHeight + 'px';
-        try { localStorage.setItem('invader_editor_diagnostics_height', String(Math.round(newHeight))); } catch(e) {}
+        try { localStorage.setItem('invader_editor_diagnostics_height', String(Math.round(newHeight))); } catch (e) { }
     });
 
     window.addEventListener('mouseup', () => {
@@ -524,7 +595,7 @@
                         action: 'down',
                         code: e.code
                     }, '*');
-                } catch(err) {}
+                } catch (err) { }
             }
         }
     });
@@ -539,13 +610,13 @@
                         action: 'up',
                         code: e.code
                     }, '*');
-                } catch(err) {}
+                } catch (err) { }
             }
         }
     });
 
     // ─────────────────────────────────────────────
-    // タブ & サイドバー UI
+    // タブ & サイドバー UI & ファイル展開ビュー
     // ─────────────────────────────────────────────
     function updateTabsUI() {
         tabContainer.innerHTML = '';
@@ -555,7 +626,7 @@
 
             const tab = document.createElement('div');
             tab.className = 'editor-tab' + (key === currentFileKey ? ' active' : '') + (file.isDirty ? ' dirty' : '');
-            
+
             const dot = document.createElement('span');
             dot.className = 'tab-dirty-indicator';
 
@@ -565,9 +636,34 @@
             tab.appendChild(dot);
             tab.appendChild(name);
 
+            // 閉じるボタン (タブが2つ以上の時に表示)
+            if (openTabs.length > 1) {
+                const closeBtn = document.createElement('span');
+                closeBtn.className = 'tab-close-btn';
+                closeBtn.innerHTML = '&times;';
+                closeBtn.title = 'タブを閉じる';
+                closeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeTab(key);
+                });
+                tab.appendChild(closeBtn);
+            }
+
             tab.addEventListener('click', () => switchToFile(key));
             tabContainer.appendChild(tab);
         });
+    }
+
+    function closeTab(key) {
+        const idx = openTabs.indexOf(key);
+        if (idx === -1) return;
+        openTabs.splice(idx, 1);
+        if (currentFileKey === key) {
+            const nextKey = openTabs[Math.max(0, idx - 1)] || openTabs[0];
+            if (nextKey) switchToFile(nextKey);
+        } else {
+            updateTabsUI();
+        }
     }
 
     function updateSidebarUI() {
@@ -577,22 +673,6 @@
                 item.classList.add('active');
             } else {
                 item.classList.remove('active');
-            }
-
-            // 未復元箇所 (TODO) の残数をバッジ表示
-            const file = files[path];
-            const count = file ? (file.content.match(/TODO/g) || []).length : 0;
-            let badge = item.querySelector('.todo-count');
-            if (count > 0) {
-                if (!badge) {
-                    badge = document.createElement('span');
-                    badge.className = 'todo-count';
-                    item.appendChild(badge);
-                }
-                badge.textContent = count;
-                badge.title = `未復元の箇所 (TODO) が ${count} 件あります`;
-            } else if (badge) {
-                badge.remove();
             }
         });
     }
@@ -604,9 +684,78 @@
             openTabs.push(key);
         }
         showCodeEditorPane();
-        renderEditor();
+
+        const file = files[key];
+        if (file.isBinary || file.type === 'image') {
+            renderImageViewer(key);
+        } else {
+            hideImageViewer();
+            renderEditor();
+        }
     }
 
+    // 画像ビューアの展開描画
+    function renderImageViewer(key) {
+        const file = files[key];
+        if (!file) return;
+
+        if (editorBodyContainer) editorBodyContainer.style.display = 'none';
+        if (diagnosticsBar) diagnosticsBar.style.display = 'none';
+        if (diagnosticsPanel) diagnosticsPanel.style.display = 'none';
+        if (imageViewerPane) imageViewerPane.style.display = 'flex';
+
+        if (imageViewerPath) imageViewerPath.textContent = key;
+        if (imageViewerDims) imageViewerDims.textContent = '読み込み中...';
+        if (imageViewerImg) {
+            imageViewerImg.src = file.path + '?t=' + Date.now();
+            imageViewerImg.onload = function () {
+                if (imageViewerDims) {
+                    imageViewerDims.textContent = `${this.naturalWidth} × ${this.naturalHeight} px`;
+                }
+            };
+        }
+
+        if (imageViewerGuide) {
+            const bgKey = file.bgKey || 'space-bg';
+            imageViewerGuide.innerHTML = `<code>config.js</code> の <code>display.background</code> に <code>"${bgKey}"</code> と記述することで、ゲーム画面の宇宙背景を差し替えることができます。`;
+        }
+
+        if (btnSave) btnSave.style.display = 'none';
+
+        updateTabsUI();
+        updateSidebarUI();
+    }
+
+    function hideImageViewer() {
+        if (imageViewerPane) imageViewerPane.style.display = 'none';
+        if (editorBodyContainer) editorBodyContainer.style.display = 'flex';
+        if (diagnosticsBar) diagnosticsBar.style.display = 'flex';
+        if (btnSave) btnSave.style.display = '';
+    }
+
+    // 画像ビューアのアクションイベント
+    btnCopyImagePath?.addEventListener('click', () => {
+        const path = currentFileKey || 'assets/space-bg.jpg';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(path).then(() => {
+                showToast(`パスをコピーしました: ${path}`);
+            }).catch(() => {
+                showToast(`パス: ${path}`);
+            });
+        } else {
+            showToast(`パス: ${path}`);
+        }
+    });
+
+    // フォルダ開閉トグル
+    folderToggleAssets?.addEventListener('click', (e) => {
+        e.preventDefault();
+        const isOpen = folderGroupAssets.classList.toggle('is-open');
+        folderToggleAssets.classList.toggle('is-open', isOpen);
+        folderToggleAssets.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    // サイドバーのファイルクリック
     document.querySelectorAll('.file-item[data-path]').forEach(item => {
         item.addEventListener('click', () => {
             const path = item.getAttribute('data-path');
@@ -622,20 +771,30 @@
     const btnOpenSpriteEditor = document.getElementById('btn-open-sprite-editor');
 
     function showCodeEditorPane() {
+        document.body.classList.remove('is-sprite-editor');
         if (editorPane) editorPane.style.display = 'flex';
         if (spritePane) spritePane.style.display = 'none';
         if (btnOpenSpriteEditor) btnOpenSpriteEditor.classList.remove('active');
+        if (files[currentFileKey]?.isBinary) {
+            renderImageViewer(currentFileKey);
+        } else {
+            hideImageViewer();
+            if (btnSave) btnSave.style.display = '';
+        }
         updateSidebarUI();
     }
 
     function showSpriteEditorPane() {
+        document.body.classList.add('is-sprite-editor');
         if (editorPane) editorPane.style.display = 'none';
         if (spritePane) spritePane.style.display = 'flex';
         document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
         document.querySelectorAll('.editor-tab').forEach(tab => tab.classList.remove('active'));
         if (btnOpenSpriteEditor) btnOpenSpriteEditor.classList.add('active');
+        if (btnSave) btnSave.style.display = 'none';
         loadSpriteFromConfig();
         renderSpriteGrid();
+        broadcastLiveSprite();
     }
 
     btnOpenSpriteEditor?.addEventListener('click', showSpriteEditorPane);
@@ -661,7 +820,7 @@
                 type: 'SET_SOUND',
                 enabled: !isMuted
             }, '*');
-        } catch(e) {}
+        } catch (e) { }
         showToast(isMuted ? '音声をミュートしました' : '音声をONにしました');
     }
 
@@ -672,7 +831,7 @@
     // ─────────────────────────────────────────────
     function applyScale() {
         const scale = SCALE_PRESETS[currentScaleIndex];
-        try { localStorage.setItem('invader_editor_scale', String(currentScaleIndex)); } catch (e) {}
+        try { localStorage.setItem('invader_editor_scale', String(currentScaleIndex)); } catch (e) { }
         scaleIndicator.textContent = Math.round(scale * 100) + '%';
         previewIframe.style.transform = `scale(${scale})`;
         previewIframe.style.transformOrigin = 'center center';
@@ -708,7 +867,7 @@
         const newPreviewWidth = containerRect.right - e.clientX;
         const clampedWidth = Math.max(300, Math.min(containerRect.width - 280, newPreviewWidth));
         previewPane.style.width = clampedWidth + 'px';
-        try { localStorage.setItem('invader_editor_pane_width', String(Math.round(clampedWidth))); } catch (e) {}
+        try { localStorage.setItem('invader_editor_pane_width', String(Math.round(clampedWidth))); } catch (e) { }
     });
 
     window.addEventListener('mouseup', () => {
@@ -775,6 +934,7 @@
         // 現在開いているファイル、および変更されている全ファイルの構文チェック
         if (window.Linter) {
             for (let k in files) {
+                if (files[k].isBinary) continue;
                 if (k === currentFileKey || files[k].isDirty) {
                     const changedLines = window.Linter.computeChangedLines(files[k].baselineContent || '', files[k].content);
                     const issues = window.Linter.lint(k, files[k].content, {
@@ -789,7 +949,7 @@
                         } else {
                             runDiagnostics(k);
                         }
-                        showToast(`⚠️ 構文エラーが ${errors.length} 件あるため保存できません`, true);
+                        showToast(`構文エラーが ${errors.length} 件あるため保存できません`, true);
                         toggleDiagnosticsPanel(true);
                         jumpToLine(errors[0].line, errors[0].col);
                         return;
@@ -798,13 +958,25 @@
             }
         }
 
+        // linter.js が編集されていた場合は動的に再評価
+        if (files['linter.js'] && files['linter.js'].isDirty) {
+            try {
+                new Function(files['linter.js'].content)();
+            } catch (e) {
+                console.warn('Linterの再評価に失敗:', e);
+            }
+        }
+
         // config.js のみの変更なら即時リロードを試みる
-        const onlyConfigDirty = files['config.js'].isDirty && !files['style.css'].isDirty && !files['core.js'].isDirty && !files['index.html'].isDirty;
+        const otherCodeDirty = ['style.css', 'core.js', 'index.html', 'linter.js', 'monaca-bridge.js'].some(k => files[k] && files[k].isDirty);
+        const onlyConfigDirty = files['config.js'].isDirty && !otherCodeDirty;
 
         for (let k in files) {
             files[k].isDirty = false;
         }
-        runDiagnostics(currentFileKey);
+        if (!files[currentFileKey]?.isBinary) {
+            runDiagnostics(currentFileKey);
+        }
         updateTabsUI();
 
         if (onlyConfigDirty) {
@@ -821,7 +993,7 @@
                     showToast('保存しました（ゲームに即時反映）');
                     return;
                 }
-            } catch(e) {
+            } catch (e) {
                 console.warn('即時リロードに失敗したためプレビュー全体を更新します:', e);
             }
         }
@@ -895,6 +1067,8 @@
     let isDrawingPixel = false;
     let drawMode = 1;            // 1: 塗る, 0: 消す
     let previewFrame = 0;
+    let playerMuzzle = { col: 6, row: 0 }; // 弾の発射口位置 (1x1マス)
+    let isDraggingMuzzle = false;         // 発射口ドラッグ中フラグ
 
     const spriteSelect = document.getElementById('sprite-select');
     const spriteGrid = document.getElementById('sprite-grid');
@@ -906,6 +1080,334 @@
     const btnSpriteApply = document.getElementById('btn-sprite-apply');
     const btnSpriteUndo = document.getElementById('btn-sprite-undo');
     const btnSpriteRedo = document.getElementById('btn-sprite-redo');
+    const btnSideApply = document.getElementById('btn-side-apply');
+    const spriteFitBadge = document.getElementById('sprite-fit-badge');
+
+    // サイズ自由変更コントロール DOM要素
+    const colCountDisp = document.getElementById('col-count-disp');
+    const rowCountDisp = document.getElementById('row-count-disp');
+    const btnColDec = document.getElementById('btn-col-dec');
+    const btnColInc = document.getElementById('btn-col-inc');
+    const btnRowDec = document.getElementById('btn-row-dec');
+    const btnRowInc = document.getElementById('btn-row-inc');
+    const spriteFitHint = document.getElementById('sprite-fit-hint');
+
+    const MIN_COLS = 6;
+    const MAX_COLS = 24;
+    const MIN_ROWS = 4;
+    const MAX_ROWS = 20;
+
+    // ドット絵キャンバスのスマートリサイズ (絵の幾何中心を新枠の中心へ自動吸着させてズレを完全解消)
+    function resizeSpriteGrid(newCols, newRows) {
+        newCols = Math.max(MIN_COLS, Math.min(MAX_COLS, newCols));
+        newRows = Math.max(MIN_ROWS, Math.min(MAX_ROWS, newRows));
+
+        const oldRows = spriteGridData.length;
+        const oldCols = spriteGridData[0] ? spriteGridData[0].length : 0;
+        if (oldRows === newRows && oldCols === newCols) return;
+
+        pushHistory();
+
+        // 描画されているドットたちのバウンディングボックスを検出
+        let minC = Infinity, maxC = -Infinity;
+        let minR = Infinity, maxR = -Infinity;
+        let hasPixel = false;
+        for (let r = 0; r < oldRows; r++) {
+            for (let c = 0; c < oldCols; c++) {
+                if (spriteGridData[r][c] === 1) {
+                    hasPixel = true;
+                    if (c < minC) minC = c;
+                    if (c > maxC) maxC = c;
+                    if (r < minR) minR = r;
+                    if (r > maxR) maxR = r;
+                }
+            }
+        }
+
+        let shiftC = 0;
+        let shiftR = 0;
+
+        if (hasPixel) {
+            // 水平方向：絵の中心列を新グリッドの中心列にピタリと合わせる！
+            const contentCenterC = (minC + maxC) / 2;
+            const newGridCenterC = (newCols - 1) / 2;
+            shiftC = Math.round(newGridCenterC - contentCenterC);
+
+            // はみ出し防止のクランプ
+            if (minC + shiftC < 0) shiftC = -minC;
+            if (maxC + shiftC >= newCols) shiftC = (newCols - 1) - maxC;
+
+            // 垂直方向：自機(player)は地面への接地（下部揃え）を保つ。敵などは上下中央
+            if (currentSpriteKey === 'player') {
+                const bottomPad = Math.max(0, (oldRows - 1) - maxR);
+                shiftR = (newRows - 1) - maxR - Math.min(bottomPad, Math.max(0, newRows - (maxR - minR + 1)));
+            } else {
+                const contentCenterR = (minR + maxR) / 2;
+                const newGridCenterR = (newRows - 1) / 2;
+                shiftR = Math.round(newGridCenterR - contentCenterR);
+            }
+            if (minR + shiftR < 0) shiftR = -minR;
+            if (maxR + shiftR >= newRows) shiftR = (newRows - 1) - maxR;
+        } else {
+            shiftC = Math.floor((newCols - oldCols) / 2);
+            shiftR = Math.floor((newRows - oldRows) / 2);
+        }
+
+        const newGrid = [];
+        for (let r = 0; r < newRows; r++) {
+            const row = [];
+            for (let c = 0; c < newCols; c++) {
+                const origR = r - shiftR;
+                const origC = c - shiftC;
+                if (origR >= 0 && origR < oldRows && origC >= 0 && origC < oldCols) {
+                    row.push(spriteGridData[origR][origC]);
+                } else {
+                    row.push(0);
+                }
+            }
+            newGrid.push(row);
+        }
+
+        spriteGridData = newGrid;
+
+        // 自機の弾発射口(muzzle)も絵の移動に合わせて追従！
+        if (playerMuzzle && currentSpriteKey === 'player') {
+            playerMuzzle.col = Math.max(0, Math.min(newCols - 1, playerMuzzle.col + shiftC));
+            playerMuzzle.row = Math.max(0, Math.min(newRows - 1, playerMuzzle.row + shiftR));
+            syncMuzzleToConfigFile();
+        }
+
+        renderSpriteGrid();
+        broadcastLiveSprite();
+        syncSpriteToConfigFile();
+    }
+
+    // ── 絵の手動中央揃え (センター) ──
+    function centerContent() {
+        const rows = spriteGridData.length;
+        const cols = spriteGridData[0] ? spriteGridData[0].length : 0;
+        if (rows === 0 || cols === 0) return;
+
+        let minC = Infinity, maxC = -Infinity;
+        let hasPixel = false;
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (spriteGridData[r][c] === 1) {
+                    hasPixel = true;
+                    if (c < minC) minC = c;
+                    if (c > maxC) maxC = c;
+                }
+            }
+        }
+        if (!hasPixel) {
+            showToast('絵が描かれていません');
+            return;
+        }
+
+        const contentCenterC = (minC + maxC) / 2;
+        const gridCenterC = (cols - 1) / 2;
+        const shiftC = Math.round(gridCenterC - contentCenterC);
+
+        if (shiftC !== 0) {
+            shiftSprite(shiftC, 0);
+            showToast('中央に整列しました');
+        } else {
+            showToast('既に中央に整列されています');
+        }
+    }
+
+    // ── 絵全体のシフト移動 (◀ ▲ ▼ ▶) ──
+    function shiftSprite(dc, dr) {
+        const rows = spriteGridData.length;
+        const cols = spriteGridData[0] ? spriteGridData[0].length : 0;
+        if (rows === 0 || cols === 0) return;
+
+        pushHistory();
+        const next = Array.from({ length: rows }, () => Array(cols).fill(0));
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const tr = r + dr;
+                const tc = c + dc;
+                if (tr >= 0 && tr < rows && tc >= 0 && tc < cols) {
+                    next[tr][tc] = spriteGridData[r][c];
+                }
+            }
+        }
+        spriteGridData = next;
+
+        // 自機なら発射口も連動移動
+        if (playerMuzzle && currentSpriteKey === 'player') {
+            playerMuzzle.col = Math.max(0, Math.min(cols - 1, playerMuzzle.col + dc));
+            playerMuzzle.row = Math.max(0, Math.min(rows - 1, playerMuzzle.row + dr));
+            syncMuzzleToConfigFile();
+        }
+
+        renderSpriteGrid();
+        broadcastLiveSprite();
+        syncSpriteToConfigFile();
+    }
+
+    // サイズコントロールの初期化・DOMバインド
+    function ensureSpriteSizeControls() {
+        // イベントバインドの再接続
+        const cDec = document.getElementById('btn-col-dec');
+        const cInc = document.getElementById('btn-col-inc');
+        const rDec = document.getElementById('btn-row-dec');
+        const rInc = document.getElementById('btn-row-inc');
+
+        if (cDec && !cDec._bound) {
+            cDec._bound = true;
+            cDec.addEventListener('click', () => {
+                if (spriteGridData.length === 0) return;
+                resizeSpriteGrid(spriteGridData[0].length - 1, spriteGridData.length);
+            });
+        }
+        if (cInc && !cInc._bound) {
+            cInc._bound = true;
+            cInc.addEventListener('click', () => {
+                if (spriteGridData.length === 0) return;
+                resizeSpriteGrid(spriteGridData[0].length + 1, spriteGridData.length);
+            });
+        }
+        if (rDec && !rDec._bound) {
+            rDec._bound = true;
+            rDec.addEventListener('click', () => {
+                if (spriteGridData.length === 0) return;
+                resizeSpriteGrid(spriteGridData[0].length, spriteGridData.length - 1);
+            });
+        }
+        if (rInc && !rInc._bound) {
+            rInc._bound = true;
+            rInc.addEventListener('click', () => {
+                if (spriteGridData.length === 0) return;
+                resizeSpriteGrid(spriteGridData[0].length, spriteGridData.length + 1);
+            });
+        }
+
+        document.querySelectorAll('.preset-chip').forEach(chip => {
+            if (!chip._bound) {
+                chip._bound = true;
+                chip.addEventListener('click', () => {
+                    const c = parseInt(chip.getAttribute('data-cols'), 10);
+                    const r = parseInt(chip.getAttribute('data-rows'), 10);
+                    if (!isNaN(c) && !isNaN(r)) {
+                        resizeSpriteGrid(c, r);
+                    }
+                });
+            }
+        });
+    }
+
+    // スプライトのバリデーションチェック
+    // 1. 全体で10ブロック以上使用すること
+    // 2. 自機の場合、発射口の下は必ず1マス配置すること
+    function validateCurrentSprite() {
+        if (!spriteGridData || spriteGridData.length === 0) {
+            return { ok: false, reason: 'スプライトデータがありません', blockCount: 0 };
+        }
+        const rows = spriteGridData.length;
+        const cols = spriteGridData[0].length;
+        let blockCount = 0;
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (spriteGridData[r][c] === 1) blockCount++;
+            }
+        }
+
+        // 条件1: 全体で10ブロック以上
+        if (blockCount < 10) {
+            return {
+                ok: false,
+                reason: `10ブロック以上必要です (現在: ${blockCount}マス)`,
+                blockCount
+            };
+        }
+
+        // 条件2: 自機の場合、発射口のあるX軸(列)またはY軸(行)のどちらかに1マス以上のブロックがあること
+        if (currentSpriteKey === 'player') {
+            const mCol = playerMuzzle ? playerMuzzle.col : Math.floor((cols - 1) / 2);
+            const mRow = playerMuzzle ? playerMuzzle.row : 0;
+
+            // X軸上 (同じ列) にブロックが1つ以上あるか
+            let hasBlockOnX = false;
+            for (let r = 0; r < rows; r++) {
+                if (spriteGridData[r][mCol] === 1) {
+                    hasBlockOnX = true;
+                    break;
+                }
+            }
+
+            // Y軸上 (同じ行) にブロックが1つ以上あるか
+            let hasBlockOnY = false;
+            for (let c = 0; c < cols; c++) {
+                if (spriteGridData[mRow][c] === 1) {
+                    hasBlockOnY = true;
+                    break;
+                }
+            }
+
+            if (!hasBlockOnX && !hasBlockOnY) {
+                return {
+                    ok: false,
+                    reason: '発射口の縦軸・横軸のいずれかにブロックを配置してください',
+                    blockCount
+                };
+            }
+        }
+
+        return {
+            ok: true,
+            reason: '配置OK',
+            blockCount
+        };
+    }
+
+    function updateFitGuide(cols, rows) {
+        if (!cols || !rows) {
+            rows = spriteGridData.length;
+            cols = spriteGridData[0] ? spriteGridData[0].length : 0;
+        }
+
+        const val = validateCurrentSprite();
+
+        if (spriteFitBadge) {
+            if (val.ok) {
+                spriteFitBadge.className = 'fit-status-badge';
+                spriteFitBadge.textContent = '配置OK';
+            } else {
+                spriteFitBadge.className = 'fit-status-badge error';
+                spriteFitBadge.textContent = '配置NG';
+            }
+        }
+
+        if (spriteFitHint) {
+            if (val.ok) {
+                spriteFitHint.className = 'fit-hint-text';
+                const charName = currentSpriteKey === 'player' ? '自機' : (currentSpriteKey === 'ufo' ? 'UFO' : '敵');
+                spriteFitHint.textContent = `${charName}: ${cols}×${rows} (${val.blockCount}マス)`;
+            } else {
+                spriteFitHint.className = 'fit-hint-text error';
+                spriteFitHint.textContent = val.reason;
+            }
+        }
+
+        if (btnSideApply) {
+            btnSideApply.disabled = !val.ok;
+            btnSideApply.title = val.ok ? 'config.jsとゲームに反映します' : val.reason;
+        }
+
+        if (btnSpriteApply) {
+            btnSpriteApply.disabled = !val.ok;
+        }
+
+        document.querySelectorAll('.preset-chip').forEach(chip => {
+            const c = parseInt(chip.getAttribute('data-cols'), 10);
+            const r = parseInt(chip.getAttribute('data-rows'), 10);
+            chip.classList.toggle('active', c === cols && r === rows);
+        });
+
+        return val;
+    }
 
     // config.js のテキストから設定オブジェクトを取り出す (失敗時は null)
     function readConfigObject() {
@@ -951,13 +1453,98 @@
         if (Array.isArray(custom) && custom.length > 0) {
             lines = Array.isArray(custom[0]) ? custom[0] : custom;
         }
-        if (!lines) {
+        // 空、またはブロック数が10マス未満の場合は初期配置(DEFAULT_SPRITES)を使用
+        const totalPixels = lines ? lines.reduce((acc, row) => acc + (row.match(/1/g) || []).length, 0) : 0;
+        if (!lines || totalPixels < 10) {
             lines = DEFAULT_SPRITES[currentSpriteKey] || DEFAULT_SPRITES.player;
         }
         spriteGridData = stringsToGrid(lines);
+
+        // 自機ならマズル座標も config から読み込み
+        if (currentSpriteKey === 'player') {
+            const cols = spriteGridData[0] ? spriteGridData[0].length : 13;
+            const rows = spriteGridData.length;
+            if (cfg && cfg.player && cfg.player.muzzle && typeof cfg.player.muzzle.col === 'number') {
+                playerMuzzle = {
+                    col: Math.max(0, Math.min(cols - 1, cfg.player.muzzle.col)),
+                    row: Math.max(0, Math.min(rows - 1, cfg.player.muzzle.row))
+                };
+            } else {
+                playerMuzzle = { col: Math.floor((cols - 1) / 2), row: 0 };
+            }
+        }
+
         spriteUndoStack = [];
         spriteRedoStack = [];
         updateHistoryButtons();
+    }
+
+    // ── リアルタイム・スプライト配信 ──
+    function broadcastLiveSprite(key = currentSpriteKey, grid = spriteGridData) {
+        if (!grid || grid.length === 0) return;
+        const val = validateCurrentSprite();
+        if (!val.ok) return; // バリデーションNGならゲームへ送信しない
+
+        const lines = gridToStrings(grid);
+
+        try {
+            if (previewIframe && previewIframe.contentWindow) {
+                previewIframe.contentWindow.postMessage({
+                    type: 'SPRITE_PREVIEW_UPDATE',
+                    key: key,
+                    spriteKey: key,
+                    pattern: lines,
+                    spritePattern: lines,
+                    muzzle: (key === 'player') ? playerMuzzle : undefined
+                }, '*');
+
+                if (typeof previewIframe.contentWindow.updateLiveSpritePreview === 'function') {
+                    previewIframe.contentWindow.updateLiveSpritePreview(key, lines, (key === 'player') ? playerMuzzle : undefined);
+                }
+            }
+        } catch (e) {
+            // cross-origin
+        }
+    }
+
+    function syncSpriteToConfigFile(key = currentSpriteKey, grid = spriteGridData) {
+        if (!grid || grid.length === 0 || !files['config.js']) return;
+
+        const rowsText = gridToStrings(grid).map(row => `            "${row}"`).join(',\n');
+        const formattedCode = '[\n' + rowsText + '\n        ]';
+        const configCode = files['config.js'].content;
+        const regex = new RegExp(`(\\b${key}:\\s*)\\[[\\s\\S]*?\\]`);
+
+        if (regex.test(configCode)) {
+            files['config.js'].content = configCode.replace(regex, (m, head) => head + formattedCode);
+            files['config.js'].isDirty = true;
+            if (currentFileKey === 'config.js' && !isDrawingPixel) {
+                codeTextarea.value = files['config.js'].content;
+                updateCodeHighlight();
+            }
+        }
+    }
+
+    // 弾の発射口(1x1マス)を config.js に同期
+    function syncMuzzleToConfigFile() {
+        if (!files['config.js'] || !playerMuzzle) return;
+        let cfgCode = files['config.js'].content;
+        const muzzleStr = `muzzle: { col: ${playerMuzzle.col}, row: ${playerMuzzle.row} }`;
+        const muzzleRegex = /muzzle:\s*\{[^\}]*\}/;
+        if (muzzleRegex.test(cfgCode)) {
+            cfgCode = cfgCode.replace(muzzleRegex, muzzleStr);
+        } else {
+            const playerBlockRegex = /(\bplayer:\s*\{[\s\S]*?)(fireInterval:[^\n,]+)(,?)/;
+            if (playerBlockRegex.test(cfgCode)) {
+                cfgCode = cfgCode.replace(playerBlockRegex, `$1$2,\n        ${muzzleStr}`);
+            }
+        }
+        files['config.js'].content = cfgCode;
+        files['config.js'].isDirty = true;
+        if (currentFileKey === 'config.js' && !isDrawingPixel) {
+            codeTextarea.value = files['config.js'].content;
+            updateCodeHighlight();
+        }
     }
 
     // ── 履歴 (元に戻す / やり直す) ──
@@ -974,6 +1561,8 @@
         spriteGridData = spriteUndoStack.pop();
         renderSpriteGrid();
         updateHistoryButtons();
+        broadcastLiveSprite();
+        syncSpriteToConfigFile();
     }
 
     function redoSprite() {
@@ -982,6 +1571,8 @@
         spriteGridData = spriteRedoStack.pop();
         renderSpriteGrid();
         updateHistoryButtons();
+        broadcastLiveSprite();
+        syncSpriteToConfigFile();
     }
 
     function updateHistoryButtons() {
@@ -992,17 +1583,34 @@
     // ── グリッド描画 ──
     function renderSpriteGrid() {
         if (!spriteGrid || spriteGridData.length === 0) return;
+        ensureSpriteSizeControls();
 
         const rows = spriteGridData.length;
         const cols = spriteGridData[0].length;
         const color = getSpriteColor(currentSpriteKey);
+        const isPlayer = (currentSpriteKey === 'player');
+
+        // ステッパーの数値表示を最新の列数・行数に更新
+        const cDisp = document.getElementById("col-count-disp");
+        const rDisp = document.getElementById("row-count-disp");
+        if (cDisp) cDisp.textContent = cols;
+        if (rDisp) rDisp.textContent = rows;
+        if (spriteSizeInfo) spriteSizeInfo.textContent = `${cols} × ${rows}`;
+        updateFitGuide(cols, rows);
 
         spriteGrid.innerHTML = '';
         spriteGrid.style.gridTemplateColumns = `repeat(${cols}, 26px)`;
         spriteGrid.style.gridTemplateRows = `repeat(${rows}, 26px)`;
 
-        if (spriteSizeInfo) {
-            spriteSizeInfo.textContent = `${cols} x ${rows} ドット`;
+        // 右クリックで説明トーストを表示
+        if (!spriteGrid._contextMenuBound) {
+            spriteGrid._contextMenuBound = true;
+            spriteGrid.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (currentSpriteKey === 'player') {
+                    showToast('赤いマスをドラッグして発射位置を移動できます');
+                }
+            });
         }
 
         const showSymLine = !!(spriteSymmetry && spriteSymmetry.checked);
@@ -1019,16 +1627,44 @@
                     cell.classList.add('active');
                     cell.style.backgroundColor = color;
                 }
+
+                // 弾の発射位置 (赤マス & 上向き矢印 ↑)
+                if (isPlayer && playerMuzzle && r === playerMuzzle.row && c === playerMuzzle.col) {
+                    cell.classList.add('cell-muzzle-point');
+                }
+
                 cell.addEventListener('mousedown', (e) => {
+                    if (e.button !== 0) return; // 左クリックのみ
                     e.preventDefault();
+
+                    // 発射口(赤マス)を握った場合: ドラッグ移動を開始
+                    if (isPlayer && playerMuzzle && r === playerMuzzle.row && c === playerMuzzle.col) {
+                        isDraggingMuzzle = true;
+                        spriteGrid.classList.add('muzzle-dragging');
+                        showToast('赤いマスをドラッグして発射位置を移動できます');
+                        return;
+                    }
+
+                    // 通常のピクセル描画
                     isDrawingPixel = true;
                     drawMode = spriteGridData[r][c] === 1 ? 0 : 1;
                     pushHistory();
                     applyPixel(r, c, drawMode);
                 });
+
                 cell.addEventListener('mouseenter', () => {
-                    if (isDrawingPixel) applyPixel(r, c, drawMode);
+                    // 発射口を握りながら移動中
+                    if (isDraggingMuzzle) {
+                        playerMuzzle = { col: c, row: r };
+                        renderSpriteGrid();
+                        broadcastLiveSprite();
+                        return;
+                    }
+                    if (isDrawingPixel) {
+                        applyPixel(r, c, drawMode);
+                    }
                 });
+
                 spriteGrid.appendChild(cell);
             }
         }
@@ -1044,6 +1680,8 @@
             if (mirrorC !== c) setPixel(r, mirrorC, val);
         }
         drawMiniPreview();
+        updateFitGuide();
+        broadcastLiveSprite();
     }
 
     function setPixel(r, c, val) {
@@ -1062,7 +1700,17 @@
     }
 
     window.addEventListener('mouseup', () => {
-        isDrawingPixel = false;
+        if (isDraggingMuzzle) {
+            isDraggingMuzzle = false;
+            if (spriteGrid) spriteGrid.classList.remove('muzzle-dragging');
+            renderSpriteGrid();
+            updateFitGuide();
+            broadcastLiveSprite();
+        }
+        if (isDrawingPixel) {
+            isDrawingPixel = false;
+            updateFitGuide();
+        }
     });
 
     // ── プレビュー (敵キャラは足踏みの2コマを交互に表示) ──
@@ -1107,36 +1755,86 @@
         currentSpriteKey = spriteSelect.value;
         loadSpriteFromConfig();
         renderSpriteGrid();
+        broadcastLiveSprite();
     });
 
     spriteSymmetry?.addEventListener('change', () => {
         renderSpriteGrid();
     });
 
+    // 幅・高さ変更ステッパーのイベントリスナー
+    btnColDec?.addEventListener('click', () => {
+        if (spriteGridData.length === 0) return;
+        resizeSpriteGrid(spriteGridData[0].length - 1, spriteGridData.length);
+    });
+    btnColInc?.addEventListener('click', () => {
+        if (spriteGridData.length === 0) return;
+        resizeSpriteGrid(spriteGridData[0].length + 1, spriteGridData.length);
+    });
+    btnRowDec?.addEventListener('click', () => {
+        if (spriteGridData.length === 0) return;
+        resizeSpriteGrid(spriteGridData[0].length, spriteGridData.length - 1);
+    });
+    btnRowInc?.addEventListener('click', () => {
+        if (spriteGridData.length === 0) return;
+        resizeSpriteGrid(spriteGridData[0].length, spriteGridData.length + 1);
+    });
+
+    // プリセットチップのイベントリスナー
+    document.querySelectorAll('.preset-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const c = parseInt(chip.getAttribute('data-cols'), 10);
+            const r = parseInt(chip.getAttribute('data-rows'), 10);
+            if (!isNaN(c) && !isNaN(r)) {
+                resizeSpriteGrid(c, r);
+            }
+        });
+    });
+
     btnSpriteClear?.addEventListener('click', () => {
         pushHistory();
         spriteGridData = spriteGridData.map(row => row.map(() => 0));
         renderSpriteGrid();
+        updateFitGuide();
     });
 
     btnSpriteReset?.addEventListener('click', () => {
         pushHistory();
         spriteGridData = stringsToGrid(DEFAULT_SPRITES[currentSpriteKey] || DEFAULT_SPRITES.player);
         renderSpriteGrid();
+        updateFitGuide();
+        broadcastLiveSprite();
     });
 
-    btnSpriteUndo?.addEventListener('click', undoSprite);
-    btnSpriteRedo?.addEventListener('click', redoSprite);
+    btnSpriteUndo?.addEventListener('click', () => {
+        undoSprite();
+        updateFitGuide();
+    });
+    btnSpriteRedo?.addEventListener('click', () => {
+        redoSprite();
+        updateFitGuide();
+    });
 
     window.addEventListener('keydown', (e) => {
         if (!spritePane || spritePane.style.display === 'none') return;
         if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
         e.preventDefault();
-        if (e.shiftKey) redoSprite();
-        else undoSprite();
+        if (e.shiftKey) {
+            redoSprite();
+            updateFitGuide();
+        } else {
+            undoSprite();
+            updateFitGuide();
+        }
     });
 
-    btnSpriteApply?.addEventListener('click', () => {
+    function applyCurrentSpriteToConfig() {
+        const val = validateCurrentSprite();
+        if (!val.ok) {
+            showToast(val.reason, true);
+            return;
+        }
+
         if (spriteGridData.length === 0) return;
 
         const rowsText = gridToStrings(spriteGridData).map(row => `            "${row}"`).join(',\n');
@@ -1146,7 +1844,7 @@
         const regex = new RegExp(`(\\b${currentSpriteKey}:\\s*)\\[[\\s\\S]*?\\]`);
 
         if (!regex.test(configCode)) {
-            showToast(`config.js に ${currentSpriteKey} の定義が見つかりません`);
+            showToast(`config.js に ${currentSpriteKey} の定義が見つかりません`, true);
             return;
         }
         files['config.js'].content = configCode.replace(regex, (m, head) => head + formattedCode);
@@ -1155,9 +1853,15 @@
             codeTextarea.value = files['config.js'].content;
             updateCodeHighlight();
         }
+        if (currentSpriteKey === 'player') {
+            syncMuzzleToConfigFile();
+        }
         saveAndApplyChanges();
-        showToast('config.js に反映しました');
-    });
+        showToast('反映しました');
+    }
+
+    btnSideApply?.addEventListener('click', applyCurrentSpriteToConfig);
+    btnSpriteApply?.addEventListener('click', applyCurrentSpriteToConfig);
 
     document.getElementById('tab-sprite-editor')?.addEventListener('click', showSpriteEditorPane);
 
@@ -1185,10 +1889,11 @@
     try {
         const savedWidth = parseInt(localStorage.getItem('invader_editor_pane_width'), 10);
         if (savedWidth >= 300) previewPane.style.width = savedWidth + 'px';
-    } catch (e) {}
+    } catch (e) { }
     updateSoundUI();
     renderEditor();
     loadRealFiles();
+    loadSpriteFromConfig();
 
     previewIframe.addEventListener('load', () => {
         applyScale();
@@ -1197,7 +1902,7 @@
                 type: 'SET_SOUND',
                 enabled: !isMuted
             }, '*');
-        } catch(e) {}
+        } catch (e) { }
     });
 
     // ─────────────────────────────────────────────
@@ -1209,6 +1914,12 @@
         setTimeout(() => {
             document.body.classList.remove('animate-from-game');
         }, 600);
+    }
+
+    if (urlParams.get('tab') === 'sprite') {
+        setTimeout(() => {
+            showSpriteEditorPane();
+        }, 120);
     }
 
     document.getElementById('btn-back-to-game')?.addEventListener('click', (e) => {

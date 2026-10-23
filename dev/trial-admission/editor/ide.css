@@ -195,6 +195,10 @@ body {
     background-color: #1a6327;
 }
 
+body.is-sprite-editor #btn-save {
+    display: none !important;
+}
+
 .key-shortcut {
     font-size: 10px;
     background: rgba(0, 0, 0, 0.3);
@@ -225,49 +229,142 @@ body {
 }
 
 /* ── 左サイドバー: ファイルツリー ── */
+/* ── 左サイドバー: ファイルツリー ── */
 .studio-sidebar {
-    width: 180px;
+    width: 230px;
     background-color: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
     user-select: none;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .sidebar-header {
     padding: 10px 14px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .sidebar-label {
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-muted);
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
 }
 
 .file-list {
     display: flex;
     flex-direction: column;
-    padding: 4px 8px;
-    gap: 2px;
+    padding: 2px 6px;
+    gap: 1px;
 }
 
+/* フォルダグループ */
+.tree-folder-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 2px;
+}
+
+.tree-folder-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 8px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    width: 100%;
+}
+
+.tree-folder-header:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.folder-chevron {
+    font-size: 9px;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    transition: transform 0.15s ease;
+}
+
+.tree-folder-header.is-open .folder-chevron {
+    transform: rotate(0deg);
+}
+
+.tree-folder-header:not(.is-open) .folder-chevron {
+    transform: rotate(-90deg);
+}
+
+.folder-icon {
+    font-size: 13px;
+    line-height: 1;
+}
+
+.folder-name {
+    font-family: var(--font-code);
+    font-size: 12px;
+    flex: 1;
+}
+
+.folder-badge {
+    font-size: 10px;
+    background-color: #21262d;
+    color: var(--text-muted);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.tree-folder-children {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow: hidden;
+    transition: max-height 0.2s ease, opacity 0.2s ease;
+}
+
+.tree-folder-group:not(.is-open) .tree-folder-children {
+    display: none;
+}
+
+/* ファイルアイテム */
 .file-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    height: 32px;
-    padding: 0 10px;
+    gap: 7px;
+    height: 30px;
+    padding: 0 8px;
     background: transparent;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
     color: var(--text-secondary);
     font-size: 12px;
     text-align: left;
     cursor: pointer;
     transition: background 0.12s, color 0.12s;
     width: 100%;
+    position: relative;
+}
+
+.file-item.file-nested {
+    padding-left: 24px;
 }
 
 .file-item:hover {
@@ -281,19 +378,57 @@ body {
     font-weight: 600;
 }
 
+.file-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 16px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.icon-js {
+    background-color: #f7df1e;
+    color: #000000;
+}
+
+.icon-css {
+    background-color: #38bdf8;
+    color: #000000;
+}
+
+.icon-html {
+    background-color: #f97316;
+    color: #ffffff;
+}
+
+.icon-image {
+    background-color: #a855f7;
+    color: #ffffff;
+    font-size: 8px;
+}
+
+.icon-tool {
+    background-color: #38bdf8;
+    color: #0d1117;
+    font-size: 8px;
+}
+
 .file-name {
     font-family: var(--font-code);
     font-size: 12px;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.file-dot-badge {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: var(--accent-green);
-    margin-left: 6px;
-    flex-shrink: 0;
-}
+
 
 /* ── 中央: エディタ ── */
 .studio-editor-pane {
@@ -550,7 +685,7 @@ body {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease, transform 0.2s ease;
-    z-index: 100;
+    z-index: 1000;
 }
 
 .toast-notice.show {
@@ -1137,5 +1272,446 @@ body.transitioning-to-game .studio-preview-pane {
 .toast-notice.toast-error {
     background-color: #991b1b;
     border: 1px solid #ef4444;
+    color: #ffffff;
+}
+
+/* ── ドット絵サイズ自由変更コントロール ── */
+.sprite-size-control-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background-color: rgba(13, 17, 23, 0.85);
+    border-bottom: 1px solid rgba(48, 54, 61, 0.6);
+    flex-wrap: wrap;
+}
+
+.sprite-size-steppers {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.size-ctrl-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #7dd3fc;
+    letter-spacing: 0.5px;
+}
+
+.dim-stepper-box {
+    display: inline-flex;
+    align-items: center;
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dim-badge {
+    background-color: #21262d;
+    color: #8b949e;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 6px;
+    border-right: 1px solid #30363d;
+}
+
+.dim-step-btn {
+    background-color: transparent;
+    border: none;
+    color: #c9d1d9;
+    font-size: 13px;
+    font-weight: 700;
+    width: 24px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.dim-step-btn:hover {
+    background-color: #0284c7;
+    color: #ffffff;
+}
+
+.dim-step-btn:active {
+    background-color: #0369a1;
+}
+
+.dim-count-value {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #00ff66;
+    padding: 0 8px;
+    min-width: 24px;
+    text-align: center;
+}
+
+.dim-multiply {
+    color: #8b949e;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.sprite-size-presets {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.preset-label {
+    font-size: 11px;
+    color: #8b949e;
+}
+
+.preset-chip {
+    background-color: #21262d;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.preset-chip:hover {
+    background-color: #30363d;
+    border-color: #38bdf8;
+    color: #38bdf8;
+    transform: translateY(-1px);
+}
+
+.preset-chip.active {
+    background-color: rgba(2, 132, 199, 0.25);
+    border-color: #38bdf8;
+    color: #38bdf8;
+}
+
+/* ゲーム配置ガイド */
+.sprite-game-fit-box {
+    margin-top: 12px;
+    padding: 8px 10px;
+    background-color: rgba(22, 27, 34, 0.85);
+    border: 1px solid rgba(48, 54, 61, 0.8);
+    border-radius: 6px;
+    text-align: center;
+}
+
+.fit-status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    color: #00ff66;
+    margin-bottom: 4px;
+    transition: color 0.15s ease;
+}
+
+.fit-status-badge.error {
+    color: #f85149;
+}
+
+.fit-status-badge.warn {
+    color: #d29922;
+}
+
+.fit-hint-text {
+    font-size: 10px;
+    color: #8b949e;
+    line-height: 1.4;
+    transition: color 0.15s ease;
+}
+
+.fit-hint-text.error {
+    color: #f85149;
+}
+
+/* プレビュー枠下の「反映する」ボタン */
+.sprite-apply-action-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, #2ea043 0%, #238636 100%);
+    border: 1px solid rgba(240, 246, 252, 0.1);
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: all 0.15s ease;
+}
+
+.sprite-apply-action-btn:hover:not(:disabled) {
+    background: linear-gradient(180deg, #3fb950 0%, #2ea043 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(35, 134, 54, 0.4);
+}
+
+.sprite-apply-action-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.sprite-apply-action-btn:disabled {
+    background: #21262d;
+    border-color: #30363d;
+    color: #6e7681;
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+    transform: none;
+}
+
+/* 1x1 弾発射口セルのスタイル (赤マス & 上向き矢印 ↑) */
+.sprite-cell.cell-muzzle-point {
+    position: relative;
+    background-color: #ef4444 !important; /* 赤マス */
+    border: 2px solid #ff4d4f !important;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.85), inset 0 0 6px rgba(255, 255, 255, 0.5) !important;
+    z-index: 3;
+    cursor: grab !important;
+    animation: muzzlePointPulse 1.4s infinite ease-in-out;
+}
+
+.sprite-cell.cell-muzzle-point:active,
+.sprite-grid.muzzle-dragging .sprite-cell {
+    cursor: grabbing !important;
+}
+
+@keyframes muzzlePointPulse {
+    0%, 100% {
+        box-shadow: 0 0 6px rgba(239, 68, 68, 0.7), inset 0 0 4px rgba(255, 255, 255, 0.3);
+        border-color: #ef4444;
+    }
+    50% {
+        box-shadow: 0 0 14px rgba(239, 68, 68, 1), inset 0 0 8px rgba(255, 255, 255, 0.7);
+        border-color: #ffffff;
+    }
+}
+
+.sprite-cell.cell-muzzle-point::after {
+    content: '↑';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────
+   画像ビューア (ファイル展開ビュー)
+   ───────────────────────────────────────────── */
+.image-viewer-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #0b0f15;
+    overflow: hidden;
+    position: relative;
+    user-select: none;
+}
+
+.image-viewer-header {
+    height: 44px;
+    background-color: #12171f;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    flex-shrink: 0;
+    gap: 12px;
+}
+
+.image-meta-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.image-path-chip {
+    font-family: var(--font-code);
+    font-size: 11px;
+    color: var(--text-primary);
+    background-color: #1c2330;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(88, 166, 255, 0.2);
+    white-space: nowrap;
+}
+
+.image-dim-chip,
+.image-type-chip {
+    font-size: 10px;
+    color: var(--text-secondary);
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 3px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.image-viewer-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.image-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.image-action-btn.primary {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.3);
+}
+
+.image-action-btn.primary:hover {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    transform: translateY(-1px);
+}
+
+.image-action-btn.secondary {
+    background-color: #21262d;
+    border-color: #30363d;
+    color: var(--text-secondary);
+}
+
+.image-action-btn.secondary:hover {
+    background-color: #30363d;
+    color: var(--text-primary);
+}
+
+/* ビューポート（市松模様背景 + 暗黒グラデーション） */
+.image-viewer-viewport {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: auto;
+    background-color: #090d14;
+    background-image: 
+        linear-gradient(45deg, #0e141e 25%, transparent 25%),
+        linear-gradient(-45deg, #0e141e 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #0e141e 75%),
+        linear-gradient(-45deg, transparent 75%, #0e141e 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.image-preview-frame {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    background-color: #000;
+}
+
+.image-preview-element {
+    max-width: 100%;
+    max-height: 520px;
+    width: auto;
+    height: auto;
+    display: block;
+    object-fit: contain;
+    transition: transform 0.2s ease;
+}
+
+/* フッター教材ヒント */
+.image-viewer-footer {
+    padding: 10px 16px;
+    background-color: #12171f;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.image-guide-box {
+    background-color: rgba(88, 166, 255, 0.08);
+    border: 1px solid rgba(88, 166, 255, 0.25);
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+.image-guide-box .guide-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #58a6ff;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.image-guide-box .guide-desc {
+    font-size: 11px;
+    color: #c9d1d9;
+    line-height: 1.5;
+}
+
+.image-guide-box code {
+    font-family: var(--font-code);
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #e6edf3;
+    font-size: 11px;
+}
+
+/* タブの閉じるボタン＆アイコン拡張 */
+.editor-tab .tab-icon {
+    font-size: 10px;
+    margin-right: 4px;
+    opacity: 0.8;
+}
+
+.editor-tab .tab-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-left: 6px;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.12s, background-color 0.12s, color 0.12s;
+}
+
+.editor-tab:hover .tab-close-btn {
+    opacity: 1;
+}
+
+.editor-tab .tab-close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.15);
     color: #ffffff;
 }
