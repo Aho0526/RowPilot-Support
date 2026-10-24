@@ -1,8 +1,6 @@
 /**
- * linter.js - 初心者（中学生）向け 親切な構文エラー診断エンジン
- * 
- * 専門用語を使わず、「何が起きていて」「どこをどう直せばいいか」を平易な日本語で案内します。
- * 外部ライブラリ非依存（完全オフライン・Monaca対応）。
+ * linter.js - 初心者向け - 構文エラー診断エンジン
+ *　外部ライブラリ非依存で、ファイルを横断した即時の構文チェックに対応
  */
 
 (function (global) {
@@ -119,7 +117,7 @@
         'outline', 'outline-color', 'outline-style', 'outline-width', 'outline-offset',
         'box-shadow', 'box-decoration-break',
         // 文字・タイポグラフィ
-        'color', 'font', 'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant', 'font-variant-numeric', 'font-variant-ligatures', 'font-variant-caps', 'font-feature-settings', 'font-display',
+        'color', 'font', 'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant', 'font-display',
         'line-height', 'letter-spacing', 'word-spacing', 'text-align', 'text-align-last',
         'text-decoration', 'text-decoration-line', 'text-decoration-color', 'text-decoration-style',
         'text-transform', 'text-indent', 'text-shadow', 'text-overflow', 'white-space', 'word-break',
@@ -129,7 +127,7 @@
         'animation', 'animation-name', 'animation-duration', 'animation-timing-function', 'animation-delay', 'animation-iteration-count', 'animation-direction', 'animation-fill-mode', 'animation-play-state',
         'cursor', 'pointer-events', 'user-select', 'touch-action', 'resize', 'appearance',
         'filter', 'backdrop-filter', 'content', 'quotes', 'tab-size', 'caret-color', 'accent-color',
-        'will-change', 'contain', 'isolation', 'image-rendering', 'object-fit', 'object-position',
+        'will-change', 'isolation', 'image-rendering', 'object-fit', 'object-position',
         'table-layout', 'vertical-align', 'list-style', 'list-style-type', 'list-style-position', 'list-style-image',
         'word-wrap', 'line-break', 'hyphens', 'scrollbar-width', 'scrollbar-color',
         // SVG
@@ -1210,8 +1208,8 @@
                 // 値の未クォート単語・スペルミス・型・範囲チェック
                 if (rawVal && !rawVal.startsWith('{') && !rawVal.startsWith('[')) {
                     const isQuoted = (rawVal.startsWith('"') && rawVal.endsWith('"')) ||
-                                     (rawVal.startsWith("'") && rawVal.endsWith("'")) ||
-                                     (rawVal.startsWith('`') && rawVal.endsWith('`'));
+                        (rawVal.startsWith("'") && rawVal.endsWith("'")) ||
+                        (rawVal.startsWith('`') && rawVal.endsWith('`'));
                     const isNumber = /^-?\d+(\.\d+)?$/.test(rawVal);
                     const isBoolean = rawVal === 'true' || rawVal === 'false';
                     const isNullOrUndefined = rawVal === 'null' || rawVal === 'undefined';
