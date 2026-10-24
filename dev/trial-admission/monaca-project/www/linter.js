@@ -117,7 +117,7 @@
         'outline', 'outline-color', 'outline-style', 'outline-width', 'outline-offset',
         'box-shadow', 'box-decoration-break',
         // 文字・タイポグラフィ
-        'color', 'font', 'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant', 'font-display',
+        'color', 'font', 'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant', 'font-variant-numeric', 'font-display',
         'line-height', 'letter-spacing', 'word-spacing', 'text-align', 'text-align-last',
         'text-decoration', 'text-decoration-line', 'text-decoration-color', 'text-decoration-style',
         'text-transform', 'text-indent', 'text-shadow', 'text-overflow', 'white-space', 'word-break',
@@ -127,7 +127,7 @@
         'animation', 'animation-name', 'animation-duration', 'animation-timing-function', 'animation-delay', 'animation-iteration-count', 'animation-direction', 'animation-fill-mode', 'animation-play-state',
         'cursor', 'pointer-events', 'user-select', 'touch-action', 'resize', 'appearance',
         'filter', 'backdrop-filter', 'content', 'quotes', 'tab-size', 'caret-color', 'accent-color',
-        'will-change', 'isolation', 'image-rendering', 'object-fit', 'object-position',
+        'will-change', 'isolation', 'image-rendering', 'object-fit', 'object-position', 'contain', 'contain-intrinsic-size',
         'table-layout', 'vertical-align', 'list-style', 'list-style-type', 'list-style-position', 'list-style-image',
         'word-wrap', 'line-break', 'hyphens', 'scrollbar-width', 'scrollbar-color',
         // SVG
