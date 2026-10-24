@@ -229,9 +229,8 @@ body.is-sprite-editor #btn-save {
 }
 
 /* ── 左サイドバー: ファイルツリー ── */
-/* ── 左サイドバー: ファイルツリー ── */
 .studio-sidebar {
-    width: 230px;
+    width: 250px;
     background-color: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -240,192 +239,217 @@ body.is-sprite-editor #btn-save {
     user-select: none;
     overflow-y: auto;
     overflow-x: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.sidebar-header {
-    padding: 10px 14px 6px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.sidebar-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-muted);
-    letter-spacing: 0.8px;
-}
-
+/* サイドバーツリーリスト */
 .file-list {
     display: flex;
     flex-direction: column;
-    padding: 2px 6px;
-    gap: 1px;
+    padding: 0;
+    gap: 0;
 }
 
-/* フォルダグループ */
-.tree-folder-group {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 2px;
-}
-
-.tree-folder-header {
+/* ツリーの各行アイテム（共通） */
+.tree-item-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    height: 30px;
-    padding: 0 8px;
+    height: 24px;
+    padding: 0 8px 0 0;
     background: transparent;
     border: none;
-    border-radius: 4px;
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: 600;
+    color: #cccccc;
+    font-size: 13px;
     text-align: left;
     cursor: pointer;
-    transition: background 0.12s, color 0.12s;
     width: 100%;
+    position: relative;
+    box-sizing: border-box;
+    transition: background 0.1s, color 0.1s;
+    font-family: inherit;
+    text-decoration: none;
 }
 
-.tree-folder-header:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: var(--text-primary);
+.tree-item-row:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
 }
 
-.folder-chevron {
-    font-size: 9px;
-    color: var(--text-muted);
+.tree-item-row.active {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+/* プロジェクトルート (trial-admission) */
+.tree-item-root {
+    font-weight: 500;
+    color: #cccccc;
+    padding-left: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* インデントガイド線 (VS Code同等の階層縦線) */
+.tree-indent-guide {
+    display: inline-block;
+    width: 16px;
+    height: 100%;
+    border-left: 1px solid rgba(255, 255, 255, 0.09);
+    margin-left: 9px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+/* シェブロン（展開・折りたたみ矢印） */
+.tree-chevron {
+    width: 16px;
+    height: 16px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 14px;
-    height: 14px;
-    transition: transform 0.15s ease;
+    color: #858585;
+    flex-shrink: 0;
+    margin-left: 4px;
+    transition: transform 0.12s ease;
 }
 
-.tree-folder-header.is-open .folder-chevron {
-    transform: rotate(0deg);
+.tree-chevron svg {
+    width: 12px;
+    height: 12px;
 }
 
-.tree-folder-header:not(.is-open) .folder-chevron {
+.tree-chevron.closed {
     transform: rotate(-90deg);
 }
 
-.folder-icon {
-    font-size: 13px;
+/* ファイル行のシェブロン用スペーサー（縦位置の完全整列用） */
+.tree-chevron-spacer {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-left: 4px;
+}
+
+/* ツリーアイコン (Seti / VS Codeスタイル) */
+.tree-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+    flex-shrink: 0;
+    font-size: 11px;
     line-height: 1;
 }
 
-.folder-name {
-    font-family: var(--font-code);
-    font-size: 12px;
-    flex: 1;
+/* フォルダアイコン (VS Codeのアウトラインブルーグレー) */
+.tree-icon.icon-folder-svg {
+    color: #8ba2b5;
+}
+.tree-icon.icon-folder-svg svg {
+    width: 15px;
+    height: 15px;
 }
 
-.folder-badge {
-    font-size: 10px;
-    background-color: #21262d;
-    color: var(--text-muted);
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-weight: 500;
+/* 画像アイコン (紫色) */
+.tree-icon.icon-img-svg {
+    color: #b180d7;
+}
+.tree-icon.icon-img-svg svg {
+    width: 15px;
+    height: 15px;
+}
+
+/* JSアイコン (黄色テキスト・背景なし) */
+.tree-icon.icon-js-sym {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #cbcb41;
+    letter-spacing: -0.3px;
+}
+
+/* CSSアイコン (水色 { } シンボル) */
+.tree-icon.icon-css-sym {
+    color: #519aba;
+}
+.tree-icon.icon-css-sym svg {
+    width: 15px;
+    height: 15px;
+}
+
+/* HTMLアイコン (オレンジ </> シンボル) */
+.tree-icon.icon-html-sym {
+    font-family: Consolas, Monaco, "Courier New", monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #e44d26;
+    letter-spacing: -0.5px;
+}
+
+/* XMLアイコン (オレンジ電波マーク) */
+.tree-icon.icon-xml-svg {
+    color: #ff9800;
+}
+.tree-icon.icon-xml-svg svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* LICENSEアイコン (著作権 © マーク) */
+.tree-icon.icon-lic-sym {
+    font-size: 13px;
+    font-weight: 600;
+    color: #90a4ae;
+}
+
+/* JSON / Configアイコン (緑六角形) */
+.tree-icon.icon-json-svg {
+    color: #5bb974;
+}
+.tree-icon.icon-json-svg svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* アイコン: ドット絵ツール */
+.tree-icon.icon-tool-sym {
+    font-family: Consolas, monospace;
+    font-size: 9.5px;
+    font-weight: 800;
+    color: #38bdf8;
+}
+
+/* ファイル名・フォルダ名ラベル */
+.tree-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    line-height: 24px;
+    letter-spacing: 0.2px;
+}
+
+/* 右端のGitステータスインジケータ (非表示) */
+.git-status-dot,
+.git-status-m {
+    display: none !important;
+}
+
+/* フォルダグループの子要素開閉 */
+.tree-folder-group {
+    display: flex;
+    flex-direction: column;
 }
 
 .tree-folder-children {
     display: flex;
     flex-direction: column;
-    gap: 1px;
-    overflow: hidden;
-    transition: max-height 0.2s ease, opacity 0.2s ease;
 }
 
-.tree-folder-group:not(.is-open) .tree-folder-children {
+.tree-folder-group:not(.is-open) > .tree-folder-children {
     display: none;
-}
-
-/* ファイルアイテム */
-.file-item {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    height: 30px;
-    padding: 0 8px;
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    color: var(--text-secondary);
-    font-size: 12px;
-    text-align: left;
-    cursor: pointer;
-    transition: background 0.12s, color 0.12s;
-    width: 100%;
-    position: relative;
-}
-
-.file-item.file-nested {
-    padding-left: 24px;
-}
-
-.file-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: var(--text-primary);
-}
-
-.file-item.active {
-    background-color: #21262d;
-    color: #ffffff;
-    font-weight: 600;
-}
-
-.file-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 16px;
-    border-radius: 3px;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: -0.3px;
-    flex-shrink: 0;
-    line-height: 1;
-}
-
-.icon-js {
-    background-color: #f7df1e;
-    color: #000000;
-}
-
-.icon-css {
-    background-color: #38bdf8;
-    color: #000000;
-}
-
-.icon-html {
-    background-color: #f97316;
-    color: #ffffff;
-}
-
-.icon-image {
-    background-color: #a855f7;
-    color: #ffffff;
-    font-size: 8px;
-}
-
-.icon-tool {
-    background-color: #38bdf8;
-    color: #0d1117;
-    font-size: 8px;
-}
-
-.file-name {
-    font-family: var(--font-code);
-    font-size: 12px;
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 
@@ -603,21 +627,133 @@ body.is-sprite-editor #btn-save {
 }
 
 .code-highlight {
-    color: #abb2bf;
+    color: #d4d4d4;
     background: var(--bg-editor);
     pointer-events: none;
     z-index: 1;
 }
 
-/* シンタックスハイライト */
-.token-comment { color: #5c6370; font-style: italic; }
-.token-keyword { color: #c678dd; font-weight: bold; }
-.token-string { color: #98c379; }
-.token-number { color: #d19a66; }
-.token-property { color: #e06c75; }
-.token-tag { color: #e06c75; }
-.token-attr-name { color: #d19a66; }
-.token-attr-value { color: #98c379; }
+/* ── 右端: コードマップ (Minimap) ── */
+.editor-minimap-wrap {
+    width: 110px;
+    height: 100%;
+    position: relative;
+    flex-shrink: 0;
+    background-color: rgba(14, 18, 24, 0.5);
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    user-select: none;
+    overflow: hidden;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: opacity 0.15s ease;
+}
+
+.editor-minimap-wrap:hover {
+    background-color: rgba(14, 18, 24, 0.7);
+}
+
+.editor-minimap-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+}
+
+/* ビューポートスライダー (カーソルを合わせたときだけふわっと表示) */
+.editor-minimap-slider {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 2px;
+    box-sizing: border-box;
+    cursor: grab;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.22s ease, background-color 0.15s ease, border-color 0.15s ease;
+    z-index: 2;
+}
+
+/* ミニマップにホバーした時、またはドラッグ中にふわっと表示 */
+.editor-minimap-wrap:hover .editor-minimap-slider,
+.editor-minimap-slider.is-dragging {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.editor-minimap-slider:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.36);
+}
+
+.editor-minimap-slider.is-dragging {
+    cursor: grabbing;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ミニマップ右端のマーカーレール */
+.editor-minimap-gutter {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 3px;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+}
+
+/* シンタックスハイライト (VS Code Dark+公式 高コントラスト・高視認性パレット) */
+.token-comment { color: #6a9955; font-style: italic; } /* 自然で優しいフォレストグリーン */
+.token-keyword { color: #c586c0; font-weight: bold; } /* 鮮明なバイオレット */
+.token-string { color: #ce9178; }                     /* 温かみのあるピーチ */
+.token-number { color: #b5cea8; }                     /* 爽やかなライトミント */
+.token-property { color: #9cdcfe; }                   /* 鮮明なライトシアン (背景に沈まない) */
+.token-tag { color: #d7ba7d; }                        /* 華やかなウォームゴールド */
+.token-attr-name { color: #9cdcfe; }                  /* 鮮明なライトシアン */
+.token-attr-value { color: #ce9178; }                 /* ピーチ */
+.token-color { color: #4ec9b0; }                      /* 鮮やかなターコイズグリーン */
+
+/* ディレクトリツリーのエラー表記 (見てるファイルに関わらず即座に可視化) */
+.tree-item-row.file-item.has-error .tree-label {
+    color: #f87171 !important;
+    font-weight: 600;
+}
+
+.tree-item-row.file-item .tree-error-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    background-color: #ef4444;
+    color: #ffffff;
+    font-size: 9.5px;
+    font-weight: 800;
+    border-radius: 50%;
+    margin-right: 6px;
+    flex-shrink: 0;
+    line-height: 1;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+.tree-item-row[data-folder].has-error-child .folder-error-dot {
+    width: 6px;
+    height: 6px;
+    background-color: #ef4444;
+    border-radius: 50%;
+    margin-right: 6px;
+    flex-shrink: 0;
+    box-shadow: 0 0 5px #ef4444;
+}
+
+.tree-item-row[data-folder].has-error-child .tree-label {
+    color: #fca5a5 !important;
+}
 
 /* ── ドラッグ式リサイザーバー ── */
 .pane-resizer {

@@ -1,0 +1,20 @@
+{
+  "name": "space-invaders-studio",
+  "version": "1.0.0",
+  "description": "Space Invaders Game & Interactive Code Studio for Trial Admission",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8088",
+    "test": "node dev/trial-admission/editor/linter.js",
+    "sync": "sh dev/trial-admission/sync-monaca.sh"
+  },
+  "keywords": [
+    "game",
+    "space-invaders",
+    "canvas",
+    "education",
+    "trial-admission"
+  ],
+  "author": "RowPilot Education Team",
+  "license": "MIT"
+}

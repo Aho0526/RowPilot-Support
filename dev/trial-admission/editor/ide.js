@@ -6,7 +6,17 @@
     'use strict';
 
     // 仮想ファイルシステム (教材・ゲーム関連全ファイル管理)
+    // 順序: index.html -> js群 -> style.css -> package.json -> LICENSE -> assets -> editor
     const files = {
+        'index.html': {
+            name: 'index.html',
+            path: '../index.html',
+            type: 'html',
+            editable: true,
+            isDirty: false,
+            desc: '画面構造・HTMLマークアップ',
+            content: `<!-- ゲームHTML -->`
+        },
         'config.js': {
             name: 'config.js',
             path: '../config.js',
@@ -16,15 +26,6 @@
             desc: 'ゲームパラメータ設定',
             content: `// ゲーム設定ファイル (config.js)\nconst GameConfig = {};`
         },
-        'style.css': {
-            name: 'style.css',
-            path: '../style.css',
-            type: 'css',
-            editable: true,
-            isDirty: false,
-            desc: '画面スタイル・デザイン',
-            content: `/* スタイル設定 (style.css) */`
-        },
         'core.js': {
             name: 'core.js',
             path: '../core.js',
@@ -33,15 +34,6 @@
             isDirty: false,
             desc: 'ゲームコアエンジン',
             content: `// ゲームエンジン (core.js)`
-        },
-        'index.html': {
-            name: 'index.html',
-            path: '../index.html',
-            type: 'html',
-            editable: true,
-            isDirty: false,
-            desc: '画面構造・HTMLマークアップ',
-            content: `<!-- ゲームHTML -->`
         },
         'linter.js': {
             name: 'linter.js',
@@ -60,6 +52,31 @@
             isDirty: false,
             desc: 'Monaca IDE連携同期スクリプト',
             content: `// Monacaクラウド連携ブリッジ`
+        },
+        'style.css': {
+            name: 'style.css',
+            path: '../style.css',
+            type: 'css',
+            editable: true,
+            isDirty: false,
+            desc: '画面スタイル・デザイン',
+            content: `/* スタイル設定 (style.css) */`
+        },
+        'package.json': {
+            name: 'package.json',
+            path: '../package.json',
+            type: 'json',
+            editable: true,
+            isDirty: false,
+            desc: 'プロジェクトパッケージ設定'
+        },
+        'LICENSE': {
+            name: 'LICENSE',
+            path: '../LICENSE',
+            type: 'text',
+            editable: false,
+            isDirty: false,
+            desc: 'MITライセンス文書'
         },
         'assets/space-bg.jpg': {
             name: 'space-bg.jpg',
@@ -82,6 +99,38 @@
             folder: 'assets',
             bgKey: 'space-nebula',
             desc: '星雲・ネビュラ背景画像'
+        },
+        'editor/index.html': {
+            name: 'index.html',
+            path: './index.html',
+            type: 'html',
+            editable: true,
+            isDirty: false,
+            desc: 'エディタ画面構造'
+        },
+        'editor/ide.js': {
+            name: 'ide.js',
+            path: './ide.js',
+            type: 'javascript',
+            editable: true,
+            isDirty: false,
+            desc: 'エディタ本体スクリプト'
+        },
+        'editor/linter.js': {
+            name: 'linter.js',
+            path: './linter.js',
+            type: 'javascript',
+            editable: true,
+            isDirty: false,
+            desc: '構文診断エンジン'
+        },
+        'editor/ide.css': {
+            name: 'ide.css',
+            path: './ide.css',
+            type: 'css',
+            editable: true,
+            isDirty: false,
+            desc: 'エディタUIスタイル'
         }
     };
 
@@ -121,6 +170,17 @@
     // フォルダ開閉DOM要素
     const folderToggleAssets = document.getElementById('folder-toggle-assets');
     const folderGroupAssets = document.getElementById('folder-group-assets');
+
+    // ミニマップ (コードマップ) DOM要素
+    const editorMinimapWrap = document.getElementById('editor-minimap-wrap');
+    const editorMinimapCanvas = document.getElementById('editor-minimap-canvas');
+    const editorMinimapSlider = document.getElementById('editor-minimap-slider');
+    const editorMinimapGutter = document.getElementById('editor-minimap-gutter');
+    const MINIMAP_LINE_PITCH = 3.6; // 1行あたりのピクセル高さ
+    const EDITOR_LINE_HEIGHT = 22; // エディタの1行のピクセル高さ
+    let minimapCtx = null;
+    let isMinimapDragging = false;
+    let minimapDragGrabOffsetY = 0;
 
     const btnSoundToggle = document.getElementById('btn-sound-toggle');
     const soundText = document.getElementById('sound-text');
@@ -179,6 +239,7 @@
             renderEditor();
         }
         updatePreview();
+        updateAllFilesDiagnostics();
         if (spritePane && spritePane.style.display !== 'none') {
             loadSpriteFromConfig();
             renderSpriteGrid();
@@ -213,7 +274,7 @@
             result += escapeHtml(code.slice(lastIndex));
             return result;
         } else if (type === 'css') {
-            const regex = /(\/\*[\s\S]*?\*\/)|(#[a-fA-F0-9]{3,8}|rgba?\([^)]+\))|([a-zA-Z0-9_-]+(?=\s*:))|([^{}]+(?=\{))/g;
+            const regex = /(\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(#[a-fA-F0-9]{3,8}|rgba?\([^)]+\))|(-?\b\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|s|ms)?\b)|([a-zA-Z0-9_-]+(?=\s*:))|([^{}]+(?=\{))/g;
             let result = '';
             let lastIndex = 0;
             let match;
@@ -221,8 +282,10 @@
                 result += escapeHtml(code.slice(lastIndex, match.index));
                 if (match[1]) result += '<span class="token-comment">' + escapeHtml(match[1]) + '</span>';
                 else if (match[2]) result += '<span class="token-string">' + escapeHtml(match[2]) + '</span>';
-                else if (match[3]) result += '<span class="token-property">' + escapeHtml(match[3]) + '</span>';
-                else if (match[4]) result += '<span class="token-tag">' + escapeHtml(match[4]) + '</span>';
+                else if (match[3]) result += '<span class="token-color">' + escapeHtml(match[3]) + '</span>';
+                else if (match[4]) result += '<span class="token-number">' + escapeHtml(match[4]) + '</span>';
+                else if (match[5]) result += '<span class="token-property">' + escapeHtml(match[5]) + '</span>';
+                else if (match[6]) result += '<span class="token-tag">' + escapeHtml(match[6]) + '</span>';
                 lastIndex = regex.lastIndex;
             }
             result += escapeHtml(code.slice(lastIndex));
@@ -309,6 +372,88 @@
         if (!skipHighlightUpdate) {
             updateLineNumberIndicators();
         }
+
+        // 見ているファイルに関係なく、全ファイルのエラーをディレクトリツリーに反映
+        updateAllFilesDiagnostics();
+    }
+
+    // 全ファイルのエラー状態マップ (ファイルパス -> エラー件数)
+    const fileErrorCountMap = {};
+
+    function updateAllFilesDiagnostics() {
+        if (!window.Linter) return;
+
+        for (let k in files) {
+            const f = files[k];
+            if (!f || f.isBinary || f.type === 'xml' || f.type === 'text') continue;
+            try {
+                const changedLines = window.Linter.computeChangedLines(f.baselineContent || '', f.content);
+                const issues = window.Linter.lint(k, f.content, {
+                    baselineCode: f.baselineContent,
+                    changedLines: changedLines
+                });
+                const errCount = (issues || []).filter(i => i.severity === 'error').length;
+                fileErrorCountMap[k] = errCount;
+            } catch (e) {
+                console.warn('Linter check failed for', k, e);
+            }
+        }
+
+        updateFileTreeErrorIndicators();
+    }
+
+    function updateFileTreeErrorIndicators() {
+        const fileItems = document.querySelectorAll('.tree-item-row.file-item');
+        const folderGroups = document.querySelectorAll('.tree-folder-group');
+
+        // 各ファイルの赤字＆エラーバッジ（!）の反映
+        fileItems.forEach(el => {
+            const path = el.getAttribute('data-path');
+            const errCount = fileErrorCountMap[path] || 0;
+            const existingBadge = el.querySelector('.tree-error-badge');
+
+            if (errCount > 0) {
+                el.classList.add('has-error');
+                if (!existingBadge) {
+                    const badge = document.createElement('span');
+                    badge.className = 'tree-error-badge';
+                    badge.textContent = '!';
+                    badge.title = `構文エラーが ${errCount} 件あります`;
+                    el.appendChild(badge);
+                } else {
+                    existingBadge.title = `構文エラーが ${errCount} 件あります`;
+                }
+            } else {
+                el.classList.remove('has-error');
+                if (existingBadge) {
+                    existingBadge.remove();
+                }
+            }
+        });
+
+        // 親フォルダグループの赤ドット反映（内部にエラーファイルがあるか）
+        folderGroups.forEach(fg => {
+            const toggleBtn = fg.querySelector(':scope > .tree-item-row[data-folder]');
+            if (!toggleBtn) return;
+
+            const childErrors = fg.querySelectorAll('.tree-item-row.file-item.has-error');
+            const existingDot = toggleBtn.querySelector('.folder-error-dot');
+
+            if (childErrors.length > 0) {
+                toggleBtn.classList.add('has-error-child');
+                if (!existingDot) {
+                    const dot = document.createElement('span');
+                    dot.className = 'folder-error-dot';
+                    dot.title = `フォルダ内のファイルにエラーがあります`;
+                    toggleBtn.appendChild(dot);
+                }
+            } else {
+                toggleBtn.classList.remove('has-error-child');
+                if (existingDot) {
+                    existingDot.remove();
+                }
+            }
+        });
     }
 
     function updateLineNumberIndicators() {
@@ -322,6 +467,7 @@
                 el.classList.add('has-warning');
             }
         });
+        renderMinimap();
     }
 
     function updateDiagnosticsUI(fileKey) {
@@ -529,6 +675,9 @@
 
         // シンタックスハイライト
         codeHighlight.innerHTML = highlightSyntax(text, file.type) + '\n';
+
+        // ミニマップ描画
+        renderMinimap();
     }
 
     function syncScroll() {
@@ -538,6 +687,9 @@
         codeHighlight.scrollLeft = scrollLeft;
         // translateY方式により、スクロール天井制限に関わらず1ピクセルも狂わずに完全同期
         lineNumbersInner.style.transform = `translateY(-${scrollTop}px)`;
+
+        // ミニマップスライダーのスクロール追随
+        syncMinimapSlider();
     }
 
     codeTextarea.addEventListener('scroll', syncScroll);
@@ -747,12 +899,21 @@
         }
     });
 
-    // フォルダ開閉トグル
-    folderToggleAssets?.addEventListener('click', (e) => {
-        e.preventDefault();
-        const isOpen = folderGroupAssets.classList.toggle('is-open');
-        folderToggleAssets.classList.toggle('is-open', isOpen);
-        folderToggleAssets.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    // フォルダ開閉トグル（VS Codeツリーシェブロン回転連動）
+    document.querySelectorAll('.tree-folder-group > .tree-item-row').forEach(header => {
+        header.addEventListener('click', (e) => {
+            e.preventDefault();
+            const group = header.parentElement;
+            if (group && group.classList.contains('tree-folder-group')) {
+                const isOpen = group.classList.toggle('is-open');
+                header.classList.toggle('is-open', isOpen);
+                header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                const chevron = header.querySelector('.tree-chevron');
+                if (chevron) {
+                    chevron.classList.toggle('closed', !isOpen);
+                }
+            }
+        });
     });
 
     // サイドバーのファイルクリック
@@ -1929,5 +2090,273 @@
             window.location.href = '../';
         }, 400);
     });
+
+    // ─────────────────────────────────────────────
+    // ミニマップ (コードマップ) レンダリング & インタラクション
+    // ─────────────────────────────────────────────
+    function renderMinimap() {
+        if (!editorMinimapCanvas || !editorMinimapWrap) return;
+        const file = files[currentFileKey];
+        if (!file || file.isBinary || file.type === 'image') {
+            editorMinimapWrap.style.display = 'none';
+            return;
+        }
+        editorMinimapWrap.style.display = 'block';
+
+        const rect = editorMinimapWrap.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const targetW = Math.round(rect.width * dpr);
+        const targetH = Math.round(rect.height * dpr);
+
+        if (editorMinimapCanvas.width !== targetW || editorMinimapCanvas.height !== targetH) {
+            editorMinimapCanvas.width = targetW;
+            editorMinimapCanvas.height = targetH;
+        }
+
+        if (!minimapCtx) minimapCtx = editorMinimapCanvas.getContext('2d');
+        if (!minimapCtx) return;
+
+        minimapCtx.save();
+        minimapCtx.scale(dpr, dpr);
+        minimapCtx.clearRect(0, 0, rect.width, rect.height);
+
+        const text = codeTextarea.value || '';
+        const lines = text.split('\n');
+        const lineCount = lines.length;
+
+        const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 20;
+        const maxScroll = Math.max(1, codeTextarea.scrollHeight - codeTextarea.clientHeight);
+        const scrollRatio = Math.max(0, Math.min(1, codeTextarea.scrollTop / maxScroll));
+        const maxMinimapScroll = Math.max(0, totalMinimapHeight - rect.height);
+        const minimapOffsetY = totalMinimapHeight > rect.height ? scrollRatio * maxMinimapScroll : 0;
+
+        // フォント設定（極小等幅フォントで実物スクリーンショット風の精密感を再現）
+        minimapCtx.font = '2.5px "SF Mono", "Fira Code", Monaco, Menlo, Consolas, monospace';
+        minimapCtx.textBaseline = 'top';
+
+        // 各行を描画
+        for (let i = 0; i < lineCount; i++) {
+            const lineNum = i + 1;
+            const y = (i * MINIMAP_LINE_PITCH) - minimapOffsetY + 6;
+
+            // 画面外をカリング
+            if (y < -MINIMAP_LINE_PITCH || y > rect.height + MINIMAP_LINE_PITCH) {
+                continue;
+            }
+
+            // エラー・警告行の背景ハイライト
+            if (errorLineSet.has(lineNum)) {
+                minimapCtx.fillStyle = 'rgba(239, 68, 68, 0.45)';
+                minimapCtx.fillRect(0, y - 0.5, rect.width, MINIMAP_LINE_PITCH);
+                minimapCtx.fillStyle = '#ef4444';
+                minimapCtx.fillRect(rect.width - 4, y - 0.5, 4, MINIMAP_LINE_PITCH);
+            } else if (warningLineSet.has(lineNum)) {
+                minimapCtx.fillStyle = 'rgba(245, 158, 11, 0.35)';
+                minimapCtx.fillRect(0, y - 0.5, rect.width, MINIMAP_LINE_PITCH);
+                minimapCtx.fillStyle = '#f59e0b';
+                minimapCtx.fillRect(rect.width - 4, y - 0.5, 4, MINIMAP_LINE_PITCH);
+            }
+
+            const rawLine = lines[i];
+            if (!rawLine.trim()) continue;
+
+            // インデントの計算
+            const leadingSpaces = rawLine.match(/^\s*/)[0].replace(/\t/g, '    ').length;
+            let startX = 6 + leadingSpaces * 1.0;
+            const trimmed = rawLine.trimStart();
+
+            // トークン化して色付きで精密描画
+            tokenizeAndDrawMinimapLine(trimmed, file.type, startX, y, rect.width - 12);
+        }
+
+        minimapCtx.restore();
+
+        // 右端エラーマーカー（画面外も含めた全エラーの俯瞰マーカー）の描画
+        updateMinimapGutterMarkers(lineCount, rect.height);
+
+        // スライダー同期
+        syncMinimapSlider();
+    }
+
+    function tokenizeAndDrawMinimapLine(text, type, startX, y, maxWidth) {
+        if (!text) return;
+        let tokens = [];
+
+        if (type === 'javascript' || type === 'json') {
+            const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:const|let|var|function|return|if|else|for|while|class|new|true|false|null|undefined|this|import|export|from)\b)|(-?\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z0-9_$]+(?=\s*:))/g;
+            let lastIdx = 0;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                if (match.index > lastIdx) {
+                    tokens.push({ text: text.slice(lastIdx, match.index), color: '#d4d4d4' });
+                }
+                if (match[1]) tokens.push({ text: match[1], color: '#6a9955' }); // コメント: 自然なグリーン
+                else if (match[2]) tokens.push({ text: match[2], color: '#ce9178' }); // 文字列: ピーチ
+                else if (match[3]) tokens.push({ text: match[3], color: '#c586c0' }); // 予約語: パープル
+                else if (match[4]) tokens.push({ text: match[4], color: '#b5cea8' }); // 数値: ライトミント
+                else if (match[5]) tokens.push({ text: match[5], color: '#9cdcfe' }); // プロパティ: ライトシアン
+                lastIdx = regex.lastIndex;
+            }
+            if (lastIdx < text.length) {
+                tokens.push({ text: text.slice(lastIdx), color: '#d4d4d4' });
+            }
+        } else if (type === 'css') {
+            const regex = /(\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(#[a-fA-F0-9]{3,8}|rgba?\([^)]+\))|(-?\b\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|s|ms)?\b)|([a-zA-Z0-9_-]+(?=\s*:))|([^{}]+(?=\{))/g;
+            let lastIdx = 0;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                if (match.index > lastIdx) tokens.push({ text: text.slice(lastIdx, match.index), color: '#d4d4d4' });
+                if (match[1]) tokens.push({ text: match[1], color: '#6a9955' }); // コメント: グリーン
+                else if (match[2]) tokens.push({ text: match[2], color: '#ce9178' }); // 文字列: ピーチ
+                else if (match[3]) tokens.push({ text: match[3], color: '#4ec9b0' }); // カラー値: ターコイズ
+                else if (match[4]) tokens.push({ text: match[4], color: '#b5cea8' }); // 数値: ライトミント
+                else if (match[5]) tokens.push({ text: match[5], color: '#9cdcfe' }); // プロパティ: ライトシアン
+                else if (match[6]) tokens.push({ text: match[6], color: '#d7ba7d' }); // セレクタ: ウォームゴールド
+                lastIdx = regex.lastIndex;
+            }
+            if (lastIdx < text.length) tokens.push({ text: text.slice(lastIdx), color: '#d4d4d4' });
+        } else {
+            tokens.push({ text: text, color: '#d4d4d4' });
+        }
+
+        let currX = startX;
+        for (const token of tokens) {
+            if (currX >= maxWidth) break;
+            minimapCtx.fillStyle = token.color;
+            minimapCtx.fillText(token.text, currX, y + 0.5);
+            currX += minimapCtx.measureText(token.text).width;
+        }
+    }
+
+    function updateMinimapGutterMarkers(lineCount, viewHeight) {
+        if (!editorMinimapGutter || lineCount <= 0) return;
+        let html = '';
+        errorLineSet.forEach(lineNum => {
+            const topPct = ((lineNum - 1) / lineCount) * 100;
+            html += `<div style="position:absolute;top:${topPct}%;left:0;width:3px;height:3px;background-color:#ef4444;border-radius:1px;box-shadow:0 0 3px #ef4444;"></div>`;
+        });
+        warningLineSet.forEach(lineNum => {
+            const topPct = ((lineNum - 1) / lineCount) * 100;
+            html += `<div style="position:absolute;top:${topPct}%;left:0;width:3px;height:3px;background-color:#f59e0b;border-radius:1px;"></div>`;
+        });
+        editorMinimapGutter.innerHTML = html;
+    }
+
+    function syncMinimapSlider() {
+        if (!editorMinimapSlider || !editorMinimapWrap || !codeTextarea) return;
+        const rect = editorMinimapWrap.getBoundingClientRect();
+        if (rect.height === 0) return;
+
+        const text = codeTextarea.value || '';
+        const lineCount = Math.max(1, text.split('\n').length);
+        const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 20;
+
+        const maxScroll = Math.max(1, codeTextarea.scrollHeight - codeTextarea.clientHeight);
+        const scrollRatio = Math.max(0, Math.min(1, codeTextarea.scrollTop / maxScroll));
+        const maxMinimapScroll = Math.max(0, totalMinimapHeight - rect.height);
+        const minimapOffsetY = totalMinimapHeight > rect.height ? scrollRatio * maxMinimapScroll : 0;
+
+        const topLine = codeTextarea.scrollTop / EDITOR_LINE_HEIGHT;
+        const visibleLines = codeTextarea.clientHeight / EDITOR_LINE_HEIGHT;
+
+        // エディタで見えている行範囲を正確に反映する白枠の高さ
+        const sliderHeight = Math.max(20, Math.min(rect.height, visibleLines * MINIMAP_LINE_PITCH));
+        // ミニマップ上の実際の描画行位置と完全一致するTop位置
+        const sliderTop = Math.max(0, (topLine * MINIMAP_LINE_PITCH) - minimapOffsetY + 6);
+
+        editorMinimapSlider.style.top = `${sliderTop}px`;
+        editorMinimapSlider.style.height = `${sliderHeight}px`;
+    }
+
+    // ミニマップ上のクリック＆ドラッグスクロール (ダイレクト高速スクロール対応)
+    function initMinimapInteraction() {
+        if (!editorMinimapWrap || !editorMinimapSlider) return;
+
+        editorMinimapWrap.addEventListener('mousedown', (e) => {
+            const wrapRect = editorMinimapWrap.getBoundingClientRect();
+            const maxScroll = Math.max(0, codeTextarea.scrollHeight - codeTextarea.clientHeight);
+            if (maxScroll <= 0) return;
+
+            isMinimapDragging = true;
+            document.body.style.userSelect = 'none';
+            editorMinimapSlider.classList.add('is-dragging');
+
+            const text = codeTextarea.value || '';
+            const lineCount = Math.max(1, text.split('\n').length);
+            const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 20;
+
+            const sliderHeight = editorMinimapSlider.offsetHeight || 20;
+
+            if (e.target === editorMinimapSlider) {
+                const sliderRect = editorMinimapSlider.getBoundingClientRect();
+                minimapDragGrabOffsetY = e.clientY - sliderRect.top;
+            } else {
+                // スライダー外をクリックした場合は、クリック位置に白枠の中心をジャンプさせてドラッグ開始
+                minimapDragGrabOffsetY = sliderHeight / 2;
+                const clickY = e.clientY - wrapRect.top;
+
+                let targetScrollTop = 0;
+                if (totalMinimapHeight <= wrapRect.height) {
+                    const targetLine = (clickY - 6) / MINIMAP_LINE_PITCH;
+                    targetScrollTop = (targetLine * EDITOR_LINE_HEIGHT) - (codeTextarea.clientHeight / 2);
+                } else {
+                    const trackHeight = Math.max(1, wrapRect.height - sliderHeight);
+                    const ratio = Math.max(0, Math.min(1, (clickY - minimapDragGrabOffsetY) / trackHeight));
+                    targetScrollTop = ratio * maxScroll;
+                }
+                codeTextarea.scrollTop = Math.max(0, Math.min(maxScroll, Math.round(targetScrollTop)));
+                syncScroll();
+                syncMinimapSlider();
+                renderMinimap();
+            }
+
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isMinimapDragging) return;
+            const wrapRect = editorMinimapWrap.getBoundingClientRect();
+            const maxScroll = Math.max(0, codeTextarea.scrollHeight - codeTextarea.clientHeight);
+            if (maxScroll <= 0) return;
+
+            const text = codeTextarea.value || '';
+            const lineCount = Math.max(1, text.split('\n').length);
+            const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 20;
+
+            const targetSliderTop = e.clientY - wrapRect.top - minimapDragGrabOffsetY;
+
+            let targetScrollTop = 0;
+            if (totalMinimapHeight <= wrapRect.height) {
+                const targetLine = (targetSliderTop - 6) / MINIMAP_LINE_PITCH;
+                targetScrollTop = targetLine * EDITOR_LINE_HEIGHT;
+            } else {
+                const sliderHeight = editorMinimapSlider.offsetHeight || 20;
+                const trackHeight = Math.max(1, wrapRect.height - sliderHeight);
+                const ratio = Math.max(0, Math.min(1, targetSliderTop / trackHeight));
+                targetScrollTop = ratio * maxScroll;
+            }
+
+            codeTextarea.scrollTop = Math.max(0, Math.min(maxScroll, Math.round(targetScrollTop)));
+            syncScroll();
+            syncMinimapSlider();
+            renderMinimap();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isMinimapDragging) {
+                isMinimapDragging = false;
+                document.body.style.userSelect = '';
+                editorMinimapSlider.classList.remove('is-dragging');
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            renderMinimap();
+        });
+    }
+
+    initMinimapInteraction();
 
 })();

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>スペースインベーダー - エディタ</title>
-    <link rel="stylesheet" href="ide.css?v=4.0">
+    <link rel="stylesheet" href="ide.css?v=4.2">
 </head>
 <body>
     <!-- ヘッダーツールバー -->
@@ -74,65 +74,135 @@
 
     <!-- メインワークスペース -->
     <main class="studio-workspace">
-        <!-- 左サイドバー: ファイル一覧 -->
+        <!-- 左サイドバー: ファイルツリー (VS Code 完全再現) -->
         <aside class="studio-sidebar">
-            <div class="sidebar-header">
-                <span class="sidebar-label">FILES</span>
-            </div>
             <nav class="file-list" id="file-list">
-                <!-- assets フォルダ（開閉可能） -->
-                <div class="tree-folder-group is-open" id="folder-group-assets" data-folder="assets">
-                    <button type="button" class="tree-folder-header is-open" id="folder-toggle-assets" data-folder="assets" aria-expanded="true" title="クリックしてフォルダを開閉">
-                        <span class="folder-chevron">▼</span>
-                        <span class="folder-name">assets</span>
-                        <span class="folder-badge" title="2件">2</span>
+                <!-- ルートフォルダ: trial-admission -->
+                <div class="tree-folder-group is-open" id="folder-group-root" data-folder="root">
+                    <button type="button" class="tree-item-row tree-item-root is-open" id="folder-toggle-root" data-folder="root" aria-expanded="true">
+                        <span class="tree-chevron"><svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+                        <span class="tree-icon icon-folder-svg"><svg viewBox="0 0 16 16"><path d="M1.5 3A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H7.414l-1.707-1.707A1 1 0 0 0 5 2.5H1.5A1.5 1.5 0 0 0 0 4v.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                        <span class="tree-label">trial-admission</span>
                     </button>
-                    <div class="tree-folder-children" id="folder-children-assets">
-                        <button type="button" class="file-item file-nested" data-path="assets/space-bg.jpg" title="宇宙背景画像 (assets/space-bg.jpg)">
-                            <span class="file-icon icon-image">IMG</span>
-                            <span class="file-name">space-bg.jpg</span>
+
+                    <div class="tree-folder-children">
+                        <!-- assets フォルダ -->
+                        <div class="tree-folder-group is-open" id="folder-group-assets" data-folder="assets">
+                            <button type="button" class="tree-item-row is-open" id="folder-toggle-assets" data-folder="assets" aria-expanded="true">
+                                <span class="tree-indent-guide"></span>
+                                <span class="tree-chevron"><svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+                                <span class="tree-icon icon-folder-svg"><svg viewBox="0 0 16 16"><path d="M1.5 3A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H7.414l-1.707-1.707A1 1 0 0 0 5 2.5H1.5A1.5 1.5 0 0 0 0 4v.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                                <span class="tree-label">assets</span>
+                            </button>
+                            <div class="tree-folder-children">
+                                <button type="button" class="tree-item-row file-item" data-path="assets/space-bg.jpg">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-img-svg"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor"/><path d="M3 12l3.5-3.5 2 2 3-3 2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                    <span class="tree-label">space-bg.jpg</span>
+                                </button>
+                                <button type="button" class="tree-item-row file-item" data-path="assets/space-nebula.jpg">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-img-svg"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor"/><path d="M3 12l3.5-3.5 2 2 3-3 2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                    <span class="tree-label">space-nebula.jpg</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- editor フォルダ (html -> js -> css 順) -->
+                        <div class="tree-folder-group is-open" id="folder-group-editor" data-folder="editor">
+                            <button type="button" class="tree-item-row is-open" id="folder-toggle-editor" data-folder="editor" aria-expanded="true">
+                                <span class="tree-indent-guide"></span>
+                                <span class="tree-chevron"><svg viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+                                <span class="tree-icon icon-folder-svg"><svg viewBox="0 0 16 16"><path d="M1.5 3A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H7.414l-1.707-1.707A1 1 0 0 0 5 2.5H1.5A1.5 1.5 0 0 0 0 4v.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                                <span class="tree-label">editor</span>
+                            </button>
+                            <div class="tree-folder-children">
+                                <button type="button" class="tree-item-row file-item" data-path="editor/index.html">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-html-sym">&lt;/&gt;</span>
+                                    <span class="tree-label">index.html</span>
+                                </button>
+                                <button type="button" class="tree-item-row file-item" data-path="editor/ide.js">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-js-sym">JS</span>
+                                    <span class="tree-label">ide.js</span>
+                                </button>
+                                <button type="button" class="tree-item-row file-item" data-path="editor/linter.js">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-js-sym">JS</span>
+                                    <span class="tree-label">linter.js</span>
+                                </button>
+                                <button type="button" class="tree-item-row file-item" data-path="editor/ide.css">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-css-sym"><svg viewBox="0 0 16 16"><text x="8" y="11.5" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="700" fill="currentColor" letter-spacing="-0.5">{ }</text></svg></span>
+                                    <span class="tree-label">ide.css</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ルート直下ファイル群 (html -> js -> css -> json/doc 順) -->
+                        <button type="button" class="tree-item-row file-item" data-path="index.html">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-html-sym">&lt;/&gt;</span>
+                            <span class="tree-label">index.html</span>
                         </button>
-                        <button type="button" class="file-item file-nested" data-path="assets/space-nebula.jpg" title="星雲背景画像 (assets/space-nebula.jpg)">
-                            <span class="file-icon icon-image">IMG</span>
-                            <span class="file-name">space-nebula.jpg</span>
+                        <button type="button" class="tree-item-row file-item active" data-path="config.js">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-js-sym">JS</span>
+                            <span class="tree-label">config.js</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item" data-path="core.js">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-js-sym">JS</span>
+                            <span class="tree-label">core.js</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item" data-path="linter.js">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-js-sym">JS</span>
+                            <span class="tree-label">linter.js</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item" data-path="monaca-bridge.js">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-js-sym">JS</span>
+                            <span class="tree-label">monaca-bridge.js</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item" data-path="style.css">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-css-sym"><svg viewBox="0 0 16 16"><text x="8" y="11.5" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="700" fill="currentColor" letter-spacing="-0.5">{ }</text></svg></span>
+                            <span class="tree-label">style.css</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item" data-path="package.json">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-json-svg"><svg viewBox="0 0 16 16"><path d="M8 1.5l6 3.5v6l-6 3.5-6-3.5V5z" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/></svg></span>
+                            <span class="tree-label">package.json</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item" data-path="LICENSE">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-lic-sym">©</span>
+                            <span class="tree-label">LICENSE</span>
                         </button>
                     </div>
                 </div>
-
-                <!-- ルート教材ファイル群 -->
-                <button type="button" class="file-item active" data-path="config.js" title="ゲーム設定・パラメータ (config.js)">
-                    <span class="file-icon icon-js">JS</span>
-                    <span class="file-name">config.js</span>
-                </button>
-                <button type="button" class="file-item" data-path="style.css" title="スタイルシート (style.css)">
-                    <span class="file-icon icon-css">CSS</span>
-                    <span class="file-name">style.css</span>
-                </button>
-                <button type="button" class="file-item" data-path="core.js" title="ゲーム本体・コアエンジン (core.js)">
-                    <span class="file-icon icon-js">JS</span>
-                    <span class="file-name">core.js</span>
-                </button>
-                <button type="button" class="file-item" data-path="index.html" title="HTML画面構造 (index.html)">
-                    <span class="file-icon icon-html">&lt;&gt;</span>
-                    <span class="file-name">index.html</span>
-                </button>
-                <button type="button" class="file-item" data-path="linter.js" title="構文チェック診断エンジン (linter.js)">
-                    <span class="file-icon icon-js">JS</span>
-                    <span class="file-name">linter.js</span>
-                </button>
-                <button type="button" class="file-item" data-path="monaca-bridge.js" title="Monacaクラウド連携スクリプト (monaca-bridge.js)">
-                    <span class="file-icon icon-js">JS</span>
-                    <span class="file-name">monaca-bridge.js</span>
-                </button>
-            </nav>
-            <div class="sidebar-header" style="margin-top: 14px;">
-                <span class="sidebar-label">ツール</span>
-            </div>
-            <nav class="file-list">
-                <button type="button" class="file-item tool-item" id="btn-open-sprite-editor">
-                    <span class="file-icon icon-tool">DOT</span>
-                    <span class="file-name">ドット絵エディタ</span>
-                </button>
             </nav>
         </aside>
 
@@ -150,6 +220,12 @@
                 <div class="editor-code-container">
                     <pre class="code-highlight" id="code-highlight" aria-hidden="true"></pre>
                     <textarea class="code-textarea" id="code-textarea" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+                </div>
+                <!-- ミニマップ (コードマップ) -->
+                <div class="editor-minimap-wrap" id="editor-minimap-wrap" title="コードマップ（クリックまたはドラッグで移動）">
+                    <canvas class="editor-minimap-canvas" id="editor-minimap-canvas"></canvas>
+                    <div class="editor-minimap-slider" id="editor-minimap-slider"></div>
+                    <div class="editor-minimap-gutter" id="editor-minimap-gutter"></div>
                 </div>
             </div>
 
@@ -311,7 +387,7 @@
         <span id="ide-toast-msg">保存しました</span>
     </div>
 
-    <script src="linter.js?v=4.1"></script>
-    <script src="ide.js?v=4.1"></script>
+    <script src="linter.js?v=4.2"></script>
+    <script src="ide.js?v=4.2"></script>
 </body>
 </html>

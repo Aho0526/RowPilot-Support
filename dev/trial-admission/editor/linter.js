@@ -155,7 +155,7 @@
 
         let inHtmlComment = false;  // <!-- -->
         let inBlockComment = false; // /* */
-        let inTemplateLiteral = false; // `...`
+        let templateStack = [];     // 'TEMPLATE' または { type: 'EXPR', braces: number }
         let inScriptTag = false;    // for HTML <script>
         let inStyleTag = false;     // for HTML <style>
 
@@ -172,6 +172,9 @@
                 const next3 = rawLine.substring(c, c + 4);
                 const next2 = rawLine.substring(c, c + 3);
 
+                const currentTemplateMode = templateStack.length > 0 ? templateStack[templateStack.length - 1] : null;
+                const isInsideTemplateString = currentTemplateMode === 'TEMPLATE';
+
                 // --- HTMLコメント判定 (<!-- ... -->) ---
                 if (isHtml) {
                     if (inHtmlComment) {
@@ -181,14 +184,14 @@
                         }
                         continue;
                     }
-                    if (!inString && !inBlockComment && !inTemplateLiteral && next3 === '<!--') {
+                    if (!inString && !inBlockComment && !isInsideTemplateString && next3 === '<!--') {
                         inHtmlComment = true;
                         c += 3;
                         continue;
                     }
 
                     // <script> と <style> の出入り
-                    if (!inString && !inBlockComment && !inTemplateLiteral) {
+                    if (!inString && !inBlockComment && !isInsideTemplateString) {
                         const lowerRest = rawLine.substring(c).toLowerCase();
                         if (lowerRest.startsWith('<script')) inScriptTag = true;
                         if (lowerRest.startsWith('</script>')) inScriptTag = false;
@@ -217,14 +220,23 @@
                     continue;
                 }
 
-                // --- テンプレートリテラル中 (`...`) ---
-                if (inTemplateLiteral) {
+                // --- テンプレートリテラル文字列部分中 (`...`) ---
+                if (isInsideTemplateString) {
                     if (ch === '\\' && c + 1 < rawLine.length) {
                         c++; // エスケープ
-                    } else if (ch === '`') {
-                        inTemplateLiteral = false;
+                        continue;
                     }
-                    // テンプレートリテラル内の全角文字（日本語テキスト）は完全に許容
+                    if (ch === '$' && next === '{') {
+                        // 式補間開始
+                        templateStack.push({ type: 'EXPR', braces: 1 });
+                        c++;
+                        continue;
+                    }
+                    if (ch === '`') {
+                        templateStack.pop();
+                        continue;
+                    }
+                    // テンプレートリテラル文字列内の全角文字（日本語テキスト）は完全に許容
                     continue;
                 }
 
@@ -237,6 +249,19 @@
                     }
                     // 文字列リテラル内の全角文字は完全に許容
                     continue;
+                }
+
+                // テンプレート補間式の中（${ ... }）での波括弧深度追跡
+                if (currentTemplateMode && currentTemplateMode.type === 'EXPR') {
+                    if (ch === '{') {
+                        currentTemplateMode.braces++;
+                    } else if (ch === '}') {
+                        currentTemplateMode.braces--;
+                        if (currentTemplateMode.braces === 0) {
+                            templateStack.pop();
+                            continue;
+                        }
+                    }
                 }
 
                 // --- JS / CSS / HTML内script・style のコメント開始判定 ---
@@ -257,7 +282,7 @@
 
                 // テンプレートリテラル開始
                 if (inJsContext && ch === '`') {
-                    inTemplateLiteral = true;
+                    templateStack.push('TEMPLATE');
                     prevNonSpace = '`';
                     lastWord = '';
                     continue;
@@ -327,6 +352,30 @@
                         c + 1,
                         `全角アルファベットの「${ch}」が入力されています`,
                         `キーボードを半角英数にして、半角の「${halfChar}」に書き直してください`,
+                        'error',
+                        rawLine
+                    ));
+                    continue;
+                }
+
+                // --- 全角日本語文字（ひらがな・カタカナ・漢字・CJK記号）チェック (コメント・文字列外のみ) ---
+                const codePoint = ch.charCodeAt(0);
+                // ひらがな: 0x3040 - 0x309F
+                // カタカナ: 0x30A0 - 0x30FF
+                // 漢字: 0x4E00 - 0x9FAF
+                // CJK記号・句読点など: 0x3001 - 0x303F, 0x31F0 - 0x31FF
+                const isHiragana = codePoint >= 0x3040 && codePoint <= 0x309F;
+                const isKatakana = codePoint >= 0x30A0 && codePoint <= 0x30FF;
+                const isKanji = codePoint >= 0x4E00 && codePoint <= 0x9FAF;
+                const isCjkSymbol = (codePoint >= 0x3001 && codePoint <= 0x303F) || (codePoint >= 0x31F0 && codePoint <= 0x31FF);
+
+                if (isHiragana || isKatakana || isKanji || isCjkSymbol) {
+                    const kind = isHiragana ? 'ひらがな' : (isKatakana ? 'カタカナ' : (isKanji ? '漢字' : '全角記号'));
+                    issues.push(createIssue(
+                        i + 1,
+                        c + 1,
+                        `コード内に全角の${kind}「${ch}」が入力されています`,
+                        `キーボードを「半角英数」入力にして書き直してください（日本語入力ONのまま打ってしまった可能性があります）`,
                         'error',
                         rawLine
                     ));
@@ -669,7 +718,7 @@
             if (!clean) continue;
 
             // セクション開始の検知 (例: player: {, bullet: {)
-            const sectionMatch = clean.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:\s*\{/);
+            const sectionMatch = clean.match(/^([^\s:{}]+)\s*:\s*\{/);
             if (sectionMatch) {
                 const secName = sectionMatch[1];
                 if (!KNOWN_CONFIG_SCHEMA[secName]) {
@@ -698,7 +747,7 @@
             }
 
             // 代入記号イコールの誤用 (speed = 5)
-            const assignMatch = clean.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(.+)$/);
+            const assignMatch = clean.match(/^([^\s:{}]+)\s*=\s*(.+)$/);
             if (assignMatch && !clean.startsWith('const ') && !clean.startsWith('let ') && !clean.startsWith('var ')) {
                 issues.push(createIssue(
                     i + 1,
@@ -726,7 +775,7 @@
             }
 
             // 値の抜け (speed: , または difficulty: のようにコロンの後に値がない)
-            if (/^[a-zA-Z_$][a-zA-Z0-9_$]*\s*:\s*[,;]?\s*$/.test(clean)) {
+            if (/^[^\s:{}]+?\s*:\s*[,;]?\s*$/.test(clean)) {
                 issues.push(createIssue(
                     i + 1,
                     rawLine.indexOf(':') + 1,
@@ -739,7 +788,7 @@
             }
 
             // カラーコードのクォート忘れ (color: #00FF66 または配列内の #FFFF00)
-            const unquotedHexProp = clean.match(/^[a-zA-Z_$][a-zA-Z0-9_$]*\s*:\s*(#[0-9a-fA-F]{3,8})\b/);
+            const unquotedHexProp = clean.match(/^[^\s:{}]+?\s*:\s*(#[0-9a-fA-F]{3,8})\b/);
             const unquotedHexElem = clean.match(/^(#[0-9a-fA-F]{3,8})\s*,?$/);
             if (unquotedHexProp || unquotedHexElem) {
                 const hex = (unquotedHexProp || unquotedHexElem)[1];
@@ -754,8 +803,8 @@
                 continue;
             }
 
-            // プロパティキーの検知と値チェック (例: maxBullets: 8,)
-            const propMatch = clean.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:\s*(.+?)\s*([,;]?)$/);
+            // プロパティキーの検知と値チェック (例: maxBullets: 8, colおr: "#FFFF00")
+            const propMatch = clean.match(/^([^\s:{}]+)\s*:\s*(.+?)\s*([,;]?)$/);
             if (propMatch && currentSection && KNOWN_CONFIG_SCHEMA[currentSection]) {
                 const key = propMatch[1];
                 const rawVal = propMatch[2].replace(/,\s*$/, '').trim();
@@ -773,12 +822,22 @@
                     }
 
                     const isChanged = changedLines && changedLines.has(i + 1);
-                    if (minDistance <= 3 || isChanged) {
+                    if (closest && minDistance <= 3) {
                         issues.push(createIssue(
                             i + 1,
                             rawLine.indexOf(key) + 1,
                             `「${key}」という設定項目はありません（「${closest}」のスペルミスではありませんか？）`,
                             `「${currentSection}」には「${closest}」を指定してください（例: ${closest}: ...）`,
+                            'error',
+                            rawLine,
+                            isChanged
+                        ));
+                    } else {
+                        issues.push(createIssue(
+                            i + 1,
+                            rawLine.indexOf(key) + 1,
+                            `「${currentSection}」設定に「${key}」という項目はありません`,
+                            `有効な設定項目は ${knownKeys.map(k => `「${k}」`).join('、')} です`,
                             'error',
                             rawLine,
                             isChanged
@@ -1088,7 +1147,7 @@
     }
 
     /**
-     * 6. CSS (style.css) チェック
+     * 6. CSS (style.css) チェック (複数行プロパティ・グラデーション・シャドウ等に完全対応)
      */
     function checkCSS(code) {
         const issues = [];
@@ -1096,16 +1155,17 @@
         let inBlockComment = false;
         let braceDepth = 0;
 
+        // コメントを除去した行配列を作成（コメント内の記号による誤判定を防止）
+        const cleanLines = [];
         for (let i = 0; i < lines.length; i++) {
-            const rawLine = lines[i];
-            let line = rawLine;
-
+            let line = lines[i];
             if (inBlockComment) {
                 const closeIdx = line.indexOf('*/');
                 if (closeIdx !== -1) {
                     inBlockComment = false;
-                    line = line.substring(closeIdx + 2);
+                    line = ' '.repeat(closeIdx + 2) + line.substring(closeIdx + 2);
                 } else {
+                    cleanLines.push('');
                     continue;
                 }
             }
@@ -1114,59 +1174,158 @@
                 if (openIdx === -1) break;
                 const closeIdx = line.indexOf('*/', openIdx + 2);
                 if (closeIdx !== -1) {
-                    line = line.substring(0, openIdx) + line.substring(closeIdx + 2);
+                    line = line.substring(0, openIdx) + ' '.repeat(closeIdx + 2 - openIdx) + line.substring(closeIdx + 2);
                 } else {
                     inBlockComment = true;
                     line = line.substring(0, openIdx);
                     break;
                 }
             }
+            cleanLines.push(line);
+        }
 
-            const trimmed = line.trim();
-            if (!trimmed) continue;
+        // 構文解析
+        let pendingProperty = null; // 複数行にわたるプロパティ宣言の追跡
 
-            const hasOpenBrace = trimmed.includes('{');
-            const hasCloseBrace = trimmed.includes('}');
+        for (let i = 0; i < lines.length; i++) {
+            const rawLine = lines[i];
+            const clean = cleanLines[i].trim();
 
-            if (!hasOpenBrace && !hasCloseBrace && braceDepth > 0) {
-                // ルール内部のプロパティ行
-                if (trimmed.includes(':')) {
-                    const colonIdx = trimmed.indexOf(':');
-                    const valPart = trimmed.substring(colonIdx + 1).replace(/;/g, '').trim();
-                    if (!valPart) {
+            if (!clean) continue;
+
+            const hasOpenBrace = clean.includes('{');
+            const hasCloseBrace = clean.includes('}');
+
+            // ブロック深度を更新
+            for (let c = 0; c < clean.length; c++) {
+                if (clean[c] === '{') braceDepth++;
+                else if (clean[c] === '}') {
+                    braceDepth = Math.max(0, braceDepth - 1);
+                    if (pendingProperty) {
                         issues.push(createIssue(
-                            i + 1,
-                            rawLine.indexOf(':') + 1,
+                            pendingProperty.line,
+                            pendingProperty.col,
                             `CSSのプロパティ値が入力されていません`,
                             `コロン（:）の後に色やサイズなどの値を入力してください（例: color: #ffffff;）`,
                             'error',
-                            rawLine
+                            lines[pendingProperty.line - 1]
                         ));
-                    } else if (!trimmed.endsWith(';') && !trimmed.endsWith(',')) {
-                        issues.push(createIssue(
-                            i + 1,
-                            rawLine.length,
-                            `CSSプロパティ末尾のセミコロン（;）が抜けています`,
-                            `行末に「 ; 」を追加してください（例: color: red;）`,
-                            'error',
-                            rawLine
-                        ));
+                        pendingProperty = null;
                     }
-                } else if (/^[a-zA-Z-]+\s+[^,{]+$/.test(trimmed)) {
+                }
+            }
+
+            if (!hasOpenBrace && !hasCloseBrace && braceDepth > 0) {
+                if (pendingProperty) {
+                    // 複数行プロパティの継続行
+                    pendingProperty.valAccum += ' ' + clean;
+                    if (clean.includes(';')) {
+                        // セミコロンで宣言完了
+                        const finalVal = pendingProperty.valAccum.replace(/;/g, '').trim();
+                        if (!finalVal) {
+                            issues.push(createIssue(
+                                pendingProperty.line,
+                                pendingProperty.col,
+                                `CSSのプロパティ値が入力されていません`,
+                                `コロン（:）の後に色やサイズなどの値を入力してください（例: color: #ffffff;）`,
+                                'error',
+                                lines[pendingProperty.line - 1]
+                            ));
+                        }
+                        pendingProperty = null;
+                    } else if (clean.endsWith(',')) {
+                        // 次の行へ継続（例: linear-gradient の複数行指定）
+                    } else {
+                        // セミコロンもカンマもない場合、次の行が新しい宣言か判定
+                        let nextHasValue = false;
+                        for (let j = i + 1; j < lines.length; j++) {
+                            const nextClean = cleanLines[j].trim();
+                            if (!nextClean) continue;
+                            if (nextClean.includes('{') || nextClean.includes('}')) break;
+                            if (nextClean.includes(':')) break;
+                            nextHasValue = true;
+                            break;
+                        }
+                        if (!nextHasValue) {
+                            // 次の行が新しい宣言やブロック末尾なら、セミコロン抜け
+                            issues.push(createIssue(
+                                i + 1,
+                                rawLine.length,
+                                `CSSプロパティ末尾のセミコロン（;）が抜けています`,
+                                `行末に「 ; 」を追加してください（例: color: red;）`,
+                                'error',
+                                rawLine
+                            ));
+                            pendingProperty = null;
+                        }
+                    }
+                } else if (clean.includes(':')) {
+                    const colonIdx = clean.indexOf(':');
+                    const propName = clean.substring(0, colonIdx).trim();
+                    const valPart = clean.substring(colonIdx + 1).replace(/;/g, '').trim();
+
+                    if (!clean.includes(';')) {
+                        // 行末にセミコロンがない場合
+                        if (!valPart || clean.endsWith(',')) {
+                            // コロン直後が空（改行されている）またはカンマで継続
+                            pendingProperty = {
+                                line: i + 1,
+                                col: rawLine.indexOf(':') + 1,
+                                propName: propName,
+                                valAccum: valPart
+                            };
+                        } else {
+                            // 値はあるがセミコロンがない
+                            let nextHasValue = false;
+                            for (let j = i + 1; j < lines.length; j++) {
+                                const nextClean = cleanLines[j].trim();
+                                if (!nextClean) continue;
+                                if (nextClean.includes('{') || nextClean.includes('}')) break;
+                                if (nextClean.includes(':')) break;
+                                nextHasValue = true;
+                                break;
+                            }
+                            if (nextHasValue) {
+                                pendingProperty = {
+                                    line: i + 1,
+                                    col: rawLine.indexOf(':') + 1,
+                                    propName: propName,
+                                    valAccum: valPart
+                                };
+                            } else {
+                                issues.push(createIssue(
+                                    i + 1,
+                                    rawLine.length,
+                                    `CSSプロパティ末尾のセミコロン（;）が抜けています`,
+                                    `行末に「 ; 」を追加してください（例: color: red;）`,
+                                    'error',
+                                    rawLine
+                                ));
+                            }
+                        }
+                    } else {
+                        // セミコロンあり
+                        if (!valPart) {
+                            issues.push(createIssue(
+                                i + 1,
+                                rawLine.indexOf(':') + 1,
+                                `CSSのプロパティ値が入力されていません`,
+                                `コロン（:）の後に色やサイズなどの値を入力してください（例: color: #ffffff;）`,
+                                'error',
+                                rawLine
+                            ));
+                        }
+                    }
+                } else if (/^[a-zA-Z-]+\s+[^,{]+$/.test(clean)) {
                     issues.push(createIssue(
                         i + 1,
-                        rawLine.indexOf(trimmed) + 1,
+                        rawLine.indexOf(clean) + 1,
                         `CSSのプロパティ名と値の間にコロン（:）がありません`,
                         `「 プロパティ名: 値; 」のようにコロン（:）で区切ってください`,
                         'error',
                         rawLine
                     ));
                 }
-            }
-
-            for (let c = 0; c < trimmed.length; c++) {
-                if (trimmed[c] === '{') braceDepth++;
-                else if (trimmed[c] === '}') braceDepth = Math.max(0, braceDepth - 1);
             }
         }
 
