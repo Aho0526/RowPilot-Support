@@ -2794,6 +2794,11 @@
         if (!code || typeof code !== 'string') return [];
         filename = filename || 'config.js';
 
+        // テキスト文書 (LICENSE, .txt, .md, .xml 等) は構文チェック対象外
+        if (!/\.(?:js|css|html|json)$/i.test(filename)) {
+            return [];
+        }
+
         options = options || {};
         let changedLines = options.changedLines;
         if (!changedLines && options.baselineCode) {

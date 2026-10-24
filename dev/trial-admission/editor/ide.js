@@ -234,7 +234,8 @@
             type: 'json',
             editable: true,
             isDirty: false,
-            desc: 'プロジェクトパッケージ設定'
+            desc: 'プロジェクトパッケージ設定',
+            content: `{\n  "name": "space-invaders-studio",\n  "version": "1.0.0",\n  "description": "Space Invaders Game & Interactive Code Studio for Trial Admission",\n  "main": "index.html",\n  "scripts": {\n    "start": "python3 -m http.server 8088",\n    "test": "node dev/trial-admission/editor/linter.js",\n    "sync": "sh dev/trial-admission/sync-monaca.sh"\n  },\n  "keywords": [\n    "game",\n    "space-invaders",\n    "canvas",\n    "education",\n    "trial-admission"\n  ],\n  "author": "RowPilot Education Team",\n  "license": "MIT"\n}\n`
         },
         'LICENSE': {
             name: 'LICENSE',
@@ -398,27 +399,36 @@
 
     // スティッキースクロール コントローラ
     let stickyScrollController = null;
+    let initialFilesLoaded = false;
 
     // ─────────────────────────────────────────────
-    // 実ファイルの自動フェッチ
+    // 実ファイルの自動フェッチ (並列取得で高速化＆未取得時の誤検知防止)
     // ─────────────────────────────────────────────
     async function loadRealFiles() {
-        for (let key in files) {
+        const cacheBust = '?t=' + Date.now();
+        const keys = Object.keys(files);
+
+        await Promise.all(keys.map(async (key) => {
             if (files[key].isBinary) {
                 // 画像ファイルなどバイナリはテキストfetchしない
-                continue;
+                files[key].isLoaded = true;
+                return;
             }
             try {
-                const resp = await fetch(files[key].path + '?t=' + Date.now());
+                const resp = await fetch(files[key].path + cacheBust);
                 if (resp.ok) {
                     files[key].content = await resp.text();
                     files[key].baselineContent = files[key].content;
                     files[key].isDirty = false;
+                    files[key].isLoaded = true;
                 }
             } catch (e) {
                 console.warn('ファイルの読み込みに失敗しました:', key, e);
             }
-        }
+        }));
+
+        initialFilesLoaded = true;
+
         if (files[currentFileKey] && files[currentFileKey].isBinary) {
             renderImageViewer(currentFileKey);
         } else {
@@ -679,7 +689,7 @@
 
     function runDiagnostics(fileKey, skipHighlightUpdate) {
         const file = files[fileKey];
-        if (!file || !window.Linter) {
+        if (!file || !window.Linter || file.isBinary || file.type === 'xml' || file.type === 'text' || typeof file.content !== 'string' || (!initialFilesLoaded && !file.isLoaded)) {
             currentFileIssues = [];
             errorLineSet.clear();
             warningLineSet.clear();
@@ -695,7 +705,7 @@
         currentFileIssues = window.Linter.lint(fileKey, file.content, {
             baselineCode: file.baselineContent,
             changedLines: changedLines,
-            allFiles: files
+            allFiles: initialFilesLoaded ? files : null
         });
 
         // 各issueにファイル名を明示
@@ -726,9 +736,15 @@
     function updateAllFilesDiagnostics() {
         if (!window.Linter) return;
 
+        // 初回fetch完了前は未取得ファイルを誤って空ファイルエラーと判定しないよう待機
+        if (!initialFilesLoaded) {
+            updateFileTreeErrorIndicators();
+            return;
+        }
+
         for (let k in files) {
             const f = files[k];
-            if (!f || f.isBinary || f.type === 'xml' || f.type === 'text') {
+            if (!f || f.isBinary || f.type === 'xml' || f.type === 'text' || typeof f.content !== 'string') {
                 fileErrorCountMap[k] = 0;
                 fileIssuesMap[k] = [];
                 continue;
