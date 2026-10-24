@@ -1,5 +1,10 @@
 /**
  * monaca-bridge.js - Monaca Cloud IDE 連携エンジン
+ * 
+ * 1. Monaca の Monaco Editor を直接検知し、英語の分かりにくいエラーを消去
+ * 2. 初心者向け Linter による親切な日本語エラーマーカー（行番号・波線・ヒント）をエディタに直接流し込み
+ * 3. プレビュー画面上にも「⚠️ config.js のミスを検知」HUDを表示
+ * 4. ドット絵エディタから Monaca エディタの config.js をワンクリック直接書き換え
  */
 
 (function () {
@@ -80,8 +85,8 @@
                     const errors = window.Linter.lint('config.js', code).filter(e => e.severity === 'error');
                     showInGameErrorHud(errors);
                 })
-                .catch(() => { });
-        } catch (e) { }
+                .catch(() => {});
+        } catch (e) {}
     }
 
     // ─────────────────────────────────────────────
@@ -115,7 +120,7 @@
                     `;
                     parentDoc.head.appendChild(style);
                 }
-            } catch (e) { }
+            } catch (e) {}
 
             function findConfigModel() {
                 try {
@@ -126,7 +131,7 @@
                             return m;
                         }
                     }
-                } catch (e) { }
+                } catch(e) {}
                 return null;
             }
 
@@ -147,7 +152,7 @@
                             parentMonaco.editor.setModelMarkers(model, 'jshint', []);
                             parentMonaco.editor.setModelMarkers(model, 'javascript', []);
                             parentMonaco.editor.setModelMarkers(model, 'typescript', []);
-                        } catch (e) { }
+                        } catch(e) {}
 
                         // 親切な日本語マーカーを設定
                         const markers = errors.map(err => {
@@ -188,7 +193,7 @@
             }, 800);
 
             // ドット絵エディタから Monaca エディタの config.js を直接更新
-            window.applySpriteToMonacaEditor = function (spriteKey, gridStrings) {
+            window.applySpriteToMonacaEditor = function(spriteKey, gridStrings) {
                 const model = findConfigModel();
                 if (!model) return false;
 
@@ -203,13 +208,13 @@
                         model.setValue(newCode);
                         return true;
                     }
-                } catch (e) {
+                } catch(e) {
                     console.error('[MonacaBridge] Failed to apply sprite to Monaca editor:', e);
                 }
                 return false;
             };
 
-        } catch (e) {
+        } catch(e) {
             console.warn('[MonacaBridge] Init failed:', e);
         }
     }
