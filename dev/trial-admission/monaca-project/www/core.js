@@ -1886,7 +1886,7 @@
         // 弾の色の更新
         const bCfg = cfg.bullet || {};
         for (let b of playerBullets) {
-            b.color = bCfg.playerBulletColor || "#00FF66";
+            b.color = bCfg.color || "#FFFF00";
         }
     }
 

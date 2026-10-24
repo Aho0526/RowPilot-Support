@@ -73,6 +73,23 @@
     }
 
     // ─────────────────────────────────────────────
+    // 単体ブラウザ表示時のローカル config.js 診断
+    // ─────────────────────────────────────────────
+    function runLocalValidation() {
+        try {
+            if (!window.Linter || typeof window.Linter.lint !== 'function') return;
+            fetch('config.js?t=' + Date.now())
+                .then(resp => resp.ok ? resp.text() : '')
+                .then(code => {
+                    if (!code) return;
+                    const errors = window.Linter.lint('config.js', code).filter(e => e.severity === 'error');
+                    showInGameErrorHud(errors);
+                })
+                .catch(() => {});
+        } catch (e) {}
+    }
+
+    // ─────────────────────────────────────────────
     // Monaca IDE 親ウィンドウ連携
     // ─────────────────────────────────────────────
     function initBridge() {
@@ -127,7 +144,7 @@
                         const code = model.getValue();
                         let errors = [];
                         if (window.Linter && typeof window.Linter.lint === 'function') {
-                            errors = window.Linter.lint(code);
+                            errors = window.Linter.lint('config.js', code);
                         }
 
                         // Monaca 既存の JSHint / TypeScript の難解な英語エラーを消去
@@ -142,20 +159,21 @@
                             let sev = parentMonaco.MarkerSeverity.Error;
                             if (err.severity === 'warning') sev = parentMonaco.MarkerSeverity.Warning;
                             if (err.severity === 'info') sev = parentMonaco.MarkerSeverity.Info;
+                            const col = err.col || err.column || 1;
 
                             return {
                                 startLineNumber: err.line || 1,
-                                startColumn: err.column || 1,
+                                startColumn: col,
                                 endLineNumber: err.line || 1,
-                                endColumn: (err.column || 1) + Math.max(1, err.length || 1),
-                                message: `【${err.title || '設定ミス'}】${err.message}${err.hint ? '\n💡 ヒント: ' + err.hint : ''}`,
+                                endColumn: col + Math.max(1, err.length || 1),
+                                message: `【${err.title || err.message || '設定ミス'}】${err.message}${err.hint ? '\n💡 ヒント: ' + err.hint : ''}`,
                                 severity: sev,
                                 source: '体験入学サポーター'
                             };
                         });
 
                         parentMonaco.editor.setModelMarkers(model, 'trial-admission-linter', markers);
-                        showInGameErrorHud(errors);
+                        showInGameErrorHud(errors.filter(e => e.severity === 'error'));
                     } catch (err) {
                         console.warn('[MonacaBridge] Validation error:', err);
                     }

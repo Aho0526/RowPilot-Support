@@ -48,6 +48,7 @@ def main():
     print(f"  → http://localhost:{PORT}/dev/crime-avoiding-game/ (犯罪回避ゲーム)")
     print(f"  → http://localhost:{PORT}/dev/game/     (ハコゲーム)")
     print(f"  → http://localhost:{PORT}/dev/trial-admission/ (体験入学生徒用ゲーム)")
+    print(f"  → http://localhost:{PORT}/a                 (体験入学ショートカット)")
     print(f"  → http://localhost:{PORT}/dev/statement-of-purpose/ (Pause)")
     print(f"  → http://localhost:{PORT}/dev/document/ (Pause)")
     print(f"  → http://localhost:{PORT}/dev/count/    (文化祭カウント - Pause)")

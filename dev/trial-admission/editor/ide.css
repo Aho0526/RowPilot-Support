@@ -47,15 +47,15 @@ body {
     flex-direction: column;
 }
 
-/* ── トップヘッダー ── */
+/* ── トップヘッダー (スリム化 40px) ── */
 .studio-header {
-    height: 48px;
+    height: 40px;
     background-color: var(--bg-header);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
+    padding: 0 12px;
     flex-shrink: 0;
     user-select: none;
     z-index: 10;
@@ -94,12 +94,13 @@ body {
 .size-control-group {
     display: flex;
     align-items: center;
-    background-color: #21262d;
-    border: 1px solid var(--border-color);
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 6px;
     height: 30px;
     padding: 0 4px;
     gap: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .control-label {
@@ -111,8 +112,9 @@ body {
 .scale-btn {
     background: transparent;
     border: none;
-    color: var(--text-secondary);
+    color: #cbd5e1;
     font-size: 12px;
+    font-weight: 700;
     width: 22px;
     height: 22px;
     border-radius: 4px;
@@ -124,28 +126,29 @@ body {
 }
 
 .scale-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
 }
 
 .scale-indicator {
     font-size: 11px;
     font-family: var(--font-code);
-    color: var(--text-primary);
+    color: #f1f5f9;
     min-width: 38px;
     text-align: center;
+    font-weight: 600;
 }
 
-/* アクションボタン共通 */
+/* アクションボタン共通 (スリム化 26px) */
 .action-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    height: 30px;
-    padding: 0 12px;
-    font-size: 12px;
+    gap: 5px;
+    height: 26px;
+    padding: 0 9px;
+    font-size: 11.5px;
     font-weight: 500;
-    border-radius: 6px;
+    border-radius: 5px;
     border: 1px solid transparent;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -161,9 +164,16 @@ body {
 
 /* サウンド切り替えボタン */
 .sound-toggle-btn {
-    background-color: #21262d;
-    border-color: var(--border-color);
-    color: var(--text-secondary);
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #cbd5e1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.sound-toggle-btn:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
 }
 
 .sound-toggle-btn.muted .mute-stroke {
@@ -171,8 +181,8 @@ body {
 }
 
 .sound-toggle-btn.active {
-    background-color: rgba(56, 189, 248, 0.15);
-    border-color: rgba(56, 189, 248, 0.4);
+    background-color: rgba(56, 189, 248, 0.2);
+    border-color: #38bdf8;
     color: #38bdf8;
 }
 
@@ -180,15 +190,17 @@ body {
     display: none;
 }
 
-/* 保存ボタン */
+/* 保存ボタン (最も目立つプライマリボタン) */
 .save-btn {
-    background-color: #238636;
-    border-color: #2ea043;
+    background: linear-gradient(180deg, #2ea043 0%, #238636 100%);
+    border: 1px solid #3fb950;
     color: #ffffff;
+    box-shadow: 0 2px 6px rgba(46, 160, 67, 0.35);
 }
 
 .save-btn:hover {
-    background-color: #2ea043;
+    background: linear-gradient(180deg, #38ac4f 0%, #2ea043 100%);
+    border-color: #56d364;
 }
 
 .save-btn:active {
@@ -201,23 +213,26 @@ body.is-sprite-editor #btn-save {
 
 .key-shortcut {
     font-size: 10px;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.25);
     padding: 1px 5px;
     border-radius: 3px;
     margin-left: 2px;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.9);
     font-family: var(--font-code);
 }
 
+/* セカンダリボタン (コピー・リセット・テーマ) */
 .secondary-btn {
-    background-color: #21262d;
-    border-color: var(--border-color);
-    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .secondary-btn:hover {
-    background-color: #30363d;
-    border-color: #388bfd;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #ffffff;
 }
 
 /* ── メインワークスペース ── */
@@ -465,15 +480,24 @@ body.is-sprite-editor #btn-save {
     position: relative;
 }
 
-.editor-tabs {
-    height: 36px;
+.editor-tabs-bar {
+    height: 30px; /* スリム化 30px */
     background-color: var(--bg-editor-tabs);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.editor-tabs {
+    height: 100%;
+    display: flex;
+    align-items: center;
     overflow-x: auto;
     scrollbar-width: none;
-    flex-shrink: 0;
+    flex: 1;
 }
 
 .editor-tabs::-webkit-scrollbar {
@@ -484,9 +508,9 @@ body.is-sprite-editor #btn-save {
     height: 100%;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 16px;
-    font-size: 12px;
+    gap: 5px;
+    padding: 0 12px;
+    font-size: 11.5px;
     font-family: var(--font-code);
     color: var(--text-secondary);
     background-color: transparent;
@@ -509,16 +533,101 @@ body.is-sprite-editor #btn-save {
     border-top: 2px solid var(--accent);
 }
 
-.tab-dirty-indicator {
-    display: none;
+/* 変更後の各ファイルの先頭につく緑の丸は完全非表示 */
+.tab-dirty-indicator,
+.editor-tab.dirty .tab-dirty-indicator {
+    display: none !important;
+}
+
+/* 未保存の変更ステータスピル (真上の保存ボタンへ誘導するスマートなUI) */
+.unsaved-status-pill {
+    appearance: none;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-right: 12px;
+    padding: 3px 10px 3px 10px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 6px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.unsaved-status-pill:hover {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: rgba(245, 158, 11, 0.6);
+}
+
+.unsaved-status-pill:active {
+    transform: scale(0.98);
+}
+
+/* 静的で洗練されたインジケータドット (AI風の過剰な光彩・点滅パルスを撤廃) */
+.unsaved-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: var(--accent-green);
+    background-color: #f59e0b;
+    flex-shrink: 0;
 }
 
-.editor-tab.dirty .tab-dirty-indicator {
-    display: inline-block;
+.unsaved-status-text {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #fbbf24;
+    white-space: nowrap;
+    letter-spacing: -0.2px;
+}
+
+/* 真上の「保存して反映」ボタンを指し示す上矢印 */
+.unsaved-guide-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #f59e0b;
+    transition: transform 0.15s ease;
+}
+
+.unsaved-status-pill:hover .unsaved-guide-arrow {
+    transform: translateY(-2px);
+}
+
+/* ライトテーマ対応 */
+body.theme-light .unsaved-status-pill {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(217, 119, 6, 0.4);
+}
+
+body.theme-light .unsaved-status-pill:hover {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(217, 119, 6, 0.65);
+}
+
+body.theme-light .unsaved-status-text {
+    color: #b45309;
+}
+
+body.theme-light .unsaved-guide-arrow {
+    color: #b45309;
+}
+
+/* ヘッダーの保存ボタン強調 (ふわふわ光るAI風アニメーションを撤廃し、ソリッドで洗練されたエディタ標準トーンへ) */
+.action-btn.save-btn.has-unsaved {
+    background-color: #238636;
+    border-color: #2ea043;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    font-weight: 700;
+}
+
+.action-btn.save-btn.has-unsaved:hover {
+    background-color: #2ea043;
+    border-color: #3fb950;
 }
 
 .editor-body {
@@ -616,14 +725,23 @@ body.is-sprite-editor #btn-save {
     border: none;
     outline: none;
     tab-size: 4;
+    box-sizing: border-box;
+    overscroll-behavior: contain;
 }
 
 .code-textarea {
-    color: transparent;
-    background: transparent;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    background: transparent !important;
     caret-color: #38bdf8;
     resize: none;
     z-index: 2;
+}
+
+.code-textarea::selection {
+    background: rgba(56, 189, 248, 0.35);
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
 }
 
 .code-highlight {
@@ -638,6 +756,7 @@ body.is-sprite-editor #btn-save {
     width: 110px;
     height: 100%;
     position: relative;
+    z-index: 20; /* Sticky Scrollより手前 */
     flex-shrink: 0;
     background-color: rgba(14, 18, 24, 0.5);
     border-left: 1px solid rgba(255, 255, 255, 0.05);
@@ -713,10 +832,46 @@ body.is-sprite-editor #btn-save {
 .token-string { color: #ce9178; }                     /* 温かみのあるピーチ */
 .token-number { color: #b5cea8; }                     /* 爽やかなライトミント */
 .token-property { color: #9cdcfe; }                   /* 鮮明なライトシアン (背景に沈まない) */
-.token-tag { color: #d7ba7d; }                        /* 華やかなウォームゴールド */
+.token-tag { color: #569cd6; }                        /* VS Code標準 HTMLタグ名 (鮮やかなスカイブルー) */
+.token-tag-name { color: #569cd6; }                   /* 鮮やかなスカイブルー */
+.token-punctuation { color: #808080; }                /* タグ括弧 < > / : クールグレー */
 .token-attr-name { color: #9cdcfe; }                  /* 鮮明なライトシアン */
 .token-attr-value { color: #ce9178; }                 /* ピーチ */
 .token-color { color: #4ec9b0; }                      /* 鮮やかなターコイズグリーン */
+.token-doctype { color: #569cd6; font-weight: bold; } /* DOCTYPE宣言 */
+.token-entity { color: #4ec9b0; }                     /* HTMLエンティティ */
+
+/* ── インデントガイド (ネストを示す縦線 / VS Code公式仕様: 各行隙間なく完全に連結) ── */
+.indent-guide {
+    display: inline-block;
+    height: var(--editor-line-height);
+    line-height: var(--editor-line-height);
+    vertical-align: top;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.indent-guide::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+body.theme-light .indent-guide::before {
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+/* Sticky Scroll 内でもエディタ本体と1pxの狂いなくインデントガイド縦線を連結 */
+.sticky-line-code .indent-guide {
+    display: inline-block;
+    height: var(--editor-line-height);
+    line-height: var(--editor-line-height);
+    vertical-align: top;
+}
 
 /* ディレクトリツリーのエラー表記 (見てるファイルに関わらず即座に可視化) */
 .tree-item-row.file-item.has-error .tree-label {
@@ -856,6 +1011,60 @@ body.is-sprite-editor #btn-save {
     background-color: #30363d;
     color: var(--text-primary);
     border-color: var(--accent);
+}
+
+/* ── 画面上部左上: 戻る・進む (Undo/Redo) コントロール ── */
+.header-history-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    padding-left: 10px;
+    border-left: 1px solid var(--border-subtle, #30363d);
+}
+
+.history-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #38bdf8; /* 鮮やかな水色 */
+    cursor: pointer;
+    transition: background-color 0.12s ease, opacity 0.12s ease, transform 0.08s ease;
+}
+
+.history-action-btn:hover:not(:disabled) {
+    background-color: rgba(56, 189, 248, 0.14);
+    color: #7dd3fc;
+}
+
+.history-action-btn:active:not(:disabled) {
+    transform: scale(0.92);
+}
+
+.history-action-btn:disabled,
+.history-action-btn.is-disabled {
+    opacity: 0.35; /* 添付画像準拠: 無効時は薄い半透明の水色 */
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.history-action-btn .history-icon {
+    width: 17px;
+    height: 17px;
+}
+
+body.theme-light .history-action-btn {
+    color: #0284c7;
+}
+
+body.theme-light .history-action-btn:hover:not(:disabled) {
+    background-color: rgba(2, 132, 199, 0.1);
 }
 
 /* ── ゲームからのシームレス入室アニメーション ── */
@@ -1095,7 +1304,11 @@ body.transitioning-to-game .studio-preview-pane {
     padding: 20px;
     border-radius: 10px;
     border: 1px solid #30363d;
-    min-width: 140px;
+    width: 175px;
+    min-width: 175px;
+    max-width: 175px;
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .preview-heading {
@@ -1143,7 +1356,12 @@ body.transitioning-to-game .studio-preview-pane {
     flex-shrink: 0;
     user-select: none;
     z-index: 5;
+    cursor: row-resize;
     transition: background-color 0.2s, border-color 0.2s;
+}
+
+.editor-diagnostics-bar:hover {
+    background-color: #161e2b;
 }
 
 .editor-diagnostics-bar.has-errors {
@@ -1531,22 +1749,32 @@ body.transitioning-to-game .studio-preview-pane {
     color: #38bdf8;
 }
 
-/* ゲーム配置ガイド */
+/* ゲーム配置ガイド (OK/NGで枠や全体のサイズが絶対に変動しないよう固定高さを確保) */
 .sprite-game-fit-box {
     margin-top: 12px;
-    padding: 8px 10px;
+    padding: 6px 8px;
     background-color: rgba(22, 27, 34, 0.85);
     border: 1px solid rgba(48, 54, 61, 0.8);
     border-radius: 6px;
     text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    height: 64px;
+    min-height: 64px;
+    max-height: 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .fit-status-badge {
-    font-size: 10px;
+    font-size: 10.5px;
     font-weight: 700;
     color: #00ff66;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     transition: color 0.15s ease;
+    flex-shrink: 0;
 }
 
 .fit-status-badge.error {
@@ -1558,10 +1786,12 @@ body.transitioning-to-game .studio-preview-pane {
 }
 
 .fit-hint-text {
-    font-size: 10px;
+    font-size: 9.5px;
     color: #8b949e;
-    line-height: 1.4;
+    line-height: 1.35;
     transition: color 0.15s ease;
+    word-break: break-all;
+    overflow: hidden;
 }
 
 .fit-hint-text.error {
@@ -1851,3 +2081,584 @@ body.transitioning-to-game .studio-preview-pane {
     background-color: rgba(255, 255, 255, 0.15);
     color: #ffffff;
 }
+
+/* ─────────────────────────────────────────────
+   システムファイル注意バナー (最小化アニメーション対応・余白完全ゼロ化)
+   ───────────────────────────────────────────── */
+.system-file-banner-container {
+    position: relative;
+    background-color: rgba(245, 158, 11, 0.10);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.system-file-banner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 28px; /* スリムに引き締め */
+    box-sizing: border-box;
+}
+
+.system-banner-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 3px 12px;
+    font-size: 11.5px;
+    color: #fbbf24;
+}
+
+.system-banner-text {
+    flex: 1;
+    line-height: 1.4;
+    letter-spacing: -0.1px;
+}
+
+.banner-link-btn {
+    background: rgba(245, 158, 11, 0.25);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 4px;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.banner-link-btn:hover {
+    background: rgba(245, 158, 11, 0.4);
+}
+
+/* 「最小化」テキストボタン (分かりやすい明確なボタン) */
+.banner-minimize-btn {
+    appearance: none;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fbbf24;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 1px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    line-height: 1.4;
+}
+
+.banner-minimize-btn:hover {
+    background: rgba(245, 158, 11, 0.3);
+    border-color: #fbbf24;
+    color: #ffffff;
+}
+
+/* 最小化アイコン ("i" だけの状態 - エディタ右上にフロート配置) */
+.system-banner-minimized-icon {
+    display: none;
+    appearance: none;
+    border: 1px solid rgba(245, 158, 11, 0.55);
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: transform 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.system-banner-minimized-icon:hover {
+    transform: scale(1.1);
+    background: rgba(245, 158, 11, 0.35);
+    border-color: #fbbf24;
+}
+
+.banner-min-i {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    font-style: italic;
+    line-height: 1;
+    display: inline-block;
+}
+
+/* 最小化時: 余白を完全にゼロ化し、邪魔な横長黄色帯を完全消滅 */
+.system-file-banner-container.is-minimized {
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background-color: transparent !important;
+    overflow: visible !important;
+}
+
+.system-file-banner-container.is-minimized .system-file-banner {
+    min-height: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
+.system-file-banner-container.is-minimized .system-banner-inner {
+    display: none !important;
+}
+
+/* 最小化時は色付きの "i" だけをミニマップの左隣にフロート配置 */
+.system-file-banner-container.is-minimized .system-banner-minimized-icon {
+    display: inline-flex !important;
+    position: absolute;
+    top: 4px;
+    right: 120px;
+    z-index: 25;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* ライトテーマ対応 */
+body.theme-light .system-file-banner-container {
+    background-color: rgba(245, 158, 11, 0.12);
+    border-bottom-color: rgba(217, 119, 6, 0.3);
+}
+
+body.theme-light .system-file-banner-container.is-minimized {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+body.theme-light .system-banner-inner {
+    color: #b45309;
+}
+
+body.theme-light .banner-minimize-btn {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(217, 119, 6, 0.4);
+    color: #b45309;
+}
+
+body.theme-light .banner-minimize-btn:hover {
+    background: rgba(245, 158, 11, 0.25);
+    color: #92400e;
+}
+
+body.theme-light .system-banner-minimized-icon {
+    border-color: rgba(217, 119, 6, 0.5);
+    background: rgba(245, 158, 11, 0.18);
+    color: #b45309;
+}
+
+/* 未保存ファイルの色変え（サイドバーツリー & タブ） */
+.tree-item-row.file-item.is-dirty .tree-label {
+    color: #fbbf24 !important; /* 未保存カラー: 温かみのあるアンバー/オレンジ */
+    font-weight: 600;
+}
+
+.tree-item-row.file-item.is-dirty .tree-icon {
+    color: #f59e0b;
+}
+
+.editor-tab.is-dirty .tab-title,
+.editor-tab.is-dirty {
+    color: #fbbf24 !important;
+}
+
+body.theme-light .tree-item-row.file-item.is-dirty .tree-label {
+    color: #d97706 !important;
+}
+
+body.theme-light .tree-item-row.file-item.is-dirty .tree-icon {
+    color: #d97706;
+}
+
+body.theme-light .editor-tab.is-dirty .tab-title,
+body.theme-light .editor-tab.is-dirty {
+    color: #d97706 !important;
+}
+
+.code-textarea.is-readonly {
+    cursor: default;
+    caret-color: transparent;
+}
+
+/* ─────────────────────────────────────────────
+   白っぽい画面 (VS Code Light+ 完全再現テーマ)
+   ───────────────────────────────────────────── */
+body.theme-light {
+    --bg-dark: #ffffff;
+    --bg-header: #f3f3f3;
+    --bg-sidebar: #f8f8f8;
+    --bg-editor: #ffffff;
+    --bg-editor-tabs: #f3f3f3;
+    --bg-tab-active: #ffffff;
+    --bg-preview: #f0f2f5;
+    --border-color: #e5e5e5;
+    --border-subtle: #eaeaea;
+    --text-primary: #1e1e1e;
+    --text-secondary: #616161;
+    --text-muted: #888888;
+    --accent: #005fb8;
+    --accent-green: #098658;
+    --accent-red: #e51400;
+    background-color: #ffffff;
+    color: #1e1e1e;
+}
+
+/* ヘッダー */
+body.theme-light .studio-header {
+    background-color: #f3f3f3;
+    border-bottom: 1px solid #e5e5e5;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+body.theme-light .project-name {
+    color: #1e1e1e;
+}
+
+body.theme-light .project-badge {
+    background-color: #e5e5e5;
+    color: #424242;
+}
+
+/* ライトテーマのヘッダーボタンスタイル (見やすさを徹底配慮) */
+body.theme-light .back-game-btn {
+    background-color: #ffffff;
+    border: 1px solid #d0d7de;
+    color: #1f2328;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+body.theme-light .back-game-btn:hover {
+    background-color: #f6f8fa;
+    border-color: #1b1f2426;
+    color: #0969da;
+}
+
+body.theme-light .size-control-group {
+    background-color: #ffffff;
+    border: 1px solid #d0d7de;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+body.theme-light .size-control-group .control-label {
+    color: #57606a;
+}
+
+body.theme-light .size-control-group .scale-btn {
+    color: #24292e;
+}
+
+body.theme-light .size-control-group .scale-btn:hover {
+    background-color: #f3f4f6;
+    color: #0969da;
+}
+
+body.theme-light .size-control-group .scale-indicator {
+    color: #1f2328;
+    font-weight: 600;
+}
+
+body.theme-light .sound-toggle-btn {
+    background-color: #ffffff;
+    border: 1px solid #d0d7de;
+    color: #24292e;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+body.theme-light .sound-toggle-btn:hover {
+    background-color: #f6f8fa;
+    color: #1f2328;
+}
+
+body.theme-light .sound-toggle-btn.active {
+    background-color: #e0f2fe;
+    border-color: #0284c7;
+    color: #0369a1;
+}
+
+body.theme-light .save-btn {
+    background: linear-gradient(180deg, #1f883d 0%, #1a7f37 100%);
+    border: 1px solid #1a7f37;
+    color: #ffffff;
+    box-shadow: 0 2px 5px rgba(31, 136, 61, 0.3);
+}
+
+body.theme-light .save-btn:hover {
+    background: linear-gradient(180deg, #249645 0%, #1f883d 100%);
+}
+
+body.theme-light .save-btn .key-shortcut {
+    background: rgba(0, 0, 0, 0.2);
+    color: #ffffff;
+}
+
+body.theme-light .action-btn.secondary-btn {
+    background-color: #ffffff;
+    border: 1px solid #d0d7de;
+    color: #24292e;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+body.theme-light .action-btn.secondary-btn:hover {
+    background-color: #f6f8fa;
+    border-color: #1b1f2426;
+    color: #1f2328;
+}
+
+body.theme-light .scale-indicator {
+    color: #333333;
+}
+
+/* サイドバー */
+body.theme-light .studio-sidebar {
+    background-color: #f8f8f8;
+    border-right: 1px solid #e5e5e5;
+}
+
+body.theme-light .tree-item-row {
+    color: #333333;
+}
+
+body.theme-light .tree-item-row:hover {
+    background-color: #eaeaea;
+}
+
+body.theme-light .tree-item-row.file-item.active {
+    background-color: #e4e6f1;
+    color: #005fb8;
+    font-weight: 600;
+    border-left: 2px solid #005fb8;
+}
+
+body.theme-light .tree-indent-guide {
+    border-left-color: rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .tree-chevron svg {
+    stroke: #666666;
+}
+
+body.theme-light .tree-folder-tag {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+body.theme-light .tree-system-badge {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+/* ツールアイコン (toolsフォルダ) */
+.tree-icon.icon-tool-folder-svg {
+    color: #38bdf8;
+}
+.tree-icon.icon-tool-folder-svg svg {
+    width: 14px;
+    height: 14px;
+}
+.tree-item-row.file-item.tool-item {
+    color: #38bdf8;
+}
+.tree-item-row.file-item.tool-item:hover {
+    background-color: rgba(56, 189, 248, 0.12);
+}
+
+/* 独立ツール (trial-admission ディレクトリ外) */
+.tree-standalone-tools-group {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.tree-item-row.file-item.standalone-tool {
+    padding-left: 8px;
+    font-weight: 500;
+}
+.tree-tool-tag {
+    margin-left: auto;
+    margin-right: 8px;
+    padding: 1px 6px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-radius: 4px;
+    background: rgba(56, 189, 248, 0.16);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+body.theme-light .tree-icon.icon-tool-folder-svg {
+    color: #0284c7;
+}
+body.theme-light .tree-item-row.file-item.tool-item {
+    color: #0284c7;
+}
+body.theme-light .tree-item-row.file-item.tool-item:hover {
+    background-color: #e0f2fe;
+}
+body.theme-light .tree-standalone-tools-group {
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+body.theme-light .tree-tool-tag {
+    background: #e0f2fe;
+    color: #0284c7;
+    border: 1px solid #bae6fd;
+}
+
+/* エディタ */
+body.theme-light .studio-editor-pane {
+    background-color: #ffffff;
+}
+
+body.theme-light .editor-tabs {
+    background-color: #f3f3f3;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+body.theme-light .editor-tab {
+    background-color: #ececec;
+    border-right: 1px solid #e5e5e5;
+    color: #616161;
+}
+
+body.theme-light .editor-tab:hover {
+    background-color: #f5f5f5;
+    color: #1e1e1e;
+}
+
+body.theme-light .editor-tab.active {
+    background-color: #ffffff;
+    color: #1e1e1e;
+    border-top: 2px solid #005fb8;
+    font-weight: 600;
+}
+
+body.theme-light .editor-tab .tab-close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+    color: #1e1e1e;
+}
+
+body.theme-light .editor-body {
+    background-color: #ffffff;
+}
+
+body.theme-light .line-numbers {
+    background-color: #ffffff;
+    border-right: 1px solid #f0f0f0;
+    color: #8a8a8a;
+}
+
+body.theme-light .line-numbers-inner span.current-line {
+    color: #1e1e1e;
+    font-weight: 700;
+}
+
+body.theme-light .code-textarea {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    background: transparent !important;
+    caret-color: #005fb8;
+}
+
+body.theme-light .code-textarea::selection {
+    background: rgba(0, 95, 184, 0.22);
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.theme-light .code-highlight {
+    color: #1e1e1e;
+}
+
+/* ミニマップ (ライトテーマ) */
+body.theme-light .editor-minimap-wrap {
+    background-color: #fafafa;
+    border-left: 1px solid #e5e5e5;
+}
+
+body.theme-light .editor-minimap-slider {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .editor-minimap-wrap:hover .editor-minimap-slider,
+body.theme-light .editor-minimap-slider.is-dragging {
+    background: rgba(0, 0, 0, 0.09);
+    border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+/* シンタックスハイライト (ミニマップ同様、色同士の差を明確化) */
+body.theme-light .token-comment { color: #16a34a; font-style: italic; } /* 明るく爽やかなグリーン */
+body.theme-light .token-keyword { color: #7c3aed; font-weight: bold; }  /* 鮮明なバイオレット */
+body.theme-light .token-string { color: #c2410c; }                     /* 鮮やかなアンバーオレンジ */
+body.theme-light .token-number { color: #059669; }                     /* 清涼感のあるエメラルド */
+body.theme-light .token-property { color: #0284c7; }                   /* スカイブルー */
+body.theme-light .token-tag,
+body.theme-light .token-tag-name { color: #005fb8; font-weight: 600; } /* 鮮明なロイヤルブルー (赤系から脱却) */
+body.theme-light .token-punctuation { color: #64748b; }                /* クールグレー */
+body.theme-light .token-attr-name { color: #0f766e; }                  /* ディープティール (赤系から脱却) */
+body.theme-light .token-attr-value { color: #c2410c; }                 /* アンバーオレンジ (青から脱却) */
+body.theme-light .token-color { color: #059669; }
+body.theme-light .token-doctype { color: #005fb8; font-weight: bold; }
+body.theme-light .token-entity { color: #059669; }
+
+/* ステータスバー・下部ガイドバー */
+body.theme-light .editor-diagnostics-bar {
+    background-color: #f3f3f3;
+    border-top: 1px solid #e5e5e5;
+    color: #424242;
+}
+
+body.theme-light .diagnostics-status-text {
+    color: #424242;
+}
+
+body.theme-light .system-file-banner {
+    background-color: #fffbeb;
+    border-bottom: 1px solid #fcd34d;
+    color: #92400e;
+}
+
+body.theme-light .banner-link-btn {
+    background: #fde68a;
+    border-color: #d97706;
+    color: #78350f;
+}
+
+body.theme-light .banner-link-btn:hover {
+    background: #fcd34d;
+}
+
+body.theme-light .studio-preview-pane {
+    background-color: #f0f2f5;
+    border-left: 1px solid #e5e5e5;
+}
+
+body.theme-light .game-preview-controls {
+    background-color: #f8f8f8;
+    border-bottom: 1px solid #e5e5e5;
+    color: #333333;
+}
+
+body.theme-light .game-guide-bar {
+    background-color: #f8f8f8;
+    border-top: 1px solid #e5e5e5;
+    color: #424242;
+}
+
+body.theme-light .guide-key {
+    background-color: #ffffff;
+    border: 1px solid #d0d7de;
+    color: #24292e;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+

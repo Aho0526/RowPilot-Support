@@ -15,7 +15,173 @@
             editable: true,
             isDirty: false,
             desc: '画面構造・HTMLマークアップ',
-            content: `<!-- ゲームHTML -->`
+            content: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>スペースインベーダー</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=3.2">
+</head>
+<body>
+    <!-- 上部バー（エディタへ移動ボタン） -->
+    <header class="game-top-bar" id="game-top-bar">
+        <div class="top-bar-left">
+            <span class="game-brand-title">Space Invaders</span>
+        </div>
+        <div class="top-bar-right">
+            <a href="editor/" id="btn-goto-editor" class="goto-editor-btn" title="コードエディタを開く">
+                <svg class="editor-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                <span>エディタへ移動</span>
+                <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+        </div>
+    </header>
+
+    <!-- メインゲーム画面 -->
+    <div id="game-container">
+        <div class="canvas-wrapper">
+            <canvas id="gameCanvas" width="480" height="560" tabindex="0"></canvas>
+            
+            <!-- ホーム画面 (本格アーケード・タイトルスクリーン) -->
+            <div id="start-overlay" class="game-overlay">
+                <div class="arcade-home-container">
+                    <!-- タイトルヘッダー -->
+                    <div class="arcade-title-box">
+                        <div class="arcade-coin-tag">PUSH START</div>
+                        <h1 class="arcade-main-title">SPACE INVADERS</h1>
+                        <div class="arcade-hiscore">HI-SCORE <span id="home-hiscore">00000</span></div>
+                    </div>
+
+                    <!-- スコアアドバンステーブル -->
+                    <div class="arcade-score-table">
+                        <div class="score-table-header">*SCORE ADVANCE TABLE*</div>
+                        <div class="score-row">
+                            <canvas class="sprite-preview-cell" id="preview-ufo" width="32" height="14"></canvas>
+                            <span class="score-desc text-ufo">= ?? PT</span>
+                        </div>
+                        <div class="score-row">
+                            <canvas class="sprite-preview-cell" id="preview-squid" width="20" height="18"></canvas>
+                            <span class="score-desc text-squid">= 30 PT</span>
+                        </div>
+                        <div class="score-row">
+                            <canvas class="sprite-preview-cell" id="preview-crab" width="24" height="18"></canvas>
+                            <span class="score-desc text-crab">= 20 PT</span>
+                        </div>
+                        <div class="score-row">
+                            <canvas class="sprite-preview-cell" id="preview-octopus" width="26" height="18"></canvas>
+                            <span class="score-desc text-octopus">= 10 PT</span>
+                        </div>
+                    </div>
+
+                    <!-- セレクターパネル (難易度・クリア条件) -->
+                    <div class="arcade-options-panel">
+                        <div class="option-row">
+                            <span class="option-caption">DIFFICULTY:</span>
+                            <div class="option-pill-group" id="diff-options">
+                                <button type="button" class="arcade-pill" data-diff="easy">
+                                    <span class="pill-name">EASY</span>
+                                </button>
+                                <button type="button" class="arcade-pill active" data-diff="normal">
+                                    <span class="pill-name">NORMAL</span>
+                                </button>
+                                <button type="button" class="arcade-pill" data-diff="hard">
+                                    <span class="pill-name">HARD</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="option-row">
+                            <span class="option-caption">CLEAR GOAL:</span>
+                            <div class="option-pill-group" id="wave-options">
+                                <button type="button" class="arcade-pill active" data-waves="3">
+                                    <span class="pill-name">3 WAVES</span>
+                                </button>
+                                <button type="button" class="arcade-pill" data-waves="5">
+                                    <span class="pill-name">5 WAVES</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- アーケード特大スタートボタン (dev/game風の押し込みボタン) -->
+                    <div class="arcade-action-wrap">
+                        <button type="button" id="btn-game-start" class="arcade-play-btn">
+                            <div class="btn-player-icon-box">
+                                <canvas id="preview-player" width="26" height="16"></canvas>
+                            </div>
+                            <div class="btn-label-group">
+                                <span class="btn-label-main">ゲーム開始</span>
+                                <span class="btn-label-sub">1 PLAYER START</span>
+                            </div>
+                            <span class="btn-blink-arrow">▶</span>
+                        </button>
+                        <div class="arcade-start-hint">[SPACE] KEY TO START</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- クイックポーズボタン (ゲームプレイ中に右上表示) -->
+            <button type="button" id="btn-quick-pause" class="quick-pause-btn" title="ゲームを一時停止 (Esc)" style="display: none;">
+                ⏸ PAUSE
+            </button>
+
+            <!-- 一時停止・中止メニュー (Escキーまたはポーズボタンで表示) -->
+            <div id="pause-overlay" class="game-overlay pause-overlay" style="display: none;">
+                <!-- 1. メインの中止選択メニュー -->
+                <div class="pause-menu-box" id="pause-menu-box">
+                    <div class="pause-title">GAME PAUSED</div>
+                    <div class="pause-subtitle">ゲームを一時中断しています</div>
+                    <div class="pause-actions">
+                        <button type="button" class="pause-btn btn-edit-code" id="btn-pause-edit">
+                            <span class="pause-btn-main">コードを編集する</span>
+                            <span class="pause-btn-sub">一時停止のまま敵や自機の変更を確認</span>
+                        </button>
+                        <button type="button" class="pause-btn btn-quit-game" id="btn-pause-quit">
+                            <span class="pause-btn-main">ゲームを終了する</span>
+                            <span class="pause-btn-sub">ホーム画面に戻る</span>
+                        </button>
+                    </div>
+                    <div class="pause-footer-hint">[Esc] ゲーム再開　/　[Space] 決定</div>
+                </div>
+
+                <!-- 2. コード編集中の控えめなHUD（敵や自機が見える） -->
+                <div class="pause-hud-box" id="pause-hud-box" style="display: none;">
+                    <div class="pause-hud-badge">● 一時停止中（コード編集モード）</div>
+                    <div class="pause-hud-desc">エディタでコードやドット絵を変更すると即座に反映されます</div>
+                    <div class="pause-hud-actions">
+                        <button type="button" class="pause-hud-btn btn-resume" id="btn-hud-resume">
+                            ▶ ゲームを再開する [Space]
+                        </button>
+                        <button type="button" class="pause-hud-btn btn-quit" id="btn-hud-quit">
+                            ✕ ゲームを終了
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-hint">
+            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動　/　<span class="key-tag">Space</span> 攻撃　/　<span class="key-tag">Esc</span> 一時停止・中止
+        </div>
+    </div>
+
+    <!-- 設定ファイル -->
+    <script src="config.js"></script>
+    
+    <!-- コアエンジン -->
+    <script src="core.js"></script>
+</body>
+</html>`
         },
         'config.js': {
             name: 'config.js',
@@ -104,7 +270,7 @@
             name: 'index.html',
             path: './index.html',
             type: 'html',
-            editable: true,
+            editable: false,
             isDirty: false,
             desc: 'エディタ画面構造'
         },
@@ -112,7 +278,7 @@
             name: 'ide.js',
             path: './ide.js',
             type: 'javascript',
-            editable: true,
+            editable: false,
             isDirty: false,
             desc: 'エディタ本体スクリプト'
         },
@@ -120,7 +286,7 @@
             name: 'linter.js',
             path: './linter.js',
             type: 'javascript',
-            editable: true,
+            editable: false,
             isDirty: false,
             desc: '構文診断エンジン'
         },
@@ -128,14 +294,30 @@
             name: 'ide.css',
             path: './ide.css',
             type: 'css',
-            editable: true,
+            editable: false,
             isDirty: false,
             desc: 'エディタUIスタイル'
+        },
+        'editor/sticky-scroll.css': {
+            name: 'sticky-scroll.css',
+            path: './sticky-scroll.css',
+            type: 'css',
+            editable: false,
+            isDirty: false,
+            desc: 'スティッキースクロールスタイル'
+        },
+        'editor/sticky-scroll.js': {
+            name: 'sticky-scroll.js',
+            path: './sticky-scroll.js',
+            type: 'javascript',
+            editable: false,
+            isDirty: false,
+            desc: 'スティッキースクロールエンジン'
         }
     };
 
-    let openTabs = ['config.js', 'style.css'];
-    let currentFileKey = 'config.js';
+    let openTabs = ['index.html', 'config.js', 'style.css'];
+    let currentFileKey = 'index.html';
 
     // 状態管理
     let isMuted = true;
@@ -148,6 +330,7 @@
 
     // DOM要素
     const btnSave = document.getElementById('btn-save');
+    const btnReset = document.getElementById('btn-reset');
     const tabContainer = document.getElementById('editor-tabs');
     const lineNumbersInner = document.getElementById('line-numbers-inner');
     const codeTextarea = document.getElementById('code-textarea');
@@ -212,6 +395,9 @@
             diagnosticsPanel.style.height = savedDiagHeight + 'px';
         }
     } catch (e) { }
+
+    // スティッキースクロール コントローラ
+    let stickyScrollController = null;
 
     // ─────────────────────────────────────────────
     // 実ファイルの自動フェッチ
@@ -291,16 +477,32 @@
             result += escapeHtml(code.slice(lastIndex));
             return result;
         } else if (type === 'html') {
-            const regex = /(<!--[\s\S]*?-->)|(<\/?[a-zA-Z0-9-]+)|([a-zA-Z0-9-]+(?==))|(".*?"|'.*?')/g;
+            // HTMLパーサー (VS Code Dark+スタイル: タグ・属性・属性値・括弧・コメントを完全再現)
+            const regex = /(<!--[\s\S]*?-->)|(<!DOCTYPE(?:\s+[^>]*)?>)|(<\/?[a-zA-Z0-9:-]+)|(\/?>)|([a-zA-Z0-9_:-]+)(?=\s*=|\s|>|\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(&[a-zA-Z0-9#]+;)/gi;
             let result = '';
             let lastIndex = 0;
             let match;
             while ((match = regex.exec(code)) !== null) {
                 result += escapeHtml(code.slice(lastIndex, match.index));
-                if (match[1]) result += '<span class="token-comment">' + escapeHtml(match[1]) + '</span>';
-                else if (match[2]) result += '<span class="token-tag">' + escapeHtml(match[2]) + '</span>';
-                else if (match[3]) result += '<span class="token-attr-name">' + escapeHtml(match[3]) + '</span>';
-                else if (match[4]) result += '<span class="token-attr-value">' + escapeHtml(match[4]) + '</span>';
+                if (match[1]) {
+                    result += '<span class="token-comment">' + escapeHtml(match[1]) + '</span>';
+                } else if (match[2]) {
+                    result += '<span class="token-doctype">' + escapeHtml(match[2]) + '</span>';
+                } else if (match[3]) {
+                    const tagStr = match[3];
+                    const openBracket = tagStr.startsWith('</') ? '</' : '<';
+                    const tagName = tagStr.slice(openBracket.length);
+                    result += '<span class="token-punctuation">' + escapeHtml(openBracket) + '</span>' +
+                              '<span class="token-tag-name">' + escapeHtml(tagName) + '</span>';
+                } else if (match[4]) {
+                    result += '<span class="token-punctuation">' + escapeHtml(match[4]) + '</span>';
+                } else if (match[5]) {
+                    result += '<span class="token-attr-name">' + escapeHtml(match[5]) + '</span>';
+                } else if (match[6]) {
+                    result += '<span class="token-attr-value">' + escapeHtml(match[6]) + '</span>';
+                } else if (match[7]) {
+                    result += '<span class="token-entity">' + escapeHtml(match[7]) + '</span>';
+                }
                 lastIndex = regex.lastIndex;
             }
             result += escapeHtml(code.slice(lastIndex));
@@ -308,6 +510,121 @@
         }
 
         return escapeHtml(code);
+    }
+
+    /**
+     * ファイルのインデント単位 (2スペース または 4スペース) を自動検出
+     */
+    function detectIndentUnit(text) {
+        if (!text) return 4;
+        const lines = text.split('\n');
+        let has2 = 0;
+        let has4 = 0;
+        for (let i = 0; i < Math.min(lines.length, 120); i++) {
+            const m = lines[i].match(/^( +)\S/);
+            if (m) {
+                const len = m[1].length;
+                if (len % 4 === 0) has4++;
+                else if (len % 2 === 0) has2++;
+            }
+        }
+        if (has2 > 0 && has4 === 0) return 2;
+        return 4;
+    }
+
+    /**
+     * エディタ行のネストを示すインデントガイド (Indent Guides) を描画
+     * 行頭のインデントスペースを解析し、VS Code公式同様に薄い縦線ガイドを配置
+     */
+    function renderIndentGuides(html, rawText) {
+        if (!html || !rawText) return html;
+        const indentSize = detectIndentUnit(rawText);
+        const rawLines = rawText.split('\n');
+        const htmlLines = html.split('\n');
+
+        // 各行のインデント深さ（スペース換算）を計算
+        const rawIndents = rawLines.map(line => {
+            let spaces = 0;
+            for (let i = 0; i < line.length; i++) {
+                if (line[i] === ' ') spaces += 1;
+                else if (line[i] === '\t') spaces += indentSize;
+                else break;
+            }
+            return {
+                isEmpty: line.trim().length === 0,
+                spaces: spaces,
+                levels: Math.floor(spaces / indentSize)
+            };
+        });
+
+        // 空行のインデント深さを前後の有効行から補間（ネストブロック内の空行にもガイド線を通す）
+        for (let i = 0; i < rawIndents.length; i++) {
+            if (rawIndents[i].isEmpty) {
+                let prevLevels = 0;
+                for (let p = i - 1; p >= 0; p--) {
+                    if (!rawIndents[p].isEmpty) {
+                        prevLevels = rawIndents[p].levels;
+                        break;
+                    }
+                }
+                let nextLevels = 0;
+                for (let n = i + 1; n < rawIndents.length; n++) {
+                    if (!rawIndents[n].isEmpty) {
+                        nextLevels = rawIndents[n].levels;
+                        break;
+                    }
+                }
+                rawIndents[i].levels = Math.min(prevLevels, nextLevels);
+            }
+        }
+
+        const result = htmlLines.map((line, idx) => {
+            const info = rawIndents[idx];
+            if (!info) return line;
+
+            // 行頭のタグとそれに続く空白（スペース/タブ）にマッチ
+            const match = line.match(/^((?:<span[^>]*>)*)([ \t]+)/);
+            if (match) {
+                const prefixTag = match[1];
+                const leadingWs = match[2];
+                const rest = line.slice(match[0].length);
+
+                let guideHtml = '';
+                let s = 0;
+                while (s < leadingWs.length) {
+                    if (leadingWs[s] === '\t') {
+                        guideHtml += '<span class="indent-guide indent-guide-tab">\t</span>';
+                        s++;
+                    } else {
+                        let count = 0;
+                        while (s + count < leadingWs.length && leadingWs[s + count] === ' ' && count < indentSize) {
+                            count++;
+                        }
+                        const spacesStr = ' '.repeat(count);
+                        if (count === indentSize) {
+                            guideHtml += '<span class="indent-guide">' + spacesStr + '</span>';
+                        } else {
+                            guideHtml += spacesStr;
+                        }
+                        s += count;
+                    }
+                }
+                return prefixTag + guideHtml + rest;
+            }
+
+            // 空行（ブロック内のガイド線を描画）
+            if (info.isEmpty && info.levels > 0) {
+                let guideHtml = '';
+                for (let l = 0; l < info.levels; l++) {
+                    guideHtml += '<span class="indent-guide">' + ' '.repeat(indentSize) + '</span>';
+                }
+                return guideHtml + line;
+            }
+
+            return line;
+        });
+
+        return result.join('\n');
     }
 
     // ─────────────────────────────────────────────
@@ -318,13 +635,36 @@
         const file = files[currentFileKey];
         if (!file) return;
 
+        const isEditable = !!file.editable;
         codeTextarea.value = file.content;
-        codeTextarea.readOnly = !file.editable;
+        codeTextarea.readOnly = !isEditable;
+        codeTextarea.classList.toggle('is-readonly', !isEditable);
+
+        if (btnSave) {
+            btnSave.style.opacity = isEditable ? '' : '0.4';
+            btnSave.style.pointerEvents = isEditable ? '' : 'none';
+            btnSave.title = isEditable ? 'コードを保存してゲームに反映 (⌘S / Ctrl+S)' : 'このファイルは閲覧専用のため保存できません';
+        }
+        if (btnReset) {
+            btnReset.style.opacity = isEditable ? '' : '0.4';
+            btnReset.style.pointerEvents = isEditable ? '' : 'none';
+        }
+
         runDiagnostics(currentFileKey, true);
         updateCodeHighlight();
         updateTabsUI();
         updateSidebarUI();
+
+        // スティッキースクロールのファイル更新 & 再描画
+        if (stickyScrollController) {
+            stickyScrollController.updateFile(currentFileKey, file.content, file.type);
+        }
+
         syncScroll();
+
+        // Undo / Redo 初期スナップショット登録
+        recordHistorySnapshot(currentFileKey, file.content, 0, 0, true);
+        updateUndoRedoButtons();
     }
 
     // ─────────────────────────────────────────────
@@ -333,12 +673,17 @@
     // ─────────────────────────────────────────────
     // 構文診断 (Linter) 連携 & 初心者向けエラー表示
     // ─────────────────────────────────────────────
+    // 全ファイルのエラー状態マップ (ファイルパス -> エラー件数 / 全issue配列)
+    const fileErrorCountMap = {};
+    const fileIssuesMap = {};
+
     function runDiagnostics(fileKey, skipHighlightUpdate) {
         const file = files[fileKey];
         if (!file || !window.Linter) {
             currentFileIssues = [];
             errorLineSet.clear();
             warningLineSet.clear();
+            updateAllFilesDiagnostics();
             updateDiagnosticsUI(fileKey);
             return;
         }
@@ -346,9 +691,11 @@
         // ベースラインとの差分行を計算（あなたが編集した箇所を推測）
         const changedLines = window.Linter.computeChangedLines(file.baselineContent || '', file.content);
 
+        // 差分だけでなくファイル全体＋他ファイルとの横断整合性 (allFiles) をセーブ前に即時チェック
         currentFileIssues = window.Linter.lint(fileKey, file.content, {
             baselineCode: file.baselineContent,
-            changedLines: changedLines
+            changedLines: changedLines,
+            allFiles: files
         });
 
         // 各issueにファイル名を明示
@@ -367,32 +714,35 @@
             }
         });
 
+        // 見ているファイルに関係なく、全ファイルのエラー＆ファイル横断整合性をディレクトリツリーと診断パネルに即時反映
+        updateAllFilesDiagnostics();
         updateDiagnosticsUI(fileKey);
 
         if (!skipHighlightUpdate) {
             updateLineNumberIndicators();
         }
-
-        // 見ているファイルに関係なく、全ファイルのエラーをディレクトリツリーに反映
-        updateAllFilesDiagnostics();
     }
-
-    // 全ファイルのエラー状態マップ (ファイルパス -> エラー件数)
-    const fileErrorCountMap = {};
 
     function updateAllFilesDiagnostics() {
         if (!window.Linter) return;
 
         for (let k in files) {
             const f = files[k];
-            if (!f || f.isBinary || f.type === 'xml' || f.type === 'text') continue;
+            if (!f || f.isBinary || f.type === 'xml' || f.type === 'text') {
+                fileErrorCountMap[k] = 0;
+                fileIssuesMap[k] = [];
+                continue;
+            }
             try {
                 const changedLines = window.Linter.computeChangedLines(f.baselineContent || '', f.content);
                 const issues = window.Linter.lint(k, f.content, {
                     baselineCode: f.baselineContent,
-                    changedLines: changedLines
-                });
-                const errCount = (issues || []).filter(i => i.severity === 'error').length;
+                    changedLines: changedLines,
+                    allFiles: files
+                }) || [];
+                issues.forEach(iss => { iss.filename = k; });
+                fileIssuesMap[k] = issues;
+                const errCount = issues.filter(i => i.severity === 'error').length;
                 fileErrorCountMap[k] = errCount;
             } catch (e) {
                 console.warn('Linter check failed for', k, e);
@@ -467,7 +817,22 @@
                 el.classList.add('has-warning');
             }
         });
+        if (stickyScrollController) {
+            stickyScrollController.updateScroll(codeTextarea.scrollTop, codeTextarea.scrollLeft);
+        }
         renderMinimap();
+    }
+
+    function getOtherFilesIssues(excludeFileKey) {
+        const others = [];
+        for (const k in fileIssuesMap) {
+            if (k === excludeFileKey) continue;
+            const list = fileIssuesMap[k] || [];
+            for (const item of list) {
+                others.push(item);
+            }
+        }
+        return others;
     }
 
     function updateDiagnosticsUI(fileKey) {
@@ -477,35 +842,76 @@
         const errorCount = currentFileIssues.filter(i => i.severity === 'error').length;
         const warningCount = currentFileIssues.filter(i => i.severity === 'warning').length;
 
+        const otherIssues = getOtherFilesIssues(fileKey);
+        const otherErrorCount = otherIssues.filter(i => i.severity === 'error').length;
+        const otherSuffix = otherErrorCount > 0 ? `（他ファイルにエラー ${otherErrorCount} 件）` : '';
+
         diagnosticsBar.className = 'editor-diagnostics-bar';
 
         if (errorCount > 0) {
             diagnosticsBar.classList.add('has-errors');
             diagnosticsStatusDot.className = 'diagnostics-status-dot error';
             diagnosticsStatusDot.textContent = '●';
-            diagnosticsStatusText.textContent = `[${fileKey}] エラーが ${errorCount} 件あります（下のヒントを確認して修正してください）`;
+            diagnosticsStatusText.textContent = `[${fileKey}] エラーが ${errorCount} 件あります${otherSuffix}`;
+        } else if (otherErrorCount > 0) {
+            diagnosticsBar.classList.add('has-errors');
+            diagnosticsStatusDot.className = 'diagnostics-status-dot error';
+            diagnosticsStatusDot.textContent = '●';
+            diagnosticsStatusText.textContent = `[${fileKey}] エラーなし ／ 他ファイルにエラーが ${otherErrorCount} 件あります`;
         } else if (warningCount > 0) {
             diagnosticsBar.classList.add('has-warnings-only');
             diagnosticsStatusDot.className = 'diagnostics-status-dot warning';
             diagnosticsStatusDot.textContent = '●';
-            diagnosticsStatusText.textContent = `[${fileKey}] 注意・未復元箇所が ${warningCount} 件あります`;
+            diagnosticsStatusText.textContent = `[${fileKey}] 注意・確認箇所が ${warningCount} 件あります`;
         } else {
             diagnosticsStatusDot.className = 'diagnostics-status-dot ok';
             diagnosticsStatusDot.textContent = '●';
-            diagnosticsStatusText.textContent = `[${fileKey}] 構文エラーはありません（正常）`;
+            diagnosticsStatusText.textContent = `[${fileKey}] 構文エラーはありません`;
         }
 
         renderDiagnosticsList(fileKey);
+    }
+
+    function renderDiagnosticItemHtml(item, defaultFileKey) {
+        const isErr = item.severity === 'error';
+        const itemClass = isErr ? 'severity-error' : 'severity-warning';
+        const icon = isErr ? '!' : 'i';
+        const targetFile = item.filename || defaultFileKey;
+        const fileBadge = `<span class="diagnostic-file-badge">${escapeHtml(targetFile)}</span>`;
+        const lineBadge = `<span class="diagnostic-line-badge">行 ${item.line}</span>`;
+        const editedBadge = item.isChangedByUser ? `<span class="diagnostic-edited-badge" title="あなたが編集した行です">編集箇所</span>` : '';
+        const previewHtml = item.lineText ? `<div class="diagnostic-code-preview">&gt; ${escapeHtml(item.lineText.trim())}</div>` : '';
+
+        return `
+            <div class="diagnostic-item ${itemClass} ${item.isChangedByUser ? 'is-edited' : ''}" 
+                 data-file="${escapeHtml(targetFile)}" 
+                 data-line="${item.line}" 
+                 data-col="${item.col}" 
+                 title="クリックして [${escapeHtml(targetFile)}] の 行 ${item.line} へ移動">
+                <div class="diagnostic-badges">
+                    ${fileBadge}
+                    ${lineBadge}
+                    ${editedBadge}
+                </div>
+                <div class="diagnostic-content">
+                    <div class="diagnostic-message">${icon} ${escapeHtml(item.message)}</div>
+                    <div class="diagnostic-hint">${escapeHtml(item.hint)}</div>
+                    ${previewHtml}
+                </div>
+            </div>
+        `;
     }
 
     function renderDiagnosticsList(fileKey) {
         if (!diagnosticsList) return;
         fileKey = fileKey || currentFileKey;
 
-        if (currentFileIssues.length === 0) {
+        const otherIssues = getOtherFilesIssues(fileKey);
+
+        if (currentFileIssues.length === 0 && otherIssues.length === 0) {
             diagnosticsList.innerHTML = `
                 <div style="padding: 16px 12px; text-align: center; color: #64748b; font-size: 11.5px;">
-                    [${escapeHtml(fileKey)}] 構文エラーや未復元箇所はありません。コードは正常です。
+                    [${escapeHtml(fileKey)}] 構文エラーやファイル横断の不整合はありません。すべてのコードは正常です。
                 </div>
             `;
             return;
@@ -513,33 +919,19 @@
 
         let html = '';
         currentFileIssues.forEach(item => {
-            const isErr = item.severity === 'error';
-            const itemClass = isErr ? 'severity-error' : 'severity-warning';
-            const icon = isErr ? '!' : 'i';
-            const fileBadge = `<span class="diagnostic-file-badge">${escapeHtml(item.filename || fileKey)}</span>`;
-            const lineBadge = `<span class="diagnostic-line-badge">行 ${item.line}</span>`;
-            const editedBadge = item.isChangedByUser ? `<span class="diagnostic-edited-badge" title="あなたが編集した行です">編集箇所</span>` : '';
-            const previewHtml = item.lineText ? `<div class="diagnostic-code-preview">&gt; ${escapeHtml(item.lineText.trim())}</div>` : '';
+            html += renderDiagnosticItemHtml(item, fileKey);
+        });
 
+        if (otherIssues.length > 0) {
             html += `
-                <div class="diagnostic-item ${itemClass} ${item.isChangedByUser ? 'is-edited' : ''}" 
-                     data-file="${escapeHtml(item.filename || fileKey)}" 
-                     data-line="${item.line}" 
-                     data-col="${item.col}" 
-                     title="クリックして [${escapeHtml(item.filename || fileKey)}] の 行 ${item.line} へ移動">
-                    <div class="diagnostic-badges">
-                        ${fileBadge}
-                        ${lineBadge}
-                        ${editedBadge}
-                    </div>
-                    <div class="diagnostic-content">
-                        <div class="diagnostic-message">${icon} ${escapeHtml(item.message)}</div>
-                        <div class="diagnostic-hint">${escapeHtml(item.hint)}</div>
-                        ${previewHtml}
-                    </div>
+                <div style="padding: 6px 12px; background: rgba(30, 41, 59, 0.7); color: #94a3b8; font-size: 11px; font-weight: 600; border-top: 1px solid #334155; border-bottom: 1px solid #334155;">
+                    他ファイルのエラー・警告（クリックで該当ファイルへ移動）
                 </div>
             `;
-        });
+            otherIssues.forEach(item => {
+                html += renderDiagnosticItemHtml(item, item.filename);
+            });
+        }
 
         diagnosticsList.innerHTML = html;
 
@@ -569,15 +961,34 @@
         }
     }
 
-    diagnosticsSummary?.addEventListener('click', () => toggleDiagnosticsPanel());
-    btnToggleDiagnostics?.addEventListener('click', () => toggleDiagnosticsPanel());
-
     // ─────────────────────────────────────────────
-    // 診断パネルのドラッグ式上下リサイザー
+    // 診断バー＆パネルの直接ドラッグ式引き出し機能
+    // （エラーバーをそのままマウスで上に引き出せる）
     // ─────────────────────────────────────────────
     let isResizingDiag = false;
+    let isDraggingBar = false;
     let startDiagY = 0;
     let startDiagHeight = 140;
+    let hasDraggedBar = false;
+
+    // エラーバー自体のドラッグ＆クリック
+    diagnosticsBar?.addEventListener('mousedown', (e) => {
+        if (e.target.closest('#btn-toggle-diagnostics')) return;
+        isDraggingBar = true;
+        hasDraggedBar = false;
+        startDiagY = e.clientY;
+        const currentH = (diagnosticsPanel && diagnosticsPanel.offsetHeight > 0)
+            ? diagnosticsPanel.offsetHeight
+            : (parseInt(localStorage.getItem('invader_editor_diagnostics_height'), 10) || 140);
+        startDiagHeight = currentH;
+        document.body.style.cursor = 'row-resize';
+        document.body.style.userSelect = 'none';
+    });
+
+    btnToggleDiagnostics?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleDiagnosticsPanel();
+    });
 
     diagnosticsPanelResizer?.addEventListener('mousedown', (e) => {
         isResizingDiag = true;
@@ -590,21 +1001,36 @@
     });
 
     diagnosticsPanelResizer?.addEventListener('dblclick', () => {
-        // ダブルクリックで既定値（140px）にリセット
         diagnosticsPanel.style.height = '140px';
         try { localStorage.setItem('invader_editor_diagnostics_height', '140'); } catch (e) { }
     });
 
     window.addEventListener('mousemove', (e) => {
-        if (!isResizingDiag || !diagnosticsPanel) return;
-        // 上にドラッグすると高さが増加（clientYが小さくなる）
-        const delta = startDiagY - e.clientY;
-        const newHeight = Math.max(60, Math.min(500, startDiagHeight + delta));
-        diagnosticsPanel.style.height = newHeight + 'px';
-        try { localStorage.setItem('invader_editor_diagnostics_height', String(Math.round(newHeight))); } catch (e) { }
+        if (!isResizingDiag && !isDraggingBar) return;
+        const delta = startDiagY - e.clientY; // 上に動かすと正の値
+        if (isDraggingBar && Math.abs(delta) > 3) {
+            hasDraggedBar = true;
+            if (!diagnosticsPanelOpen) {
+                toggleDiagnosticsPanel(true);
+            }
+        }
+        if (diagnosticsPanelOpen || isResizingDiag) {
+            const newHeight = Math.max(60, Math.min(500, startDiagHeight + delta));
+            if (diagnosticsPanel) diagnosticsPanel.style.height = newHeight + 'px';
+            try { localStorage.setItem('invader_editor_diagnostics_height', String(Math.round(newHeight))); } catch (e) { }
+        }
     });
 
     window.addEventListener('mouseup', () => {
+        if (isDraggingBar) {
+            if (!hasDraggedBar) {
+                // 移動距離がわずか（クリック）ならパネル開閉をトグル
+                toggleDiagnosticsPanel();
+            }
+            isDraggingBar = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
         if (isResizingDiag) {
             isResizingDiag = false;
             diagnosticsPanelResizer?.classList.remove('dragging');
@@ -643,6 +1069,35 @@
         syncScroll();
     }
 
+    // スティッキースクロールからの行ジャンプ (親スティッキー行の直下へ正確に位置合わせ＆キャレット移動)
+    function jumpToStickyLine(line, stickyIndex = 0) {
+        if (!codeTextarea) return;
+        const text = codeTextarea.value;
+        const lines = text.split('\n');
+        line = Math.max(1, Math.min(line, lines.length));
+
+        let charIndex = 0;
+        for (let i = 0; i < line - 1; i++) {
+            charIndex += lines[i].length + 1;
+        }
+        const firstNonWs = lines[line - 1].search(/\S/);
+        if (firstNonWs > 0) {
+            charIndex += firstNonWs;
+        }
+
+        const lineHeight = 22;
+        const topPadding = 12;
+        const parentRows = Math.max(0, stickyIndex || 0);
+        const targetScrollTop = (line <= 1)
+            ? 0
+            : Math.max(0, topPadding + (line - 1 - parentRows) * lineHeight);
+
+        codeTextarea.focus();
+        codeTextarea.setSelectionRange(charIndex, charIndex);
+        codeTextarea.scrollTop = targetScrollTop;
+        syncScroll();
+    }
+
     lineNumbersInner?.addEventListener('click', (e) => {
         const item = e.target.closest('.line-num');
         if (item) {
@@ -673,13 +1128,14 @@
         }
         lineNumbersInner.innerHTML = lineHtml;
 
-        // シンタックスハイライト
-        codeHighlight.innerHTML = highlightSyntax(text, file.type) + '\n';
+        // シンタックスハイライト & インデントガイド (ネストを示す縦線)
+        codeHighlight.innerHTML = renderIndentGuides(highlightSyntax(text, file.type), text) + '\n';
 
         // ミニマップ描画
         renderMinimap();
     }
 
+    let minimapScrollRafId = null;
     function syncScroll() {
         const scrollTop = codeTextarea.scrollTop;
         const scrollLeft = codeTextarea.scrollLeft;
@@ -688,20 +1144,195 @@
         // translateY方式により、スクロール天井制限に関わらず1ピクセルも狂わずに完全同期
         lineNumbersInner.style.transform = `translateY(-${scrollTop}px)`;
 
-        // ミニマップスライダーのスクロール追随
+        // スティッキースクロールのリアルタイム更新
+        if (stickyScrollController) {
+            stickyScrollController.updateScroll(scrollTop, scrollLeft);
+        }
+
+        // ミニマップスライダーの即時追随
         syncMinimapSlider();
+
+        // エディタのスクロールに同期してコードマップ（キャンバス内容）が滑らかに追従してゆっくり動く！
+        if (minimapScrollRafId) cancelAnimationFrame(minimapScrollRafId);
+        minimapScrollRafId = requestAnimationFrame(() => {
+            minimapScrollRafId = null;
+            renderMinimap();
+        });
     }
+
+    // ─────────────────────────────────────────────
+    // エディタ用 Undo / Redo (元に戻す / やり直す)
+    // ─────────────────────────────────────────────
+    const fileEditHistory = {};
+    const MAX_EDIT_HISTORY = 50;
+    let isPerformingUndoRedo = false;
+    let editHistoryDebounce = null;
+
+    function getFileHistory(key) {
+        if (!fileEditHistory[key]) {
+            fileEditHistory[key] = { undo: [], redo: [] };
+        }
+        return fileEditHistory[key];
+    }
+
+    function recordHistorySnapshot(key, text, selStart, selEnd, forceImmediate = false) {
+        if (isPerformingUndoRedo || !key) return;
+        const hist = getFileHistory(key);
+        const last = hist.undo[hist.undo.length - 1];
+        if (last && last.text === text) return;
+
+        const record = () => {
+            const currentLast = hist.undo[hist.undo.length - 1];
+            if (currentLast && currentLast.text === text) return;
+            hist.undo.push({
+                text: text,
+                selStart: selStart !== undefined ? selStart : text.length,
+                selEnd: selEnd !== undefined ? selEnd : text.length
+            });
+            if (hist.undo.length > MAX_EDIT_HISTORY) {
+                hist.undo.shift();
+            }
+            hist.redo = [];
+            updateUndoRedoButtons();
+        };
+
+        if (forceImmediate) {
+            clearTimeout(editHistoryDebounce);
+            record();
+        } else {
+            clearTimeout(editHistoryDebounce);
+            editHistoryDebounce = setTimeout(record, 300);
+        }
+    }
+
+    function performEditorUndo() {
+        if (spritePane && spritePane.style.display !== 'none') {
+            undoSprite();
+            updateFitGuide();
+            return;
+        }
+        const hist = getFileHistory(currentFileKey);
+        if (hist.undo.length <= 1) return;
+        isPerformingUndoRedo = true;
+        clearTimeout(editHistoryDebounce);
+
+        const currentSnap = {
+            text: codeTextarea.value,
+            selStart: codeTextarea.selectionStart,
+            selEnd: codeTextarea.selectionEnd
+        };
+        hist.redo.push(currentSnap);
+
+        hist.undo.pop();
+        const prevSnap = hist.undo[hist.undo.length - 1];
+        if (prevSnap) {
+            codeTextarea.value = prevSnap.text;
+            if (files[currentFileKey]) {
+                files[currentFileKey].content = prevSnap.text;
+                files[currentFileKey].isDirty = (files[currentFileKey].content !== files[currentFileKey].baselineContent);
+            }
+            codeTextarea.setSelectionRange(prevSnap.selStart, prevSnap.selEnd);
+            updateCodeHighlight();
+            if (stickyScrollController) {
+                stickyScrollController.updateFile(currentFileKey, prevSnap.text, files[currentFileKey].type);
+            }
+            syncScroll();
+            renderMinimap();
+            updateTabsUI();
+            updateSidebarUI();
+            runDiagnostics(currentFileKey);
+        }
+        isPerformingUndoRedo = false;
+        updateUndoRedoButtons();
+    }
+
+    function performEditorRedo() {
+        if (spritePane && spritePane.style.display !== 'none') {
+            redoSprite();
+            updateFitGuide();
+            return;
+        }
+        const hist = getFileHistory(currentFileKey);
+        if (hist.redo.length === 0) return;
+        isPerformingUndoRedo = true;
+        clearTimeout(editHistoryDebounce);
+
+        const nextSnap = hist.redo.pop();
+        hist.undo.push(nextSnap);
+
+        codeTextarea.value = nextSnap.text;
+        if (files[currentFileKey]) {
+            files[currentFileKey].content = nextSnap.text;
+            files[currentFileKey].isDirty = (files[currentFileKey].content !== files[currentFileKey].baselineContent);
+        }
+        codeTextarea.setSelectionRange(nextSnap.selStart, nextSnap.selEnd);
+        updateCodeHighlight();
+        if (stickyScrollController) {
+            stickyScrollController.updateFile(currentFileKey, nextSnap.text, files[currentFileKey].type);
+        }
+        syncScroll();
+        renderMinimap();
+        updateTabsUI();
+        updateSidebarUI();
+        runDiagnostics(currentFileKey);
+        isPerformingUndoRedo = false;
+        updateUndoRedoButtons();
+    }
+
+    const btnEditorUndo = document.getElementById('btn-editor-undo');
+    const btnEditorRedo = document.getElementById('btn-editor-redo');
+    const btnTopUndo = document.getElementById('btn-top-undo');
+    const btnTopRedo = document.getElementById('btn-top-redo');
+
+    function updateUndoRedoButtons() {
+        const hist = getFileHistory(currentFileKey);
+        const canUndo = hist.undo.length > 1;
+        const canRedo = hist.redo.length > 0;
+
+        if (btnEditorUndo) {
+            btnEditorUndo.disabled = !canUndo;
+            btnEditorUndo.style.opacity = canUndo ? '1' : '0.45';
+            btnEditorUndo.style.cursor = canUndo ? 'pointer' : 'not-allowed';
+        }
+        if (btnEditorRedo) {
+            btnEditorRedo.disabled = !canRedo;
+            btnEditorRedo.style.opacity = canRedo ? '1' : '0.45';
+            btnEditorRedo.style.cursor = canRedo ? 'pointer' : 'not-allowed';
+        }
+
+        // 画面上部左上の戻る・進むボタン
+        if (btnTopUndo) {
+            btnTopUndo.disabled = !canUndo;
+            btnTopUndo.classList.toggle('is-disabled', !canUndo);
+        }
+        if (btnTopRedo) {
+            btnTopRedo.disabled = !canRedo;
+            btnTopRedo.classList.toggle('is-disabled', !canRedo);
+        }
+    }
+
+    btnEditorUndo?.addEventListener('click', performEditorUndo);
+    btnEditorRedo?.addEventListener('click', performEditorRedo);
+    btnTopUndo?.addEventListener('click', performEditorUndo);
+    btnTopRedo?.addEventListener('click', performEditorRedo);
 
     codeTextarea.addEventListener('scroll', syncScroll);
 
     codeTextarea.addEventListener('input', () => {
         const file = files[currentFileKey];
-        if (file) {
+        if (file && file.editable) {
             file.isDirty = true;
             file.content = codeTextarea.value;
             updateCodeHighlight();
+            if (stickyScrollController) {
+                stickyScrollController.updateFile(currentFileKey, codeTextarea.value, file.type);
+                stickyScrollController.updateScroll(codeTextarea.scrollTop, codeTextarea.scrollLeft);
+            }
             updateTabsUI();
             updateSidebarUI();
+
+            // Undo履歴スナップショット記録
+            recordHistorySnapshot(currentFileKey, codeTextarea.value, codeTextarea.selectionStart, codeTextarea.selectionEnd);
 
             // リアルタイム診断 (200ms デバウンス)
             clearTimeout(diagnosticsDebounceTimer);
@@ -732,9 +1363,26 @@
     const GAME_KEYS = ["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyA", "KeyD", "KeyZ", "Escape"];
 
     window.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        // 保存 (Ctrl+S / ⌘S)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
             e.preventDefault();
             saveAndApplyChanges();
+            return;
+        }
+
+        // 元に戻す (Ctrl+Z / ⌘Z) & やり直す (Ctrl+Y / ⌘Shift+Z)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                performEditorRedo();
+            } else {
+                performEditorUndo();
+            }
+            return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+            e.preventDefault();
+            performEditorRedo();
             return;
         }
 
@@ -777,15 +1425,12 @@
             if (!file) return;
 
             const tab = document.createElement('div');
-            tab.className = 'editor-tab' + (key === currentFileKey ? ' active' : '') + (file.isDirty ? ' dirty' : '');
-
-            const dot = document.createElement('span');
-            dot.className = 'tab-dirty-indicator';
+            tab.className = 'editor-tab' + (key === currentFileKey ? ' active' : '') + (file.isDirty ? ' is-dirty' : '');
 
             const name = document.createElement('span');
+            name.className = 'tab-title';
             name.textContent = file.name;
 
-            tab.appendChild(dot);
             tab.appendChild(name);
 
             // 閉じるボタン (タブが2つ以上の時に表示)
@@ -804,7 +1449,40 @@
             tab.addEventListener('click', () => switchToFile(key));
             tabContainer.appendChild(tab);
         });
+
+        updateUnsavedChangesUI();
     }
+
+    function hasAnyUnsavedChanges() {
+        for (const k in files) {
+            if (files[k] && files[k].isDirty) return true;
+        }
+        return false;
+    }
+
+    function updateUnsavedChangesUI() {
+        const isUnsaved = hasAnyUnsavedChanges();
+        const currentFile = files[currentFileKey];
+        const canSaveCurrent = !!(currentFile && currentFile.editable);
+        const unsavedPill = document.getElementById('unsaved-status-pill');
+        const btnSave = document.getElementById('btn-save');
+
+        // 保存できない場合（現在開いているファイルが閲覧専用など）は「保存して反映」を色付きにしない
+        const shouldHighlightSave = isUnsaved && canSaveCurrent;
+
+        if (unsavedPill) {
+            // 保存可能な未保存ファイルを開いている時のみ表示
+            unsavedPill.style.display = shouldHighlightSave ? 'inline-flex' : 'none';
+        }
+        if (btnSave) {
+            btnSave.classList.toggle('has-unsaved', shouldHighlightSave);
+        }
+    }
+
+    // 未保存ステータスピル（クリックで真上の「保存して反映」を実行）
+    document.getElementById('unsaved-status-pill')?.addEventListener('click', () => {
+        saveAndApplyChanges();
+    });
 
     function closeTab(key) {
         const idx = openTabs.indexOf(key);
@@ -821,11 +1499,14 @@
     function updateSidebarUI() {
         document.querySelectorAll('.file-item[data-path]').forEach(item => {
             const path = item.getAttribute('data-path');
+            const file = files[path];
             if (path === currentFileKey) {
                 item.classList.add('active');
             } else {
                 item.classList.remove('active');
             }
+            // 未保存のファイルは色を変える
+            item.classList.toggle('is-dirty', !!(file && file.isDirty));
         });
     }
 
@@ -836,6 +1517,12 @@
             openTabs.push(key);
         }
         showCodeEditorPane();
+
+        // システムファイル警告バナーの制御 (editor/ 配下の内部ファイルを開いた時のみ表示)
+        const systemFileBannerContainer = document.getElementById('system-file-banner-container');
+        if (systemFileBannerContainer) {
+            systemFileBannerContainer.style.display = key.startsWith('editor/') ? 'block' : 'none';
+        }
 
         const file = files[key];
         if (file.isBinary || file.type === 'image') {
@@ -930,12 +1617,14 @@
     const editorPane = document.getElementById('editor-pane');
     const spritePane = document.getElementById('sprite-pane');
     const btnOpenSpriteEditor = document.getElementById('btn-open-sprite-editor');
+    const btnTreeOpenSprite = document.getElementById('btn-tree-open-sprite');
 
     function showCodeEditorPane() {
         document.body.classList.remove('is-sprite-editor');
         if (editorPane) editorPane.style.display = 'flex';
         if (spritePane) spritePane.style.display = 'none';
         if (btnOpenSpriteEditor) btnOpenSpriteEditor.classList.remove('active');
+        if (btnTreeOpenSprite) btnTreeOpenSprite.classList.remove('active');
         if (files[currentFileKey]?.isBinary) {
             renderImageViewer(currentFileKey);
         } else {
@@ -952,6 +1641,7 @@
         document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
         document.querySelectorAll('.editor-tab').forEach(tab => tab.classList.remove('active'));
         if (btnOpenSpriteEditor) btnOpenSpriteEditor.classList.add('active');
+        if (btnTreeOpenSprite) btnTreeOpenSprite.classList.add('active');
         if (btnSave) btnSave.style.display = 'none';
         loadSpriteFromConfig();
         renderSpriteGrid();
@@ -959,6 +1649,7 @@
     }
 
     btnOpenSpriteEditor?.addEventListener('click', showSpriteEditorPane);
+    btnTreeOpenSprite?.addEventListener('click', showSpriteEditorPane);
 
     // ─────────────────────────────────────────────
     // サウンド切り替え
@@ -1092,35 +1783,20 @@
     }
 
     function saveAndApplyChanges() {
-        // 現在開いているファイル、および変更されている全ファイルの構文チェック
-        if (window.Linter) {
-            for (let k in files) {
-                if (files[k].isBinary) continue;
-                if (k === currentFileKey || files[k].isDirty) {
-                    const changedLines = window.Linter.computeChangedLines(files[k].baselineContent || '', files[k].content);
-                    const issues = window.Linter.lint(k, files[k].content, {
-                        baselineCode: files[k].baselineContent,
-                        changedLines: changedLines
-                    });
-                    const errors = issues.filter(i => i.severity === 'error');
-                    if (errors.length > 0) {
-                        // エラーがある場合は対象ファイルへ切り替えて保存をブロック
-                        if (currentFileKey !== k) {
-                            switchToFile(k);
-                        } else {
-                            runDiagnostics(k);
-                        }
-                        showToast(`構文エラーが ${errors.length} 件あるため保存できません`, true);
-                        toggleDiagnosticsPanel(true);
-                        jumpToLine(errors[0].line, errors[0].col);
-                        return;
-                    }
-                }
-            }
+        if (!files[currentFileKey]?.editable && currentFileKey.startsWith('editor/')) {
+            showToast('このファイルは閲覧専用のため変更できません', true);
+            return;
         }
-
-        // linter.js が編集されていた場合は動的に再評価
-        if (files['linter.js'] && files['linter.js'].isDirty) {
+        // linter.js または editor/linter.js が編集されていた場合は先に同期＆動的に再評価
+        if (files['editor/linter.js'] && files['editor/linter.js'].isDirty) {
+            if (files['linter.js']) files['linter.js'].content = files['editor/linter.js'].content;
+            try {
+                new Function(files['editor/linter.js'].content)();
+            } catch (e) {
+                console.warn('Linterの再評価に失敗:', e);
+            }
+        } else if (files['linter.js'] && files['linter.js'].isDirty) {
+            if (files['editor/linter.js']) files['editor/linter.js'].content = files['linter.js'].content;
             try {
                 new Function(files['linter.js'].content)();
             } catch (e) {
@@ -1128,8 +1804,39 @@
             }
         }
 
+        // セーブ前に「現在開いているファイル」を最優先しつつ、プロジェクト全ファイルを横断して構文・整合性チェック
+        if (window.Linter) {
+            const orderedKeys = [
+                currentFileKey,
+                ...Object.keys(files).filter(k => k !== currentFileKey)
+            ];
+            for (const k of orderedKeys) {
+                const f = files[k];
+                if (!f || f.isBinary || f.type === 'xml' || f.type === 'text') continue;
+                const changedLines = window.Linter.computeChangedLines(f.baselineContent || '', f.content);
+                const issues = window.Linter.lint(k, f.content, {
+                    baselineCode: f.baselineContent,
+                    changedLines: changedLines,
+                    allFiles: files
+                });
+                const errors = (issues || []).filter(i => i.severity === 'error');
+                if (errors.length > 0) {
+                    // エラーがある場合は対象ファイルへ切り替えて保存をブロック
+                    if (currentFileKey !== k) {
+                        switchToFile(k);
+                    } else {
+                        runDiagnostics(k);
+                    }
+                    showToast(`[${k}] にエラーが ${errors.length} 件あるため保存できません`, true);
+                    toggleDiagnosticsPanel(true);
+                    jumpToLine(errors[0].line, errors[0].col);
+                    return;
+                }
+            }
+        }
+
         // config.js のみの変更なら即時リロードを試みる
-        const otherCodeDirty = ['style.css', 'core.js', 'index.html', 'linter.js', 'monaca-bridge.js'].some(k => files[k] && files[k].isDirty);
+        const otherCodeDirty = ['style.css', 'core.js', 'index.html', 'linter.js', 'editor/linter.js', 'monaca-bridge.js'].some(k => files[k] && files[k].isDirty);
         const onlyConfigDirty = files['config.js'].isDirty && !otherCodeDirty;
 
         for (let k in files) {
@@ -1682,6 +2389,10 @@
             if (currentFileKey === 'config.js' && !isDrawingPixel) {
                 codeTextarea.value = files['config.js'].content;
                 updateCodeHighlight();
+                if (stickyScrollController) {
+                    stickyScrollController.updateFile('config.js', files['config.js'].content, 'js');
+                    stickyScrollController.updateScroll(codeTextarea.scrollTop, codeTextarea.scrollLeft);
+                }
             }
         }
     }
@@ -1705,6 +2416,10 @@
         if (currentFileKey === 'config.js' && !isDrawingPixel) {
             codeTextarea.value = files['config.js'].content;
             updateCodeHighlight();
+            if (stickyScrollController) {
+                stickyScrollController.updateFile('config.js', files['config.js'].content, 'js');
+                stickyScrollController.updateScroll(codeTextarea.scrollTop, codeTextarea.scrollLeft);
+            }
         }
     }
 
@@ -1864,6 +2579,7 @@
         if (isDraggingMuzzle) {
             isDraggingMuzzle = false;
             if (spriteGrid) spriteGrid.classList.remove('muzzle-dragging');
+            syncMuzzleToConfigFile();
             renderSpriteGrid();
             updateFitGuide();
             broadcastLiveSprite();
@@ -1962,6 +2678,10 @@
     btnSpriteReset?.addEventListener('click', () => {
         pushHistory();
         spriteGridData = stringsToGrid(DEFAULT_SPRITES[currentSpriteKey] || DEFAULT_SPRITES.player);
+        if (currentSpriteKey === 'player') {
+            playerMuzzle = { col: 6, row: 0 };
+            syncMuzzleToConfigFile();
+        }
         renderSpriteGrid();
         updateFitGuide();
         broadcastLiveSprite();
@@ -2184,41 +2904,84 @@
         if (!text) return;
         let tokens = [];
 
+        const isLight = document.body.classList.contains('theme-light');
+        const cDefault = isLight ? '#24292e' : '#d4d4d4';
+        const cComment = isLight ? '#008000' : '#6a9955';
+        const cString = isLight ? '#a31515' : '#ce9178';
+        const cKeyword = isLight ? '#af00db' : '#c586c0';
+        const cNumber = isLight ? '#098658' : '#b5cea8';
+        const cProperty = isLight ? '#001080' : '#9cdcfe';
+        const cTag = isLight ? '#800000' : '#569cd6';
+        const cPunctuation = '#808080';
+        const cColor = isLight ? '#098658' : '#4ec9b0';
+        const cSelector = isLight ? '#800000' : '#d7ba7d';
+
         if (type === 'javascript' || type === 'json') {
             const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:const|let|var|function|return|if|else|for|while|class|new|true|false|null|undefined|this|import|export|from)\b)|(-?\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z0-9_$]+(?=\s*:))/g;
             let lastIdx = 0;
             let match;
             while ((match = regex.exec(text)) !== null) {
                 if (match.index > lastIdx) {
-                    tokens.push({ text: text.slice(lastIdx, match.index), color: '#d4d4d4' });
+                    tokens.push({ text: text.slice(lastIdx, match.index), color: cDefault });
                 }
-                if (match[1]) tokens.push({ text: match[1], color: '#6a9955' }); // コメント: 自然なグリーン
-                else if (match[2]) tokens.push({ text: match[2], color: '#ce9178' }); // 文字列: ピーチ
-                else if (match[3]) tokens.push({ text: match[3], color: '#c586c0' }); // 予約語: パープル
-                else if (match[4]) tokens.push({ text: match[4], color: '#b5cea8' }); // 数値: ライトミント
-                else if (match[5]) tokens.push({ text: match[5], color: '#9cdcfe' }); // プロパティ: ライトシアン
+                if (match[1]) tokens.push({ text: match[1], color: cComment });
+                else if (match[2]) tokens.push({ text: match[2], color: cString });
+                else if (match[3]) tokens.push({ text: match[3], color: cKeyword });
+                else if (match[4]) tokens.push({ text: match[4], color: cNumber });
+                else if (match[5]) tokens.push({ text: match[5], color: cProperty });
                 lastIdx = regex.lastIndex;
             }
             if (lastIdx < text.length) {
-                tokens.push({ text: text.slice(lastIdx), color: '#d4d4d4' });
+                tokens.push({ text: text.slice(lastIdx), color: cDefault });
             }
         } else if (type === 'css') {
             const regex = /(\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(#[a-fA-F0-9]{3,8}|rgba?\([^)]+\))|(-?\b\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|s|ms)?\b)|([a-zA-Z0-9_-]+(?=\s*:))|([^{}]+(?=\{))/g;
             let lastIdx = 0;
             let match;
             while ((match = regex.exec(text)) !== null) {
-                if (match.index > lastIdx) tokens.push({ text: text.slice(lastIdx, match.index), color: '#d4d4d4' });
-                if (match[1]) tokens.push({ text: match[1], color: '#6a9955' }); // コメント: グリーン
-                else if (match[2]) tokens.push({ text: match[2], color: '#ce9178' }); // 文字列: ピーチ
-                else if (match[3]) tokens.push({ text: match[3], color: '#4ec9b0' }); // カラー値: ターコイズ
-                else if (match[4]) tokens.push({ text: match[4], color: '#b5cea8' }); // 数値: ライトミント
-                else if (match[5]) tokens.push({ text: match[5], color: '#9cdcfe' }); // プロパティ: ライトシアン
-                else if (match[6]) tokens.push({ text: match[6], color: '#d7ba7d' }); // セレクタ: ウォームゴールド
+                if (match.index > lastIdx) tokens.push({ text: text.slice(lastIdx, match.index), color: cDefault });
+                if (match[1]) tokens.push({ text: match[1], color: cComment });
+                else if (match[2]) tokens.push({ text: match[2], color: cString });
+                else if (match[3]) tokens.push({ text: match[3], color: cColor });
+                else if (match[4]) tokens.push({ text: match[4], color: cNumber });
+                else if (match[5]) tokens.push({ text: match[5], color: cProperty });
+                else if (match[6]) tokens.push({ text: match[6], color: cSelector });
                 lastIdx = regex.lastIndex;
             }
-            if (lastIdx < text.length) tokens.push({ text: text.slice(lastIdx), color: '#d4d4d4' });
+            if (lastIdx < text.length) tokens.push({ text: text.slice(lastIdx), color: cDefault });
+        } else if (type === 'html') {
+            // HTML用の精密ミニマップトークナイザー (テーマ対応)
+            const regex = /(<!--[\s\S]*?-->)|(<!DOCTYPE(?:\s+[^>]*)?>)|(<\/?[a-zA-Z0-9:-]+)|(\/?>)|([a-zA-Z0-9_:-]+)(?=\s*=|\s|>|\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/gi;
+            let lastIdx = 0;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                if (match.index > lastIdx) {
+                    tokens.push({ text: text.slice(lastIdx, match.index), color: cDefault });
+                }
+                if (match[1]) {
+                    tokens.push({ text: match[1], color: cComment });
+                } else if (match[2]) {
+                    tokens.push({ text: match[2], color: cTag });
+                } else if (match[3]) {
+                    const tagStr = match[3];
+                    const openBracket = tagStr.startsWith('</') ? '</' : '<';
+                    const tagName = tagStr.slice(openBracket.length);
+                    tokens.push({ text: openBracket, color: cPunctuation });
+                    tokens.push({ text: tagName, color: cTag });
+                } else if (match[4]) {
+                    tokens.push({ text: match[4], color: cPunctuation });
+                } else if (match[5]) {
+                    tokens.push({ text: match[5], color: isLight ? '#e50000' : '#9cdcfe' });
+                } else if (match[6]) {
+                    tokens.push({ text: match[6], color: isLight ? '#0000ff' : '#ce9178' });
+                }
+                lastIdx = regex.lastIndex;
+            }
+            if (lastIdx < text.length) {
+                tokens.push({ text: text.slice(lastIdx), color: cDefault });
+            }
         } else {
-            tokens.push({ text: text, color: '#d4d4d4' });
+            tokens.push({ text: text, color: cDefault });
         }
 
         let currX = startX;
@@ -2359,4 +3122,120 @@
 
     initMinimapInteraction();
 
+    // ─────────────────────────────────────────────
+    // テーマ切り替え (ライト / ダーク)
+    // ─────────────────────────────────────────────
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+    const themeBtnText = document.getElementById('theme-btn-text');
+    const themeIconSun = document.querySelector('.theme-icon-sun');
+    const themeIconMoon = document.querySelector('.theme-icon-moon');
+
+    function applyTheme(themeName) {
+        const isLight = themeName === 'light';
+        document.body.classList.toggle('theme-light', isLight);
+        if (themeBtnText) {
+            themeBtnText.textContent = isLight ? 'ダーク' : 'ライト';
+        }
+        if (themeIconSun && themeIconMoon) {
+            themeIconSun.style.display = isLight ? 'none' : 'inline-block';
+            themeIconMoon.style.display = isLight ? 'inline-block' : 'none';
+        }
+        try {
+            localStorage.setItem('rowpilot_editor_theme', themeName);
+        } catch (e) {}
+
+        // ミニマップの再描画 (テーマ色を反映)
+        renderMinimap();
+    }
+
+    // 初期化: 保存されたテーマまたはダーク
+    let savedTheme = 'dark';
+    try {
+        savedTheme = localStorage.getItem('rowpilot_editor_theme') || 'dark';
+    } catch (e) {}
+    applyTheme(savedTheme);
+
+    if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', () => {
+            const currentIsLight = document.body.classList.contains('theme-light');
+            applyTheme(currentIsLight ? 'dark' : 'light');
+        });
+    }
+
+    // システムファイル注意バナー内の「上の index.html」ジャンプボタン
+    const bannerBtnGotoGameHtml = document.getElementById('banner-btn-goto-game-html');
+    if (bannerBtnGotoGameHtml) {
+        bannerBtnGotoGameHtml.addEventListener('click', () => {
+            switchToFile('index.html');
+        });
+    }
+
+    // システムファイル注意バナーの最小化＆展開（シューンと "i" に縮小 / 再度展開）
+    const bannerContainer = document.getElementById('system-file-banner-container');
+    const bannerBtnMinimize = document.getElementById('banner-btn-minimize');
+    const bannerBtnExpand = document.getElementById('system-banner-minimized-icon');
+
+    bannerBtnMinimize?.addEventListener('click', () => {
+        bannerContainer?.classList.add('is-minimized');
+        try { localStorage.setItem('rowpilot_system_banner_minimized', '1'); } catch (e) {}
+    });
+
+    bannerBtnExpand?.addEventListener('click', () => {
+        bannerContainer?.classList.remove('is-minimized');
+        try { localStorage.setItem('rowpilot_system_banner_minimized', '0'); } catch (e) {}
+    });
+
+    try {
+        if (localStorage.getItem('rowpilot_system_banner_minimized') === '1') {
+            bannerContainer?.classList.add('is-minimized');
+        }
+    } catch (e) {}
+
+    // スティッキースクロールの初期化
+    if (window.StickyScrollController) {
+        stickyScrollController = new window.StickyScrollController();
+        stickyScrollController.init({
+            highlightFn: (code, type) => highlightSyntax(code, type),
+            indentGuideFn: (highlightedLine, rawLine, fullText) => {
+                // ファイル全体のインデント幅 (2 or 4) に合わせてスティッキー行にも縦線ガイドを描画
+                const indentSize = detectIndentUnit(fullText || rawLine);
+                const match = highlightedLine.match(/^((?:<span[^>]*>)*)([ \t]+)/);
+                if (!match) return highlightedLine;
+                const prefixTag = match[1];
+                const leadingWs = match[2];
+                const rest = highlightedLine.slice(match[0].length);
+                let guideHtml = '';
+                let s = 0;
+                while (s < leadingWs.length) {
+                    if (leadingWs[s] === '\t') {
+                        guideHtml += '<span class="indent-guide indent-guide-tab">\t</span>';
+                        s++;
+                    } else {
+                        let count = 0;
+                        while (s + count < leadingWs.length && leadingWs[s + count] === ' ' && count < indentSize) {
+                            count++;
+                        }
+                        const spacesStr = ' '.repeat(count);
+                        if (count === indentSize) {
+                            guideHtml += '<span class="indent-guide">' + spacesStr + '</span>';
+                        } else {
+                            guideHtml += spacesStr;
+                        }
+                        s += count;
+                    }
+                }
+                return prefixTag + guideHtml + rest;
+            },
+            jumpToLineFn: (line, stickyIndex) => jumpToStickyLine(line, stickyIndex),
+            errorLineSet: errorLineSet,
+            warningLineSet: warningLineSet
+        });
+        const currentFile = files[currentFileKey];
+        if (currentFile && !currentFile.isBinary) {
+            stickyScrollController.updateFile(currentFileKey, currentFile.content, currentFile.type);
+            stickyScrollController.updateScroll(codeTextarea.scrollTop, codeTextarea.scrollLeft);
+        }
+    }
+
 })();
+

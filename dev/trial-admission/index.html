@@ -16,9 +16,6 @@
             <span class="game-brand-title">Space Invaders</span>
         </div>
         <div class="top-bar-right">
-            <button type="button" id="btn-open-dot-modal" class="goto-editor-btn" title="ドット絵エディタを開く" style="margin-right: 8px;">
-                <span>🎨 ドット絵</span>
-            </button>
             <a href="editor/" id="btn-goto-editor" class="goto-editor-btn" title="コードエディタを開く">
                 <svg class="editor-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="16 18 22 12 16 6"></polyline>
@@ -260,14 +257,6 @@
             document.body.classList.add('transitioning-to-editor');
             setTimeout(function() {
                 window.location.href = 'editor/?from=game';
-            }, 420);
-        });
-
-        document.getElementById('btn-open-dot-modal')?.addEventListener('click', function(e) {
-            e.preventDefault();
-            document.body.classList.add('transitioning-to-editor');
-            setTimeout(function() {
-                window.location.href = 'editor/?from=game&tab=sprite';
             }, 420);
         });
     </script>
