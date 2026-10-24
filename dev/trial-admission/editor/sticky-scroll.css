@@ -16,7 +16,6 @@
     user-select: none;
     pointer-events: auto;
     box-sizing: border-box;
-    contain: layout paint;
 }
 
 .sticky-scroll-lines {
@@ -59,7 +58,6 @@
     border-right: 1px solid var(--border-subtle, #21262d);
     flex-shrink: 0;
     box-sizing: border-box;
-    font-variant-numeric: tabular-nums;
     position: relative;
 }
 
