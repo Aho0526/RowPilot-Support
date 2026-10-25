@@ -2100,20 +2100,24 @@
                     }
                     if (scriptLines.length > 0) {
                         const scriptCode = scriptLines.join('\n');
-                        const jsIssues = []
-                            .concat(checkUnclosedQuotes('inline.js', scriptCode))
-                            .concat(checkBracketPairs('inline.js', scriptCode))
-                            .concat(checkJavaScriptNativeSyntax(scriptCode, null, false));
-                        jsIssues.forEach(item => {
-                            issues.push(createIssue(
-                                scriptStartLine + item.line,
-                                item.col,
-                                `<script>内のエラー: ${item.message}`,
-                                item.hint,
-                                'error',
-                                lines[scriptStartLine + item.line - 1] || ''
-                            ));
-                        });
+                        // Cloudflare や CDN インフラ自動注入スクリプトは構文チェック対象外
+                        const isPlatformInjected = /\/cdn-cgi\/|__CF\$cv\$params|cloudflare/i.test(scriptCode);
+                        if (!isPlatformInjected) {
+                            const jsIssues = []
+                                .concat(checkUnclosedQuotes('inline.js', scriptCode))
+                                .concat(checkBracketPairs('inline.js', scriptCode))
+                                .concat(checkJavaScriptNativeSyntax(scriptCode, null, false));
+                            jsIssues.forEach(item => {
+                                issues.push(createIssue(
+                                    scriptStartLine + item.line,
+                                    item.col,
+                                    `<script>内のエラー: ${item.message}`,
+                                    item.hint,
+                                    'error',
+                                    lines[scriptStartLine + item.line - 1] || ''
+                                ));
+                            });
+                        }
                         scriptLines = [];
                     }
                     if (tagStack.length > 0 && tagStack[tagStack.length - 1].tag === 'script') {
@@ -2202,20 +2206,66 @@
                     break;
                 }
 
+                let tagContent = '';
                 if (gtIdx === -1) {
-                    issues.push(createIssue(
-                        i + 1,
-                        ltIdx + 1,
-                        `HTMLタグの「 < 」に対応する閉じ「 > 」がありません`,
-                        `タグの最後に「 > 」を追加してください`,
-                        'error',
-                        rawLine
-                    ));
-                    break;
-                }
+                    // 次の行にまたがる複数行タグのルックアヘッド走査
+                    let multilineContent = line.substring(ltIdx + 1);
+                    let foundGtInNext = false;
+                    let foundGtLineIdx = -1;
+                    let foundGtCol = -1;
 
-                const tagContent = line.substring(ltIdx + 1, gtIdx).trim();
-                pos = gtIdx + 1;
+                    if (!multilineContent.includes('<')) {
+                        let curQuote = quoteChar;
+                        for (let nextI = i + 1; nextI < lines.length; nextI++) {
+                            const nextRaw = lines[nextI];
+                            let nextGt = -1;
+                            for (let k = 0; k < nextRaw.length; k++) {
+                                const ch = nextRaw[k];
+                                if (curQuote) {
+                                    if (ch === curQuote) curQuote = null;
+                                } else {
+                                    if (ch === '"' || ch === "'") {
+                                        curQuote = ch;
+                                    } else if (ch === '>') {
+                                        nextGt = k;
+                                        break;
+                                    } else if (ch === '<') {
+                                        break;
+                                    }
+                                }
+                            }
+                            if (nextGt !== -1) {
+                                multilineContent += ' ' + nextRaw.substring(0, nextGt);
+                                foundGtInNext = true;
+                                foundGtLineIdx = nextI;
+                                foundGtCol = nextGt;
+                                break;
+                            }
+                            if (nextRaw.includes('<')) break;
+                            multilineContent += ' ' + nextRaw;
+                        }
+                    }
+
+                    if (foundGtInNext) {
+                        tagContent = multilineContent.trim();
+                        i = foundGtLineIdx;
+                        line = lines[i];
+                        pos = foundGtCol + 1;
+                    } else {
+                        issues.push(createIssue(
+                            i + 1,
+                            ltIdx + 1,
+                            `HTMLタグの「 < 」に対応する閉じ「 > 」がありません`,
+                            `タグの最後に「 > 」を追加してください`,
+                            'error',
+                            rawLine
+                        ));
+                        break;
+                    }
+                } else {
+                    tagContent = line.substring(ltIdx + 1, gtIdx).trim();
+                    pos = gtIdx + 1;
+                }
 
                 if (!tagContent || tagContent.startsWith('!')) continue; // <!DOCTYPE html> 等
 
@@ -2287,7 +2337,9 @@
                         const sameLineClose = restOfLine.match(/<\/script\s*>/i);
                         if (sameLineClose) {
                             const inlineJs = restOfLine.substring(0, sameLineClose.index).trim();
-                            if (inlineJs) {
+                            // Cloudflare や CDN インフラ自動注入スクリプトは構文チェック対象外
+                            const isPlatformInjected = /\/cdn-cgi\/|__CF\$cv\$params|cloudflare/i.test(inlineJs);
+                            if (inlineJs && !isPlatformInjected) {
                                 const jsIssues = checkJavaScriptNativeSyntax(inlineJs, null, false);
                                 jsIssues.forEach(item => {
                                     issues.push(createIssue(
@@ -2488,6 +2540,8 @@
             if (!refPath) return null;
             let cleanRef = refPath.split('?')[0].split('#')[0].trim();
             if (!cleanRef || /^(https?:|data:|mailto:|javascript:|about:|blob:|\/\/)/i.test(cleanRef)) return null;
+            // CDN やクラウドホスティングの予約パス (Cloudflare の /cdn-cgi/ 等) は除外
+            if (/^\/?cdn-cgi\//i.test(cleanRef)) return null;
             if (cleanRef.endsWith('/')) cleanRef += 'index.html';
 
             const baseDir = baseFile.includes('/') ? baseFile.substring(0, baseFile.lastIndexOf('/') + 1) : '';
@@ -2540,6 +2594,11 @@
                     continue;
                 }
 
+                // 同一行内に完結するインライン <script>...</script> や <style>...</style> の内容を除去
+                // (外部 src を持たない純粋なインラインスクリプト・スタイルのコードが HTML 属性と誤認されるのを防ぐ)
+                let scanLine = rawLine.replace(/<script(?![^>]*\bsrc\s*=)[^>]*>[\s\S]*?<\/script>/gi, '');
+                scanLine = scanLine.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+
                 if (/<script\b/i.test(rawLine) && !/<\/script>/i.test(rawLine)) {
                     inScript = true;
                 }
@@ -2550,7 +2609,7 @@
                 // src="..." または href="..." の参照先ファイル存在チェック
                 const refRegex = /\b(src|href)\s*=\s*["']([^"']+)["']/gi;
                 let rMatch;
-                while ((rMatch = refRegex.exec(rawLine)) !== null) {
+                while ((rMatch = refRegex.exec(scanLine)) !== null) {
                     const attr = rMatch[1];
                     const refVal = rMatch[2];
                     const resolved = resolveProjectPath(filename, refVal);

@@ -402,6 +402,19 @@
     let initialFilesLoaded = false;
 
     // ─────────────────────────────────────────────
+    // CDN や Cloudflare 等の自動注入スクリプトを除去して純粋なコードを保持
+    function cleanInjectedPlatformScripts(text) {
+        if (typeof text !== 'string') return text;
+        return text
+            // インラインで注入された Cloudflare challenge-platform 等のスクリプト
+            .replace(/<script\b[^>]*>(?:(?!<\/script>)[\s\S])*?\/cdn-cgi\/(?:(?!<\/script>)[\s\S])*?<\/script>\s*/gi, '')
+            // 外部読み込みの /cdn-cgi/ スクリプト
+            .replace(/<script[^>]*src=["'][^"']*\/cdn-cgi\/[^"']*["'][^>]*><\/script>\s*/gi, '')
+            // Cloudflare Web Analytics などのコメント
+            .replace(/<!--\s*Cloudflare.*?\s*-->\s*/gi, '')
+            .trimEnd() + '\n';
+    }
+
     // 実ファイルの自動フェッチ (並列取得で高速化＆未取得時の誤検知防止)
     // ─────────────────────────────────────────────
     async function loadRealFiles() {
@@ -417,7 +430,8 @@
             try {
                 const resp = await fetch(files[key].path + cacheBust);
                 if (resp.ok) {
-                    files[key].content = await resp.text();
+                    const rawText = await resp.text();
+                    files[key].content = cleanInjectedPlatformScripts(rawText);
                     files[key].baselineContent = files[key].content;
                     files[key].isDirty = false;
                     files[key].isLoaded = true;
@@ -1542,7 +1556,7 @@
             systemFileBannerContainer.style.display = isEditorFile ? 'block' : 'none';
             if (isEditorFile && systemBannerText) {
                 if (key === 'editor/index.html') {
-                    systemBannerText.innerHTML = 'エディタ本体の内部設定ファイル（閲覧専用）です。ゲーム画面の変更は <button type="button" class="banner-link-btn" id="banner-btn-goto-game-html">こっちの index.html</button> を編集してください。';
+                    systemBannerText.innerHTML = 'エディタ本体の内部設定ファイルです。ゲーム画面の変更は <button type="button" class="banner-link-btn" id="banner-btn-goto-game-html">こっちの index.html</button> を編集してください。';
                 } else {
                     systemBannerText.textContent = 'エディタ本体の内部設定ファイルです。変更はできません。';
                 }
