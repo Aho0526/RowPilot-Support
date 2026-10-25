@@ -39,7 +39,7 @@
     // 配列スコープ `[` がスティッキー表示に値する名前付き定義（sprites.player: [ など）か判定
     function isMeaningfulArrayHeader(trimmedLine) {
         // 例: player: [, colors: [, const list = [
-        return /^(?:(?:const|let|var)\s+[a-zA-Z0-9_$]+\s*=\s*|[a-zA-Z0-9_$"'`]+\s*:\s*)\[\s*(?:\/\/.*|\/\*.*\*\/)?$/.test(trimmedLine);
+        return /^(?:(?:const|let|var)\s+[a-zA-Z0-9_$]+\s*=\s*|[a-zA-Z0-9_$]+\s*:\s*)\[/.test(trimmedLine);
     }
 
     /**
