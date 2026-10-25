@@ -1536,8 +1536,17 @@
 
         // システムファイル警告バナーの制御 (editor/ 配下の内部ファイルを開いた時のみ表示)
         const systemFileBannerContainer = document.getElementById('system-file-banner-container');
+        const systemBannerText = document.getElementById('system-banner-text');
         if (systemFileBannerContainer) {
-            systemFileBannerContainer.style.display = key.startsWith('editor/') ? 'block' : 'none';
+            const isEditorFile = key.startsWith('editor/');
+            systemFileBannerContainer.style.display = isEditorFile ? 'block' : 'none';
+            if (isEditorFile && systemBannerText) {
+                if (key === 'editor/index.html') {
+                    systemBannerText.innerHTML = 'エディタ本体の内部設定ファイル（閲覧専用）です。ゲーム画面の変更は <button type="button" class="banner-link-btn" id="banner-btn-goto-game-html">こっちの index.html</button> を編集してください。';
+                } else {
+                    systemBannerText.textContent = 'エディタ本体の内部設定ファイルです。変更はできません。';
+                }
+            }
         }
 
         const file = files[key];
@@ -3180,13 +3189,12 @@
         });
     }
 
-    // システムファイル注意バナー内の「上の index.html」ジャンプボタン
-    const bannerBtnGotoGameHtml = document.getElementById('banner-btn-goto-game-html');
-    if (bannerBtnGotoGameHtml) {
-        bannerBtnGotoGameHtml.addEventListener('click', () => {
+    // システムファイル注意バナー内の「上の index.html」ジャンプボタン（文言動的更新にも対応するイベント委譲）
+    document.addEventListener('click', (e) => {
+        if (e.target && e.target.closest('#banner-btn-goto-game-html')) {
             switchToFile('index.html');
-        });
-    }
+        }
+    });
 
     // システムファイル注意バナーの最小化＆展開（シューンと "i" に縮小 / 再度展開）
     const bannerContainer = document.getElementById('system-file-banner-container');
