@@ -3050,6 +3050,42 @@
 
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = Linter;
+        // CLI から直接実行された場合の簡易テストランナー (npm test 対応)
+        if (typeof require !== 'undefined' && require.main === module) {
+            const fs = require('fs');
+            const path = require('path');
+            const baseDir = path.resolve(__dirname, '..');
+            const checkFiles = [
+                'index.html',
+                'config.js',
+                'core.js',
+                'style.css',
+                'package.json',
+                'editor/index.html',
+                'editor/ide.js',
+                'editor/linter.js',
+                'editor/ide.css',
+                'editor/sticky-scroll.css',
+                'editor/sticky-scroll.js'
+            ];
+            const filesMap = {};
+            for (const f of checkFiles) {
+                const fullPath = path.join(baseDir, f);
+                if (fs.existsSync(fullPath)) {
+                    filesMap[f] = { content: fs.readFileSync(fullPath, 'utf8') };
+                }
+            }
+            const res = lintProject(filesMap);
+            if (res.totalErrors > 0) {
+                console.error(`❌ エラーが ${res.totalErrors} 件検出されました:`);
+                res.allIssues.filter(iss => iss.severity === 'error').forEach(iss => {
+                    console.error(`  - [${iss.filename}:${iss.line}] ${iss.message}`);
+                });
+                process.exit(1);
+            } else {
+                console.log(`✔ 全ファイルの構文・横断チェック完了 (エラー: 0件, 警告: ${res.totalWarnings}件)`);
+            }
+        }
     } else {
         global.Linter = Linter;
     }
