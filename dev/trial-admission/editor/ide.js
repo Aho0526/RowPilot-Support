@@ -689,7 +689,7 @@
 
     function runDiagnostics(fileKey, skipHighlightUpdate) {
         const file = files[fileKey];
-        if (!file || !window.Linter || file.isBinary || file.type === 'xml' || file.type === 'text' || typeof file.content !== 'string' || (!initialFilesLoaded && !file.isLoaded)) {
+        if (!file || !window.Linter || file.editable === false || file.isBinary || file.type === 'xml' || file.type === 'text' || typeof file.content !== 'string' || (!initialFilesLoaded && !file.isLoaded)) {
             currentFileIssues = [];
             errorLineSet.clear();
             warningLineSet.clear();
@@ -744,7 +744,7 @@
 
         for (let k in files) {
             const f = files[k];
-            if (!f || f.isBinary || f.type === 'xml' || f.type === 'text' || typeof f.content !== 'string') {
+            if (!f || f.editable === false || f.isBinary || f.type === 'xml' || f.type === 'text' || typeof f.content !== 'string') {
                 fileErrorCountMap[k] = 0;
                 fileIssuesMap[k] = [];
                 continue;
@@ -1820,7 +1820,7 @@
             }
         }
 
-        // セーブ前に「現在開いているファイル」を最優先しつつ、プロジェクト全ファイルを横断して構文・整合性チェック
+        // セーブ前に「現在開いているファイル」を最優先しつつ、編集可能な全ファイルを横断して構文・整合性チェック
         if (window.Linter) {
             const orderedKeys = [
                 currentFileKey,
@@ -1828,7 +1828,7 @@
             ];
             for (const k of orderedKeys) {
                 const f = files[k];
-                if (!f || f.isBinary || f.type === 'xml' || f.type === 'text') continue;
+                if (!f || f.editable === false || f.isBinary || f.type === 'xml' || f.type === 'text') continue;
                 const changedLines = window.Linter.computeChangedLines(f.baselineContent || '', f.content);
                 const issues = window.Linter.lint(k, f.content, {
                     baselineCode: f.baselineContent,
@@ -1868,14 +1868,16 @@
                 const win = previewIframe.contentWindow;
                 if (win && typeof win.reloadGameWithNewConfig === 'function') {
                     const configCode = files['config.js'].content;
-                    const fn = new Function(configCode + '; return GameConfig;');
+                    const fn = new Function(configCode + '; return typeof GameConfig !== "undefined" ? GameConfig : window.GameConfig;');
                     const newConfig = fn();
-                    if (newConfig.display) {
+                    if (newConfig && newConfig.display) {
                         newConfig.display.sound = !isMuted;
                     }
-                    win.reloadGameWithNewConfig(newConfig);
-                    showToast('保存しました（ゲームに即時反映）');
-                    return;
+                    if (newConfig) {
+                        win.reloadGameWithNewConfig(newConfig);
+                        showToast('保存しました（ゲームに即時反映）');
+                        return;
+                    }
                 }
             } catch (e) {
                 console.warn('即時リロードに失敗したためプレビュー全体を更新します:', e);

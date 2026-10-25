@@ -494,7 +494,7 @@
 
                 // 正規表現リテラルの判定とスキップ
                 if (inJsContext && ch === '/') {
-                    const isRegex = !prevNonSpace || /[(=:;,!&|?+\-*%^~<>{}\\[]/.test(prevNonSpace) || /^(return|case|typeof|delete|void)$/.test(lastWord);
+                    const isRegex = !prevNonSpace || /[(=:;,!&|?+\-*%^~<>{}\[]/.test(prevNonSpace) || /^(return|case|typeof|delete|void|in|instanceof|new|throw|yield|await)$/.test(lastWord);
                     if (isRegex) {
                         c++;
                         let inCharClass = false;
@@ -511,6 +511,16 @@
                         lastWord = '';
                         continue;
                     }
+                }
+
+                // 識別子・直前の非空白トークン追跡（除算 `/` と正規表現リテラル `/.../` の正確な区別のために必須）
+                if (/[a-zA-Z0-9_$]/.test(ch)) {
+                    lastWord += ch;
+                } else if (!/\s/.test(ch)) {
+                    lastWord = '';
+                }
+                if (!/\s/.test(ch)) {
+                    prevNonSpace = ch;
                 }
 
                 // --- 全角記号チェック ---
@@ -1218,11 +1228,13 @@
                     const isQuoted = (rawVal.startsWith('"') && rawVal.endsWith('"')) ||
                         (rawVal.startsWith("'") && rawVal.endsWith("'")) ||
                         (rawVal.startsWith('`') && rawVal.endsWith('`'));
-                    const isNumber = /^-?\d+(\.\d+)?$/.test(rawVal);
+                    const normalizedNumStr = rawVal.replace(/_/g, '');
+                    const isNumber = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(normalizedNumStr);
+                    const isArithmeticExpr = !isNumber && /^[0-9+\-*/%().\s_]+$/.test(rawVal) && /\d/.test(rawVal);
                     const isBoolean = rawVal === 'true' || rawVal === 'false';
-                    const isNullOrUndefined = rawVal === 'null' || rawVal === 'undefined';
+                    const isNullOrUndefined = rawVal === 'null' || rawVal === 'undefined' || rawVal === 'Infinity' || rawVal === '-Infinity';
 
-                    if (!isQuoted && !isNumber && !isBoolean && !isNullOrUndefined) {
+                    if (!isQuoted && !isNumber && !isArithmeticExpr && !isBoolean && !isNullOrUndefined) {
                         const distTrue = levenshtein(rawVal.toLowerCase(), 'true');
                         const distFalse = levenshtein(rawVal.toLowerCase(), 'false');
                         if (distTrue <= 2 && rawVal !== 'true') {
@@ -1293,7 +1305,7 @@
                             }
                         }
                     } else if (isNumber) {
-                        const numVal = Number(rawVal);
+                        const numVal = Number(normalizedNumStr);
                         if (currentSection === 'bullet' && key === 'speed' && numVal > 0) {
                             issues.push(createIssue(
                                 i + 1,
@@ -2659,7 +2671,7 @@
                 ]);
                 knownIds.add('monaca-error-hud');
 
-                const htmlText = getFileContent('index.html') + '\n' + getFileContent('editor/index.html');
+                const htmlText = getFileContent('index.html');
                 const jsText = getFileContent('core.js') + '\n' + getFileContent('monaca-bridge.js');
 
                 let m;
@@ -2709,7 +2721,8 @@
                         while ((idM = idSelRe.exec(selPart)) !== null) {
                             const idName = idM[1];
                             if (!knownIds.has(idName)) {
-                                const closestId = findClosestInCollection(idName, knownIds, 2);
+                                const maxDist = idName.length <= 5 ? 1 : 2;
+                                const closestId = findClosestInCollection(idName, knownIds, maxDist);
                                 if (closestId) {
                                     issues.push(createIssue(
                                         i + 1,
@@ -2729,7 +2742,8 @@
                         while ((clsM = classSelRe.exec(selPart)) !== null) {
                             const clsName = clsM[1];
                             if (!knownClasses.has(clsName)) {
-                                const closestCls = findClosestInCollection(clsName, knownClasses, 2);
+                                const maxDist = clsName.length <= 5 ? 1 : 2;
+                                const closestCls = findClosestInCollection(clsName, knownClasses, maxDist);
                                 if (closestCls) {
                                     issues.push(createIssue(
                                         i + 1,

@@ -34,10 +34,24 @@
         canvas.height = V_HEIGHT;
     }
 
-    // 安全な数値取得ヘルパー
+    // config.js の `const GameConfig = ...` (グローバルレキシカルスコープ) を window.GameConfig に確実に紐付ける
+    function ensureGlobalConfig() {
+        if (typeof GameConfig !== 'undefined' && GameConfig && typeof GameConfig === 'object') {
+            if (!window.GameConfig) {
+                window.GameConfig = GameConfig;
+            }
+        }
+        return window.GameConfig || {};
+    }
+    ensureGlobalConfig();
+
+    // 安全な数値取得ヘルパー（空文字・null・真偽値・オブジェクト・NaNを弾き、極端な大数値は上限・下限に丸める）
     function safeNum(val, min, max, defaultVal) {
+        if (val === null || val === undefined || val === '' || typeof val === 'boolean' || typeof val === 'object') {
+            return defaultVal;
+        }
         const n = Number(val);
-        if (isNaN(n)) return defaultVal;
+        if (Number.isNaN(n)) return defaultVal;
         return Math.max(min, Math.min(max, n));
     }
 
@@ -661,9 +675,9 @@
     // ─────────────────────────────────────────────
     function initEnemies() {
         enemies = [];
-        const cfg = window.GameConfig ? window.GameConfig.enemy : {};
-        const rows = safeNum(cfg.rows, 1, 10, 5);
-        const cols = safeNum(cfg.cols, 1, 16, 10);
+        const cfg = (window.GameConfig && window.GameConfig.enemy) || {};
+        const rows = Math.floor(safeNum(cfg.rows, 1, 12, 5));
+        const cols = Math.floor(safeNum(cfg.cols, 1, 20, 10));
         const colors = (Array.isArray(cfg.colors) && cfg.colors.length > 0) ? cfg.colors : ["#FFFF00", "#00FFFF", "#00FFFF", "#FF3399", "#FF3399"];
         const scores = (Array.isArray(cfg.scores) && cfg.scores.length > 0) ? cfg.scores : [30, 20, 20, 10, 10];
 
@@ -683,21 +697,27 @@
         // 画面幅 V_WIDTH (480px) の中に cols 列並べたときの最大編隊幅の目安
         // 画面左右に 50px 以上の移動余白を残すため、編隊幅は最大 350〜370px に収める
         const maxFormationW = Math.min(370, V_WIDTH - 90);
+        const maxFormationH = 250; // バンカーや自機に初期配置で接触しない最大縦幅
         const targetMaxUnitW = Math.floor(maxFormationW / Math.max(1, cols));
+        const targetMaxUnitH = Math.floor(maxFormationH / Math.max(1, rows));
         
-        // 敵のドット数に応じて pixelSize を動的に最適化 (大ドット絵でも画面に綺麗に収まる)
+        // 敵のドット数・行数・列数に応じて pixelSize を動的に最適化 (大ドット絵や大量の行数・列数でも画面に綺麗に収まる)
         let calcPixelSize = 2.0;
         if (maxEnemyCols * calcPixelSize > targetMaxUnitW) {
             calcPixelSize = Math.max(1.0, Math.floor((targetMaxUnitW / maxEnemyCols) * 10) / 10);
         }
+        if (maxEnemyRows * calcPixelSize > targetMaxUnitH - 4) {
+            calcPixelSize = Math.min(calcPixelSize, Math.max(1.0, Math.floor(((targetMaxUnitH - 4) / maxEnemyRows) * 10) / 10));
+        }
 
         const unitW = maxEnemyCols * calcPixelSize;
         const unitH = maxEnemyRows * calcPixelSize;
-        const spacingX = Math.max(unitW + 4, Math.floor(maxFormationW / Math.max(1, cols)));
-        const spacingY = Math.max(unitH + 6, 26);
+        const spacingX = Math.max(unitW + 3, Math.floor(maxFormationW / Math.max(1, cols)));
+        const idealSpacingY = Math.min(Math.max(unitH + 6, 26), Math.floor(maxFormationH / Math.max(1, rows)));
+        const spacingY = Math.max(unitH + 2, idealSpacingY);
         const formationW = (cols - 1) * spacingX + unitW;
         const startX = Math.max(15, Math.floor((V_WIDTH - formationW) / 2));
-        const baseStartY = 85;
+        const baseStartY = rows > 8 ? 72 : 85;
 
         for (let r = 0; r < rows; r++) {
             // スプライト種類の決定: 0行目=squid, 1-2行目=crab, 3行目以降=octopus
@@ -713,7 +733,7 @@
             const dims = getSpriteDimensions(spritePattern, pixelSize);
 
             const rowColor = colors[r % colors.length] || "#00FFFF";
-            const rowScore = scores[r % scores.length] || 10;
+            const rowScore = Math.floor(safeNum(scores[r % scores.length], 0, 99999999, 10));
 
             for (let c = 0; c < cols; c++) {
                 // ウェーブごとのフォーメーション変位
@@ -749,7 +769,7 @@
 
                 enemies.push({
                     x: startX + c * spacingX,
-                    y: baseStartY + r * spacingY + offsetY,
+                    y: Math.max(55, baseStartY + r * spacingY + offsetY),
                     origX: startX + c * spacingX,
                     width: dims.width,
                     height: dims.height,
@@ -781,10 +801,10 @@
     // ─────────────────────────────────────────────
     function initBunkers() {
         bunkers = [];
-        const cfg = window.GameConfig ? window.GameConfig.bunker : {};
+        const cfg = (window.GameConfig && window.GameConfig.bunker) || {};
         if (cfg.enabled === false) return;
 
-        const count = safeNum(cfg.count, 0, 8, 4);
+        const count = Math.floor(safeNum(cfg.count, 0, 8, 4));
         if (count <= 0) return;
 
         const color = cfg.color || "#33FF33";
@@ -873,12 +893,13 @@
     }
 
     function resetGame(fullReset = true, autoStart = false) {
-        const pCfg = window.GameConfig ? window.GameConfig.player : {};
+        ensureGlobalConfig();
+        const pCfg = (window.GameConfig && window.GameConfig.player) || {};
         const pSprite = getSprite("player");
         const pDims = getSpriteDimensions(pSprite, player.pixelSize);
         player.width = pDims.width;
         player.height = pDims.height;
-        player.speed = safeNum(pCfg.speed, 0, 50, 5);
+        player.speed = safeNum(pCfg.speed, 0.5, 100, 5);
         player.color = pCfg.color || "#00FF66";
         player.x = V_WIDTH / 2 - player.width / 2;
         const groundY = V_HEIGHT - 32;
@@ -888,9 +909,9 @@
             player.muzzle = { col: pCfg.muzzle.col, row: pCfg.muzzle.row };
         }
 
-        const uCfg = window.GameConfig ? window.GameConfig.ufo : {};
+        const uCfg = (window.GameConfig && window.GameConfig.ufo) || {};
         if (uCfg) {
-            ufo.speed = safeNum(uCfg.speed, 0.5, 30, 2.2);
+            ufo.speed = safeNum(uCfg.speed, 0.5, 50, 2.2);
             ufo.color = uCfg.color || "#FF0033";
         }
 
@@ -903,7 +924,7 @@
 
         if (fullReset) {
             applyGameSettings();
-            lives = Math.max(1, safeNum(pCfg.lives, 1, 99999, 3) + diffMod().lives);
+            lives = Math.max(1, Math.floor(safeNum(pCfg.lives, 1, 99999, 3)) + diffMod().lives);
             score = 0;
             wave = 1;
             playerPowerLevel = 1;
@@ -974,9 +995,9 @@
                 resetGame(true, false);
             } else if (shootCooldown <= 0) {
                 firePlayerBullet();
-                const pCfg = window.GameConfig ? window.GameConfig.player : {};
+                const pCfg = (window.GameConfig && window.GameConfig.player) || {};
                 const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
-                shootCooldown = safeNum(pCfg.fireInterval, 2, 60, preset.fireInterval);
+                shootCooldown = Math.floor(safeNum(pCfg.fireInterval, 1, 300, preset.fireInterval));
             }
         }
     }
@@ -1228,16 +1249,16 @@
     // ─────────────────────────────────────────────
     function firePlayerBullet() {
         if (gameState !== "PLAYING") return;
-        const bCfg = window.GameConfig ? window.GameConfig.bullet : {};
-        const pCfg = window.GameConfig ? window.GameConfig.player : {};
+        const bCfg = (window.GameConfig && window.GameConfig.bullet) || {};
+        const pCfg = (window.GameConfig && window.GameConfig.player) || {};
         const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
-        const maxBullets = safeNum(pCfg.maxBullets, 1, 100, preset.maxBullets);
+        const maxBullets = Math.floor(safeNum(pCfg.maxBullets, 1, 300, preset.maxBullets));
 
         if (playerBullets.length >= maxBullets) return;
 
-        const bw = safeNum(bCfg.width, 1, 100, 3);
-        const bh = safeNum(bCfg.height, 2, 100, 12);
-        const spd = safeNum(bCfg.speed, -100, -1, -8);
+        const bw = safeNum(bCfg.width, 1, V_WIDTH, 3);
+        const bh = safeNum(bCfg.height, 1, 200, 12);
+        const spd = safeNum(bCfg.speed, -200, -1, -8);
         const col = bCfg.color || "#FFFF00";
 
         const pSprite = getSprite("player");
@@ -1317,9 +1338,9 @@
     }
 
     function fireEnemyBullet(enemy) {
-        const eCfg = window.GameConfig ? window.GameConfig.enemy : {};
+        const eCfg = (window.GameConfig && window.GameConfig.enemy) || {};
         const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
-        const spd = safeNum(eCfg.bulletSpeed, 1, 10, 3.5) * diffMod().speed;
+        const spd = safeNum(eCfg.bulletSpeed, 0.5, 25, 3.5) * diffMod().speed;
 
         // Wave 2以降、一部の弾をプレイヤー狙いのエイム弾にする
         let vx = 0;
@@ -1343,12 +1364,12 @@
     // UFO ロジック
     // ─────────────────────────────────────────────
     function updateUFO() {
-        const uCfg = window.GameConfig ? window.GameConfig.ufo : {};
+        const uCfg = (window.GameConfig && window.GameConfig.ufo) || {};
         if (uCfg.enabled === false) return;
 
-        const interval = safeNum(uCfg.interval, 5, 60, 18) * 60; // フレーム換算
+        const interval = safeNum(uCfg.interval, 1, 120, 18) * 60; // フレーム換算
         ufo.color = uCfg.color || "#FF0033";
-        ufo.speed = safeNum(uCfg.speed, 1, 10, 2.2);
+        ufo.speed = safeNum(uCfg.speed, 0.5, 50, 2.2);
 
         if (!ufo.active) {
             ufo.timer++;
@@ -1372,8 +1393,8 @@
     // メイン更新 (Update Loop)
     // ─────────────────────────────────────────────
     function update() {
-        const eCfg = window.GameConfig ? window.GameConfig.enemy : {};
-        const pCfg = window.GameConfig ? window.GameConfig.player : {};
+        const eCfg = (window.GameConfig && window.GameConfig.enemy) || {};
+        const pCfg = (window.GameConfig && window.GameConfig.player) || {};
         const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
 
         if (window.GameConfig && window.GameConfig.display && typeof window.GameConfig.display.sound === 'boolean') {
@@ -1397,7 +1418,7 @@
         if (gameState !== "PLAYING") return;
 
         // プレイヤー移動
-        player.speed = safeNum(pCfg.speed, 1, 20, 5);
+        player.speed = safeNum(pCfg.speed, 0.5, 100, 5);
         player.color = pCfg.color || "#00FF66";
         if (keys.left) player.x -= player.speed;
         if (keys.right) player.x += player.speed;
@@ -1408,16 +1429,16 @@
             shootCooldown--;
             if (shootCooldown <= 0) {
                 firePlayerBullet();
-                shootCooldown = safeNum(pCfg.fireInterval, 2, 60, preset.fireInterval);
+                shootCooldown = Math.floor(safeNum(pCfg.fireInterval, 1, 300, preset.fireInterval));
             }
         }
 
-        // プレイヤーの弾移動
+        // プレイヤーの弾移動 (巨大な弾幅でも画面左端で消えないよう b.x + b.width < 0 で判定)
         for (let i = playerBullets.length - 1; i >= 0; i--) {
             const b = playerBullets[i];
             b.x += (b.vx || 0);
             b.y += b.speed;
-            if (b.y < 35 || b.x < 0 || b.x > V_WIDTH) {
+            if (b.y + b.height < 30 || b.y > V_HEIGHT + 50 || b.x + b.width < 0 || b.x > V_WIDTH) {
                 playerBullets.splice(i, 1);
             }
         }
@@ -1463,7 +1484,7 @@
             playerPowerLevel = Math.min(3, wave);
 
             // 防壁の毎ウェーブ再生
-            const bCfg = window.GameConfig ? window.GameConfig.bunker : {};
+            const bCfg = (window.GameConfig && window.GameConfig.bunker) || {};
             const regenerate = (bCfg.regenerateEachWave !== false);
             if (regenerate) {
                 initBunkers();
@@ -1476,9 +1497,9 @@
         }
 
         // 残り匹数に応じた行進テンポの加速
-        const baseSpeed = safeNum(eCfg.speed, 0.2, 5, 1.0);
+        const baseSpeed = safeNum(eCfg.speed, 0.1, 50, 1.0);
         const aliveRatio = aliveEnemies.length / enemies.length;
-        stepInterval = Math.max(4, Math.floor((40 * aliveRatio) / baseSpeed));
+        stepInterval = Math.max(1, Math.floor((40 * aliveRatio) / baseSpeed));
 
         stepTimer++;
         if (stepTimer >= stepInterval) {
@@ -1496,7 +1517,7 @@
                 }
             }
 
-            const dropAmount = safeNum(eCfg.dropAmount, 2, 40, 14);
+            const dropAmount = safeNum(eCfg.dropAmount, 0, 80, 14);
 
             if (hitEdge) {
                 enemyDir *= -1;
@@ -1528,7 +1549,7 @@
         }
 
         // ── 敵の射撃 ──
-        const shootInterval = Math.max(10, safeNum(eCfg.shootInterval, 10, 200, 50) * diffMod().interval);
+        const shootInterval = Math.max(2, safeNum(eCfg.shootInterval, 2, 600, 50) * diffMod().interval);
         if (Math.random() < (1.0 / shootInterval)) {
             const bottomEnemies = [];
             const colMap = {};
@@ -1540,7 +1561,7 @@
             for (let col in colMap) {
                 bottomEnemies.push(colMap[col]);
             }
-            if (bottomEnemies.length > 0 && enemyBullets.length < 5) {
+            if (bottomEnemies.length > 0 && enemyBullets.length < 8) {
                 const shooter = bottomEnemies[Math.floor(Math.random() * bottomEnemies.length)];
                 fireEnemyBullet(shooter);
             }
@@ -1558,8 +1579,8 @@
                     ufo.active = false;
                     playerBullets.splice(bi, 1);
                     bulletRemoved = true;
-                    const uCfg = window.GameConfig ? window.GameConfig.ufo : {};
-                    const uScore = safeNum(uCfg.bonusScore, 50, 1000, 300);
+                    const uCfg = (window.GameConfig && window.GameConfig.ufo) || {};
+                    const uScore = Math.floor(safeNum(uCfg.bonusScore, 0, 99999999, 300));
                     score += uScore;
                     if (score > hiScore) {
                         hiScore = score;
@@ -1602,7 +1623,7 @@
             if (bulletRemoved) continue;
 
             // 防壁との判定 (自弾が貫通するかどうか)
-            const bCfg = window.GameConfig ? window.GameConfig.bunker : {};
+            const bCfg = (window.GameConfig && window.GameConfig.bunker) || {};
             const passThrough = (bCfg.passThroughPlayer !== false) && !diffMod().noPassThrough;
 
             if (!passThrough) {
@@ -1628,12 +1649,13 @@
             }
         }
 
-        // ── 当たり判定: 敵弾 vs プレイヤー弾 (相殺) ──
+        // ── 当たり判定: 敵弾 vs プレイヤー弾 (相殺: 幅広弾にも対応するAABB判定) ──
         for (let bi = playerBullets.length - 1; bi >= 0; bi--) {
             const pb = playerBullets[bi];
             for (let ebi = enemyBullets.length - 1; ebi >= 0; ebi--) {
                 const eb = enemyBullets[ebi];
-                if (Math.abs(pb.x - eb.x) < 5 && Math.abs(pb.y - eb.y) < 8) {
+                if (pb.x < eb.x + eb.width + 2 && pb.x + pb.width > eb.x - 2 &&
+                    pb.y < eb.y + eb.height + 2 && pb.y + pb.height > eb.y - 2) {
                     playerBullets.splice(bi, 1);
                     enemyBullets.splice(ebi, 1);
                     break;
@@ -1663,7 +1685,7 @@
         ctx.clearRect(0, 0, V_WIDTH, V_HEIGHT);
 
         // 1. 宇宙背景の描画
-        const dCfg = window.GameConfig ? window.GameConfig.display : {};
+        const dCfg = (window.GameConfig && window.GameConfig.display) || {};
         const bgChoice = (dCfg && dCfg.background) || "space-bg";
 
         let bgDrawn = false;
@@ -1871,17 +1893,17 @@
         player.width = pDims.width;
         player.height = pDims.height;
         player.color = pCfg.color || "#00FF66";
-        player.speed = safeNum(pCfg.speed, 0, 50, player.speed);
+        player.speed = safeNum(pCfg.speed, 0.5, 100, player.speed);
         if (pCfg.muzzle) {
             player.muzzle = { col: pCfg.muzzle.col, row: pCfg.muzzle.row };
         }
 
-        // 敵の更新（色、サイズ）
-        const colors = eCfg.colors || [];
+        // 敵の更新（色、スコア、サイズ）
+        const colors = (Array.isArray(eCfg.colors) && eCfg.colors.length > 0) ? eCfg.colors : ["#FFFF00", "#00FFFF", "#00FFFF", "#FF3399", "#FF3399"];
+        const scores = (Array.isArray(eCfg.scores) && eCfg.scores.length > 0) ? eCfg.scores : [30, 20, 20, 10, 10];
         for (let enemy of enemies) {
-            if (enemy.row === 0) enemy.color = colors[0] || "#FFFF00";
-            else if (enemy.row === 1 || enemy.row === 2) enemy.color = colors[1] || "#00FFFF";
-            else enemy.color = colors[3] || colors[colors.length - 1] || "#FF3399";
+            enemy.color = colors[enemy.row % colors.length] || "#00FFFF";
+            enemy.score = Math.floor(safeNum(scores[enemy.row % scores.length], 0, 99999999, enemy.score || 10));
 
             const sprite = getSprite(enemy.type, enemy.animFrame);
             const dims = getSpriteDimensions(sprite, enemy.pixelSize);
@@ -1892,10 +1914,10 @@
         // UFOの更新
         if (uCfg) {
             ufo.color = uCfg.color || "#FF0033";
-            ufo.speed = safeNum(uCfg.speed, 0.5, 30, ufo.speed);
+            ufo.speed = safeNum(uCfg.speed, 0.5, 50, ufo.speed);
         }
 
-        // 弾の色の更新
+        // 弾の色・サイズの更新
         const bCfg = cfg.bullet || {};
         for (let b of playerBullets) {
             b.color = bCfg.color || "#FFFF00";
@@ -1905,6 +1927,7 @@
     // ドット絵エディタからのリアルタイム更新受け口
     window.updateLiveSpritePreview = function(key, pattern, muzzle) {
         if (!key || !pattern || !Array.isArray(pattern)) return;
+        ensureGlobalConfig();
         if (!window.GameConfig) window.GameConfig = {};
         if (!window.GameConfig.sprites) window.GameConfig.sprites = {};
         window.GameConfig.sprites[key] = pattern;
