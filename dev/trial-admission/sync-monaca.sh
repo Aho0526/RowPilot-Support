@@ -6,4 +6,7 @@ for f in index.html style.css core.js config.js linter.js monaca-bridge.js; do
     cp "$f" "monaca-project/www/$f"
 done
 cp -R assets/. monaca-project/www/assets/
+if [ -f "LICENSE" ]; then
+    cp "LICENSE" "monaca-project/LICENSE"
+fi
 echo "monaca-project/www を更新しました"

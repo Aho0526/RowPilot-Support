@@ -16,12 +16,12 @@
     function ensureCanvas() {
         if (!canvas) {
             canvas = document.getElementById("gameCanvas");
-            if (canvas) {
+            if (canvas && typeof canvas.getContext === 'function') {
                 ctx = canvas.getContext("2d");
                 canvas.width = V_WIDTH;
                 canvas.height = V_HEIGHT;
             }
-        } else if (!ctx) {
+        } else if (!ctx && typeof canvas.getContext === 'function') {
             ctx = canvas.getContext("2d");
             canvas.width = V_WIDTH;
             canvas.height = V_HEIGHT;
@@ -526,12 +526,23 @@
     }
 
 
-    // ─────────────────────────────────────────────
-    // ゲーム状態
-    // ─────────────────────────────────────────────
+    // 安全なハイスコア保存・読込ヘルパー（プライベートブラウズやiframeでのSecurityErrorを防止）
+    function getStoredHiScore() {
+        try {
+            return parseInt(localStorage.getItem("invader_hiscore") || "0", 10) || 0;
+        } catch(e) {
+            return 0;
+        }
+    }
+    function saveStoredHiScore(val) {
+        try {
+            localStorage.setItem("invader_hiscore", String(val));
+        } catch(e) {}
+    }
+
     let gameState = "READY"; // "READY", "PLAYING", "PLAYER_DYING", "GAME_OVER", "CLEAR"
     let score = 0;
-    let hiScore = parseInt(localStorage.getItem("invader_hiscore") || "0", 10);
+    let hiScore = getStoredHiScore();
     let wave = 1;
     let maxWaves = 3; // クリアに必要なウェーブ数 (3 または 5)
     let currentDifficulty = "normal"; // "easy", "normal", "hard"
@@ -653,8 +664,8 @@
         const cfg = window.GameConfig ? window.GameConfig.enemy : {};
         const rows = safeNum(cfg.rows, 1, 10, 5);
         const cols = safeNum(cfg.cols, 1, 16, 10);
-        const colors = cfg.colors || ["#FFFF00", "#00FFFF", "#00FFFF", "#FF3399", "#FF3399"];
-        const scores = cfg.scores || [30, 20, 20, 10, 10];
+        const colors = (Array.isArray(cfg.colors) && cfg.colors.length > 0) ? cfg.colors : ["#FFFF00", "#00FFFF", "#00FFFF", "#FF3399", "#FF3399"];
+        const scores = (Array.isArray(cfg.scores) && cfg.scores.length > 0) ? cfg.scores : [30, 20, 20, 10, 10];
 
         // 画面幅に合わせた等間隔配置
         // 各種敵スプライトのドット数・寸法を事前調査
@@ -1038,8 +1049,9 @@
     function renderHomePreviewSprites() {
         function drawToCanvas(canvasId, spriteKey, color, pixelSize = 2, frame = 0) {
             const cvs = document.getElementById(canvasId);
-            if (!cvs) return;
+            if (!cvs || typeof cvs.getContext !== 'function') return;
             const cCtx = cvs.getContext("2d");
+            if (!cCtx) return;
             cCtx.clearRect(0, 0, cvs.width, cvs.height);
             const pattern = getSprite(spriteKey, frame);
             if (!pattern || pattern.length === 0) return;
@@ -1551,7 +1563,7 @@
                     score += uScore;
                     if (score > hiScore) {
                         hiScore = score;
-                        localStorage.setItem("invader_hiscore", hiScore);
+                        saveStoredHiScore(hiScore);
                     }
                     Sound.playUFOHit();
                     explosions.push({
@@ -1574,7 +1586,7 @@
                     score += e.score;
                     if (score > hiScore) {
                         hiScore = score;
-                        localStorage.setItem("invader_hiscore", hiScore);
+                        saveStoredHiScore(hiScore);
                     }
                     Sound.playInvaderHit();
                     explosions.push({

@@ -92,21 +92,23 @@
     // 既知の代表的CSSプロパティ一覧（タイポ検知用）
     const KNOWN_CSS_PROPERTIES = new Set([
         // 配置・レイアウト
-        'position', 'top', 'right', 'bottom', 'left', 'inset', 'z-index',
+        'position', 'top', 'right', 'bottom', 'left', 'inset', 'inset-block', 'inset-inline', 'z-index',
         'display', 'flex', 'flex-basis', 'flex-direction', 'flex-flow', 'flex-grow', 'flex-shrink', 'flex-wrap',
         'justify-content', 'align-items', 'align-content', 'align-self', 'justify-items', 'justify-self', 'gap', 'row-gap', 'column-gap', 'order',
         'grid', 'grid-area', 'grid-auto-columns', 'grid-auto-flow', 'grid-auto-rows', 'grid-column', 'grid-column-end', 'grid-column-gap', 'grid-column-start',
         'grid-row', 'grid-row-end', 'grid-row-gap', 'grid-row-start', 'grid-template', 'grid-template-areas', 'grid-template-columns', 'grid-template-rows',
+        // コンテナクエリ
+        'container', 'container-name', 'container-type',
         // ボックスモデル・サイズ
         'width', 'min-width', 'max-width', 'height', 'min-height', 'max-height', 'aspect-ratio', 'box-sizing',
         'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'margin-inline', 'margin-block',
         'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', 'padding-inline', 'padding-block',
-        'overflow', 'overflow-x', 'overflow-y', 'overflow-wrap', 'overscroll-behavior', 'overscroll-behavior-x', 'overscroll-behavior-y',
+        'overflow', 'overflow-x', 'overflow-y', 'overflow-wrap', 'overscroll-behavior', 'overscroll-behavior-x', 'overscroll-behavior-y', 'overscroll-behavior-inline', 'overscroll-behavior-block',
         'visibility', 'clip-path', 'float', 'clear',
         // 背景・境界線
         'background', 'background-color', 'background-image', 'background-position', 'background-position-x', 'background-position-y',
         'background-repeat', 'background-size', 'background-attachment', 'background-clip', 'background-origin',
-        'border', 'border-top', 'border-right', 'border-bottom', 'border-left',
+        'border', 'border-top', 'border-right', 'border-bottom', 'border-left', 'border-inline', 'border-block',
         'border-width', 'border-style', 'border-color',
         'border-top-width', 'border-top-style', 'border-top-color',
         'border-right-width', 'border-right-style', 'border-right-color',
@@ -116,20 +118,26 @@
         'border-collapse', 'border-spacing',
         'outline', 'outline-color', 'outline-style', 'outline-width', 'outline-offset',
         'box-shadow', 'box-decoration-break',
+        // マスク
+        'mask', 'mask-image', 'mask-size', 'mask-repeat', 'mask-position',
         // 文字・タイポグラフィ
-        'color', 'font', 'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant', 'font-variant-numeric', 'font-display',
+        'color', 'font', 'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant', 'font-variant-numeric', 'font-variant-caps', 'font-variant-east-asian', 'font-variant-ligatures', 'font-display',
+        'font-feature-settings', 'font-variation-settings', 'font-synthesis',
         'line-height', 'letter-spacing', 'word-spacing', 'text-align', 'text-align-last',
         'text-decoration', 'text-decoration-line', 'text-decoration-color', 'text-decoration-style',
         'text-transform', 'text-indent', 'text-shadow', 'text-overflow', 'white-space', 'word-break',
-        // アニメーション・エフェクト・操作
+        'text-wrap', 'text-wrap-mode', 'text-wrap-style', 'writing-mode', 'text-orientation', 'direction',
+        // アニメーション・エフェクト・操作・スクロール
         'opacity', 'transform', 'transform-origin', 'transform-style', 'perspective', 'perspective-origin',
         'transition', 'transition-property', 'transition-duration', 'transition-timing-function', 'transition-delay',
         'animation', 'animation-name', 'animation-duration', 'animation-timing-function', 'animation-delay', 'animation-iteration-count', 'animation-direction', 'animation-fill-mode', 'animation-play-state',
         'cursor', 'pointer-events', 'user-select', 'touch-action', 'resize', 'appearance',
-        'filter', 'backdrop-filter', 'content', 'quotes', 'tab-size', 'caret-color', 'accent-color',
-        'will-change', 'isolation', 'image-rendering', 'object-fit', 'object-position', 'contain', 'contain-intrinsic-size',
+        'filter', 'backdrop-filter', 'content', 'quotes', 'tab-size', 'caret-color', 'accent-color', 'color-scheme',
+        'will-change', 'isolation', 'image-rendering', 'object-fit', 'object-position', 'contain', 'contain-intrinsic-size', 'contain-intrinsic-width', 'contain-intrinsic-height',
+        'scroll-behavior', 'scrollbar-gutter', 'scrollbar-width', 'scrollbar-color',
+        'scroll-snap-type', 'scroll-snap-align', 'scroll-snap-stop', 'scroll-margin', 'scroll-padding',
         'table-layout', 'vertical-align', 'list-style', 'list-style-type', 'list-style-position', 'list-style-image',
-        'word-wrap', 'line-break', 'hyphens', 'scrollbar-width', 'scrollbar-color',
+        'word-wrap', 'line-break', 'hyphens',
         // SVG
         'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-dasharray', 'stroke-dashoffset', 'stroke-opacity', 'fill-opacity'
     ]);
@@ -2499,11 +2507,33 @@
         if (filename.endsWith('.html')) {
             let configScriptLine = -1;
             let coreScriptLine = -1;
+            let inScript = false;
+            let inStyle = false;
 
             for (let i = 0; i < lines.length; i++) {
                 const rawLine = lines[i];
+                const trimmed = rawLine.trim();
+
                 // コメント行は除外
-                if (rawLine.trim().startsWith('<!--')) continue;
+                if (trimmed.startsWith('<!--')) continue;
+
+                // <script> や <style> タグ内のインラインコードは HTML 属性チェックから除外
+                // (例: window.location.href = 'editor/?from=game' を HTML 属性と誤認しない)
+                if (inScript) {
+                    if (/<\/script>/i.test(rawLine)) inScript = false;
+                    continue;
+                }
+                if (inStyle) {
+                    if (/<\/style>/i.test(rawLine)) inStyle = false;
+                    continue;
+                }
+
+                if (/<script\b/i.test(rawLine) && !/<\/script>/i.test(rawLine)) {
+                    inScript = true;
+                }
+                if (/<style\b/i.test(rawLine) && !/<\/style>/i.test(rawLine)) {
+                    inStyle = true;
+                }
 
                 // src="..." または href="..." の参照先ファイル存在チェック
                 const refRegex = /\b(src|href)\s*=\s*["']([^"']+)["']/gi;
@@ -2512,7 +2542,11 @@
                     const attr = rMatch[1];
                     const refVal = rMatch[2];
                     const resolved = resolveProjectPath(filename, refVal);
-                    if (resolved && !fileExistsInProject(resolved)) {
+
+                    // 公知のページ遷移パス（editor/ や ../ 等）は外部ナビゲーションのため除外
+                    const isKnownNavPath = (refVal === 'editor/' || refVal === 'editor' || refVal === '../' || refVal === './' || resolved === 'editor/index.html' || resolved === 'index.html');
+
+                    if (resolved && !fileExistsInProject(resolved) && !isKnownNavPath) {
                         const allKeys = Object.keys(allFiles);
                         const closestFile = findClosestInCollection(resolved, allKeys, 3);
                         issues.push(createIssue(
