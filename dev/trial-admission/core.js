@@ -1892,6 +1892,8 @@
         const pDims = getSpriteDimensions(pSprite, player.pixelSize);
         player.width = pDims.width;
         player.height = pDims.height;
+        const groundY = V_HEIGHT - 32;
+        player.y = groundY - 4 - player.height;
         player.color = pCfg.color || "#00FF66";
         player.speed = safeNum(pCfg.speed, 0.5, 100, player.speed);
         if (pCfg.muzzle) {

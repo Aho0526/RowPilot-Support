@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Web Editor</title>
+    <link rel="stylesheet" href="ide.css?v=1.1">
+    <link rel="stylesheet" href="sticky-scroll.css?v=1.1">
+</head>
+
+<body>
+    <!-- ヘッダーツールバー -->
+    <header class="studio-header">
+        <div class="header-brand-group">
+            <div class="header-brand">
+                <span class="brand-title">Web Editor</span>
+            </div>
+
+            <!-- 戻る / 進む (Undo / Redo) ボタン -->
+            <div class="header-history-controls" id="header-history-controls">
+                <button type="button" id="btn-top-undo" class="history-action-btn" title="直前の変更を元に戻す (Ctrl+Z / ⌘Z)"
+                    aria-label="元に戻す" disabled>
+                    <svg viewBox="0 0 24 24" class="history-icon" fill="currentColor">
+                        <path
+                            d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.2 3.16-1.98 5.12-1.98 3.77 0 6.96 2.62 7.78 6.18l2.42-.76C21.46 11.23 17.38 8 12.5 8z" />
+                    </svg>
+                </button>
+                <button type="button" id="btn-top-redo" class="history-action-btn"
+                    title="元に戻した変更をやり直す (Ctrl+Y / ⌘Shift+Z)" aria-label="やり直す" disabled>
+                    <svg viewBox="0 0 24 24" class="history-icon" fill="currentColor">
+                        <path
+                            d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.88 0-8.96 3.23-10.2 7.62l2.42.76c.82-3.56 4.01-6.18 7.78-6.18 1.96 0 3.73.78 5.12 1.98L13 16h9V7l-3.6 3.6z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <!-- フォルダを開く (File System Access API) -->
+            <button type="button" id="btn-open-folder" class="action-btn open-folder-btn"
+                title="PCのフォルダを直接開いてブラウザで編集・保存">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>フォルダを開く</span>
+            </button>
+
+            <!-- ZIP書き出し -->
+            <button type="button" id="btn-export-zip" class="action-btn export-zip-btn"
+                title="プロジェクト一式をZIPファイルでダウンロード">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>ZIP書き出し</span>
+            </button>
+
+            <!-- 保存してプレビュー反映 -->
+            <button type="button" id="btn-save" class="action-btn save-btn" title="コードを保存してプレビューに反映 (⌘S / Ctrl+S)">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>保存して実行</span>
+                <kbd class="key-shortcut">⌘S</kbd>
+            </button>
+
+            <!-- コードコピー -->
+            <button type="button" id="btn-copy-code" class="action-btn secondary-btn" title="開いているファイルのコードをコピー">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>コピー</span>
+            </button>
+
+            <!-- テーマ切り替え (ライト / ダーク) -->
+            <button type="button" id="btn-theme-toggle" class="action-btn secondary-btn theme-toggle-btn"
+                title="ライトテーマ / ダークテーマを切り替えます">
+                <svg class="btn-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg class="btn-icon theme-icon-moon" style="display: none;" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+                <span id="theme-btn-text">ライト</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- メインワークスペース -->
+    <main class="studio-workspace">
+        <!-- 左サイドバー: ファイルツリー -->
+        <aside class="studio-sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-title">エクスプローラー</span>
+                <div class="sidebar-actions">
+                    <button type="button" id="btn-tree-new-file" class="sidebar-icon-btn" title="新規ファイル作成">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                            <path d="M9 1H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6L9 1z" stroke-width="1.2" />
+                            <polyline points="9 1 9 6 14 6" stroke-width="1.2" />
+                            <line x1="8" y1="9" x2="8" y2="13" stroke-width="1.4" stroke-linecap="round" />
+                            <line x1="6" y1="11" x2="10" y2="11" stroke-width="1.4" stroke-linecap="round" />
+                        </svg>
+                    </button>
+                    <button type="button" id="btn-tree-new-folder" class="sidebar-icon-btn" title="新規フォルダ作成">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                            <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h3l2 2H14a1.5 1.5 0 0 1 1.5 1.5V13a1.5 1.5 0 0 1-1.5 1.5H2.5A1.5 1.5 0 0 1 1 13V3.5z" stroke-width="1.2" />
+                            <line x1="8" y1="8" x2="8" y2="12" stroke-width="1.4" stroke-linecap="round" />
+                            <line x1="6" y1="10" x2="10" y2="10" stroke-width="1.4" stroke-linecap="round" />
+                        </svg>
+                    </button>
+                    <button type="button" id="btn-tree-refresh" class="sidebar-icon-btn" title="再読み込み">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                            <path d="M13.5 8a5.5 5.5 0 1 1-1.2-3.4L14 3m0 0v4m0-4h-4" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <nav class="file-list" id="file-list">
+                <!-- 動的にツリー生成 -->
+            </nav>
+        </aside>
+
+        <!-- 中央: コードエディタ / 画像ビューア -->
+        <section class="studio-editor-pane" id="editor-pane">
+            <div class="editor-tabs-bar" id="editor-tabs-bar">
+                <div class="editor-tabs" id="editor-tabs">
+                    <!-- 動的生成 -->
+                </div>
+                <button type="button" class="unsaved-status-pill" id="unsaved-status-pill" style="display: none;"
+                    title="変更を保存して反映 (↑「保存して実行」または ⌘S)">
+                    <span class="unsaved-dot"></span>
+                    <span class="unsaved-status-text">未保存の変更があります</span>
+                    <span class="unsaved-guide-arrow" aria-hidden="true">
+                        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor"
+                            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="8" y1="13" x2="8" y2="3"></line>
+                            <polyline points="4 7 8 3 12 7"></polyline>
+                        </svg>
+                    </span>
+                </button>
+            </div>
+
+            <!-- コード編集エリア -->
+            <div class="editor-body" id="editor-body-container">
+                <!-- スティッキースクロール -->
+                <div class="editor-sticky-scroll-container" id="editor-sticky-scroll-container" style="display: none;">
+                    <div class="sticky-scroll-lines" id="sticky-scroll-lines"></div>
+                </div>
+
+                <div class="line-numbers" id="line-numbers">
+                    <div class="line-numbers-inner" id="line-numbers-inner"></div>
+                </div>
+                <div class="editor-code-container">
+                    <pre class="code-highlight" id="code-highlight" aria-hidden="true"></pre>
+                    <textarea class="code-textarea" id="code-textarea" spellcheck="false" autocomplete="off"
+                        autocapitalize="off"></textarea>
+                </div>
+                <!-- ミニマップ (コードマップ) -->
+                <div class="editor-minimap-wrap" id="editor-minimap-wrap" title="コードマップ（クリックまたはドラッグで移動）">
+                    <canvas class="editor-minimap-canvas" id="editor-minimap-canvas"></canvas>
+                    <div class="editor-minimap-slider" id="editor-minimap-slider"></div>
+                    <div class="editor-minimap-gutter" id="editor-minimap-gutter"></div>
+                </div>
+            </div>
+
+            <!-- 画像ビューアエリア (画像ファイル選択時に展開) -->
+            <div class="image-viewer-pane" id="image-viewer-pane" style="display: none;">
+                <div class="image-viewer-header">
+                    <div class="image-meta-info">
+                        <span class="image-path-chip" id="image-viewer-path">image.png</span>
+                        <span class="image-dim-chip" id="image-viewer-dims">0 × 0 px</span>
+                        <span class="image-type-chip" id="image-viewer-type">IMAGE</span>
+                    </div>
+                    <div class="image-viewer-actions">
+                        <button type="button" class="image-action-btn secondary" id="btn-copy-image-path"
+                            title="画像パスをクリップボードにコピー">
+                            <span>パスをコピー</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="image-viewer-viewport">
+                    <div class="image-preview-frame">
+                        <img id="image-viewer-img" src="" alt="画像プレビュー" class="image-preview-element">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 構文チェック・診断バー（初心者向けエラー表示） -->
+            <div class="editor-diagnostics-bar" id="editor-diagnostics-bar">
+                <div class="diagnostics-summary" id="diagnostics-summary">
+                    <span class="diagnostics-status-dot ok" id="diagnostics-status-dot">●</span>
+                    <span class="diagnostics-status-text" id="diagnostics-status-text">エラーはありません</span>
+                </div>
+                <div class="diagnostics-actions">
+                    <button type="button" class="diagnostics-toggle-btn" id="btn-toggle-diagnostics">詳細を表示</button>
+                </div>
+            </div>
+
+            <!-- 診断パネル（展開式＆リサイズ可能） -->
+            <div class="editor-diagnostics-panel" id="editor-diagnostics-panel" style="display: none;">
+                <!-- ドラッグ式リサイザーバー -->
+                <div class="diagnostics-panel-resizer" id="diagnostics-panel-resizer"
+                    title="ドラッグしてエラーパネルの高さを調整（ダブルクリックで既定値）">
+                    <div class="resizer-handle-grip"></div>
+                </div>
+                <div class="diagnostics-panel-header">
+                    <span class="diagnostics-panel-title" id="diagnostics-panel-title">構文チェック結果</span>
+                    <span class="diagnostics-panel-subtitle">項目をクリックすると、そのファイルの該当行へジャンプします</span>
+                </div>
+                <div class="diagnostics-list" id="diagnostics-list">
+                    <!-- 動的生成 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ドラッグ式リサイザーバー -->
+        <div class="pane-resizer" id="pane-resizer" title="ドラッグして画面幅を調整"></div>
+
+        <!-- 右ペイン: プレビュー画面 & 内蔵コンソール -->
+        <section class="studio-preview-pane" id="preview-pane">
+            <!-- ブラウザ風アドレスバー -->
+            <div class="preview-browser-toolbar">
+                <button type="button" id="btn-preview-refresh" class="preview-nav-btn" title="プレビューを再読み込み">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                </button>
+                <div class="preview-address-bar">
+                    <span class="preview-security-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </span>
+                    <span class="preview-url-text" id="preview-url-text">http://localhost:8080/index.html</span>
+                </div>
+                <button type="button" id="btn-toggle-console" class="preview-toggle-console-btn" title="内蔵コンソールを開閉">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="4 17 10 11 4 5"></polyline>
+                        <line x1="12" y1="19" x2="20" y2="19"></line>
+                    </svg>
+                    <span>コンソール</span>
+                    <span class="console-badge" id="console-error-badge">0</span>
+                </button>
+                <button type="button" id="btn-open-external" class="preview-nav-btn" title="別ウィンドウで開く">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- iframe プレビュー本体 -->
+            <div class="preview-stage-container" id="preview-stage">
+                <iframe class="preview-iframe" id="preview-iframe" title="Webプレビュー"
+                    sandbox="allow-scripts allow-modals allow-forms allow-same-origin" src="about:blank"></iframe>
+            </div>
+
+            <!-- 内蔵コンソールペイン -->
+            <div class="studio-console-pane" id="studio-console-pane">
+                <div class="console-resizer" id="console-resizer"></div>
+                <div class="console-header">
+                    <div class="console-header-left">
+                        <span class="console-title">コンソール (Console)</span>
+                    </div>
+                    <button type="button" id="btn-clear-console" class="console-clear-btn" title="ログをクリア">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        <span>クリア</span>
+                    </button>
+                </div>
+                <div class="console-body" id="console-body">
+                    <div class="console-empty-notice" id="console-empty-notice">
+                        console.log() やエラーがここに出力されます
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- モーダルダイアログ (ファイル作成・リネーム・削除) -->
+    <div class="ide-modal-backdrop" id="ide-modal-backdrop">
+        <div class="ide-modal" id="ide-modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">新規ファイル作成</h3>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <label class="modal-input-label" id="modal-input-label" for="modal-input">ファイル名:</label>
+                <input type="text" class="modal-input" id="modal-input" placeholder="例: script.js">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-btn secondary" id="btn-modal-cancel">キャンセル</button>
+                <button type="button" class="modal-btn primary" id="btn-modal-confirm">作成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ドラッグ＆ドロップ ZIP展開オーバーレイ -->
+    <div class="drag-drop-overlay" id="drag-drop-overlay">
+        <div class="drag-drop-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+        </div>
+        <div class="drag-drop-title">ZIPファイルをドロップしてプロジェクトを展開</div>
+        <div class="drag-drop-sub">フォルダ構造をそのまま読み込みます</div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div class="toast-notice" id="ide-toast">
+        <span id="ide-toast-msg">保存しました</span>
+    </div>
+
+    <!-- JSZip ライブラリ (ZIP展開 & ZIP書き出し用) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <script src="linter.js?v=1.0"></script>
+    <script src="sticky-scroll.js?v=1.0"></script>
+    <script src="ide.js?v=1.0"></script>
+</body>
+
+</html>

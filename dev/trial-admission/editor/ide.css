@@ -190,21 +190,22 @@ body {
     display: none;
 }
 
-/* 保存ボタン (最も目立つプライマリボタン) */
+/* 保存ボタン (未保存差分がない通常時は落ち着いた佇まい、差分発生時のみ鮮やかに光る) */
 .save-btn {
-    background: linear-gradient(180deg, #2ea043 0%, #238636 100%);
-    border: 1px solid #3fb950;
-    color: #ffffff;
-    box-shadow: 0 2px 6px rgba(46, 160, 67, 0.35);
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #cbd5e1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .save-btn:hover {
-    background: linear-gradient(180deg, #38ac4f 0%, #2ea043 100%);
-    border-color: #56d364;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #f1f5f9;
 }
 
 .save-btn:active {
-    background-color: #1a6327;
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 body.is-sprite-editor #btn-save {
@@ -616,18 +617,19 @@ body.theme-light .unsaved-guide-arrow {
     color: #b45309;
 }
 
-/* ヘッダーの保存ボタン強調 (ふわふわ光るAI風アニメーションを撤廃し、ソリッドで洗練されたエディタ標準トーンへ) */
+/* ヘッダーの保存ボタン強調 (未保存差分がある時のみ鮮やかな緑色とグローで光らせる) */
 .action-btn.save-btn.has-unsaved {
-    background-color: #238636;
-    border-color: #2ea043;
+    background: linear-gradient(180deg, #2ea043 0%, #238636 100%);
+    border-color: #3fb950;
     color: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 10px rgba(46, 160, 67, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
     font-weight: 700;
 }
 
 .action-btn.save-btn.has-unsaved:hover {
-    background-color: #2ea043;
-    border-color: #3fb950;
+    background: linear-gradient(180deg, #38ac4f 0%, #2ea043 100%);
+    border-color: #56d364;
+    box-shadow: 0 0 14px rgba(46, 160, 67, 0.6), 0 2px 5px rgba(0, 0, 0, 0.4);
 }
 
 .editor-body {
@@ -2386,17 +2388,35 @@ body.theme-light .sound-toggle-btn.active {
 }
 
 body.theme-light .save-btn {
-    background: linear-gradient(180deg, #1f883d 0%, #1a7f37 100%);
-    border: 1px solid #1a7f37;
-    color: #ffffff;
-    box-shadow: 0 2px 5px rgba(31, 136, 61, 0.3);
+    background-color: #ffffff;
+    border: 1px solid #d0d7de;
+    color: #24292e;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 body.theme-light .save-btn:hover {
-    background: linear-gradient(180deg, #249645 0%, #1f883d 100%);
+    background-color: #f3f4f6;
+    border-color: #b0b7be;
 }
 
 body.theme-light .save-btn .key-shortcut {
+    background: rgba(0, 0, 0, 0.08);
+    color: #57606a;
+}
+
+body.theme-light .action-btn.save-btn.has-unsaved {
+    background: linear-gradient(180deg, #1f883d 0%, #1a7f37 100%);
+    border: 1px solid #1a7f37;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(31, 136, 61, 0.4), 0 2px 5px rgba(31, 136, 61, 0.25);
+    font-weight: 700;
+}
+
+body.theme-light .action-btn.save-btn.has-unsaved:hover {
+    background: linear-gradient(180deg, #249645 0%, #1f883d 100%);
+}
+
+body.theme-light .action-btn.save-btn.has-unsaved .key-shortcut {
     background: rgba(0, 0, 0, 0.2);
     color: #ffffff;
 }

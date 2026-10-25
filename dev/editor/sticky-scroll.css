@@ -1,0 +1,150 @@
+/* ===============================================================
+   VS Code 準拠 スティッキースクロール (Sticky Scroll) スタイルシート
+   =============================================================== */
+
+.editor-sticky-scroll-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* 右端のミニマップ (110px) の手前まで配置 */
+    right: 110px;
+    z-index: 15;
+    background-color: #0d1117;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.11);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.42);
+    overflow: hidden;
+    user-select: none;
+    pointer-events: auto;
+    box-sizing: border-box;
+}
+
+.sticky-scroll-lines {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+}
+
+.sticky-line-row {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    height: var(--editor-line-height, 22px);
+    line-height: var(--editor-line-height, 22px);
+    font-family: var(--font-code, "SF Mono", Monaco, Menlo, Consolas, "Courier New", monospace);
+    font-size: var(--editor-font-size, 13px);
+    background-color: #0d1117;
+    cursor: pointer;
+    box-sizing: border-box;
+    will-change: top;
+}
+
+.sticky-line-row:hover,
+.sticky-line-row:hover .sticky-line-num,
+.sticky-line-row:hover .sticky-line-code-wrap {
+    background-color: #161b22;
+}
+
+/* 左端の行番号ガター (本体の .line-numbers + .line-num と完全同一の 48px 幅・12px 右パディング) */
+.sticky-line-num {
+    width: 48px;
+    height: 100%;
+    padding-left: 6px;
+    padding-right: 12px;
+    text-align: right;
+    color: var(--text-muted, #484f58);
+    background-color: #0d1117;
+    border-right: 1px solid var(--border-subtle, #21262d);
+    flex-shrink: 0;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.sticky-line-row:hover .sticky-line-num {
+    color: var(--text-secondary, #8b949e);
+}
+
+.sticky-line-num.has-error {
+    color: #f87171 !important;
+    background-color: rgba(239, 68, 68, 0.18) !important;
+    font-weight: 700;
+}
+
+.sticky-line-num.has-error::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: #ef4444;
+}
+
+.sticky-line-num.has-warning {
+    color: #fbbf24 !important;
+    background-color: rgba(245, 158, 11, 0.12) !important;
+}
+
+.sticky-line-num.has-warning::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: #f59e0b;
+}
+
+/* コード表示領域 (本体の .code-highlight と完全同一の左パディング 16px) */
+.sticky-line-code-wrap {
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    background-color: #0d1117;
+}
+
+.sticky-line-code {
+    padding-left: 16px;
+    padding-right: 16px;
+    white-space: pre;
+    color: #d4d4d4;
+    height: 100%;
+    line-height: var(--editor-line-height, 22px);
+    tab-size: 4;
+    box-sizing: border-box;
+    will-change: transform;
+}
+
+/* ── ライトテーマ対応 ── */
+body.theme-light .editor-sticky-scroll-container {
+    background-color: #f8fafc;
+    border-bottom: 1px solid #cbd5e1;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+body.theme-light .sticky-line-row,
+body.theme-light .sticky-line-num,
+body.theme-light .sticky-line-code-wrap {
+    background-color: #f8fafc;
+}
+
+body.theme-light .sticky-line-row:hover,
+body.theme-light .sticky-line-row:hover .sticky-line-num,
+body.theme-light .sticky-line-row:hover .sticky-line-code-wrap {
+    background-color: #f1f5f9;
+}
+
+body.theme-light .sticky-line-num {
+    color: #94a3b8;
+    border-right-color: #e2e8f0;
+}
+
+body.theme-light .sticky-line-row:hover .sticky-line-num {
+    color: #475569;
+}
+
+body.theme-light .sticky-line-code {
+    color: #1e293b;
+}

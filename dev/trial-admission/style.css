@@ -687,7 +687,9 @@ body.transitioning-to-editor .editor-transition-mock {
 }
 
 .pause-overlay {
-    background: rgba(5, 10, 20, 0.82);
+    background: rgba(5, 10, 20, 0.45);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -696,7 +698,9 @@ body.transitioning-to-editor .editor-transition-mock {
 }
 
 .pause-overlay.edit-mode {
-    background: rgba(4, 8, 16, 0.35);
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     justify-content: flex-start;
     padding-top: 18px;
     pointer-events: none;
@@ -830,7 +834,6 @@ body.transitioning-to-editor .editor-transition-mock {
     font-size: 9.5px;
     color: #38bdf8;
     letter-spacing: 1px;
-    animation: arcadeBlink 1.4s steps(2, start) infinite;
 }
 
 .pause-hud-desc {

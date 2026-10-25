@@ -156,7 +156,7 @@
 
                 <!-- 2. コード編集中の控えめなHUD（敵や自機が見える） -->
                 <div class="pause-hud-box" id="pause-hud-box" style="display: none;">
-                    <div class="pause-hud-badge">● 一時停止中（コード編集モード）</div>
+                    <div class="pause-hud-badge">一時停止中</div>
                     <div class="pause-hud-desc">エディタでコードやドット絵を変更すると即座に反映されます</div>
                     <div class="pause-hud-actions">
                         <button type="button" class="pause-hud-btn btn-resume" id="btn-hud-resume">
@@ -453,7 +453,6 @@
         if (spritePane && spritePane.style.display !== 'none') {
             loadSpriteFromConfig();
             renderSpriteGrid();
-            broadcastLiveSprite();
         }
     }
 
@@ -1351,8 +1350,8 @@
     codeTextarea.addEventListener('input', () => {
         const file = files[currentFileKey];
         if (file && file.editable) {
-            file.isDirty = true;
             file.content = codeTextarea.value;
+            file.isDirty = (file.content !== file.baselineContent);
             updateCodeHighlight();
             if (stickyScrollController) {
                 stickyScrollController.updateFile(currentFileKey, codeTextarea.value, file.type);
@@ -1360,6 +1359,7 @@
             }
             updateTabsUI();
             updateSidebarUI();
+            updateUnsavedChangesUI();
 
             // Undo履歴スナップショット記録
             recordHistorySnapshot(currentFileKey, codeTextarea.value, codeTextarea.selectionStart, codeTextarea.selectionEnd);
@@ -1454,8 +1454,9 @@
             const file = files[key];
             if (!file) return;
 
+            const hasDiff = !!(file && file.editable && file.content !== file.baselineContent);
             const tab = document.createElement('div');
-            tab.className = 'editor-tab' + (key === currentFileKey ? ' active' : '') + (file.isDirty ? ' is-dirty' : '');
+            tab.className = 'editor-tab' + (key === currentFileKey ? ' active' : '') + (hasDiff ? ' is-dirty' : '');
 
             const name = document.createElement('span');
             name.className = 'tab-title';
@@ -1485,7 +1486,8 @@
 
     function hasAnyUnsavedChanges() {
         for (const k in files) {
-            if (files[k] && files[k].isDirty) return true;
+            const f = files[k];
+            if (f && f.editable && f.content !== f.baselineContent) return true;
         }
         return false;
     }
@@ -1535,8 +1537,9 @@
             } else {
                 item.classList.remove('active');
             }
-            // 未保存のファイルは色を変える
-            item.classList.toggle('is-dirty', !!(file && file.isDirty));
+            // 実際の差分があるファイルのみハイライト
+            const hasDiff = !!(file && file.editable && file.content !== file.baselineContent);
+            item.classList.toggle('is-dirty', hasDiff);
         });
     }
 
@@ -1684,7 +1687,6 @@
         if (btnSave) btnSave.style.display = 'none';
         loadSpriteFromConfig();
         renderSpriteGrid();
-        broadcastLiveSprite();
     }
 
     btnOpenSpriteEditor?.addEventListener('click', showSpriteEditorPane);
@@ -2083,12 +2085,9 @@
         if (playerMuzzle && currentSpriteKey === 'player') {
             playerMuzzle.col = Math.max(0, Math.min(newCols - 1, playerMuzzle.col + shiftC));
             playerMuzzle.row = Math.max(0, Math.min(newRows - 1, playerMuzzle.row + shiftR));
-            syncMuzzleToConfigFile();
         }
 
         renderSpriteGrid();
-        broadcastLiveSprite();
-        syncSpriteToConfigFile();
     }
 
     // ── 絵の手動中央揃え (センター) ──
@@ -2148,12 +2147,9 @@
         if (playerMuzzle && currentSpriteKey === 'player') {
             playerMuzzle.col = Math.max(0, Math.min(cols - 1, playerMuzzle.col + dc));
             playerMuzzle.row = Math.max(0, Math.min(rows - 1, playerMuzzle.row + dr));
-            syncMuzzleToConfigFile();
         }
 
         renderSpriteGrid();
-        broadcastLiveSprite();
-        syncSpriteToConfigFile();
     }
 
     // サイズコントロールの初期化・DOMバインド
@@ -2388,32 +2384,10 @@
         updateHistoryButtons();
     }
 
-    // ── リアルタイム・スプライト配信 ──
+    // ── リアルタイム・スプライト配信（編集中の勝手な即時反映を防止） ──
     function broadcastLiveSprite(key = currentSpriteKey, grid = spriteGridData) {
-        if (!grid || grid.length === 0) return;
-        const val = validateCurrentSprite();
-        if (!val.ok) return; // バリデーションNGならゲームへ送信しない
-
-        const lines = gridToStrings(grid);
-
-        try {
-            if (previewIframe && previewIframe.contentWindow) {
-                previewIframe.contentWindow.postMessage({
-                    type: 'SPRITE_PREVIEW_UPDATE',
-                    key: key,
-                    spriteKey: key,
-                    pattern: lines,
-                    spritePattern: lines,
-                    muzzle: (key === 'player') ? playerMuzzle : undefined
-                }, '*');
-
-                if (typeof previewIframe.contentWindow.updateLiveSpritePreview === 'function') {
-                    previewIframe.contentWindow.updateLiveSpritePreview(key, lines, (key === 'player') ? playerMuzzle : undefined);
-                }
-            }
-        } catch (e) {
-            // cross-origin
-        }
+        // ドット絵編集中の未確定スプライトはゲーム画面へ送信しない（「反映する」ボタン押下時に保存・反映される）
+        return;
     }
 
     function syncSpriteToConfigFile(key = currentSpriteKey, grid = spriteGridData) {
@@ -2478,8 +2452,6 @@
         spriteGridData = spriteUndoStack.pop();
         renderSpriteGrid();
         updateHistoryButtons();
-        broadcastLiveSprite();
-        syncSpriteToConfigFile();
     }
 
     function redoSprite() {
@@ -2488,8 +2460,6 @@
         spriteGridData = spriteRedoStack.pop();
         renderSpriteGrid();
         updateHistoryButtons();
-        broadcastLiveSprite();
-        syncSpriteToConfigFile();
     }
 
     function updateHistoryButtons() {
@@ -2574,7 +2544,6 @@
                     if (isDraggingMuzzle) {
                         playerMuzzle = { col: c, row: r };
                         renderSpriteGrid();
-                        broadcastLiveSprite();
                         return;
                     }
                     if (isDrawingPixel) {
@@ -2598,7 +2567,6 @@
         }
         drawMiniPreview();
         updateFitGuide();
-        broadcastLiveSprite();
     }
 
     function setPixel(r, c, val) {
@@ -2620,10 +2588,8 @@
         if (isDraggingMuzzle) {
             isDraggingMuzzle = false;
             if (spriteGrid) spriteGrid.classList.remove('muzzle-dragging');
-            syncMuzzleToConfigFile();
             renderSpriteGrid();
             updateFitGuide();
-            broadcastLiveSprite();
         }
         if (isDrawingPixel) {
             isDrawingPixel = false;
@@ -2673,7 +2639,6 @@
         currentSpriteKey = spriteSelect.value;
         loadSpriteFromConfig();
         renderSpriteGrid();
-        broadcastLiveSprite();
     });
 
     spriteSymmetry?.addEventListener('change', () => {
@@ -2721,11 +2686,9 @@
         spriteGridData = stringsToGrid(DEFAULT_SPRITES[currentSpriteKey] || DEFAULT_SPRITES.player);
         if (currentSpriteKey === 'player') {
             playerMuzzle = { col: 6, row: 0 };
-            syncMuzzleToConfigFile();
         }
         renderSpriteGrid();
         updateFitGuide();
-        broadcastLiveSprite();
     });
 
     btnSpriteUndo?.addEventListener('click', () => {
@@ -2770,14 +2733,20 @@
             return;
         }
         files['config.js'].content = configCode.replace(regex, (m, head) => head + formattedCode);
-        files['config.js'].isDirty = true;
-        if (currentFileKey === 'config.js') {
-            codeTextarea.value = files['config.js'].content;
-            updateCodeHighlight();
-        }
         if (currentSpriteKey === 'player') {
             syncMuzzleToConfigFile();
         }
+        files['config.js'].isDirty = (files['config.js'].content !== files['config.js'].baselineContent);
+        if (currentFileKey === 'config.js') {
+            codeTextarea.value = files['config.js'].content;
+            updateCodeHighlight();
+            if (stickyScrollController) {
+                stickyScrollController.updateFile('config.js', files['config.js'].content, 'js');
+                stickyScrollController.updateScroll(codeTextarea.scrollTop, codeTextarea.scrollLeft);
+            }
+        }
+        updateTabsUI();
+        updateSidebarUI();
         saveAndApplyChanges();
         showToast('反映しました');
     }
