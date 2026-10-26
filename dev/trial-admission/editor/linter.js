@@ -895,6 +895,50 @@
         return VALID_CSS_COLOR_NAMES.has(s.toLowerCase());
     }
 
+    // config.js のプロパティごとの期待される型・制約定義
+    const CONFIG_PROPERTY_SPECS = {
+        'game.maxWaves': { type: 'number', min: 1, max: 10 },
+        'game.difficulty': { type: 'enum', values: ['easy', 'normal', 'hard'] },
+        'player.speed': { type: 'number', min: 0.5, max: 100 },
+        'player.color': { type: 'color' },
+        'player.lives': { type: 'number', min: 1, max: 99999 },
+        'player.maxBullets': { type: 'number', min: 1, max: 300 },
+        'player.fireInterval': { type: 'number', min: 1, max: 300 },
+        'player.muzzle': { type: 'muzzle' },
+        'bullet.speed': { type: 'number', min: -200, max: -0.1, warnPositive: true },
+        'bullet.color': { type: 'color' },
+        'bullet.width': { type: 'number', min: 1, max: 480 },
+        'bullet.height': { type: 'number', min: 1, max: 200 },
+        'enemy.rows': { type: 'number', min: 1, max: 12 },
+        'enemy.cols': { type: 'number', min: 1, max: 20 },
+        'enemy.speed': { type: 'number', min: 0.1, max: 50 },
+        'enemy.dropAmount': { type: 'number', min: 0, max: 100 },
+        'enemy.shootInterval': { type: 'number', min: 1, max: 600 },
+        'enemy.bulletSpeed': { type: 'number', min: 0.5, max: 50 },
+        'enemy.colors': { type: 'colorArray' },
+        'enemy.scores': { type: 'numberArray' },
+        'bunker.enabled': { type: 'boolean' },
+        'bunker.count': { type: 'number', min: 0, max: 8 },
+        'bunker.width': { type: 'number', min: 1, max: 200 },
+        'bunker.height': { type: 'number', min: 1, max: 200 },
+        'bunker.color': { type: 'color' },
+        'bunker.regenerateEachWave': { type: 'boolean' },
+        'bunker.passThroughPlayer': { type: 'boolean' },
+        'ufo.enabled': { type: 'boolean' },
+        'ufo.speed': { type: 'number', min: 0.5, max: 50 },
+        'ufo.bonusScore': { type: 'number', min: 0, max: 99999999 },
+        'ufo.score': { type: 'number', min: 0, max: 99999999 },
+        'ufo.interval': { type: 'number', min: 1, max: 120 },
+        'ufo.color': { type: 'color' },
+        'display.background': { type: 'enum', values: ['space-bg', 'space-nebula', 'black'] },
+        'display.sound': { type: 'boolean' },
+        'display.canvasWidth': { type: 'number', min: 100, max: 2000 },
+        'display.canvasHeight': { type: 'number', min: 100, max: 2000 },
+        'display.scale': { type: 'number', min: 0.1, max: 5 }
+    };
+
+    const REQUIRED_CONFIG_SECTIONS = ['game', 'player', 'bullet', 'enemy', 'bunker', 'ufo', 'display', 'sprites'];
+
     /**
      * 4. config.js 固有の初心者ミス＆タイポ・設定値・実行時エラー検知
      * （差分行だけでなくファイル全体の構造・型・値域・スプライト整合性を常時検証）
@@ -905,10 +949,13 @@
 
         let currentSection = null;
         let currentSpriteKey = null;
+        let currentArrayPropKey = null;
         let spriteExpectedWidth = 0;
         let inBlockComment = false;
         let braceDepth = 0;
         let bracketDepth = 0;
+        const seenTopSections = new Map(); // secName -> firstLine
+        let sectionPropKeys = new Map();   // key -> firstLine
 
         // 事前に各行のコメント除去済みテキストを計算
         const cleanLines = lines.map(rawLine => {
@@ -1009,7 +1056,20 @@
             // トップレベルセクション開始の検知 (braceDepth === 1 のときのみ: game: {, player: { 等)
             const sectionMatch = clean.match(/^([^\s:{}]+)\s*:\s*\{/);
             if (sectionMatch && depthBefore === 1) {
-                const secName = sectionMatch[1];
+                const secName = sectionMatch[1].replace(/^["']|["']$/g, '');
+                if (seenTopSections.has(secName)) {
+                    issues.push(createIssue(
+                        i + 1,
+                        Math.max(1, rawLine.indexOf(secName) + 1),
+                        `設定カテゴリ「${secName}」が重複して定義されています（行 ${seenTopSections.get(secName)} にもあります）`,
+                        `同じカテゴリが2つあると片方の設定が上書きされて消えてしまいます。1つにまとめてください`,
+                        'error',
+                        rawLine
+                    ));
+                } else {
+                    seenTopSections.set(secName, i + 1);
+                }
+
                 if (!KNOWN_CONFIG_SCHEMA[secName]) {
                     let closestSec = null;
                     let minDist = 999;
@@ -1042,6 +1102,8 @@
                 }
                 currentSection = secName;
                 currentSpriteKey = null;
+                currentArrayPropKey = null;
+                sectionPropKeys = new Map();
                 braceDepth += deltas.dBrace;
                 bracketDepth += deltas.dBracket;
                 continue;
@@ -1049,10 +1111,22 @@
 
             // sprites セクション内の各スプライト配列開始検知 (player: [ 等)
             if (currentSection === 'sprites' && depthBefore === 2) {
-                const spriteMatch = clean.match(/^([^\s:\[\]{}]+)\s*:\s*\[/);
+                const spriteMatch = clean.match(/^([^\s:\[\]{}]+)\s*:\s*\[(.*)/);
                 if (spriteMatch) {
-                    currentSpriteKey = spriteMatch[1];
+                    currentSpriteKey = spriteMatch[1].replace(/^["']|["']$/g, '');
                     spriteExpectedWidth = 0;
+                    if (sectionPropKeys.has(currentSpriteKey)) {
+                        issues.push(createIssue(
+                            i + 1,
+                            Math.max(1, rawLine.indexOf(currentSpriteKey) + 1),
+                            `スプライト「${currentSpriteKey}」が重複して定義されています（行 ${sectionPropKeys.get(currentSpriteKey)} にもあります）`,
+                            `重複している「${currentSpriteKey}」の片方を削除してください`,
+                            'error',
+                            rawLine
+                        ));
+                    } else {
+                        sectionPropKeys.set(currentSpriteKey, i + 1);
+                    }
                     if (!KNOWN_CONFIG_SCHEMA.sprites.includes(currentSpriteKey)) {
                         const closestSp = findClosestInCollection(currentSpriteKey, KNOWN_CONFIG_SCHEMA.sprites, 3);
                         issues.push(createIssue(
@@ -1060,6 +1134,48 @@
                             rawLine.indexOf(currentSpriteKey) + 1,
                             `「${currentSpriteKey}」というキャラクター設定はありません${closestSp ? `（「${closestSp}」のスペルミスではありませんか？）` : ''}`,
                             `有効なキャラクター名は ${KNOWN_CONFIG_SCHEMA.sprites.map(s => `「${s}」`).join('、')} です`,
+                            'error',
+                            rawLine
+                        ));
+                    }
+                    // 同一行に要素が書かれている場合 (例: player: ["00200", ...) の検査
+                    const inlineRest = spriteMatch[2].replace(/\][\s,;]*$/, '').trim();
+                    if (inlineRest) {
+                        const strMatches = inlineRest.match(/["']([^"']*)["']/g) || [];
+                        for (const sm of strMatches) {
+                            const rowStr = sm.slice(1, -1);
+                            if (!/^[01]+$/.test(rowStr)) {
+                                issues.push(createIssue(
+                                    i + 1,
+                                    Math.max(1, rawLine.indexOf(sm) + 1),
+                                    `ドット絵（${currentSpriteKey}）のデータには半角の「0」と「1」だけを使えます`,
+                                    `「1」が色あり、「0」が透明です。他の文字やスペースが混ざっていないか確認してください`,
+                                    'error',
+                                    rawLine
+                                ));
+                            } else if (spriteExpectedWidth === 0) {
+                                spriteExpectedWidth = rowStr.length;
+                            } else if (rowStr.length !== spriteExpectedWidth) {
+                                issues.push(createIssue(
+                                    i + 1,
+                                    Math.max(1, rawLine.indexOf(sm) + 1),
+                                    `ドット絵（${currentSpriteKey}）の横の文字数（${rowStr.length}文字）が他の行（${spriteExpectedWidth}文字）と揃っていません`,
+                                    `すべての行の「0」「1」の数を ${spriteExpectedWidth} 文字に揃えてください`,
+                                    'error',
+                                    rawLine
+                                ));
+                            }
+                        }
+                    }
+                } else {
+                    // sprites 内で配列以外の値が指定された場合 (例: player: 123)
+                    const nonArrSprite = clean.match(/^([^\s:\[\]{}]+)\s*:\s*(.+?)\s*,?$/);
+                    if (nonArrSprite && !nonArrSprite[2].startsWith('[')) {
+                        issues.push(createIssue(
+                            i + 1,
+                            Math.max(1, rawLine.indexOf(nonArrSprite[2]) + 1),
+                            `ドット絵（${nonArrSprite[1]}）は「 [ "010...", ... ] 」のように配列（[ ]）で指定してください`,
+                            `"0" と "1" の文字列を角括弧 [ ] の中に並べて記述してください`,
                             'error',
                             rawLine
                         ));
@@ -1095,23 +1211,61 @@
                             ));
                         }
                     }
+                } else if (clean !== ']' && clean !== '],' && clean !== '[' && !clean.startsWith('[')) {
+                    issues.push(createIssue(
+                        i + 1,
+                        Math.max(1, rawLine.search(/\S/) + 1),
+                        `ドット絵（${currentSpriteKey}）の各行は「"001100"」のようにダブルクォート（" "）で囲んだ0と1の文字列にしてください`,
+                        `数値や他の記号ではなく、"0" と "1" だけの文字列を「 " " 」で囲んでください`,
+                        'error',
+                        rawLine
+                    ));
                 }
             }
 
-            // enemy.colors 配列内のカラーコード文字列検証
+            // enemy.colors / enemy.scores 配列内の複数行要素検証
             if (currentSection === 'enemy' && bracketBefore >= 1) {
-                const colorElemMatch = clean.match(/^["']([^"']*)["']\s*,?$/);
-                if (colorElemMatch) {
-                    const cVal = colorElemMatch[1];
-                    if (!isValidCssColorString(cVal)) {
+                if (currentArrayPropKey === 'colors') {
+                    const colorElemMatch = clean.match(/^["']([^"']*)["']\s*,?$/);
+                    if (colorElemMatch) {
+                        const cVal = colorElemMatch[1];
+                        if (!isValidCssColorString(cVal)) {
+                            issues.push(createIssue(
+                                i + 1,
+                                rawLine.indexOf(colorElemMatch[0]) + 1,
+                                `敵のカラーコード「"${cVal}"」の形式が正しくありません`,
+                                `「"#FFFF00"」のように「#」＋6桁（または3桁）の16進数（0〜9, A〜F）で指定してください`,
+                                'error',
+                                rawLine
+                            ));
+                        }
+                    } else if (clean !== ']' && clean !== '],' && !/^#[0-9a-zA-Z]+\s*,?$/.test(clean)) {
                         issues.push(createIssue(
                             i + 1,
-                            rawLine.indexOf(colorElemMatch[0]) + 1,
-                            `敵のカラーコード「"${cVal}"」の形式が正しくありません`,
-                            `「"#FFFF00"」のように「#」＋6桁（または3桁）の16進数（0〜9, A〜F）で指定してください`,
+                            Math.max(1, rawLine.search(/\S/) + 1),
+                            `enemy.colors 配列には「"#FFFF00"」のような色コード文字列を指定してください`,
+                            `色を「 " " 」で囲んだカラーコード（例: "#00FFFF"）で指定してください`,
                             'error',
                             rawLine
                         ));
+                    }
+                } else if (currentArrayPropKey === 'scores') {
+                    if (clean !== ']' && clean !== '],') {
+                        const items = clean.replace(/,\s*$/, '').split(',');
+                        for (const it of items) {
+                            const t = it.trim();
+                            if (!t) continue;
+                            if (!/^[+-]?\d+(\.\d+)?$/.test(t) || Number(t) < 0) {
+                                issues.push(createIssue(
+                                    i + 1,
+                                    Math.max(1, rawLine.indexOf(t) + 1),
+                                    `enemy.scores の得点「${t}」には 0 以上の数値を指定してください`,
+                                    `クォート（" "）で囲まずに半角の数値（例: 30, 20, 10）で指定してください`,
+                                    'error',
+                                    rawLine
+                                ));
+                            }
+                        }
                     }
                 }
             }
@@ -1163,6 +1317,18 @@
                 continue;
             }
 
+            // オブジェクト内のプロパティ行末尾にセミコロン（;）を書いてしまった場合
+            if (depthBefore >= 1 && clean.endsWith(';') && !clean.startsWith('const ') && !clean.startsWith('let ') && !clean.startsWith('var ') && clean !== '};') {
+                issues.push(createIssue(
+                    i + 1,
+                    rawLine.lastIndexOf(';') + 1,
+                    `オブジェクトの設定項目の末尾にセミコロン（;）は使えません`,
+                    `セミコロン「 ; 」ではなくカンマ「 , 」に書き換えてください`,
+                    'error',
+                    rawLine
+                ));
+            }
+
             // カラーコードのクォート忘れ (color: #00FF66 または配列内の #FFFF00)
             const unquotedHexProp = clean.match(/^[^\s:{}]+?\s*:\s*(#[0-9a-zA-Z]{1,10})\b/);
             const unquotedHexElem = clean.match(/^(#[0-9a-zA-Z]{1,10})\s*,?$/);
@@ -1183,10 +1349,30 @@
 
             // プロパティキーの検知と値チェック (depthBefore === 2 のセクション直下プロパティ)
             const propMatch = clean.match(/^([^\s:{}]+)\s*:\s*(.+?)\s*([,;]?)$/);
-            if (propMatch && currentSection && KNOWN_CONFIG_SCHEMA[currentSection] && depthBefore === 2) {
-                const key = propMatch[1];
+            if (propMatch && currentSection && KNOWN_CONFIG_SCHEMA[currentSection] && depthBefore === 2 && bracketBefore === 0) {
+                const key = propMatch[1].replace(/^["']|["']$/g, '');
                 const rawVal = propMatch[2].replace(/,\s*$/, '').trim();
                 const knownKeys = KNOWN_CONFIG_SCHEMA[currentSection];
+
+                if (rawVal.startsWith('[')) {
+                    currentArrayPropKey = key;
+                }
+
+                // セクション内での重複キー検査 (sprites は直前の専用ブロックで記録済みのため除外)
+                if (currentSection !== 'sprites') {
+                    if (sectionPropKeys.has(key)) {
+                        issues.push(createIssue(
+                            i + 1,
+                            Math.max(1, rawLine.indexOf(key) + 1),
+                            `「${currentSection}.${key}」が重複して定義されています（行 ${sectionPropKeys.get(key)} にもあります）`,
+                            `同じ項目が2つあると片方の設定が無視されます。1つだけ残して削除してください`,
+                            'error',
+                            rawLine
+                        ));
+                    } else {
+                        sectionPropKeys.set(key, i + 1);
+                    }
+                }
 
                 if (!knownKeys.includes(key)) {
                     let closest = null;
@@ -1223,7 +1409,131 @@
                     }
                 }
 
-                // 値の未クォート単語・スペルミス・型・範囲チェック
+                const spec = CONFIG_PROPERTY_SPECS[`${currentSection}.${key}`];
+
+                // 1) muzzle オブジェクト ({ col: 6, row: 0 }) の検証
+                if (spec && spec.type === 'muzzle') {
+                    if (!rawVal.startsWith('{')) {
+                        issues.push(createIssue(
+                            i + 1,
+                            Math.max(1, rawLine.indexOf(rawVal) + 1),
+                            `「player.muzzle」は「{ col: 6, row: 0 }」のようにオブジェクト形式で指定してください`,
+                            `発射口の列（col）と行（row）を波括弧 { } の中に指定してください`,
+                            'error',
+                            rawLine
+                        ));
+                    } else if (rawVal.includes('}')) {
+                        const inner = rawVal.slice(1, rawVal.lastIndexOf('}')).trim();
+                        const pairs = inner ? inner.split(',') : [];
+                        const muzzleKeys = new Set();
+                        for (const p of pairs) {
+                            const kv = p.trim();
+                            if (!kv) continue;
+                            const mKv = kv.match(/^([a-zA-Z0-9_$]+)\s*:\s*(.+)$/);
+                            if (!mKv) {
+                                issues.push(createIssue(
+                                    i + 1,
+                                    Math.max(1, rawLine.indexOf(kv) + 1),
+                                    `muzzle 内の記述「${kv}」が正しくありません`,
+                                    `「{ col: 6, row: 0 }」のようにコロン（:）で数値を指定してください`,
+                                    'error',
+                                    rawLine
+                                ));
+                                continue;
+                            }
+                            const mk = mKv[1];
+                            const mv = mKv[2].trim();
+                            muzzleKeys.add(mk);
+                            if (mk !== 'col' && mk !== 'row') {
+                                issues.push(createIssue(
+                                    i + 1,
+                                    Math.max(1, rawLine.indexOf(mk) + 1),
+                                    `muzzle 内に未知の項目「${mk}」があります（「col」または「row」のみ有効です）`,
+                                    `「{ col: 6, row: 0 }」のように指定してください`,
+                                    'error',
+                                    rawLine
+                                ));
+                            } else if (!/^[+-]?\d+(\.\d+)?$/.test(mv) || Number(mv) < 0 || Number(mv) > 24) {
+                                issues.push(createIssue(
+                                    i + 1,
+                                    Math.max(1, rawLine.indexOf(mv) + 1),
+                                    `muzzle.${mk} の値「${mv}」には 0〜24 の半角数値を指定してください`,
+                                    `ドット絵の範囲内の列・行番号を数値で指定してください（例: col: 6, row: 0）`,
+                                    'error',
+                                    rawLine
+                                ));
+                            }
+                        }
+                        if (!muzzleKeys.has('col') || !muzzleKeys.has('row')) {
+                            issues.push(createIssue(
+                                i + 1,
+                                Math.max(1, rawLine.indexOf(rawVal) + 1),
+                                `player.muzzle には「col」と「row」の両方を指定してください`,
+                                `「muzzle: { col: 6, row: 0 }」のように記述してください`,
+                                'error',
+                                rawLine
+                            ));
+                        }
+                    }
+                }
+
+                // 2) 配列型プロパティ (enemy.colors, enemy.scores) の型・要素検証
+                if (spec && (spec.type === 'colorArray' || spec.type === 'numberArray')) {
+                    if (!rawVal.startsWith('[')) {
+                        issues.push(createIssue(
+                            i + 1,
+                            Math.max(1, rawLine.indexOf(rawVal) + 1),
+                            `「${currentSection}.${key}」は角括弧「 [ ... ] 」を使った配列で指定してください`,
+                            spec.type === 'colorArray'
+                                ? `例: colors: [ "#FFFF00", "#00FFFF" ]`
+                                : `例: scores: [ 30, 20, 20, 10, 10 ]`,
+                            'error',
+                            rawLine
+                        ));
+                    } else if (rawVal.includes(']')) {
+                        const inner = rawVal.slice(1, rawVal.lastIndexOf(']')).trim();
+                        if (!inner) {
+                            issues.push(createIssue(
+                                i + 1,
+                                Math.max(1, rawLine.indexOf(rawVal) + 1),
+                                `「${currentSection}.${key}」の配列が空です`,
+                                `1つ以上の要素を指定してください`,
+                                'error',
+                                rawLine
+                            ));
+                        } else {
+                            const elems = inner.split(',').map(s => s.trim()).filter(Boolean);
+                            for (const el of elems) {
+                                if (spec.type === 'colorArray') {
+                                    const mStr = el.match(/^["']([^"']*)["']$/);
+                                    if (!mStr || !isValidCssColorString(mStr[1])) {
+                                        issues.push(createIssue(
+                                            i + 1,
+                                            Math.max(1, rawLine.indexOf(el) + 1),
+                                            `enemy.colors の要素「${el}」は有効なカラーコード文字列ではありません`,
+                                            `「"#FFFF00"」のようにダブルクォートで囲んだ16進数カラーコードを指定してください`,
+                                            'error',
+                                            rawLine
+                                        ));
+                                    }
+                                } else if (spec.type === 'numberArray') {
+                                    if (!/^[+-]?\d+(\.\d+)?$/.test(el) || Number(el) < 0) {
+                                        issues.push(createIssue(
+                                            i + 1,
+                                            Math.max(1, rawLine.indexOf(el) + 1),
+                                            `enemy.scores の要素「${el}」には 0 以上の数値を指定してください`,
+                                            `文字列ではなく半角の数値（例: 30, 20, 10）を並べてください`,
+                                            'error',
+                                            rawLine
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 3) スカラー値（数値・真偽値・文字列・色）の未クォート単語・スペルミス・型・範囲チェック
                 if (rawVal && !rawVal.startsWith('{') && !rawVal.startsWith('[')) {
                     const isQuoted = (rawVal.startsWith('"') && rawVal.endsWith('"')) ||
                         (rawVal.startsWith("'") && rawVal.endsWith("'")) ||
@@ -1265,65 +1575,108 @@
                                 rawLine
                             ));
                         }
-                    } else if (isQuoted) {
-                        const strVal = rawVal.slice(1, -1);
-                        // 色プロパティの検証
-                        if (key === 'color') {
-                            if (!isValidCssColorString(strVal)) {
+                    } else if (spec) {
+                        // 期待される型との不一致チェック（例: speed: "5", speed: true, enabled: 123, color: 100 等）
+                        if (spec.type === 'number') {
+                            if (!isNumber && !isArithmeticExpr) {
                                 issues.push(createIssue(
                                     i + 1,
-                                    rawLine.lastIndexOf(rawVal) + 1,
-                                    `色コード「${rawVal}」の形式が正しくありません`,
-                                    `「"#00FF66"」のように「#」＋6桁（または3桁）の16進数（0〜9, A〜F）で指定してください`,
+                                    Math.max(1, rawLine.lastIndexOf(rawVal) + 1),
+                                    `「${currentSection}.${key}」には数値を指定してください（現在の値: ${rawVal}）`,
+                                    isQuoted && /^[+-]?\d+(\.\d+)?$/.test(rawVal.slice(1, -1))
+                                        ? `数値を指定するときはダブルクォート（" "）を外して「 ${rawVal.slice(1, -1)} 」と書いてください`
+                                        : `半角の数値（例: ${key === 'speed' && currentSection === 'bullet' ? '-8' : '5'}）を入力してください`,
+                                    'error',
+                                    rawLine
+                                ));
+                            } else if (isNumber) {
+                                const numVal = Number(normalizedNumStr);
+                                if (spec.warnPositive && numVal >= 0) {
+                                    issues.push(createIssue(
+                                        i + 1,
+                                        rawLine.lastIndexOf(rawVal) + 1,
+                                        `弾の速度（bullet.speed）が 0 以上（${rawVal}）になっているため、弾が上へ飛びません`,
+                                        `上方向へ発射するには「 -8 」のようにマイナス（-）の数値を指定してください`,
+                                        'warning',
+                                        rawLine
+                                    ));
+                                } else if (spec.min !== undefined && numVal < spec.min) {
+                                    issues.push(createIssue(
+                                        i + 1,
+                                        rawLine.lastIndexOf(rawVal) + 1,
+                                        `「${currentSection}.${key}」には ${spec.min} 以上の数値を指定してください（現在: ${rawVal}）`,
+                                        `${spec.min} 未満の数値にするとゲームが正常に動作しません`,
+                                        'error',
+                                        rawLine
+                                    ));
+                                } else if (spec.max !== undefined && numVal > spec.max) {
+                                    issues.push(createIssue(
+                                        i + 1,
+                                        rawLine.lastIndexOf(rawVal) + 1,
+                                        `「${currentSection}.${key}」の値（${rawVal}）が大きすぎます（上限: ${spec.max}）`,
+                                        `${spec.min !== undefined ? spec.min : 0} 〜 ${spec.max} の範囲で指定してください`,
+                                        'error',
+                                        rawLine
+                                    ));
+                                }
+                            }
+                        } else if (spec.type === 'boolean') {
+                            if (!isBoolean) {
+                                issues.push(createIssue(
+                                    i + 1,
+                                    Math.max(1, rawLine.lastIndexOf(rawVal) + 1),
+                                    `「${currentSection}.${key}」には「true」または「false」を指定してください（現在の値: ${rawVal}）`,
+                                    `クォート（" "）で囲まずに、半角小文字で「 true 」（ON）または「 false 」（OFF）と書いてください`,
                                     'error',
                                     rawLine
                                 ));
                             }
-                        } else if (currentSection === 'game' && key === 'difficulty') {
-                            const validDiffs = ['easy', 'normal', 'hard'];
-                            if (!validDiffs.includes(strVal)) {
+                        } else if (spec.type === 'color') {
+                            if (!isQuoted) {
                                 issues.push(createIssue(
                                     i + 1,
-                                    rawLine.lastIndexOf(rawVal) + 1,
-                                    `難易度「${rawVal}」は無効な設定値です`,
-                                    `"easy"、"normal"、"hard" のいずれかを指定してください`,
+                                    Math.max(1, rawLine.lastIndexOf(rawVal) + 1),
+                                    `「${currentSection}.${key}」には「"#00FF66"」のような色コード文字列を指定してください（現在の値: ${rawVal}）`,
+                                    `カラーコードをダブルクォート（" "）で囲んで指定してください`,
                                     'error',
                                     rawLine
                                 ));
+                            } else {
+                                const strVal = rawVal.slice(1, -1);
+                                if (!isValidCssColorString(strVal)) {
+                                    issues.push(createIssue(
+                                        i + 1,
+                                        rawLine.lastIndexOf(rawVal) + 1,
+                                        `色コード「${rawVal}」の形式が正しくありません`,
+                                        `「"#00FF66"」のように「#」＋6桁（または3桁）の16進数（0〜9, A〜F）で指定してください`,
+                                        'error',
+                                        rawLine
+                                    ));
+                                }
                             }
-                        } else if (currentSection === 'display' && key === 'background') {
-                            const validBgs = ['space-bg', 'space-nebula', 'black'];
-                            if (!validBgs.includes(strVal)) {
+                        } else if (spec.type === 'enum') {
+                            if (!isQuoted) {
                                 issues.push(createIssue(
                                     i + 1,
-                                    rawLine.lastIndexOf(rawVal) + 1,
-                                    `背景設定「${rawVal}」は無効な名前です`,
-                                    `"space-bg"（星空）、"space-nebula"（星雲）、"black"（黒単色）のいずれかを指定してください`,
+                                    Math.max(1, rawLine.lastIndexOf(rawVal) + 1),
+                                    `「${currentSection}.${key}」には文字列（${spec.values.map(v => `"${v}"`).join('、')}）を指定してください`,
+                                    `ダブルクォート（" "）で囲んで指定してください`,
                                     'error',
                                     rawLine
                                 ));
+                            } else {
+                                const strVal = rawVal.slice(1, -1);
+                                if (!spec.values.includes(strVal)) {
+                                    issues.push(createIssue(
+                                        i + 1,
+                                        rawLine.lastIndexOf(rawVal) + 1,
+                                        `「${currentSection}.${key}」の設定値「${rawVal}」は無効です`,
+                                        `${spec.values.map(v => `"${v}"`).join('、')} のいずれかを指定してください`,
+                                        'error',
+                                        rawLine
+                                    ));
+                                }
                             }
-                        }
-                    } else if (isNumber) {
-                        const numVal = Number(normalizedNumStr);
-                        if (currentSection === 'bullet' && key === 'speed' && numVal > 0) {
-                            issues.push(createIssue(
-                                i + 1,
-                                rawLine.lastIndexOf(rawVal) + 1,
-                                `弾の速度（bullet.speed）がプラス（${rawVal}）になっているため、弾が上へ飛びません`,
-                                `上方向へ発射するには「 -8 」のようにマイナス（-）の数値を指定してください`,
-                                'warning',
-                                rawLine
-                            ));
-                        } else if ((key === 'rows' || key === 'cols' || key === 'lives' || key === 'maxWaves') && numVal <= 0) {
-                            issues.push(createIssue(
-                                i + 1,
-                                rawLine.lastIndexOf(rawVal) + 1,
-                                `「${key}」には 1 以上の数値を指定してください（現在: ${rawVal}）`,
-                                `0 以下の数値にするとゲームが正常に動作しません`,
-                                'error',
-                                rawLine
-                            ));
                         }
                     }
                 }
@@ -1390,9 +1743,37 @@
             if (braceDepth < 2) {
                 currentSection = null;
                 currentSpriteKey = null;
+                currentArrayPropKey = null;
             }
             if (bracketDepth === 0) {
                 currentSpriteKey = null;
+                currentArrayPropKey = null;
+            }
+        }
+
+        // 必須セクションが丸ごと消されていないか確認
+        if (hasGameConfigDecl && seenTopSections.size > 0) {
+            for (const reqSec of REQUIRED_CONFIG_SECTIONS) {
+                if (!seenTopSections.has(reqSec)) {
+                    // すでにタイポとして検出されているか確認
+                    let alreadyReportedTypo = false;
+                    for (const foundSec of seenTopSections.keys()) {
+                        if (!KNOWN_CONFIG_SCHEMA[foundSec] && levenshtein(foundSec.toLowerCase(), reqSec.toLowerCase()) <= 3) {
+                            alreadyReportedTypo = true;
+                            break;
+                        }
+                    }
+                    if (!alreadyReportedTypo) {
+                        issues.push(createIssue(
+                            1,
+                            1,
+                            `config.js 内に必須の設定カテゴリ「${reqSec}: { ... }」がありません`,
+                            `「${reqSec}」セクションを誤って削除していないか確認してください`,
+                            'error',
+                            lines[0] || ''
+                        ));
+                    }
+                }
             }
         }
 
@@ -1491,8 +1872,8 @@
                 userMessage = '文字列の位置が不正です（前の行のカンマ抜けの可能性があります）';
                 userHint = '直前の行の末尾にカンマ「 , 」が抜けていないか確認してください';
             } else if (rawMsg.includes('Unexpected end of input')) {
-                userMessage = 'コードが途中で終わっています（括弧やクォートが閉じられていません）';
-                userHint = 'ファイル全体の「 { } 」「 [ ] 」のペアがすべて閉じているか確認してください';
+                userMessage = 'コードが途中で終わっています（括弧やクォート、コメントが閉じられていません）';
+                userHint = 'ファイル全体の「 { } 」「 [ ] 」や「 /* ... */ 」のペアがすべて閉じているか確認してください';
             } else if (rawMsg.includes('Invalid or unexpected token') || rawMsg.includes('Private field')) {
                 userMessage = '使えない記号があるか、カラーコード等が「" "」で囲まれていません';
                 userHint = '色コード（"#00FF66" など）を「 " " 」で囲んでいるか、全角文字がないか確認してください';
@@ -1520,11 +1901,12 @@
             )];
         }
 
-        // config.js の場合は実際に評価して ReferenceError（未定義の単語・クォート忘れ等）も捕捉する
+        // config.js の場合は実際に評価して ReferenceError（未定義の単語・クォート忘れ等）や構造破壊も捕捉する
         if (isConfig) {
+            const lines = code.split('\n');
             try {
                 const cfg = new Function(code + '\n; return typeof GameConfig !== "undefined" ? GameConfig : null;')();
-                if (!cfg || typeof cfg !== 'object') {
+                if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) {
                     return [createIssue(
                         1,
                         1,
@@ -1535,9 +1917,30 @@
                         false
                     )];
                 }
+                // 実行時オブジェクトの深い整合性検証（複数行にわたる破壊や特殊構文によるスキーマすり抜けも完全に捕捉）
+                const runtimeIssues = [];
+                if (cfg.sprites && typeof cfg.sprites === 'object') {
+                    for (const spKey of REQUIRED_CONFIG_SECTIONS.includes('sprites') ? KNOWN_CONFIG_SCHEMA.sprites : []) {
+                        const spVal = cfg.sprites[spKey];
+                        if (!Array.isArray(spVal) || spVal.length === 0) {
+                            let spLine = 1;
+                            for (let idx = 0; idx < lines.length; idx++) {
+                                if (new RegExp(`\\b${spKey}\\s*:`).test(lines[idx])) { spLine = idx + 1; break; }
+                            }
+                            runtimeIssues.push(createIssue(
+                                spLine,
+                                1,
+                                `sprites.${spKey} のドット絵配列が空か、削除されています`,
+                                `「${spKey}: [ "001100...", ... ]」のように1行以上のドット絵データを設定してください`,
+                                'error',
+                                lines[spLine - 1] || ''
+                            ));
+                        }
+                    }
+                }
+                if (runtimeIssues.length > 0) return runtimeIssues;
             } catch (runtimeErr) {
                 const msg = runtimeErr.message || '';
-                const lines = code.split('\n');
                 const notDefinedMatch = msg.match(/^(.+?) is not defined$/);
                 if (notDefinedMatch) {
                     const badWord = notDefinedMatch[1];
@@ -1560,6 +1963,15 @@
                         changedLines ? changedLines.has(foundLine) : false
                     )];
                 }
+                return [createIssue(
+                    1,
+                    1,
+                    `config.js の実行時にエラーが発生しました（${msg}）`,
+                    `設定値の記述形式が正しいか確認してください`,
+                    'error',
+                    lines[0] || '',
+                    false
+                )];
             }
         }
 
@@ -1595,8 +2007,42 @@
         return lines.length;
     }
 
+    const CSS_COLOR_ONLY_PROPERTIES = new Set([
+        'color', 'background-color', 'border-color', 'border-top-color', 'border-right-color',
+        'border-bottom-color', 'border-left-color', 'outline-color', 'fill', 'stroke',
+        'caret-color', 'accent-color', 'text-decoration-color', 'column-rule-color'
+    ]);
+
+    const CSS_NUMERIC_OR_LENGTH_PROPERTIES = new Set([
+        'width', 'min-width', 'max-width', 'height', 'min-height', 'max-height',
+        'top', 'right', 'bottom', 'left', 'inset',
+        'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+        'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+        'gap', 'row-gap', 'column-gap', 'grid-gap',
+        'border-width', 'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+        'border-radius', 'border-top-left-radius', 'border-top-right-radius', 'border-bottom-left-radius', 'border-bottom-right-radius',
+        'font-size', 'letter-spacing', 'word-spacing', 'line-height',
+        'z-index', 'opacity', 'flex-grow', 'flex-shrink', 'order', 'outline-width', 'outline-offset'
+    ]);
+
+    const CSS_UNITLESS_NUMERIC_PROPERTIES = new Set([
+        'z-index', 'opacity', 'flex-grow', 'flex-shrink', 'order'
+    ]);
+
+    const CSS_ALLOWED_LENGTH_KEYWORDS = new Set([
+        'auto', 'none', 'normal', 'inherit', 'initial', 'unset', 'revert',
+        'fit-content', 'max-content', 'min-content',
+        'thin', 'medium', 'thick',
+        'xx-small', 'x-small', 'small', 'large', 'x-large', 'xx-large', 'xxx-large', 'smaller', 'larger'
+    ]);
+
+    const VALID_CSS_AT_RULES = new Set([
+        'media', 'keyframes', '-webkit-keyframes', '-moz-keyframes',
+        'import', 'charset', 'supports', 'font-face', 'layer', 'container', 'page', 'property', 'namespace'
+    ]);
+
     /**
-     * CSSのプロパティ値を検証するヘルパー（値キーワードのタイポ、不正なカラーコード、不正な単位を検出）
+     * CSSのプロパティ値を検証するヘルパー（値キーワードのタイポ、不正なカラーコード、不正な単位、型違反を検出）
      */
     function validateCssPropertyValue(propName, valStr, lineNum, rawLine, issues) {
         if (!propName || !valStr) return;
@@ -1646,6 +2092,18 @@
                     'error',
                     rawLine
                 ));
+            } else if (CSS_UNITLESS_NUMERIC_PROPERTIES.has(lowProp)) {
+                // opacity は % のみ許容、z-index / flex-grow / flex-shrink / order は単位不可
+                if (!(lowProp === 'opacity' && unit === '%')) {
+                    issues.push(createIssue(
+                        lineNum,
+                        Math.max(1, rawLine.indexOf(uMatch[1] + uMatch[2]) + 1),
+                        `CSSプロパティ「${lowProp}」には単位「${uMatch[2]}」を付けることはできません`,
+                        `「${lowProp}: ${uMatch[1]};」のように単位なしの数値のみで指定してください`,
+                        'error',
+                        rawLine
+                    ));
+                }
             }
         }
 
@@ -1666,19 +2124,74 @@
                     'error',
                     rawLine
                 ));
+                return;
+            }
+        }
+
+        // 4. 色専用プロパティ (color, background-color, border-color 等) の値検証
+        if (CSS_COLOR_ONLY_PROPERTIES.has(lowProp) && !cleanVal.includes('var(')) {
+            const valLow = cleanVal.toLowerCase();
+            if (!CSS_GLOBAL_KEYWORDS.has(valLow) && valLow !== 'currentcolor' && valLow !== 'transparent' && valLow !== 'none') {
+                if (!cleanVal.startsWith('#') && !isValidCssColorString(cleanVal)) {
+                    const closestColor = findClosestInCollection(valLow, VALID_CSS_COLOR_NAMES, 2);
+                    issues.push(createIssue(
+                        lineNum,
+                        Math.max(1, rawLine.lastIndexOf(cleanVal) + 1),
+                        `CSSプロパティ「${lowProp}」の色指定「${cleanVal}」は正しくありません`,
+                        closestColor
+                            ? `「${closestColor}」のスペルミスではありませんか？または「#ffffff」のようなカラーコードで指定してください`
+                            : `「#00f0ff」のようなカラーコード、または正しい色名（red, white, transparent など）を指定してください`,
+                        'error',
+                        rawLine
+                    ));
+                }
+            }
+        }
+
+        // 5. 数値・サイズ専用プロパティ (width, height, margin, padding, opacity, z-index 等) に不正な英単語が指定された場合
+        if (CSS_NUMERIC_OR_LENGTH_PROPERTIES.has(lowProp) && !cleanVal.includes('(') && !cleanVal.startsWith('--')) {
+            const tokens = cleanVal.split(/[\s/]+/).filter(Boolean);
+            for (const tok of tokens) {
+                const tokLow = tok.toLowerCase();
+                if (/^[a-zA-Z-]+$/.test(tokLow)) {
+                    if (!CSS_ALLOWED_LENGTH_KEYWORDS.has(tokLow) && !CSS_GLOBAL_KEYWORDS.has(tokLow)) {
+                        const closestKw = findClosestInCollection(tokLow, CSS_ALLOWED_LENGTH_KEYWORDS, 2);
+                        issues.push(createIssue(
+                            lineNum,
+                            Math.max(1, rawLine.lastIndexOf(tok) + 1),
+                            `CSSプロパティ「${lowProp}」の値「${tok}」は正しくありません`,
+                            closestKw
+                                ? `「${closestKw}」のスペルミスではありませんか？または数値＋単位（例: 10px, 100%）を指定してください`
+                                : `「${lowProp}」には数値＋単位（例: 16px, 100%）または auto などを指定してください`,
+                            'error',
+                            rawLine
+                        ));
+                    } else if (CSS_UNITLESS_NUMERIC_PROPERTIES.has(lowProp) && tokLow !== 'auto' && !CSS_GLOBAL_KEYWORDS.has(tokLow)) {
+                        issues.push(createIssue(
+                            lineNum,
+                            Math.max(1, rawLine.lastIndexOf(tok) + 1),
+                            `CSSプロパティ「${lowProp}」の値「${tok}」は正しくありません`,
+                            `「${lowProp}」には数値を指定してください（例: ${lowProp === 'opacity' ? '0.8' : '1'}）`,
+                            'error',
+                            rawLine
+                        ));
+                    }
+                }
             }
         }
     }
 
     /**
      * 6. CSS (style.css / <style>) チェック
-     * （プロパティ名タイポ・値タイポ・単位ミス・セミコロン抜け・中括弧抜け・擬似クラスタイポまで完全対応）
+     * （プロパティ名タイポ・値タイポ・単位ミス・セミコロン抜け・中括弧抜け・擬似クラスタイポ・未閉じコメント・孤立テキストまで完全対応）
      */
     function checkCSS(code, lineOffset) {
         const offset = lineOffset || 0;
         const issues = [];
         const lines = code.split('\n');
         let inBlockComment = false;
+        let blockCommentStartLine = 1;
+        let blockCommentStartCol = 1;
         let braceDepth = 0;
 
         // コメントを除去した行配列を作成（コメント内の記号による誤判定を防止）
@@ -1703,11 +2216,24 @@
                     line = line.substring(0, openIdx) + ' '.repeat(closeIdx + 2 - openIdx) + line.substring(closeIdx + 2);
                 } else {
                     inBlockComment = true;
+                    blockCommentStartLine = i + 1;
+                    blockCommentStartCol = openIdx + 1;
                     line = line.substring(0, openIdx);
                     break;
                 }
             }
             cleanLines.push(line);
+        }
+
+        if (inBlockComment) {
+            issues.push(createIssue(
+                offset + blockCommentStartLine,
+                blockCommentStartCol,
+                `CSSのコメント「 /* 」が閉じられていません（対応する「 */ 」がありません）`,
+                `コメントの終わりに「 */ 」を追加してください`,
+                'error',
+                lines[blockCommentStartLine - 1] || ''
+            ));
         }
 
         // 単一宣言（prop: val）を検査する内部関数
@@ -1724,12 +2250,41 @@
                         'error',
                         rawLine
                     ));
+                } else if (/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+                    issues.push(createIssue(
+                        offset + lineIdx + 1,
+                        Math.max(1, rawLine.indexOf(trimmed) + 1),
+                        `CSSブロック内に不完全な記述「${trimmed}」があります`,
+                        `「 プロパティ名: 値; 」の形式で記述するか、不要な文字を削除してください`,
+                        'error',
+                        rawLine
+                    ));
                 }
                 return;
             }
+            if (trimmed.includes('::')) {
+                issues.push(createIssue(
+                    offset + lineIdx + 1,
+                    Math.max(1, rawLine.indexOf('::') + 1),
+                    `CSSのプロパティ宣言でコロンが2つ連続しています（::）`,
+                    `プロパティ名と値の間はコロン1つ（:）にしてください`,
+                    'error',
+                    rawLine
+                ));
+            }
+            if (trimmed.includes(';;')) {
+                issues.push(createIssue(
+                    offset + lineIdx + 1,
+                    Math.max(1, rawLine.indexOf(';;') + 1),
+                    `CSSのセミコロンが2つ連続しています（;;）`,
+                    `行末のセミコロンは1つ（;）にしてください`,
+                    'error',
+                    rawLine
+                ));
+            }
             const colonIdx = trimmed.indexOf(':');
             const propName = trimmed.substring(0, colonIdx).trim();
-            const valPart = trimmed.substring(colonIdx + 1).replace(/;/g, '').trim();
+            const valPart = trimmed.substring(colonIdx + 1).replace(/^:+/, '').replace(/;/g, '').trim();
 
             if (propName && !propName.startsWith('--') && !propName.startsWith('-')) {
                 const lowProp = propName.toLowerCase();
@@ -1774,10 +2329,31 @@
             }
         }
 
-        // セレクタ部分の構文・擬似クラスタイポ検査
+        // セレクタ部分の構文・@ルール・擬似クラスタイポ検査
         function checkCssSelector(selectorText, lineIdx, rawLine) {
             const sel = selectorText.trim();
-            if (!sel || sel.startsWith('@') || sel === 'from' || sel === 'to' || /^[\d.%\s,]+$/.test(sel)) return;
+            if (!sel || sel === 'from' || sel === 'to' || /^[\d.%\s,]+$/.test(sel)) return;
+
+            if (sel.startsWith('@')) {
+                const atMatch = sel.match(/^@([a-zA-Z-]+)/);
+                if (atMatch) {
+                    const atName = atMatch[1].toLowerCase();
+                    if (!VALID_CSS_AT_RULES.has(atName)) {
+                        const closestAt = findClosestInCollection(atName, VALID_CSS_AT_RULES, 2);
+                        issues.push(createIssue(
+                            offset + lineIdx + 1,
+                            Math.max(1, rawLine.indexOf('@') + 1),
+                            `CSSの「@${atMatch[1]}」は存在しない @ルールです`,
+                            closestAt
+                                ? `「@${closestAt}」のスペルミスではありませんか？`
+                                : `@media や @keyframes など正しい @ルール名を指定してください`,
+                            'error',
+                            rawLine
+                        ));
+                    }
+                }
+                return;
+            }
 
             if (sel.includes('..')) {
                 issues.push(createIssue(
@@ -1821,10 +2397,35 @@
                     ));
                 }
             }
+            // セレクタ内のタグ名・識別子（#id, .class, [attr], :pseudo, *, >, +, ~ を除いた英単語）が有効なHTMLタグ名か検証
+            const withoutAttrAndPseudo = sel
+                .replace(/\[[^\]]*\]/g, ' ')
+                .replace(/::?[a-zA-Z-]+(?:\([^)]*\))?/g, ' ')
+                .replace(/[#.][a-zA-Z_-][a-zA-Z0-9_-]*/g, ' ');
+            const tagTokens = withoutAttrAndPseudo.split(/[\s>+~,]+/).filter(Boolean);
+            for (const tok of tagTokens) {
+                if (tok === '*' || /^[\d.%]+$/.test(tok)) continue;
+                const lowTok = tok.toLowerCase();
+                if (!KNOWN_HTML_TAGS.has(lowTok) && !KNOWN_HTML_TAGS.has(tok)) {
+                    const closestTag = findClosestInCollection(lowTok, KNOWN_HTML_TAGS, 2);
+                    issues.push(createIssue(
+                        offset + lineIdx + 1,
+                        Math.max(1, rawLine.indexOf(tok) + 1),
+                        `CSSセレクタに不明な要素名または不要な文字「${tok}」があります`,
+                        closestTag
+                            ? `HTMLタグ「${closestTag}」のスペルミスか、クラス「.${tok}」・ID「#${tok}」の記号抜けではありませんか？`
+                            : `クラスなら先頭に「.」、IDなら先頭に「#」を付けるか、不要な文字であれば削除してください`,
+                        'error',
+                        rawLine
+                    ));
+                }
+            }
         }
 
         // 構文解析
         let pendingProperty = null; // 複数行にわたるプロパティ宣言の追跡
+        let insideAtMedia = false;
+        let atMediaDepth = 0;
 
         for (let i = 0; i < lines.length; i++) {
             const rawLine = lines[i];
@@ -1836,6 +2437,11 @@
             const hasCloseBrace = clean.includes('}');
             const depthBeforeLine = braceDepth;
 
+            if (hasOpenBrace && /^@media\b/i.test(clean)) {
+                insideAtMedia = true;
+                atMediaDepth = depthBeforeLine + 1;
+            }
+
             // 1行完結ルール（例: 0%, 49% { opacity: 1; } や .box { positio: relative; }）の検査
             if (hasOpenBrace && hasCloseBrace) {
                 const openIdx = clean.indexOf('{');
@@ -1845,6 +2451,16 @@
                     const innerPart = clean.substring(openIdx + 1, closeIdx).trim();
                     if (selPart) checkCssSelector(selPart, i, rawLine);
                     if (innerPart && !innerPart.includes('{')) {
+                        if (innerPart.includes(';;')) {
+                            issues.push(createIssue(
+                                offset + i + 1,
+                                Math.max(1, rawLine.indexOf(';;') + 1),
+                                `CSSのセミコロンが2つ連続しています（;;）`,
+                                `セミコロンは1つ（;）にしてください`,
+                                'error',
+                                rawLine
+                            ));
+                        }
                         const decls = innerPart.split(';');
                         for (let d = 0; d < decls.length; d++) {
                             const decl = decls[d].trim();
@@ -1864,6 +2480,9 @@
                 if (clean[c] === '{') braceDepth++;
                 else if (clean[c] === '}') {
                     braceDepth = Math.max(0, braceDepth - 1);
+                    if (insideAtMedia && braceDepth < atMediaDepth) {
+                        insideAtMedia = false;
+                    }
                     if (pendingProperty) {
                         issues.push(createIssue(
                             offset + pendingProperty.line,
@@ -1878,9 +2497,13 @@
                 }
             }
 
-            // 中括弧「{」を書き忘れてブロック外にプロパティを書いた場合の検知
+            // 中括弧「{」の外（depth === 0）に書かれた行の検査
             if (!hasOpenBrace && !hasCloseBrace && depthBeforeLine === 0) {
-                if (clean.endsWith(';') && clean.includes(':') && !clean.startsWith('@')) {
+                if (clean.startsWith('@')) {
+                    checkCssSelector(clean, i, rawLine);
+                    continue;
+                }
+                if (clean.includes(':')) {
                     const colonIdx = clean.indexOf(':');
                     const propCandidate = clean.substring(0, colonIdx).trim();
                     if (/^[a-zA-Z-]+$/.test(propCandidate)) {
@@ -1888,12 +2511,39 @@
                             offset + i + 1,
                             Math.max(1, rawLine.indexOf(propCandidate) + 1),
                             `CSSプロパティ「${propCandidate}」が波括弧「 { ... } 」の外に書かれています`,
-                            `直前のセレクタ行の末尾に開き波括弧「 { 」が抜けていないか確認してください`,
+                            `セレクタの後ろに開き波括弧「 { 」があるか確認してください`,
                             'error',
                             rawLine
                         ));
                         checkSingleCssDeclaration(clean, i, rawLine, true);
+                        continue;
                     }
+                }
+                // 複数行セレクタ（直後の非空行が { で始まる、またはカンマ区切りで次行へ続くセレクタ）かどうかを確認
+                let leadsToOpenBrace = false;
+                for (let j = i + 1; j < lines.length; j++) {
+                    const nextClean = cleanLines[j].trim();
+                    if (!nextClean) continue;
+                    if (nextClean.startsWith('{') || (clean.endsWith(',') && nextClean.includes('{'))) {
+                        leadsToOpenBrace = true;
+                        break;
+                    }
+                    if (clean.endsWith(',') && (nextClean.endsWith(',') || nextClean.includes('{'))) {
+                        continue;
+                    }
+                    break;
+                }
+                if (leadsToOpenBrace) {
+                    checkCssSelector(clean.replace(/,\s*$/, ''), i, rawLine);
+                } else {
+                    issues.push(createIssue(
+                        offset + i + 1,
+                        Math.max(1, rawLine.indexOf(clean) + 1),
+                        `CSSのセレクタまたは記述「${clean}」の後に波括弧「 { ... } 」がありません`,
+                        `セレクタの後ろに「 { プロパティ: 値; } 」を書くか、不要なテキストであれば削除してください`,
+                        'error',
+                        rawLine
+                    ));
                 }
                 continue;
             }
@@ -1942,12 +2592,38 @@
                         }
                     }
                 } else if (clean.includes(':')) {
+                    if (clean.includes('::') && !(insideAtMedia && braceDepth === atMediaDepth)) {
+                        issues.push(createIssue(
+                            offset + i + 1,
+                            Math.max(1, rawLine.indexOf('::') + 1),
+                            `CSSのプロパティ宣言でコロンが2つ連続しています（::）`,
+                            `プロパティ名と値の間はコロン1つ（:）にしてください`,
+                            'error',
+                            rawLine
+                        ));
+                    }
+                    if (clean.includes(';;')) {
+                        issues.push(createIssue(
+                            offset + i + 1,
+                            Math.max(1, rawLine.indexOf(';;') + 1),
+                            `CSSのセミコロンが2つ連続しています（;;）`,
+                            `行末のセミコロンは1つ（;）にしてください`,
+                            'error',
+                            rawLine
+                        ));
+                    }
+
                     const colonIdx = clean.indexOf(':');
                     const propName = clean.substring(0, colonIdx).trim();
-                    const valPart = clean.substring(colonIdx + 1).replace(/;/g, '').trim();
+                    const valPart = clean.substring(colonIdx + 1).replace(/^:+/, '').replace(/;/g, '').trim();
 
                     // セレクタが閉じ括弧なしで次のセレクタに入った場合の検知 (例: .btn:hover { が来る前に前ブロックの } が抜けた)
                     if (propName.includes(' ') || propName.startsWith('.') || propName.startsWith('#')) {
+                        if (insideAtMedia && braceDepth === atMediaDepth) {
+                            // @media 直下の複数行セレクタ行
+                            checkCssSelector(clean, i, rawLine);
+                            continue;
+                        }
                         issues.push(createIssue(
                             offset + i + 1,
                             Math.max(1, rawLine.indexOf(propName) + 1),
@@ -2030,11 +2706,31 @@
                         }
                     }
                 } else if (/^[a-zA-Z-]+\s+[^,{]+$/.test(clean)) {
+                    if (insideAtMedia && braceDepth === atMediaDepth) {
+                        // @media 内の複数行セレクタか確認
+                        let leadsToOpenBrace = false;
+                        for (let j = i + 1; j < lines.length; j++) {
+                            const nextClean = cleanLines[j].trim();
+                            if (!nextClean) continue;
+                            if (nextClean.includes('{')) { leadsToOpenBrace = true; break; }
+                            if (nextClean.includes('}') || nextClean.includes(';')) break;
+                        }
+                        if (leadsToOpenBrace) continue;
+                    }
                     issues.push(createIssue(
                         offset + i + 1,
                         rawLine.indexOf(clean) + 1,
                         `CSSのプロパティ名と値の間にコロン（:）がありません`,
                         `「 プロパティ名: 値; 」のようにコロン（:）で区切ってください`,
+                        'error',
+                        rawLine
+                    ));
+                } else if (!(insideAtMedia && braceDepth === atMediaDepth && clean.endsWith(','))) {
+                    issues.push(createIssue(
+                        offset + i + 1,
+                        Math.max(1, rawLine.indexOf(clean) + 1),
+                        `CSSブロック内に不正な記述「${clean}」があります`,
+                        `「 プロパティ名: 値; 」の形式で記述するか、不要な文字を削除してください`,
                         'error',
                         rawLine
                     ));
@@ -2045,15 +2741,25 @@
         return issues;
     }
 
+    const VALID_HTML_BOOLEAN_ATTRIBUTES = new Set([
+        'allowfullscreen', 'async', 'autofocus', 'autoplay', 'checked', 'controls',
+        'crossorigin', 'default', 'defer', 'disabled', 'formnovalidate', 'hidden', 'inert',
+        'ismap', 'itemscope', 'loop', 'multiple', 'muted', 'nomodule',
+        'novalidate', 'open', 'playsinline', 'readonly', 'required', 'reversed',
+        'selected', 'shadowrootclonable', 'shadowrootdelegatesfocus', 'shadowrootserializable'
+    ]);
+
     /**
      * 7. HTML (index.html) チェック
-     * （タグ対応・タグ名タイポ・属性タイポ・属性クォート・未閉じ山括弧・インラインScript・インラインStyle）
+     * （タグ対応・タグ名タイポ・属性タイポ・属性クォート・未閉じ山括弧・未閉じコメント・重複ID・不要な文字・インラインScript・インラインStyle）
      */
     function checkHTML(code, changedLines) {
         const issues = [];
         const lines = code.split('\n');
 
         let inComment = false;
+        let commentStartLine = 1;
+        let commentStartCol = 1;
         let inScript = false;
         let inStyle = false;
         let scriptLines = [];
@@ -2061,6 +2767,39 @@
         let styleLines = [];
         let styleStartLine = 0;
         const tagStack = [];
+        const seenHtmlIds = new Map(); // id -> lineNum
+
+        function checkOutsideTagSegment(segText, lineIdx, segStartCol, rawLine) {
+            if (!segText) return;
+            // タグ外に孤立した「>」がある場合（例: <div id="a">> や </div>>）
+            const strayGtIdx = segText.indexOf('>');
+            if (strayGtIdx !== -1) {
+                issues.push(createIssue(
+                    lineIdx + 1,
+                    segStartCol + strayGtIdx,
+                    `HTMLタグの外に余分な閉じ山括弧「 > 」があります`,
+                    `「 > 」が2つ連続していないか、または開始の「 < 」が消えていないか確認してください`,
+                    'error',
+                    rawLine
+                ));
+            }
+            // <body> の外（ファイルの先頭・<head>直下・</html>の後など）に書かれた不要なテキストの検出
+            const trimmedSeg = segText.replace(/>/g, '').trim();
+            if (trimmedSeg) {
+                const insideBody = tagStack.some(t => t.tag === 'body');
+                const topTag = tagStack.length > 0 ? tagStack[tagStack.length - 1].tag : null;
+                if (!insideBody && topTag !== 'title') {
+                    issues.push(createIssue(
+                        lineIdx + 1,
+                        Math.max(1, rawLine.indexOf(trimmedSeg) + 1),
+                        `HTMLタグの外に不要な文字「${trimmedSeg.slice(0, 25)}」が書かれています`,
+                        `タグの「 < 」が消えていないか確認するか、不要な文字を削除してください`,
+                        'error',
+                        rawLine
+                    ));
+                }
+            }
+        }
 
         for (let i = 0; i < lines.length; i++) {
             const rawLine = lines[i];
@@ -2071,7 +2810,7 @@
                 const closeIdx = line.indexOf('-->');
                 if (closeIdx !== -1) {
                     inComment = false;
-                    line = line.substring(closeIdx + 3);
+                    line = ' '.repeat(closeIdx + 3) + line.substring(closeIdx + 3);
                 } else {
                     continue;
                 }
@@ -2081,9 +2820,11 @@
                 if (openIdx === -1) break;
                 const closeIdx = line.indexOf('-->', openIdx + 4);
                 if (closeIdx !== -1) {
-                    line = line.substring(0, openIdx) + line.substring(closeIdx + 3);
+                    line = line.substring(0, openIdx) + ' '.repeat(closeIdx + 3 - openIdx) + line.substring(closeIdx + 3);
                 } else {
                     inComment = true;
+                    commentStartLine = i + 1;
+                    commentStartCol = openIdx + 1;
                     line = line.substring(0, openIdx);
                     break;
                 }
@@ -2104,6 +2845,7 @@
                         const isPlatformInjected = /\/cdn-cgi\/|__CF\$cv\$params|cloudflare/i.test(scriptCode);
                         if (!isPlatformInjected) {
                             const jsIssues = []
+                                .concat(checkFullwidthCharacters('inline.js', scriptCode))
                                 .concat(checkUnclosedQuotes('inline.js', scriptCode))
                                 .concat(checkBracketPairs('inline.js', scriptCode))
                                 .concat(checkJavaScriptNativeSyntax(scriptCode, null, false));
@@ -2123,7 +2865,7 @@
                     if (tagStack.length > 0 && tagStack[tagStack.length - 1].tag === 'script') {
                         tagStack.pop();
                     }
-                    line = line.substring(closeMatch.index + closeMatch[0].length);
+                    line = ' '.repeat(closeMatch.index + closeMatch[0].length) + line.substring(closeMatch.index + closeMatch[0].length);
                 } else {
                     scriptLines.push(rawLine);
                     continue;
@@ -2142,6 +2884,7 @@
                     if (styleLines.length > 0) {
                         const styleCode = styleLines.join('\n');
                         const cssIssues = []
+                            .concat(checkFullwidthCharacters('inline.css', styleCode))
                             .concat(checkUnclosedQuotes('inline.css', styleCode))
                             .concat(checkBracketPairs('inline.css', styleCode))
                             .concat(checkCSS(styleCode, 0));
@@ -2160,7 +2903,7 @@
                     if (tagStack.length > 0 && tagStack[tagStack.length - 1].tag === 'style') {
                         tagStack.pop();
                     }
-                    line = line.substring(closeMatch.index + closeMatch[0].length);
+                    line = ' '.repeat(closeMatch.index + closeMatch[0].length) + line.substring(closeMatch.index + closeMatch[0].length);
                 } else {
                     styleLines.push(rawLine);
                     continue;
@@ -2171,18 +2914,40 @@
             let pos = 0;
             while (pos < line.length) {
                 const ltIdx = line.indexOf('<', pos);
-                if (ltIdx === -1) break;
+                if (ltIdx === -1) {
+                    checkOutsideTagSegment(line.substring(pos), i, pos + 1, rawLine);
+                    break;
+                }
+
+                if (ltIdx > pos) {
+                    checkOutsideTagSegment(line.substring(pos, ltIdx), i, pos + 1, rawLine);
+                }
 
                 // '<' から '>' までを探す（クォート内を考慮）
                 let gtIdx = -1;
                 let quoteChar = null;
                 let quoteStartCol = 0;
+                let unquotedQuoteIssue = false;
                 for (let k = ltIdx + 1; k < line.length; k++) {
                     const ch = line[k];
                     if (quoteChar) {
                         if (ch === quoteChar) quoteChar = null;
                     } else {
                         if (ch === '"' || ch === "'") {
+                            // 直前が「=」または空白でないのにクォートが現れた場合（例: id=gameCanvas" のような開きクォート抜け）
+                            const prevChar = line[k - 1];
+                            if (prevChar && prevChar !== '=' && !/\s/.test(prevChar)) {
+                                issues.push(createIssue(
+                                    i + 1,
+                                    k + 1,
+                                    `HTML属性の値を囲む開始の「 ${ch} 」が抜けています`,
+                                    `「=」の直後に「 ${ch} 」を付けて属性値を囲んでください（例: id="gameCanvas"）`,
+                                    'error',
+                                    rawLine
+                                ));
+                                unquotedQuoteIssue = true;
+                                break;
+                            }
                             quoteChar = ch;
                             quoteStartCol = k + 1;
                         } else if (ch === '>') {
@@ -2192,6 +2957,10 @@
                             break;
                         }
                     }
+                }
+
+                if (unquotedQuoteIssue) {
+                    break;
                 }
 
                 if (quoteChar) {
@@ -2207,6 +2976,8 @@
                 }
 
                 let tagContent = '';
+                let tagLineIdx = i;
+                let tagRawLine = rawLine;
                 if (gtIdx === -1) {
                     // 次の行にまたがる複数行タグのルックアヘッド走査
                     let multilineContent = line.substring(ltIdx + 1);
@@ -2267,12 +3038,45 @@
                     pos = gtIdx + 1;
                 }
 
-                if (!tagContent || tagContent.startsWith('!')) continue; // <!DOCTYPE html> 等
+                if (!tagContent) {
+                    issues.push(createIssue(
+                        tagLineIdx + 1,
+                        ltIdx + 1,
+                        `空のHTMLタグ「<>」があります`,
+                        `正しいタグ名を入力するか、不要な「<>」を削除してください`,
+                        'error',
+                        tagRawLine
+                    ));
+                    continue;
+                }
+                if (tagContent.startsWith('!')) {
+                    if (!/^!doctype\s+html$/i.test(tagContent.trim())) {
+                        issues.push(createIssue(
+                            tagLineIdx + 1,
+                            ltIdx + 1,
+                            `DOCTYPE宣言またはコメント「<${tagContent}>」の形式が正しくありません`,
+                            `「<!DOCTYPE html>」またはコメント「<!-- ... -->」の形式で記述してください`,
+                            'error',
+                            tagRawLine
+                        ));
+                    }
+                    continue;
+                }
 
                 const isClosing = tagContent.startsWith('/');
                 const isSelfClosing = tagContent.endsWith('/');
                 const nameMatch = tagContent.replace(/^\//, '').match(/^([a-zA-Z0-9-]+)/);
-                if (!nameMatch) continue;
+                if (!nameMatch) {
+                    issues.push(createIssue(
+                        tagLineIdx + 1,
+                        ltIdx + 1,
+                        `HTMLタグ「<${tagContent}>」の書き方が正しくありません`,
+                        `正しいHTMLタグ名を指定してください`,
+                        'error',
+                        tagRawLine
+                    ));
+                    continue;
+                }
 
                 const rawTagName = nameMatch[1];
                 const tagName = rawTagName.toLowerCase();
@@ -2281,48 +3085,115 @@
                 if (!tagName.includes('-') && !KNOWN_HTML_TAGS.has(tagName) && !KNOWN_HTML_TAGS.has(rawTagName)) {
                     const closestTag = findClosestInCollection(tagName, KNOWN_HTML_TAGS, 2);
                     issues.push(createIssue(
-                        i + 1,
+                        tagLineIdx + 1,
                         ltIdx + 2,
                         `HTMLタグ「<${isClosing ? '/' : ''}${rawTagName}>」は存在しないタグ名です`,
                         closestTag
                             ? `「<${isClosing ? '/' : ''}${closestTag}>」のスペルミスではありませんか？`
                             : `HTMLタグ名のスペルを確認してください`,
                         'error',
-                        rawLine
+                        tagRawLine
                     ));
                 }
 
-                // 開始タグの属性チェック（スペルミス・クォート忘れ等）
+                // 開始タグの属性チェック（スペルミス・クォート忘れ・重複ID・インラインstyle等）
                 if (!isClosing) {
                     const attrPart = tagContent.slice(rawTagName.length).replace(/\/$/, '').trim();
                     if (attrPart) {
-                        const attrRegex = /([a-zA-Z_][a-zA-Z0-9_:-]*)\s*(?:=\s*("[^"]*"|'[^']*'|[^\s"'=<>`]+)?)?/g;
+                        const attrRegex = /([a-zA-Z_][a-zA-Z0-9_:-]*)\s*(?:(\s*=\s*)(\x22[^\x22]*\x22|\x27[^\x27]*\x27|[^\s\x22\x27=<>`\x60]+)?)?/g;
                         let aMatch;
                         while ((aMatch = attrRegex.exec(attrPart)) !== null) {
                             const attrName = aMatch[1];
+                            const hasEquals = Boolean(aMatch[2]);
+                            const rawAttrVal = aMatch[3];
                             const attrLow = attrName.toLowerCase();
+
                             if (HTML_ATTR_TYPOS[attrLow]) {
                                 const correctAttr = HTML_ATTR_TYPOS[attrLow];
                                 issues.push(createIssue(
-                                    i + 1,
-                                    Math.max(1, rawLine.indexOf(attrName, ltIdx) + 1),
+                                    tagLineIdx + 1,
+                                    Math.max(1, tagRawLine.indexOf(attrName, ltIdx) + 1),
                                     `HTML属性「${attrName}」は「${correctAttr}」のスペルミスです`,
                                     `「${correctAttr}="..."」に書き直してください`,
                                     'error',
-                                    rawLine
+                                    tagRawLine
                                 ));
                             }
-                            // 属性値に「=」があるのに値が空（例: id= class="foo" または id=>）
-                            const fullMatchStr = aMatch[0];
-                            if (fullMatchStr.includes('=') && aMatch[2] === undefined) {
+
+                            if (hasEquals && rawAttrVal === undefined) {
                                 issues.push(createIssue(
-                                    i + 1,
-                                    Math.max(1, rawLine.indexOf(attrName, ltIdx) + 1),
+                                    tagLineIdx + 1,
+                                    Math.max(1, tagRawLine.indexOf(attrName, ltIdx) + 1),
                                     `HTML属性「${attrName}=」の後に値が指定されていません`,
                                     `「${attrName}="..."」のようにダブルクォートで囲んだ値を指定してください`,
                                     'error',
-                                    rawLine
+                                    tagRawLine
                                 ));
+                            } else if (hasEquals && rawAttrVal !== undefined) {
+                                // クォートなしで属性値が書かれている場合 (例: id=gameCanvas)
+                                if (!((rawAttrVal.startsWith('"') && rawAttrVal.endsWith('"')) || (rawAttrVal.startsWith("'") && rawAttrVal.endsWith("'")))) {
+                                    issues.push(createIssue(
+                                        tagLineIdx + 1,
+                                        Math.max(1, tagRawLine.indexOf(rawAttrVal, ltIdx) + 1),
+                                        `HTML属性「${attrName}」の値「${rawAttrVal}」がダブルクォート（"）で囲まれていません`,
+                                        `「${attrName}="${rawAttrVal.replace(/["']/g, '')}"」のようにダブルクォート（"）で囲んでください`,
+                                        'error',
+                                        tagRawLine
+                                    ));
+                                } else {
+                                    const unquotedVal = rawAttrVal.slice(1, -1);
+                                    if (attrLow === 'id') {
+                                        const trimmedId = unquotedVal.trim();
+                                        if (!trimmedId) {
+                                            issues.push(createIssue(
+                                                tagLineIdx + 1,
+                                                Math.max(1, tagRawLine.indexOf(attrName, ltIdx) + 1),
+                                                `id属性の値が空（id=""）になっています`,
+                                                `固有のid名を指定してください`,
+                                                'error',
+                                                tagRawLine
+                                            ));
+                                        } else if (seenHtmlIds.has(trimmedId)) {
+                                            const prevLine = seenHtmlIds.get(trimmedId);
+                                            issues.push(createIssue(
+                                                tagLineIdx + 1,
+                                                Math.max(1, tagRawLine.indexOf(trimmedId, ltIdx) + 1),
+                                                `HTML内に同じ id="${trimmedId}" が複数回使われています（行 ${prevLine} と重複）`,
+                                                `HTMLの id はページ内で1つだけになるように固有の名前を指定してください`,
+                                                'error',
+                                                tagRawLine
+                                            ));
+                                        } else {
+                                            seenHtmlIds.set(trimmedId, tagLineIdx + 1);
+                                        }
+                                    } else if (attrLow === 'style') {
+                                        // インライン style="..." のCSSプロパティ・値チェック
+                                        const inlineCssBlock = `.inline-style { ${unquotedVal} }`;
+                                        const inlineCssIssues = checkCSS(inlineCssBlock, tagLineIdx);
+                                        for (const cssIss of inlineCssIssues) {
+                                            issues.push(createIssue(
+                                                tagLineIdx + 1,
+                                                Math.max(1, tagRawLine.indexOf('style', ltIdx) + 1),
+                                                `style属性内のCSSエラー: ${cssIss.message}`,
+                                                cssIss.hint,
+                                                'error',
+                                                tagRawLine
+                                            ));
+                                        }
+                                    }
+                                }
+                            } else if (!hasEquals) {
+                                // = がない単独トークン（boolean属性でない場合はイコール抜けや不要な単語の誤入力）
+                                if (!VALID_HTML_BOOLEAN_ATTRIBUTES.has(attrLow) && !attrLow.startsWith('data-') && !attrLow.startsWith('aria-')) {
+                                    issues.push(createIssue(
+                                        tagLineIdx + 1,
+                                        Math.max(1, tagRawLine.indexOf(attrName, ltIdx) + 1),
+                                        `HTMLタグ内に不正な属性または文字「${attrName}」があります`,
+                                        `「${attrName}="..."」のように値を指定するか、不要な文字であれば削除してください`,
+                                        'error',
+                                        tagRawLine
+                                    ));
+                                }
                             }
                         }
                     }
@@ -2340,7 +3211,11 @@
                             // Cloudflare や CDN インフラ自動注入スクリプトは構文チェック対象外
                             const isPlatformInjected = /\/cdn-cgi\/|__CF\$cv\$params|cloudflare/i.test(inlineJs);
                             if (inlineJs && !isPlatformInjected) {
-                                const jsIssues = checkJavaScriptNativeSyntax(inlineJs, null, false);
+                                const jsIssues = []
+                                    .concat(checkFullwidthCharacters('inline.js', inlineJs))
+                                    .concat(checkUnclosedQuotes('inline.js', inlineJs))
+                                    .concat(checkBracketPairs('inline.js', inlineJs))
+                                    .concat(checkJavaScriptNativeSyntax(inlineJs, null, false));
                                 jsIssues.forEach(item => {
                                     issues.push(createIssue(
                                         i + 1,
@@ -2440,6 +3315,17 @@
             }
         }
 
+        if (inComment) {
+            issues.push(createIssue(
+                commentStartLine,
+                commentStartCol,
+                `HTMLコメント「 <!-- 」が閉じられていません（対応する「 --> 」がありません）`,
+                `コメントの終わりに「 --> 」を追加してください`,
+                'error',
+                lines[commentStartLine - 1] || ''
+            ));
+        }
+
         while (tagStack.length > 0) {
             const unclosed = tagStack.pop();
             issues.push(createIssue(
@@ -2524,6 +3410,489 @@
         return issues;
     }
 
+    const JS_BUILTIN_IDENTIFIERS = new Set([
+        // JS keywords & literals
+        'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default', 'delete',
+        'do', 'else', 'enum', 'export', 'extends', 'false', 'finally', 'for', 'function', 'if',
+        'import', 'in', 'instanceof', 'let', 'new', 'null', 'return', 'super', 'switch', 'this',
+        'throw', 'true', 'try', 'typeof', 'undefined', 'var', 'void', 'while', 'with', 'yield',
+        'async', 'await', 'of', 'static', 'get', 'set', 'from', 'as',
+        // Standard globals & Browser APIs
+        'window', 'document', 'navigator', 'location', 'history', 'screen', 'console', 'performance',
+        'localStorage', 'sessionStorage', 'indexedDB', 'crypto', 'caches',
+        'Math', 'Date', 'Number', 'String', 'Boolean', 'Object', 'Array', 'Function', 'Symbol', 'BigInt',
+        'RegExp', 'Error', 'TypeError', 'ReferenceError', 'SyntaxError', 'RangeError', 'URIError', 'EvalError',
+        'Map', 'Set', 'WeakMap', 'WeakSet', 'Promise', 'Proxy', 'Reflect', 'JSON', 'Intl',
+        'ArrayBuffer', 'SharedArrayBuffer', 'DataView', 'Int8Array', 'Uint8Array', 'Uint8ClampedArray',
+        'Int16Array', 'Uint16Array', 'Int32Array', 'Uint32Array', 'Float32Array', 'Float64Array',
+        'parseInt', 'parseFloat', 'isNaN', 'isFinite', 'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent',
+        'escape', 'unescape', 'eval', 'NaN', 'Infinity', 'globalThis', 'global', 'self', 'top', 'parent', 'frames',
+        'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame',
+        'requestIdleCallback', 'cancelIdleCallback', 'queueMicrotask',
+        'alert', 'confirm', 'prompt', 'fetch', 'XMLHttpRequest', 'WebSocket', 'Worker', 'BroadcastChannel', 'MessageChannel',
+        'Event', 'CustomEvent', 'MouseEvent', 'KeyboardEvent', 'TouchEvent', 'PointerEvent', 'FocusEvent', 'InputEvent', 'ErrorEvent',
+        'HTMLElement', 'HTMLCanvasElement', 'HTMLImageElement', 'HTMLAudioElement', 'HTMLVideoElement', 'HTMLInputElement',
+        'Node', 'Element', 'DocumentFragment', 'Text', 'Comment', 'DOMParser', 'MutationObserver', 'ResizeObserver', 'IntersectionObserver',
+        'Image', 'Audio', 'AudioContext', 'webkitAudioContext', 'OfflineAudioContext', 'GainNode', 'OscillatorNode',
+        'CanvasRenderingContext2D', 'Path2D', 'ImageData', 'OffscreenCanvas',
+        'URL', 'URLSearchParams', 'Blob', 'File', 'FileReader', 'FormData', 'Headers', 'Request', 'Response', 'AbortController',
+        'TextEncoder', 'TextDecoder', 'atob', 'btoa', 'structuredClone', ' getComputedStyle', 'getComputedStyle', 'matchMedia',
+        'devicePixelRatio', 'innerWidth', 'innerHeight', 'outerWidth', 'outerHeight', 'scrollX', 'scrollY', 'pageXOffset', 'pageYOffset',
+        'scrollTo', 'scrollBy', 'focus', 'blur', 'open', 'close', 'print', 'stop', 'postMessage', 'addEventListener', 'removeEventListener', 'dispatchEvent',
+        // Common Node / UMD / Project globals
+        'module', 'exports', 'require', '__dirname', '__filename', 'process', 'Buffer',
+        'GameConfig', 'Linter', 'StickyScroll', 'arguments'
+    ]);
+
+    const CORE_JS_REQUIRED_FUNCTIONS = [
+        { name: 'initEnemies', desc: 'インベーダー初期化関数 initEnemies()' },
+        { name: 'initBunkers', desc: '防壁初期化関数 initBunkers()' },
+        { name: 'resetGame', desc: 'ゲームリセット関数 resetGame()' },
+        { name: 'startGame', desc: 'ゲーム開始関数 startGame()' },
+        { name: 'update', desc: 'ゲーム更新関数 update()' },
+        { name: 'draw', desc: 'ゲーム描画関数 draw()' },
+        { name: 'loop', desc: 'メインループ関数 loop()' }
+    ];
+
+    /**
+     * 8.5 JavaScript (core.js 等) の未定義識別子・関数名タイポ・GameConfigプロパティ参照チェック
+     */
+    function checkJavaScriptSemanticAndConfigRefs(filename, code) {
+        const issues = [];
+        const lines = code.split('\n');
+
+        // 1. 文字列・テンプレートリテラル・正規表現・コメントを空白に置換したコードを作成（行・列番号を完全保持）
+        let stripped = '';
+        let i = 0;
+        const len = code.length;
+        let lastTokenChar = '';
+        let lastWord = '';
+
+        function consumeTemplateLiteral() {
+            stripped += ' ';
+            i++;
+            while (i < len && code[i] !== '`') {
+                if (code[i] === '\\') {
+                    stripped += '  ';
+                    i += 2;
+                    continue;
+                }
+                if (code[i] === '$' && code[i + 1] === '{') {
+                    stripped += '  ';
+                    i += 2;
+                    let braceDepth = 1;
+                    let exprLastChar = '{';
+                    while (i < len && braceDepth > 0) {
+                        if (code[i] === '{') {
+                            braceDepth++;
+                            stripped += '{';
+                            exprLastChar = '{';
+                            i++;
+                        } else if (code[i] === '}') {
+                            braceDepth--;
+                            if (braceDepth === 0) {
+                                stripped += ' ';
+                                i++;
+                                break;
+                            }
+                            stripped += '}';
+                            exprLastChar = '}';
+                            i++;
+                        } else if (code[i] === '`') {
+                            consumeTemplateLiteral();
+                            exprLastChar = '`';
+                        } else if (code[i] === '"' || code[i] === "'") {
+                            const sq = code[i];
+                            stripped += ' ';
+                            i++;
+                            while (i < len && code[i] !== sq && code[i] !== '\n') {
+                                if (code[i] === '\\') { stripped += '  '; i += 2; continue; }
+                                stripped += ' ';
+                                i++;
+                            }
+                            if (i < len && code[i] === sq) { stripped += ' '; i++; }
+                            exprLastChar = sq;
+                        } else if (code[i] === '/' && code[i + 1] !== '/' && code[i + 1] !== '*' && '=(,:;[!?&|+-*~^%<>/{};'.includes(exprLastChar)) {
+                            stripped += ' ';
+                            i++;
+                            let inCC = false;
+                            while (i < len && code[i] !== '\n') {
+                                if (code[i] === '\\') { stripped += '  '; i += 2; continue; }
+                                if (code[i] === '[') inCC = true;
+                                else if (code[i] === ']') inCC = false;
+                                else if (code[i] === '/' && !inCC) {
+                                    stripped += ' ';
+                                    i++;
+                                    while (i < len && /[gimsuy]/.test(code[i])) { stripped += ' '; i++; }
+                                    break;
+                                }
+                                stripped += ' ';
+                                i++;
+                            }
+                            exprLastChar = '/';
+                        } else {
+                            if (!/\s/.test(code[i])) exprLastChar = code[i];
+                            stripped += code[i];
+                            i++;
+                        }
+                    }
+                    continue;
+                }
+                stripped += (code[i] === '\n' ? '\n' : ' ');
+                i++;
+            }
+            if (i < len && code[i] === '`') {
+                stripped += ' ';
+                i++;
+            }
+        }
+
+        while (i < len) {
+            const ch = code[i];
+            const next = code[i + 1];
+
+            // 行コメント //
+            if (ch === '/' && next === '/') {
+                while (i < len && code[i] !== '\n') {
+                    stripped += ' ';
+                    i++;
+                }
+                continue;
+            }
+            // ブロックコメント /* ... */
+            if (ch === '/' && next === '*') {
+                stripped += '  ';
+                i += 2;
+                while (i < len && !(code[i] === '*' && code[i + 1] === '/')) {
+                    stripped += (code[i] === '\n' ? '\n' : ' ');
+                    i++;
+                }
+                if (i < len) {
+                    stripped += '  ';
+                    i += 2;
+                }
+                continue;
+            }
+            // 文字列 "..." または '...'
+            if (ch === '"' || ch === "'") {
+                const q = ch;
+                stripped += ' ';
+                i++;
+                while (i < len && code[i] !== q && code[i] !== '\n') {
+                    if (code[i] === '\\') {
+                        stripped += '  ';
+                        i += 2;
+                        continue;
+                    }
+                    stripped += ' ';
+                    i++;
+                }
+                if (i < len && code[i] === q) {
+                    stripped += ' ';
+                    i++;
+                }
+                lastTokenChar = q;
+                lastWord = '';
+                continue;
+            }
+            // テンプレートリテラル `...`
+            if (ch === '`') {
+                consumeTemplateLiteral();
+                lastTokenChar = '`';
+                lastWord = '';
+                continue;
+            }
+            // 正規表現リテラル /.../
+            if (ch === '/' && next !== '/' && next !== '*') {
+                const regexPrecedingWords = new Set(['return', 'typeof', 'void', 'delete', 'throw', 'case', 'in', 'of', 'instanceof', 'new', 'yield', 'await']);
+                if (!lastTokenChar || '=(,:;[!?&|+-*~^%<>/{};'.includes(lastTokenChar) || regexPrecedingWords.has(lastWord)) {
+                    stripped += ' ';
+                    i++;
+                    let inCharClass = false;
+                    while (i < len && code[i] !== '\n') {
+                        if (code[i] === '\\') {
+                            stripped += '  ';
+                            i += 2;
+                            continue;
+                        }
+                        if (code[i] === '[') inCharClass = true;
+                        else if (code[i] === ']') inCharClass = false;
+                        else if (code[i] === '/' && !inCharClass) {
+                            stripped += ' ';
+                            i++;
+                            while (i < len && /[gimsuy]/.test(code[i])) {
+                                stripped += ' ';
+                                i++;
+                            }
+                            break;
+                        }
+                        stripped += ' ';
+                        i++;
+                    }
+                    lastTokenChar = '/';
+                    lastWord = '';
+                    continue;
+                }
+            }
+
+            if (/[a-zA-Z0-9_$]/.test(ch)) {
+                lastWord += ch;
+                lastTokenChar = ch;
+            } else if (!/\s/.test(ch)) {
+                lastTokenChar = ch;
+                lastWord = '';
+            }
+            stripped += ch;
+            i++;
+        }
+
+        // 2. ファイル内の全宣言識別子（var/let/const/function/メソッド/引数/catch/分割代入）を収集
+        const declared = new Set(JS_BUILTIN_IDENTIFIERS);
+        let m;
+
+        const varDeclRe = /\b(?:var|let|const)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g;
+        while ((m = varDeclRe.exec(stripped)) !== null) declared.add(m[1]);
+
+        // カンマ区切りの複数変数宣言 (例: let minC = Infinity, maxC = -Infinity;)
+        const commaVarRe = /,\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?:=|;|,|\n)/g;
+        while ((m = commaVarRe.exec(stripped)) !== null) declared.add(m[1]);
+
+        const destructDeclRe = /\b(?:var|let|const)\s*[\[{]([^\]}]+)[\]}]\s*=/g;
+        while ((m = destructDeclRe.exec(stripped)) !== null) {
+            const parts = m[1].split(',');
+            for (const p of parts) {
+                const sub = p.split(':').pop().split('=')[0].trim().replace(/^\.\.\./, '');
+                if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(sub)) declared.add(sub);
+            }
+        }
+
+        const funcDeclRe = /\bfunction\s*\*?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(([^)]*)\)/g;
+        while ((m = funcDeclRe.exec(stripped)) !== null) {
+            declared.add(m[1]);
+            m[2].split(',').forEach(arg => {
+                const cleanArg = arg.split('=')[0].trim().replace(/^\.\.\./, '');
+                if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleanArg)) declared.add(cleanArg);
+            });
+        }
+
+        const anonFuncRe = /\bfunction\s*\(([^)]*)\)/g;
+        while ((m = anonFuncRe.exec(stripped)) !== null) {
+            m[1].split(',').forEach(arg => {
+                const cleanArg = arg.split('=')[0].trim().replace(/^\.\.\./, '');
+                if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleanArg)) declared.add(cleanArg);
+            });
+        }
+
+        // クラスメソッドおよびオブジェクト短縮メソッド (例: checkHit(rectX, rectY, rectW, rectH) { ... })
+        const methodDeclRe = /(?:^|[\n{};,])\s*(?:async\s+|static\s+|get\s+|set\s+)*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(([^()]*)\)\s*\{/g;
+        const controlFlowKeywords = new Set(['if', 'for', 'while', 'switch', 'catch', 'function']);
+        while ((m = methodDeclRe.exec(stripped)) !== null) {
+            const methodName = m[1];
+            if (!controlFlowKeywords.has(methodName)) {
+                declared.add(methodName);
+                m[2].split(',').forEach(arg => {
+                    const cleanArg = arg.split('=')[0].trim().replace(/^\.\.\./, '');
+                    if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleanArg)) declared.add(cleanArg);
+                });
+            }
+        }
+
+        const arrowParenRe = /\(([^()]*)\)\s*=>/g;
+        while ((m = arrowParenRe.exec(stripped)) !== null) {
+            m[1].split(',').forEach(arg => {
+                const cleanArg = arg.split('=')[0].trim().replace(/^\.\.\./, '');
+                if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleanArg)) declared.add(cleanArg);
+            });
+        }
+
+        const arrowSingleRe = /\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>/g;
+        while ((m = arrowSingleRe.exec(stripped)) !== null) {
+            declared.add(m[1]);
+        }
+
+        const catchRe = /\bcatch\s*\(\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\)/g;
+        while ((m = catchRe.exec(stripped)) !== null) {
+            declared.add(m[1]);
+        }
+
+        const classRe = /\bclass\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g;
+        while ((m = classRe.exec(stripped)) !== null) {
+            declared.add(m[1]);
+        }
+
+        const strippedLines = stripped.split('\n');
+
+        // 3. 未定義の変数・関数名タイポ・孤立した識別子の検査
+        for (let lineIdx = 0; lineIdx < strippedLines.length; lineIdx++) {
+            const sLine = strippedLines[lineIdx];
+            const rawLine = lines[lineIdx];
+            if (!sLine.trim()) continue;
+
+            const idRe = /\b([a-zA-Z_$][a-zA-Z0-9_$]*)\b/g;
+            let idM;
+            while ((idM = idRe.exec(sLine)) !== null) {
+                const name = idM[1];
+                const idx = idM.index;
+
+                // 直前が '.'（プロパティアクセス obj.prop）の場合はスキップ
+                let prevIdx = idx - 1;
+                while (prevIdx >= 0 && /\s/.test(sLine[prevIdx])) prevIdx--;
+                if (prevIdx >= 0 && sLine[prevIdx] === '.') continue;
+                // 前行末尾が '.' の場合もスキップ
+                if (prevIdx < 0 && lineIdx > 0) {
+                    const prevLineTrim = strippedLines[lineIdx - 1].trim();
+                    if (prevLineTrim.endsWith('.')) continue;
+                }
+
+                // 直後が ':'（オブジェクトリテラルのキーやラベル { key: val }）の場合はスキップ（ただし三項演算子 ? a : b は除外）
+                let nextIdx = idx + name.length;
+                while (nextIdx < sLine.length && /\s/.test(sLine[nextIdx])) nextIdx++;
+                if (nextIdx < sLine.length && sLine[nextIdx] === ':') {
+                    const beforeSlice = sLine.slice(0, idx);
+                    if (!beforeSlice.includes('?')) continue;
+                }
+
+                if (!declared.has(name)) {
+                    const closest = findClosestInCollection(name, declared, 2);
+                    const isCall = nextIdx < sLine.length && sLine[nextIdx] === '(';
+                    issues.push(createIssue(
+                        lineIdx + 1,
+                        idx + 1,
+                        isCall
+                            ? `関数「${name}()」は定義されていません`
+                            : `変数または識別子「${name}」は定義されていません`,
+                        closest
+                            ? `「${closest}」のスペルミスではありませんか？`
+                            : `変数名・関数名のスペルを確認するか、不要な文字であれば削除してください`,
+                        'error',
+                        rawLine
+                    ));
+                }
+            }
+        }
+
+        // 4. core.js 固有の GameConfig セクション・プロパティ参照および必須関数チェック
+        if (filename === 'core.js' || filename.endsWith('/core.js')) {
+            // GameConfig のエイリアス変数 (pCfg = GameConfig.player, bCfg = GameConfig.bullet || GameConfig.bunker 等) を追跡
+            const activeConfigVarMap = new Map([
+                ['pCfg', 'player'],
+                ['eCfg', 'enemy'],
+                ['bCfg', 'bullet'],
+                ['uCfg', 'ufo'],
+                ['dCfg', 'display'],
+                ['gCfg', 'game'],
+                ['sCfg', 'sprites']
+            ]);
+
+            const validSections = Object.keys(KNOWN_CONFIG_SCHEMA);
+
+            for (let lineIdx = 0; lineIdx < strippedLines.length; lineIdx++) {
+                const sLine = strippedLines[lineIdx];
+                const rawLine = lines[lineIdx];
+                if (!sLine.trim()) continue;
+
+                // 行内で const pCfg = ... GameConfig.<sec> が束縛された場合はターゲットセクションを記録
+                const lineAliasMatch = sLine.match(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*[^;]*?\bGameConfig\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?![.\[])/);
+                if (lineAliasMatch) {
+                    const varName = lineAliasMatch[1];
+                    const secName = lineAliasMatch[2];
+                    if (KNOWN_CONFIG_SCHEMA[secName]) {
+                        activeConfigVarMap.set(varName, secName);
+                    }
+                } else if (/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:window\.)?GameConfig\b(?![.\[])/.test(sLine)) {
+                    const rootAliasMatch = sLine.match(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:window\.)?GameConfig\b(?![.\[])/);
+                    if (rootAliasMatch) {
+                        activeConfigVarMap.delete(rootAliasMatch[1]);
+                    }
+                }
+
+                // (a) GameConfig.<section> および GameConfig.<section>.<prop> の検証
+                const gcAccessRe = /\bGameConfig\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\.([a-zA-Z_$][a-zA-Z0-9_$]*))?/g;
+                let gcM;
+                while ((gcM = gcAccessRe.exec(sLine)) !== null) {
+                    const sec = gcM[1];
+                    const prop = gcM[2];
+                    if (!KNOWN_CONFIG_SCHEMA[sec]) {
+                        const closestSec = findClosestInCollection(sec, validSections, 3);
+                        issues.push(createIssue(
+                            lineIdx + 1,
+                            Math.max(1, rawLine.indexOf(sec) + 1),
+                            `GameConfig.${sec} という設定カテゴリは config.js に存在しません`,
+                            closestSec
+                                ? `「GameConfig.${closestSec}」のスペルミスではありませんか？`
+                                : `有効なセクション名（${validSections.join(', ')}）を指定してください`,
+                            'error',
+                            rawLine
+                        ));
+                    } else if (prop && !KNOWN_CONFIG_SCHEMA[sec].includes(prop)) {
+                        const closestProp = findClosestInCollection(prop, KNOWN_CONFIG_SCHEMA[sec], 3);
+                        issues.push(createIssue(
+                            lineIdx + 1,
+                            Math.max(1, rawLine.indexOf(prop, rawLine.indexOf(sec)) + 1),
+                            `GameConfig.${sec}.${prop} という設定項目は config.js に存在しません`,
+                            closestProp
+                                ? `「GameConfig.${sec}.${closestProp}」のスペルミスではありませんか？`
+                                : `GameConfig.${sec} の有効な項目（${KNOWN_CONFIG_SCHEMA[sec].join(', ')}）を指定してください`,
+                            'error',
+                            rawLine
+                        ));
+                    }
+                }
+
+                // (b) pCfg.<prop>, eCfg.<prop> などのエイリアス変数経由のプロパティアクセス検証
+                for (const [varName, secName] of activeConfigVarMap.entries()) {
+                    const varPropRe = new RegExp(`\\b${varName}\\.([a-zA-Z_$][a-zA-Z0-9_$]*)`, 'g');
+                    let vpM;
+                    while ((vpM = varPropRe.exec(sLine)) !== null) {
+                        const prop = vpM[1];
+                        const allowedProps = KNOWN_CONFIG_SCHEMA[secName];
+                        if (allowedProps && !allowedProps.includes(prop)) {
+                            const closestProp = findClosestInCollection(prop, allowedProps, 3);
+                            issues.push(createIssue(
+                                lineIdx + 1,
+                                Math.max(1, rawLine.indexOf(`${varName}.${prop}`) + varName.length + 2),
+                                `${varName}.${prop}（GameConfig.${secName}.${prop}）という設定項目は存在しません`,
+                                closestProp
+                                    ? `「${varName}.${closestProp}」のスペルミスではありませんか？`
+                                    : `GameConfig.${secName} の有効な項目（${allowedProps.join(', ')}）を確認してください`,
+                                'error',
+                                rawLine
+                            ));
+                        }
+                    }
+                }
+            }
+
+            // (c) core.js の必須トップレベル関数が消されていないか検証
+            for (const reqFn of CORE_JS_REQUIRED_FUNCTIONS) {
+                if (!declared.has(reqFn.name)) {
+                    const closestFn = findClosestInCollection(reqFn.name, declared, 3);
+                    let targetLine = 1;
+                    if (closestFn) {
+                        for (let k = 0; k < strippedLines.length; k++) {
+                            if (new RegExp(`\\bfunction\\s+${closestFn}\\b`).test(strippedLines[k])) {
+                                targetLine = k + 1;
+                                break;
+                            }
+                        }
+                    }
+                    issues.push(createIssue(
+                        targetLine,
+                        1,
+                        `core.js 内の必須関数「${reqFn.desc}」が見つかりません`,
+                        closestFn
+                            ? `関数名「${closestFn}」は「${reqFn.name}」のスペルミスではありませんか？`
+                            : `ゲームを動かすために function ${reqFn.name}() が必要です`,
+                        'error',
+                        lines[targetLine - 1] || ''
+                    ));
+                }
+            }
+        }
+
+        return issues;
+    }
+
     /**
      * 9. ファイル横断（クロスファイル）整合性チェック（セーブ前に全ファイル間の参照・ID・パスを検証）
      * @param {string} filename 現在検査中のファイル名
@@ -2569,10 +3938,11 @@
             return '';
         };
 
-        // ── A. HTMLファイルの横断チェック (リンク先ファイル存在 & ゲーム必須DOM ID) ──
+        // ── A. HTMLファイルの横断チェック (リンク先ファイル存在 & ゲーム必須DOM ID・必須タグ) ──
         if (filename.endsWith('.html')) {
             let configScriptLine = -1;
             let coreScriptLine = -1;
+            let styleCssLinkLine = -1;
             let inScript = false;
             let inStyle = false;
 
@@ -2584,7 +3954,6 @@
                 if (trimmed.startsWith('<!--')) continue;
 
                 // <script> や <style> タグ内のインラインコードは HTML 属性チェックから除外
-                // (例: window.location.href = 'editor/?from=game' を HTML 属性と誤認しない)
                 if (inScript) {
                     if (/<\/script>/i.test(rawLine)) inScript = false;
                     continue;
@@ -2595,7 +3964,6 @@
                 }
 
                 // 同一行内に完結するインライン <script>...</script> や <style>...</style> の内容を除去
-                // (外部 src を持たない純粋なインラインスクリプト・スタイルのコードが HTML 属性と誤認されるのを防ぐ)
                 let scanLine = rawLine.replace(/<script(?![^>]*\bsrc\s*=)[^>]*>[\s\S]*?<\/script>/gi, '');
                 scanLine = scanLine.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
 
@@ -2633,10 +4001,11 @@
                     }
                     if (resolved === 'config.js') configScriptLine = i + 1;
                     if (resolved === 'core.js') coreScriptLine = i + 1;
+                    if (resolved === 'style.css') styleCssLinkLine = i + 1;
                 }
             }
 
-            // ルート index.html の場合、core.js が必須とする要素 (#gameCanvas 等) と script 順序を検証
+            // ルート index.html の場合、core.js が必須とする要素・外部ファイル読み込み・順序を検証
             if (filename === 'index.html') {
                 const htmlIds = new Set();
                 const idRegex = /\bid\s*=\s*["']([^"']+)["']/gi;
@@ -2648,7 +4017,12 @@
                 const requiredIds = [
                     { id: 'gameCanvas', desc: 'ゲーム画面を描画する <canvas id="gameCanvas">' },
                     { id: 'start-overlay', desc: 'ホーム画面オーバーレイ (id="start-overlay")' },
-                    { id: 'btn-game-start', desc: 'ゲーム開始ボタン (id="btn-game-start")' }
+                    { id: 'btn-game-start', desc: 'ゲーム開始ボタン (id="btn-game-start")' },
+                    { id: 'diff-options', desc: '難易度選択ボタン群 (id="diff-options")' },
+                    { id: 'wave-options', desc: 'WAVE数選択ボタン群 (id="wave-options")' },
+                    { id: 'home-hiscore', desc: 'ハイスコア表示 (id="home-hiscore")' },
+                    { id: 'pause-overlay', desc: '一時停止オーバーレイ (id="pause-overlay")' },
+                    { id: 'btn-quick-pause', desc: '一時停止ボタン (id="btn-quick-pause")' }
                 ];
 
                 for (const req of requiredIds) {
@@ -2674,6 +4048,37 @@
                             lines[targetLine - 1] || ''
                         ));
                     }
+                }
+
+                if (configScriptLine === -1) {
+                    issues.push(createIssue(
+                        lines.length,
+                        1,
+                        `[ファイル横断] index.html 内で config.js が読み込まれていません`,
+                        `</body> の前に <script src="config.js"></script> を記述してください`,
+                        'error',
+                        lines[lines.length - 1] || ''
+                    ));
+                }
+                if (coreScriptLine === -1) {
+                    issues.push(createIssue(
+                        lines.length,
+                        1,
+                        `[ファイル横断] index.html 内で core.js が読み込まれていません`,
+                        `</body> の前に <script src="core.js"></script> を記述してください`,
+                        'error',
+                        lines[lines.length - 1] || ''
+                    ));
+                }
+                if (styleCssLinkLine === -1) {
+                    issues.push(createIssue(
+                        1,
+                        1,
+                        `[ファイル横断] index.html 内で style.css が読み込まれていません`,
+                        `<head> 内に <link rel="stylesheet" href="style.css"> を記述してください`,
+                        'error',
+                        lines[0] || ''
+                    ));
                 }
 
                 if (configScriptLine !== -1 && coreScriptLine !== -1 && configScriptLine > coreScriptLine) {
@@ -2715,7 +4120,7 @@
                 }
             }
 
-            // 2. style.css の ID / クラスセレクタが index.html / core.js に存在するか横断チェック
+            // 2. style.css の ID / クラスセレクタが index.html / core.js に存在するか横断チェック（@media 内も含む）
             if (filename === 'style.css' && allFiles['index.html']) {
                 const knownIds = new Set();
                 const knownClasses = new Set([
@@ -2753,6 +4158,8 @@
                 // CSS内のセレクタ行から #id と .class を抽出して照合
                 let inComment = false;
                 let depth = 0;
+                let inAtMedia = false;
+                let atMediaBaseDepth = 0;
                 for (let i = 0; i < lines.length; i++) {
                     const rawLine = lines[i];
                     let line = rawLine;
@@ -2772,7 +4179,13 @@
                     const trimmed = line.trim();
                     if (!trimmed) continue;
 
-                    if (depth === 0 && !trimmed.startsWith('@')) {
+                    if (trimmed.startsWith('@media') && trimmed.includes('{')) {
+                        inAtMedia = true;
+                        atMediaBaseDepth = depth + 1;
+                    }
+
+                    const isSelectorContext = (depth === 0 && !trimmed.startsWith('@')) || (inAtMedia && depth === atMediaBaseDepth && !trimmed.startsWith('@') && !trimmed.startsWith('}'));
+                    if (isSelectorContext) {
                         const selPart = trimmed.includes('{') ? trimmed.substring(0, trimmed.indexOf('{')) : trimmed;
                         // セレクタ内の #id 検査
                         const idSelRe = /#([a-zA-Z_-][a-zA-Z0-9_-]*)/g;
@@ -2780,18 +4193,19 @@
                         while ((idM = idSelRe.exec(selPart)) !== null) {
                             const idName = idM[1];
                             if (!knownIds.has(idName)) {
-                                const maxDist = idName.length <= 5 ? 1 : 2;
-                                const closestId = findClosestInCollection(idName, knownIds, maxDist);
-                                if (closestId) {
-                                    issues.push(createIssue(
-                                        i + 1,
-                                        Math.max(1, rawLine.indexOf('#' + idName) + 1),
-                                        `[ファイル横断] CSSセレクタ「#${idName}」は index.html 内の「#${closestId}」のスペルミスではありませんか？`,
-                                        `index.html には id="${closestId}" が定義されています`,
-                                        'warning',
-                                        rawLine
-                                    ));
-                                }
+                                const closestId = findClosestInCollection(idName, knownIds, 3);
+                                issues.push(createIssue(
+                                    i + 1,
+                                    Math.max(1, rawLine.indexOf('#' + idName) + 1),
+                                    closestId
+                                        ? `[ファイル横断] CSSセレクタ「#${idName}」は index.html 内の「#${closestId}」のスペルミスです`
+                                        : `[ファイル横断] CSSセレクタ「#${idName}」に対応する id="${idName}" が index.html 内に存在しません`,
+                                    closestId
+                                        ? `「#${closestId}」に修正してください（index.html には id="${closestId}" が定義されています）`
+                                        : `index.html 内の id 名と一致しているか確認してください`,
+                                    'error',
+                                    rawLine
+                                ));
                             }
                         }
 
@@ -2801,46 +4215,64 @@
                         while ((clsM = classSelRe.exec(selPart)) !== null) {
                             const clsName = clsM[1];
                             if (!knownClasses.has(clsName)) {
-                                const maxDist = clsName.length <= 5 ? 1 : 2;
-                                const closestCls = findClosestInCollection(clsName, knownClasses, maxDist);
-                                if (closestCls) {
-                                    issues.push(createIssue(
-                                        i + 1,
-                                        Math.max(1, rawLine.indexOf('.' + clsName) + 1),
-                                        `[ファイル横断] CSSセレクタ「.${clsName}」は index.html 内の「.${closestCls}」のスペルミスではありませんか？`,
-                                        `HTML側には class="${closestCls}" が使われています`,
-                                        'warning',
-                                        rawLine
-                                    ));
-                                }
+                                const closestCls = findClosestInCollection(clsName, knownClasses, 3);
+                                issues.push(createIssue(
+                                    i + 1,
+                                    Math.max(1, rawLine.indexOf('.' + clsName) + 1),
+                                    closestCls
+                                        ? `[ファイル横断] CSSセレクタ「.${clsName}」は index.html 内の「.${closestCls}」のスペルミスです`
+                                        : `[ファイル横断] CSSセレクタ「.${clsName}」に対応する class="${clsName}" が index.html 内に存在しません`,
+                                    closestCls
+                                        ? `「.${closestCls}」に修正してください（HTML側には class="${closestCls}" が使われています）`
+                                        : `index.html 内の class 名と一致しているか確認してください`,
+                                    'error',
+                                    rawLine
+                                ));
                             }
                         }
                     }
 
                     for (let c = 0; c < trimmed.length; c++) {
                         if (trimmed[c] === '{') depth++;
-                        else if (trimmed[c] === '}') depth = Math.max(0, depth - 1);
+                        else if (trimmed[c] === '}') {
+                            depth = Math.max(0, depth - 1);
+                            if (inAtMedia && depth < atMediaBaseDepth) {
+                                inAtMedia = false;
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // ── C. core.js の横断チェック (index.html のDOM ID参照 & config.js の GameConfig 整合性) ──
+        // ── C. core.js の横断チェック (index.html のDOM ID/クラス参照整合性) ──
         if (filename === 'core.js' && allFiles['index.html']) {
             const htmlText = getFileContent('index.html');
             const htmlIds = new Set(['monaca-error-hud', 'btn-left', 'btn-right', 'btn-fire', 'btn-sound']);
+            const htmlClasses = new Set([
+                'in-iframe', 'hidden', 'active', 'edit-mode', 'transitioning-to-editor',
+                'modal-sprite-cell', 'monaca-error-hud'
+            ]);
+
+            let m;
             const idRegex = /\bid\s*=\s*["']([^"']+)["']/gi;
-            let idM;
-            while ((idM = idRegex.exec(htmlText)) !== null) {
-                htmlIds.add(idM[1]);
+            while ((m = idRegex.exec(htmlText)) !== null) {
+                htmlIds.add(m[1].trim());
+            }
+            const classRegex = /\bclass\s*=\s*["']([^"']+)["']/gi;
+            while ((m = classRegex.exec(htmlText)) !== null) {
+                m[1].split(/\s+/).forEach(c => { if (c) htmlClasses.add(c.trim()); });
             }
 
             for (let i = 0; i < lines.length; i++) {
                 const rawLine = lines[i];
                 const clean = stripLineComment(rawLine);
-                const getElemMatch = clean.match(/document\.getElementById\(\s*["']([^"']+)["']\s*\)/);
-                if (getElemMatch) {
-                    const targetId = getElemMatch[1];
+
+                // getElementById("...") の検証
+                const getElemRe = /document\.getElementById\(\s*["']([^"']+)["']\s*\)/g;
+                let geM;
+                while ((geM = getElemRe.exec(clean)) !== null) {
+                    const targetId = geM[1];
                     if (!htmlIds.has(targetId)) {
                         const closestId = findClosestInCollection(targetId, htmlIds, 3);
                         issues.push(createIssue(
@@ -2850,9 +4282,52 @@
                             closestId
                                 ? `index.html 内の id="${closestId}" のスペルミスか、index.html 側で id が変更されています`
                                 : `index.html 側に id="${targetId}" の要素が存在するか確認してください`,
-                            'warning',
+                            'error',
                             rawLine
                         ));
+                    }
+                }
+
+                // querySelector / querySelectorAll("#id .class") の検証
+                const qsRe = /querySelector(?:All)?\(\s*["']([^"']+)["']\s*\)/g;
+                let qsM;
+                while ((qsM = qsRe.exec(clean)) !== null) {
+                    const selector = qsM[1];
+                    const selIdRe = /#([a-zA-Z_-][a-zA-Z0-9_-]*)/g;
+                    let siM;
+                    while ((siM = selIdRe.exec(selector)) !== null) {
+                        const idName = siM[1];
+                        if (!htmlIds.has(idName)) {
+                            const closestId = findClosestInCollection(idName, htmlIds, 3);
+                            issues.push(createIssue(
+                                i + 1,
+                                Math.max(1, rawLine.indexOf('#' + idName) + 1),
+                                `[ファイル横断] セレクタ「#${idName}」に対応する id="${idName}" が index.html にありません`,
+                                closestId
+                                    ? `「#${closestId}」のスペルミスではありませんか？`
+                                    : `index.html 側に id="${idName}" の要素が存在するか確認してください`,
+                                'error',
+                                rawLine
+                            ));
+                        }
+                    }
+                    const selClsRe = /\.([a-zA-Z_-][a-zA-Z0-9_-]*)/g;
+                    let scM;
+                    while ((scM = selClsRe.exec(selector)) !== null) {
+                        const clsName = scM[1];
+                        if (!htmlClasses.has(clsName)) {
+                            const closestCls = findClosestInCollection(clsName, htmlClasses, 3);
+                            issues.push(createIssue(
+                                i + 1,
+                                Math.max(1, rawLine.indexOf('.' + clsName) + 1),
+                                `[ファイル横断] セレクタ「.${clsName}」に対応する class="${clsName}" が index.html にありません`,
+                                closestCls
+                                    ? `「.${closestCls}」のスペルミスではありませんか？`
+                                    : `index.html 側に class="${clsName}" の要素が存在するか確認してください`,
+                                'error',
+                                rawLine
+                            ));
+                        }
                     }
                 }
             }
@@ -2898,12 +4373,30 @@
             code = filename;
             filename = 'config.js';
         }
-        if (!code || typeof code !== 'string') return [];
+        if (typeof code !== 'string') return [];
         filename = filename || 'config.js';
 
         // テキスト文書 (LICENSE, .txt, .md, .xml 等) は構文チェック対象外
         if (!/\.(?:js|css|html|json)$/i.test(filename)) {
             return [];
+        }
+
+        // ファイルが空（または空白・改行・コメントのみ）に消去された場合の検知
+        const codeWithoutComments = filename.endsWith('.html')
+            ? code.replace(/<!--[\s\S]*?-->/g, '').trim()
+            : filename.endsWith('.css')
+                ? code.replace(/\/\*[\s\S]*?\*\//g, '').trim()
+                : code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '').trim();
+
+        if (!code.trim() || !codeWithoutComments) {
+            return [createIssue(
+                1,
+                1,
+                `ファイル「${filename}」の中身が空（またはコメントのみ）になっています`,
+                `コードが消えてしまっています。「元に戻す（Undo）」または「初期設定に戻す（リセット）」で復元してください`,
+                'error',
+                (code.split('\n')[0] || '')
+            )];
         }
 
         options = options || {};
@@ -2932,6 +4425,9 @@
         } else if (filename.endsWith('.js')) {
             if (issues.filter(i => i.severity === 'error').length === 0) {
                 issues = issues.concat(checkJavaScriptNativeSyntax(code, changedLines, false));
+            }
+            if (issues.filter(i => i.severity === 'error').length === 0) {
+                issues = issues.concat(checkJavaScriptSemanticAndConfigRefs(filename, code));
             }
         } else if (filename.endsWith('.css')) {
             issues = issues.concat(checkCSS(code, 0));
@@ -3009,7 +4505,7 @@
 
         for (const key of Object.keys(filesMap)) {
             const entry = filesMap[key];
-            if (!entry) continue;
+            if (entry === null || entry === undefined) continue;
             if (typeof entry === 'object' && (entry.isBinary || entry.type === 'xml' || entry.type === 'text')) {
                 byFile[key] = [];
                 continue;
