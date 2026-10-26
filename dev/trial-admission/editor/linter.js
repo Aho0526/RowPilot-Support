@@ -2715,7 +2715,7 @@
                 }
             }
 
-            // 2. style.css の ID / クラスセレクタが index.html / core.js / monaca-bridge.js に存在するか横断チェック
+            // 2. style.css の ID / クラスセレクタが index.html / core.js に存在するか横断チェック
             if (filename === 'style.css' && allFiles['index.html']) {
                 const knownIds = new Set();
                 const knownClasses = new Set([
@@ -2731,7 +2731,7 @@
                 knownIds.add('monaca-error-hud');
 
                 const htmlText = getFileContent('index.html');
-                const jsText = getFileContent('core.js') + '\n' + getFileContent('monaca-bridge.js');
+                const jsText = getFileContent('core.js');
 
                 let m;
                 const htmlIdRe = /\bid\s*=\s*["']([^"']+)["']/gi;

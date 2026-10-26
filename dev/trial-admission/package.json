@@ -5,8 +5,7 @@
   "main": "index.html",
   "scripts": {
     "start": "python3 -m http.server 8088",
-    "test": "node editor/linter.js || node dev/trial-admission/editor/linter.js",
-    "sync": "sh sync-monaca.sh || sh dev/trial-admission/sync-monaca.sh"
+    "test": "node editor/linter.js || node dev/trial-admission/editor/linter.js"
   },
   "keywords": [
     "game",

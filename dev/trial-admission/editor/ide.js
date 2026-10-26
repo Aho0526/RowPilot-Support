@@ -201,24 +201,6 @@
             desc: 'ゲームコアエンジン',
             content: `// ゲームエンジン (core.js)`
         },
-        'linter.js': {
-            name: 'linter.js',
-            path: '../linter.js',
-            type: 'javascript',
-            editable: true,
-            isDirty: false,
-            desc: '構文診断・リアルタイムLinter',
-            content: `// 構文診断エンジン (linter.js)`
-        },
-        'monaca-bridge.js': {
-            name: 'monaca-bridge.js',
-            path: '../monaca-bridge.js',
-            type: 'javascript',
-            editable: true,
-            isDirty: false,
-            desc: 'Monaca IDE連携同期スクリプト',
-            content: `// Monacaクラウド連携ブリッジ`
-        },
         'style.css': {
             name: 'style.css',
             path: '../style.css',
@@ -235,7 +217,7 @@
             editable: false,
             isDirty: false,
             desc: 'プロジェクトパッケージ設定',
-            content: `{\n  "name": "space-invaders-studio",\n  "version": "1.0.0",\n  "description": "Space Invaders Game & Interactive Code Studio for Trial Admission",\n  "main": "index.html",\n  "scripts": {\n    "start": "python3 -m http.server 8088",\n    "test": "node editor/linter.js || node dev/trial-admission/editor/linter.js",\n    "sync": "sh sync-monaca.sh || sh dev/trial-admission/sync-monaca.sh"\n  },\n  "keywords": [\n    "game",\n    "space-invaders",\n    "canvas",\n    "education",\n    "trial-admission"\n  ],\n  "author": "Kaito Nakahira",\n  "license": "MIT"\n}\n`
+            content: `{\n  "name": "space-invaders-studio",\n  "version": "1.0.0",\n  "description": "Space Invaders Game & Interactive Code Studio for Trial Admission",\n  "main": "index.html",\n  "scripts": {\n    "start": "python3 -m http.server 8088",\n    "test": "node editor/linter.js || node dev/trial-admission/editor/linter.js"\n  },\n  "keywords": [\n    "game",\n    "space-invaders",\n    "canvas",\n    "education",\n    "trial-admission"\n  ],\n  "author": "Kaito Nakahira",\n  "license": "MIT"\n}\n`
         },
         'LICENSE': {
             name: 'LICENSE',
@@ -1828,18 +1810,10 @@
             showToast('このファイルは閲覧専用のため変更できません', true);
             return;
         }
-        // linter.js または editor/linter.js が編集されていた場合は先に同期＆動的に再評価
+        // editor/linter.js が編集されていた場合は動的に再評価
         if (files['editor/linter.js'] && files['editor/linter.js'].isDirty) {
-            if (files['linter.js']) files['linter.js'].content = files['editor/linter.js'].content;
             try {
                 new Function(files['editor/linter.js'].content)();
-            } catch (e) {
-                console.warn('Linterの再評価に失敗:', e);
-            }
-        } else if (files['linter.js'] && files['linter.js'].isDirty) {
-            if (files['editor/linter.js']) files['editor/linter.js'].content = files['linter.js'].content;
-            try {
-                new Function(files['linter.js'].content)();
             } catch (e) {
                 console.warn('Linterの再評価に失敗:', e);
             }
@@ -1877,7 +1851,7 @@
         }
 
         // config.js のみの変更なら即時リロードを試みる
-        const otherCodeDirty = ['style.css', 'core.js', 'index.html', 'linter.js', 'editor/linter.js', 'monaca-bridge.js'].some(k => files[k] && files[k].isDirty);
+        const otherCodeDirty = ['style.css', 'core.js', 'index.html', 'editor/linter.js'].some(k => files[k] && files[k].isDirty);
         const onlyConfigDirty = files['config.js'].isDirty && !otherCodeDirty;
 
         for (let k in files) {
