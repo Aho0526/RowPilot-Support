@@ -2801,7 +2801,7 @@
     function renderMinimap() {
         if (!editorMinimapCanvas || !editorMinimapWrap) return;
         const file = files[currentFileKey];
-        if (!file || file.isBinary || file.type === 'image') {
+        if (!file || file.isBinary || file.type === 'image' || document.body.classList.contains('hide-minimap')) {
             editorMinimapWrap.style.display = 'none';
             return;
         }
@@ -3107,16 +3107,71 @@
     initMinimapInteraction();
 
     // ─────────────────────────────────────────────
-    // テーマ切り替え (ライト / ダーク)
+    // ─────────────────────────────────────────────
+    // エディタ環境設定システム (Settings Manager)
     // ─────────────────────────────────────────────
     const btnThemeToggle = document.getElementById('btn-theme-toggle');
     const themeBtnText = document.getElementById('theme-btn-text');
     const themeIconSun = document.querySelector('.theme-icon-sun');
     const themeIconMoon = document.querySelector('.theme-icon-moon');
 
+    const btnOpenSettings = document.getElementById('btn-open-settings');
+    const btnCloseSettings = document.getElementById('btn-close-settings');
+    const btnSaveSettings = document.getElementById('btn-save-settings');
+    const settingsModalOverlay = document.getElementById('settings-modal-overlay');
+
+    const themeChoiceDark = document.getElementById('theme-choice-dark');
+    const themeChoiceLight = document.getElementById('theme-choice-light');
+    const settingToggleMinimap = document.getElementById('setting-toggle-minimap');
+    const settingToggleIndentGuides = document.getElementById('setting-toggle-indent-guides');
+    const settingToggleDiagnostics = document.getElementById('setting-toggle-diagnostics');
+
+    // デフォルト設定定義
+    const DEFAULT_SETTINGS = {
+        theme: 'dark',
+        minimap: true,
+        indentGuides: true,
+        diagnostics: true
+    };
+
+    let editorSettings = Object.assign({}, DEFAULT_SETTINGS);
+
+    // localStorage から設定を安全に復元
+    function loadEditorSettings() {
+        try {
+            const raw = localStorage.getItem('rowpilot_editor_settings');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object') {
+                    editorSettings = Object.assign({}, DEFAULT_SETTINGS, parsed);
+                }
+            } else {
+                // 旧キー rowpilot_editor_theme からのマイグレーション
+                const legacyTheme = localStorage.getItem('rowpilot_editor_theme');
+                if (legacyTheme === 'light' || legacyTheme === 'dark') {
+                    editorSettings.theme = legacyTheme;
+                }
+            }
+        } catch (e) {
+            console.warn('[Settings] Failed to load settings from localStorage', e);
+        }
+    }
+
+    // 設定を localStorage に永続化
+    function saveEditorSettings() {
+        try {
+            localStorage.setItem('rowpilot_editor_settings', JSON.stringify(editorSettings));
+            localStorage.setItem('rowpilot_editor_theme', editorSettings.theme);
+        } catch (e) {}
+    }
+
+    // テーマ適用
     function applyTheme(themeName) {
-        const isLight = themeName === 'light';
+        editorSettings.theme = themeName === 'light' ? 'light' : 'dark';
+        const isLight = editorSettings.theme === 'light';
+
         document.body.classList.toggle('theme-light', isLight);
+
         if (themeBtnText) {
             themeBtnText.textContent = isLight ? 'ダーク' : 'ライト';
         }
@@ -3124,25 +3179,156 @@
             themeIconSun.style.display = isLight ? 'none' : 'inline-block';
             themeIconMoon.style.display = isLight ? 'inline-block' : 'none';
         }
-        try {
-            localStorage.setItem('rowpilot_editor_theme', themeName);
-        } catch (e) {}
 
-        // ミニマップの再描画 (テーマ色を反映)
-        renderMinimap();
+        // モーダル内のテーマ選択セグメントのアクティブ状態
+        if (themeChoiceDark && themeChoiceLight) {
+            themeChoiceDark.classList.toggle('is-active', !isLight);
+            themeChoiceLight.classList.toggle('is-active', isLight);
+        }
+
+        saveEditorSettings();
+
+        // ミニマップ再描画 (非表示設定でない場合)
+        if (!document.body.classList.contains('hide-minimap')) {
+            renderMinimap();
+        }
     }
 
-    // 初期化: 保存されたテーマまたはダーク
-    let savedTheme = 'dark';
-    try {
-        savedTheme = localStorage.getItem('rowpilot_editor_theme') || 'dark';
-    } catch (e) {}
-    applyTheme(savedTheme);
+    // 全設定項目のDOM適用
+    function applyAllSettings() {
+        // 1. テーマ
+        applyTheme(editorSettings.theme);
 
+        // 2. ミニマップ
+        document.body.classList.toggle('hide-minimap', !editorSettings.minimap);
+        if (settingToggleMinimap) settingToggleMinimap.checked = !!editorSettings.minimap;
+        if (editorSettings.minimap) {
+            renderMinimap();
+        }
+
+        // 3. インデントライン
+        document.body.classList.toggle('hide-indent-guides', !editorSettings.indentGuides);
+        if (settingToggleIndentGuides) settingToggleIndentGuides.checked = !!editorSettings.indentGuides;
+
+        // 4. 画面下部エラー表示
+        document.body.classList.toggle('hide-diagnostics', !editorSettings.diagnostics);
+        if (settingToggleDiagnostics) settingToggleDiagnostics.checked = !!editorSettings.diagnostics;
+    }
+
+    // モーダルを開く
+    function openSettingsModal() {
+        if (!settingsModalOverlay) return;
+        // モーダル内トグルの状態を最新化
+        if (settingToggleMinimap) settingToggleMinimap.checked = !!editorSettings.minimap;
+        if (settingToggleIndentGuides) settingToggleIndentGuides.checked = !!editorSettings.indentGuides;
+        if (settingToggleDiagnostics) settingToggleDiagnostics.checked = !!editorSettings.diagnostics;
+        if (themeChoiceDark && themeChoiceLight) {
+            themeChoiceDark.classList.toggle('is-active', editorSettings.theme !== 'light');
+            themeChoiceLight.classList.toggle('is-active', editorSettings.theme === 'light');
+        }
+
+        settingsModalOverlay.style.display = 'flex';
+        requestAnimationFrame(() => {
+            settingsModalOverlay.classList.add('is-open');
+            settingsModalOverlay.setAttribute('aria-hidden', 'false');
+        });
+    }
+
+    // モーダルを閉じる
+    function closeSettingsModal() {
+        if (!settingsModalOverlay) return;
+        settingsModalOverlay.classList.remove('is-open');
+        settingsModalOverlay.setAttribute('aria-hidden', 'true');
+        setTimeout(() => {
+            if (!settingsModalOverlay.classList.contains('is-open')) {
+                settingsModalOverlay.style.display = 'none';
+            }
+        }, 220);
+    }
+
+    // 初期化ロードと適用
+    loadEditorSettings();
+    applyAllSettings();
+
+    // イベントバインド: ヘッダーの既存テーマボタン
     if (btnThemeToggle) {
         btnThemeToggle.addEventListener('click', () => {
-            const currentIsLight = document.body.classList.contains('theme-light');
-            applyTheme(currentIsLight ? 'dark' : 'light');
+            const nextTheme = editorSettings.theme === 'light' ? 'dark' : 'light';
+            applyTheme(nextTheme);
+        });
+    }
+
+    // イベントバインド: モーダル開閉
+    if (btnOpenSettings) {
+        btnOpenSettings.addEventListener('click', () => {
+            openSettingsModal();
+        });
+    }
+
+    if (btnCloseSettings) {
+        btnCloseSettings.addEventListener('click', () => {
+            closeSettingsModal();
+        });
+    }
+
+    if (btnSaveSettings) {
+        btnSaveSettings.addEventListener('click', () => {
+            closeSettingsModal();
+        });
+    }
+
+    if (settingsModalOverlay) {
+        settingsModalOverlay.addEventListener('click', (e) => {
+            if (e.target === settingsModalOverlay) {
+                closeSettingsModal();
+            }
+        });
+    }
+
+    // キーボードショートカット: Escape でモーダル閉じる
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && settingsModalOverlay && settingsModalOverlay.classList.contains('is-open')) {
+            closeSettingsModal();
+        }
+    });
+
+    // モーダル内イベントバインド: テーマ切り替え
+    if (themeChoiceDark) {
+        themeChoiceDark.addEventListener('click', () => {
+            applyTheme('dark');
+        });
+    }
+    if (themeChoiceLight) {
+        themeChoiceLight.addEventListener('click', () => {
+            applyTheme('light');
+        });
+    }
+
+    // モーダル内イベントバインド: 各トグルスイッチ
+    if (settingToggleMinimap) {
+        settingToggleMinimap.addEventListener('change', (e) => {
+            editorSettings.minimap = e.target.checked;
+            document.body.classList.toggle('hide-minimap', !editorSettings.minimap);
+            saveEditorSettings();
+            if (editorSettings.minimap) {
+                renderMinimap();
+            }
+        });
+    }
+
+    if (settingToggleIndentGuides) {
+        settingToggleIndentGuides.addEventListener('change', (e) => {
+            editorSettings.indentGuides = e.target.checked;
+            document.body.classList.toggle('hide-indent-guides', !editorSettings.indentGuides);
+            saveEditorSettings();
+        });
+    }
+
+    if (settingToggleDiagnostics) {
+        settingToggleDiagnostics.addEventListener('change', (e) => {
+            editorSettings.diagnostics = e.target.checked;
+            document.body.classList.toggle('hide-diagnostics', !editorSettings.diagnostics);
+            saveEditorSettings();
         });
     }
 

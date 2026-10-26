@@ -253,17 +253,100 @@ body.is-sprite-editor #btn-save {
     flex-direction: column;
     flex-shrink: 0;
     user-select: none;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* サイドバーツリーリスト */
+/* サイドバーツリーリスト (最下部フッターと分離して内部スクロール) */
 .file-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     padding: 0;
     gap: 0;
+}
+
+/* ── サイドバー最下部: システム設定 & バージョンフッター ── */
+.sidebar-system-footer {
+    flex-shrink: 0;
+    padding: 8px 10px 10px 10px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-sidebar);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-sizing: border-box;
+}
+
+.sidebar-system-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 28px;
+    padding: 0 8px;
+    border: none;
+    background: transparent;
+    border-radius: 5px;
+    color: #cccccc;
+    font-size: 12.5px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease, color 0.15s ease;
+    box-sizing: border-box;
+}
+
+.sidebar-system-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.sidebar-system-btn:active {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.sidebar-system-icon {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: currentColor;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-system-btn:hover .sidebar-system-icon {
+    transform: rotate(45deg);
+}
+
+.sidebar-system-label {
+    line-height: 1;
+    letter-spacing: 0.02em;
+}
+
+.sidebar-build-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 23px;
+    font-size: 11px;
+    line-height: 1.2;
+    color: #71717a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.01em;
+    user-select: text;
+}
+
+.sidebar-build-meta .build-version {
+    font-weight: 600;
+    color: #a1a1aa;
+}
+
+.sidebar-build-meta .build-time {
+    color: #71717a;
 }
 
 /* ツリーの各行アイテム（共通） */
@@ -2680,5 +2763,468 @@ body.theme-light .guide-key {
     border: 1px solid #d0d7de;
     color: #24292e;
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* ── 設定連動表示制御クラス ── */
+body.hide-minimap #editor-minimap-wrap {
+    display: none !important;
+}
+
+body.hide-indent-guides .indent-guide::before {
+    display: none !important;
+}
+
+body.hide-diagnostics #editor-diagnostics-bar,
+body.hide-diagnostics #editor-diagnostics-panel {
+    display: none !important;
+}
+
+/* ── エディタ環境設定モーダル ── */
+.settings-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.settings-modal-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.settings-modal {
+    width: 480px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 48px);
+    background-color: #18181b;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: scale(0.96) translateY(8px);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #f4f4f5;
+}
+
+.settings-modal-overlay.is-open .settings-modal {
+    transform: scale(1) translateY(0);
+}
+
+/* モーダルヘッダー */
+.settings-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-header-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.settings-header-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a1a1aa;
+    flex-shrink: 0;
+}
+
+.settings-header-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.settings-modal-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fafafa;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+}
+
+.settings-modal-subtitle {
+    margin: 2px 0 0 0;
+    font-size: 12px;
+    color: #71717a;
+    line-height: 1.3;
+}
+
+.settings-close-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #71717a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.settings-close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fafafa;
+}
+
+/* モーダルボディ */
+.settings-modal-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.settings-section:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.settings-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #71717a;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 6px 0;
+}
+
+.settings-row-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+}
+
+.settings-row-label {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #e4e4e7;
+    line-height: 1.25;
+}
+
+.settings-row-desc {
+    font-size: 12px;
+    color: #71717a;
+    line-height: 1.35;
+}
+
+/* テーマセレクタ (セグメントボタン) */
+.settings-theme-selector {
+    display: flex;
+    align-items: center;
+    background-color: #27272a;
+    padding: 3px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    gap: 2px;
+}
+
+.theme-choice-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #a1a1aa;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.theme-choice-btn:hover {
+    color: #fafafa;
+}
+
+.theme-choice-btn.is-active {
+    background-color: #3f3f46;
+    color: #fafafa;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.theme-choice-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/* トグルスイッチ (ハイエンドUI) */
+.settings-toggle {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 22px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.settings-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.settings-toggle-slider {
+    position: absolute;
+    inset: 0;
+    background-color: #3f3f46;
+    border-radius: 22px;
+    transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.settings-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.settings-toggle input:checked + .settings-toggle-slider {
+    background-color: #2563eb;
+}
+
+.settings-toggle input:checked + .settings-toggle-slider:before {
+    transform: translateX(16px);
+}
+
+/* メタ情報 */
+.settings-section-meta {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.settings-meta-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11.5px;
+}
+
+.settings-meta-key {
+    color: #71717a;
+}
+
+.settings-meta-val {
+    color: #a1a1aa;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    font-weight: 500;
+}
+
+/* モーダルフッター */
+.settings-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+.settings-footer-note {
+    font-size: 11.5px;
+    color: #71717a;
+}
+
+.settings-done-btn {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: none;
+    background-color: #2563eb;
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.settings-done-btn:hover {
+    background-color: #1d4ed8;
+}
+
+.settings-done-btn:active {
+    transform: scale(0.98);
+}
+
+/* ── ライトテーマ対応 (Settings Modal & Footer) ── */
+body.theme-light .sidebar-system-footer {
+    border-top-color: var(--border-color);
+    background-color: var(--bg-sidebar);
+}
+
+body.theme-light .sidebar-system-btn {
+    color: #4b5563;
+}
+
+body.theme-light .sidebar-system-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #111827;
+}
+
+body.theme-light .sidebar-system-btn:active {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .sidebar-build-meta {
+    color: #9ca3af;
+}
+
+body.theme-light .sidebar-build-meta .build-version {
+    color: #4b5563;
+}
+
+body.theme-light .settings-modal {
+    background-color: #ffffff;
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    color: #18181b;
+}
+
+body.theme-light .settings-modal-header {
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+body.theme-light .settings-header-icon-box {
+    background-color: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.06);
+    color: #4b5563;
+}
+
+body.theme-light .settings-modal-title {
+    color: #09090b;
+}
+
+body.theme-light .settings-modal-subtitle {
+    color: #6b7280;
+}
+
+body.theme-light .settings-close-btn {
+    color: #6b7280;
+}
+
+body.theme-light .settings-close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #09090b;
+}
+
+body.theme-light .settings-section {
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+body.theme-light .settings-section-title {
+    color: #6b7280;
+}
+
+body.theme-light .settings-row-label {
+    color: #18181b;
+}
+
+body.theme-light .settings-row-desc {
+    color: #6b7280;
+}
+
+body.theme-light .settings-theme-selector {
+    background-color: #f4f4f5;
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+body.theme-light .theme-choice-btn {
+    color: #71717a;
+}
+
+body.theme-light .theme-choice-btn:hover {
+    color: #09090b;
+}
+
+body.theme-light .theme-choice-btn.is-active {
+    background-color: #ffffff;
+    color: #09090b;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+body.theme-light .settings-toggle-slider {
+    background-color: #e4e4e7;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+body.theme-light .settings-toggle input:checked + .settings-toggle-slider {
+    background-color: #2563eb;
+}
+
+body.theme-light .settings-section-meta {
+    background-color: #f9fafb;
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+body.theme-light .settings-meta-key {
+    color: #6b7280;
+}
+
+body.theme-light .settings-meta-val {
+    color: #374151;
+}
+
+body.theme-light .settings-modal-footer {
+    border-top-color: rgba(0, 0, 0, 0.06);
+    background-color: #f9fafb;
+}
+
+body.theme-light .settings-footer-note {
+    color: #6b7280;
 }
 
