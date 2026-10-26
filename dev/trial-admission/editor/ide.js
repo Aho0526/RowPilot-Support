@@ -384,14 +384,19 @@
     let initialFilesLoaded = false;
 
     // ─────────────────────────────────────────────
-    // CDN や Cloudflare 等の自動注入スクリプトを除去して純粋なコードを保持
+    // CDN や Cloudflare 等の自動注入スクリプトを除去して純粋なコードを保持（※HTMLファイルのみ対象）
     function cleanInjectedPlatformScripts(text) {
         if (typeof text !== 'string') return text;
         return text
-            // インラインで注入された Cloudflare challenge-platform 等のスクリプト
-            .replace(/<script\b[^>]*>(?:(?!<\/script>)[\s\S])*?\/cdn-cgi\/(?:(?!<\/script>)[\s\S])*?<\/script>\s*/gi, '')
             // 外部読み込みの /cdn-cgi/ スクリプト
-            .replace(/<script[^>]*src=["'][^"']*\/cdn-cgi\/[^"']*["'][^>]*><\/script>\s*/gi, '')
+            .replace(/<script\b[^>]*src=["'][^"']*\/cdn-cgi\/[^"']*["'][^>]*>\s*<\/script>\s*/gi, '')
+            // インラインで注入された Cloudflare challenge-platform 等のスクリプト (単一タグ内で完結するもの)
+            .replace(/<script\b[^>]*>([\s\S]*?)<\/script>\s*/gi, function (match, body) {
+                if (/\/cdn-cgi\/|__CF\$cv\$params|cloudflare-static/i.test(body)) {
+                    return '';
+                }
+                return match;
+            })
             // Cloudflare Web Analytics などのコメント
             .replace(/<!--\s*Cloudflare.*?\s*-->\s*/gi, '')
             .trimEnd() + '\n';
@@ -413,7 +418,8 @@
                 const resp = await fetch(files[key].path + cacheBust);
                 if (resp.ok) {
                     const rawText = await resp.text();
-                    files[key].content = cleanInjectedPlatformScripts(rawText);
+                    const isHtml = files[key].type === 'html' || key.endsWith('.html');
+                    files[key].content = isHtml ? cleanInjectedPlatformScripts(rawText) : rawText;
                     files[key].baselineContent = files[key].content;
                     files[key].isDirty = false;
                     files[key].isLoaded = true;
