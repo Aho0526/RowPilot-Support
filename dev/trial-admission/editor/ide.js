@@ -3285,10 +3285,18 @@
         });
     }
 
-    // キーボードショートカット: Escape でモーダル閉じる
+    // キーボードショートカット: Escape でモーダル閉じる / ⌘, で開閉
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && settingsModalOverlay && settingsModalOverlay.classList.contains('is-open')) {
             closeSettingsModal();
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+            e.preventDefault();
+            if (settingsModalOverlay && settingsModalOverlay.classList.contains('is-open')) {
+                closeSettingsModal();
+            } else {
+                openSettingsModal();
+            }
         }
     });
 

@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>スペースインベーダー - エディタ</title>
-    <link rel="stylesheet" href="ide.css?v=6.0-2225">
+    <link rel="stylesheet" href="ide.css?v=6.0-2250">
     <link rel="stylesheet" href="sticky-scroll.css?v=6.0">
 </head>
 
@@ -82,28 +82,6 @@
                     <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
                 </svg>
                 <span>リセット</span>
-            </button>
-
-            <!-- テーマ切り替え (ライト / ダーク) -->
-            <button type="button" id="btn-theme-toggle" class="action-btn secondary-btn theme-toggle-btn"
-                title="白っぽい画面（ライト）と黒い画面（ダーク）を切り替えます">
-                <svg class="btn-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2">
-                    <circle cx="12" cy="12" r="5"></circle>
-                    <line x1="12" y1="1" x2="12" y2="3"></line>
-                    <line x1="12" y1="21" x2="12" y2="23"></line>
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                    <line x1="1" y1="12" x2="3" y2="12"></line>
-                    <line x1="21" y1="12" x2="23" y2="12"></line>
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                </svg>
-                <svg class="btn-icon theme-icon-moon" style="display: none;" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                </svg>
-                <span id="theme-btn-text">ライト</span>
             </button>
         </div>
     </header>
@@ -315,16 +293,19 @@
 
             <!-- 画面左下: 設定ボタン & バージョン・ビルド日時 -->
             <div class="sidebar-system-footer">
-                <button type="button" class="sidebar-system-btn" id="btn-open-settings" title="環境設定を開く">
-                    <svg class="sidebar-system-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3.2"></circle>
-                        <polyline points="12 2 13.5 4.5 15.5 4 16 6.5 18.5 7 18 9.5 20.5 11 19 13 21 15 18.5 16 18 18.5 15.5 18 14 20.5 12 19 10 20.5 8.5 18 6 18.5 5.5 16 3 15 5 13 3.5 11 6 9.5 5.5 7 8 6.5 8.5 4 10.5 4.5 12 2"></polyline>
-                    </svg>
-                    <span class="sidebar-system-label">設定</span>
+                <button type="button" class="sidebar-system-btn" id="btn-open-settings" title="環境設定を開く (⌘,)">
+                    <span class="sidebar-btn-main">
+                        <svg class="sidebar-system-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3.2"></circle>
+                            <polyline points="12 2 13.5 4.5 15.5 4 16 6.5 18.5 7 18 9.5 20.5 11 19 13 21 15 18.5 16 18 18.5 15.5 18 14 20.5 12 19 10 20.5 8.5 18 6 18.5 5.5 16 3 15 5 13 3.5 11 6 9.5 5.5 7 8 6.5 8.5 4 10.5 4.5 12 2"></polyline>
+                        </svg>
+                        <span class="sidebar-system-label">設定</span>
+                    </span>
+                    <kbd class="sidebar-key-hint">⌘,</kbd>
                 </button>
                 <div class="sidebar-build-meta" id="sidebar-build-meta" title="システムバージョン / 最終ビルド">
-                    <span class="build-version">v6.0</span>
-                    <span class="build-time">10.26  22:25</span>
+                    <span class="build-badge">v6.0</span>
+                    <span class="build-time">10.26 22:25</span>
                 </div>
             </div>
         </aside>
@@ -684,7 +665,7 @@
 
     <script src="linter.js?v=6.0"></script>
     <script src="sticky-scroll.js?v=6.0"></script>
-    <script src="ide.js?v=6.0-2225"></script>
+    <script src="ide.js?v=6.0-2250"></script>
 </body>
 
 </html>
