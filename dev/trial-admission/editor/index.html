@@ -5,8 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>スペースインベーダー - エディタ</title>
-    <link rel="stylesheet" href="ide.css?v=6.0-2250">
-    <link rel="stylesheet" href="sticky-scroll.css?v=6.0">
+    <link rel="stylesheet" href="ide.css?v=6.2-2300">
+    <link rel="stylesheet" href="sticky-scroll.css?v=6.2">
 </head>
 
 <body>
@@ -108,53 +108,6 @@
                     </button>
 
                     <div class="tree-folder-children">
-                        <!-- assets フォルダ (初期は閉じた状態) -->
-                        <div class="tree-folder-group" id="folder-group-assets" data-folder="assets">
-                            <button type="button" class="tree-item-row" id="folder-toggle-assets" data-folder="assets"
-                                aria-expanded="false">
-                                <span class="tree-indent-guide"></span>
-                                <span class="tree-chevron closed"><svg viewBox="0 0 16 16">
-                                        <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.3"
-                                            stroke-linecap="round" />
-                                    </svg></span>
-                                <span class="tree-icon icon-folder-svg"><svg viewBox="0 0 16 16">
-                                        <path
-                                            d="M1.5 3A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H7.414l-1.707-1.707A1 1 0 0 0 5 2.5H1.5A1.5 1.5 0 0 0 0 4v.5"
-                                            fill="none" stroke="currentColor" stroke-width="1.2" />
-                                    </svg></span>
-                                <span class="tree-label">assets</span>
-                            </button>
-                            <div class="tree-folder-children">
-                                <button type="button" class="tree-item-row file-item" data-path="assets/space-bg.jpg">
-                                    <span class="tree-indent-guide"></span>
-                                    <span class="tree-indent-guide"></span>
-                                    <span class="tree-chevron-spacer"></span>
-                                    <span class="tree-icon icon-img-svg"><svg viewBox="0 0 16 16">
-                                            <rect x="2" y="2" width="12" height="12" rx="2" fill="none"
-                                                stroke="currentColor" stroke-width="1.2" />
-                                            <circle cx="5.5" cy="5.5" r="1.2" fill="currentColor" />
-                                            <path d="M3 12l3.5-3.5 2 2 3-3 2.5 2.5" fill="none" stroke="currentColor"
-                                                stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
-                                        </svg></span>
-                                    <span class="tree-label">space-bg.jpg</span>
-                                </button>
-                                <button type="button" class="tree-item-row file-item"
-                                    data-path="assets/space-nebula.jpg">
-                                    <span class="tree-indent-guide"></span>
-                                    <span class="tree-indent-guide"></span>
-                                    <span class="tree-chevron-spacer"></span>
-                                    <span class="tree-icon icon-img-svg"><svg viewBox="0 0 16 16">
-                                            <rect x="2" y="2" width="12" height="12" rx="2" fill="none"
-                                                stroke="currentColor" stroke-width="1.2" />
-                                            <circle cx="5.5" cy="5.5" r="1.2" fill="currentColor" />
-                                            <path d="M3 12l3.5-3.5 2 2 3-3 2.5 2.5" fill="none" stroke="currentColor"
-                                                stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
-                                        </svg></span>
-                                    <span class="tree-label">space-nebula.jpg</span>
-                                </button>
-                            </div>
-                        </div>
-
                         <!-- editor フォルダ (内部システム: 初期は閉じた状態) -->
                         <div class="tree-folder-group" id="folder-group-editor" data-folder="editor">
                             <button type="button" class="tree-item-row" id="folder-toggle-editor" data-folder="editor"
@@ -227,6 +180,53 @@
                             </div>
                         </div>
 
+                        <!-- assets フォルダ (初期は開いた状態) -->
+                        <div class="tree-folder-group is-open" id="folder-group-assets" data-folder="assets">
+                            <button type="button" class="tree-item-row is-open" id="folder-toggle-assets" data-folder="assets"
+                                aria-expanded="true">
+                                <span class="tree-indent-guide"></span>
+                                <span class="tree-chevron"><svg viewBox="0 0 16 16">
+                                        <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.3"
+                                            stroke-linecap="round" />
+                                    </svg></span>
+                                <span class="tree-icon icon-folder-svg"><svg viewBox="0 0 16 16">
+                                        <path
+                                            d="M1.5 3A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H7.414l-1.707-1.707A1 1 0 0 0 5 2.5H1.5A1.5 1.5 0 0 0 0 4v.5"
+                                            fill="none" stroke="currentColor" stroke-width="1.2" />
+                                    </svg></span>
+                                <span class="tree-label">assets</span>
+                            </button>
+                            <div class="tree-folder-children">
+                                <button type="button" class="tree-item-row file-item" data-path="assets/space-bg.jpg">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-img-svg"><svg viewBox="0 0 16 16">
+                                            <rect x="2" y="2" width="12" height="12" rx="2" fill="none"
+                                                stroke="currentColor" stroke-width="1.2" />
+                                            <circle cx="5.5" cy="5.5" r="1.2" fill="currentColor" />
+                                            <path d="M3 12l3.5-3.5 2 2 3-3 2.5 2.5" fill="none" stroke="currentColor"
+                                                stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg></span>
+                                    <span class="tree-label">space-bg.jpg</span>
+                                </button>
+                                <button type="button" class="tree-item-row file-item"
+                                    data-path="assets/space-nebula.jpg">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-img-svg"><svg viewBox="0 0 16 16">
+                                            <rect x="2" y="2" width="12" height="12" rx="2" fill="none"
+                                                stroke="currentColor" stroke-width="1.2" />
+                                            <circle cx="5.5" cy="5.5" r="1.2" fill="currentColor" />
+                                            <path d="M3 12l3.5-3.5 2 2 3-3 2.5 2.5" fill="none" stroke="currentColor"
+                                                stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg></span>
+                                    <span class="tree-label">space-nebula.jpg</span>
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- ルート直下ファイル群 (生徒が編集する教材ファイルが最優先で並ぶ) -->
                         <button type="button" class="tree-item-row file-item active" data-path="index.html">
                             <span class="tree-indent-guide"></span>
@@ -293,19 +293,18 @@
 
             <!-- 画面左下: 設定ボタン & バージョン・ビルド日時 -->
             <div class="sidebar-system-footer">
-                <button type="button" class="sidebar-system-btn" id="btn-open-settings" title="環境設定を開く (⌘,)">
+                <button type="button" class="sidebar-system-btn" id="btn-open-settings" title="環境設定を開く">
                     <span class="sidebar-btn-main">
-                        <svg class="sidebar-system-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <svg class="sidebar-system-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3.2"></circle>
-                            <polyline points="12 2 13.5 4.5 15.5 4 16 6.5 18.5 7 18 9.5 20.5 11 19 13 21 15 18.5 16 18 18.5 15.5 18 14 20.5 12 19 10 20.5 8.5 18 6 18.5 5.5 16 3 15 5 13 3.5 11 6 9.5 5.5 7 8 6.5 8.5 4 10.5 4.5 12 2"></polyline>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                         </svg>
                         <span class="sidebar-system-label">設定</span>
                     </span>
-                    <kbd class="sidebar-key-hint">⌘,</kbd>
                 </button>
                 <div class="sidebar-build-meta" id="sidebar-build-meta" title="システムバージョン / 最終ビルド">
-                    <span class="build-badge">v6.0</span>
-                    <span class="build-time">10.26 22:25</span>
+                    <span class="build-badge">v6.2</span>
+                    <span class="build-time">10.26 23:00</span>
                 </div>
             </div>
         </aside>
@@ -605,10 +604,10 @@
                 <div class="settings-section">
                     <div class="settings-section-title">エディタ表示</div>
 
-                    <!-- 項目2: コードマップ (Minimap) -->
+                    <!-- 項目2: コードマップ -->
                     <div class="settings-row">
                         <div class="settings-row-info">
-                            <span class="settings-row-label">コードマップ (Minimap)</span>
+                            <span class="settings-row-label">コードマップ</span>
                             <span class="settings-row-desc">コード全体の構造を右端に鳥瞰表示し、直感的なスクロールを支援します</span>
                         </div>
                         <label class="settings-toggle" for="setting-toggle-minimap">
@@ -646,11 +645,11 @@
                 <div class="settings-section settings-section-meta">
                     <div class="settings-meta-item">
                         <span class="settings-meta-key">システムバージョン</span>
-                        <span class="settings-meta-val">v6.0</span>
+                        <span class="settings-meta-val">v6.2</span>
                     </div>
                     <div class="settings-meta-item">
                         <span class="settings-meta-key">ビルド情報</span>
-                        <span class="settings-meta-val">2026.10.26 22:25 (Production)</span>
+                        <span class="settings-meta-val">10.26 23:00</span>
                     </div>
                 </div>
             </div>
@@ -663,9 +662,9 @@
         </div>
     </div>
 
-    <script src="linter.js?v=6.0"></script>
-    <script src="sticky-scroll.js?v=6.0"></script>
-    <script src="ide.js?v=6.0-2250"></script>
+    <script src="linter.js?v=6.2"></script>
+    <script src="sticky-scroll.js?v=6.2"></script>
+    <script src="ide.js?v=6.2-2300"></script>
 </body>
 
 </html>

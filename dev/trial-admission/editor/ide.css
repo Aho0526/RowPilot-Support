@@ -284,7 +284,6 @@ body.is-sprite-editor #btn-save {
 .sidebar-system-btn {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     width: 100%;
     height: 36px;
     padding: 0 10px;
@@ -319,8 +318,8 @@ body.is-sprite-editor #btn-save {
 }
 
 .sidebar-system-icon {
-    width: 18px;
-    height: 18px;
+    width: 21px;
+    height: 21px;
     flex-shrink: 0;
     color: #a1a1aa;
     transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
@@ -334,27 +333,6 @@ body.is-sprite-editor #btn-save {
 .sidebar-system-label {
     line-height: 1;
     letter-spacing: 0.01em;
-}
-
-.sidebar-key-hint {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 11px;
-    font-weight: 500;
-    color: #71717a;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 4px;
-    padding: 1px 6px;
-    line-height: 1.2;
-    transition: color 0.15s ease, border-color 0.15s ease;
-}
-
-.sidebar-system-btn:hover .sidebar-key-hint {
-    color: #a1a1aa;
-    border-color: rgba(255, 255, 255, 0.15);
 }
 
 .sidebar-build-meta {
@@ -3088,19 +3066,22 @@ body.hide-diagnostics #editor-diagnostics-panel {
 
 .settings-meta-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    font-size: 11.5px;
+    gap: 20px;
+    font-size: 12px;
 }
 
 .settings-meta-key {
+    width: 120px;
+    flex-shrink: 0;
     color: #71717a;
 }
 
 .settings-meta-val {
-    color: #a1a1aa;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    color: #cbd5e1;
+    font-family: "DIN Alternate", "DIN Condensed", "DIN 2014", "D-DIN", DIN, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-weight: 500;
+    letter-spacing: 0.04em;
 }
 
 /* モーダルフッター */
@@ -3165,12 +3146,6 @@ body.theme-light .sidebar-system-icon {
 
 body.theme-light .sidebar-system-btn:hover .sidebar-system-icon {
     color: #111827;
-}
-
-body.theme-light .sidebar-key-hint {
-    color: #9ca3af;
-    background: rgba(0, 0, 0, 0.04);
-    border-color: rgba(0, 0, 0, 0.08);
 }
 
 body.theme-light .sidebar-build-meta .build-badge {
