@@ -3100,7 +3100,7 @@
                 if (!isClosing) {
                     const attrPart = tagContent.slice(rawTagName.length).replace(/\/$/, '').trim();
                     if (attrPart) {
-                        const attrRegex = /([a-zA-Z_][a-zA-Z0-9_:-]*)\s*(?:(\s*=\s*)(\x22[^\x22]*\x22|\x27[^\x27]*\x27|[^\s\x22\x27=<>`\x60]+)?)?/g;
+                        const attrRegex = /([a-zA-Z_][a-zA-Z0-9_:-]*)\s*(?:(\s*=\s*)(\x22[^\x22]*\x22|\x27[^\x27]*\x27|[^\s\x22\x27=<>\x60]+)?)?/g;
                         let aMatch;
                         while ((aMatch = attrRegex.exec(attrPart)) !== null) {
                             const attrName = aMatch[1];
@@ -4557,6 +4557,13 @@
                 'core.js',
                 'style.css',
                 'package.json',
+                'assets/space-bg.jpg',
+                'assets/space-nebula.jpg',
+                'assets/octopus.png',
+                'assets/squid.png',
+                'assets/crab.png',
+                'assets/player.png',
+                'assets/ufo.png',
                 'editor/index.html',
                 'editor/ide.js',
                 'editor/linter.js',

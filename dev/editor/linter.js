@@ -2296,7 +2296,7 @@
                 if (!isClosing) {
                     const attrPart = tagContent.slice(rawTagName.length).replace(/\/$/, '').trim();
                     if (attrPart) {
-                        const attrRegex = /([a-zA-Z_][a-zA-Z0-9_:-]*)\s*(?:=\s*("[^"]*"|'[^']*'|[^\s"'=<>`]+)?)?/g;
+                        const attrRegex = /([a-zA-Z_][a-zA-Z0-9_:-]*)\s*(?:=\s*("[^"]*"|'[^']*'|[^\s"'=<>\x60]+)?)?/g;
                         let aMatch;
                         while ((aMatch = attrRegex.exec(attrPart)) !== null) {
                             const attrName = aMatch[1];

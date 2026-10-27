@@ -367,6 +367,8 @@ canvas:focus {
     margin-top: 2px;
 }
 
+/* 【STEP 2】特大スタートボタンを自分の好きな色に光らせよう！ */
+/* （お手本: #00ffff 水色, #ff007f ピンク, #ffcc00 黄色） */
 .arcade-play-btn {
     width: 100%;
     height: 48px;

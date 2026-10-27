@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>スペースインベーダー - エディタ</title>
+    <link rel="icon" id="ide-favicon" href="../assets/octopus.png" type="image/png">
     <link rel="stylesheet" href="ide.css?v=6.2-2300">
     <link rel="stylesheet" href="sticky-scroll.css?v=6.2">
 </head>
@@ -224,6 +225,41 @@
                                         </svg></span>
                                     <span class="tree-label">space-nebula.jpg</span>
                                 </button>
+                                <button type="button" class="tree-item-row file-item" data-path="assets/octopus.png">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-img-svg"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor"/><path d="M3 12l3.5-3.5 2 2 3-3 2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                                    <span class="tree-label">octopus.png</span>
+                                </button>
+                                <button type="button" class="tree-item-row file-item" data-path="assets/squid.png">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-img-svg"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor"/><path d="M3 12l3.5-3.5 2 2 3-3 2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                                    <span class="tree-label">squid.png</span>
+                                </button>
+                                <button type="button" class="tree-item-row file-item" data-path="assets/crab.png">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-img-svg"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor"/><path d="M3 12l3.5-3.5 2 2 3-3 2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                                    <span class="tree-label">crab.png</span>
+                                </button>
+                                <button type="button" class="tree-item-row file-item" data-path="assets/player.png">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-img-svg"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor"/><path d="M3 12l3.5-3.5 2 2 3-3 2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                                    <span class="tree-label">player.png</span>
+                                </button>
+                                <button type="button" class="tree-item-row file-item" data-path="assets/ufo.png">
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-img-svg"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="5.5" cy="5.5" r="1.2" fill="currentColor"/><path d="M3 12l3.5-3.5 2 2 3-3 2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                                    <span class="tree-label">ufo.png</span>
+                                </button>
                             </div>
                         </div>
 
@@ -402,6 +438,12 @@
                 </div>
             </div>
 
+            <!-- ドラッグ式リサイザーバー (エラーバーの上のライン部分) -->
+            <div class="diagnostics-panel-resizer" id="diagnostics-panel-resizer"
+                title="ドラッグしてエラーパネルの高さを調整（ダブルクリックで既定値）">
+                <div class="resizer-handle-grip"></div>
+            </div>
+
             <!-- 構文チェック・診断バー（初心者向けエラー表示） -->
             <div class="editor-diagnostics-bar" id="editor-diagnostics-bar">
                 <div class="diagnostics-summary" id="diagnostics-summary">
@@ -415,11 +457,6 @@
 
             <!-- 診断パネル（展開式＆リサイズ可能） -->
             <div class="editor-diagnostics-panel" id="editor-diagnostics-panel" style="display: none;">
-                <!-- ドラッグ式リサイザーバー -->
-                <div class="diagnostics-panel-resizer" id="diagnostics-panel-resizer"
-                    title="ドラッグしてエラーパネルの高さを調整（ダブルクリックで既定値）">
-                    <div class="resizer-handle-grip"></div>
-                </div>
                 <div class="diagnostics-panel-header">
                     <span class="diagnostics-panel-title" id="diagnostics-panel-title">構文チェック結果</span>
                     <span class="diagnostics-panel-subtitle">項目をクリックすると、そのファイルの該当行へジャンプします</span>
@@ -545,9 +582,9 @@
             <div class="settings-modal-header">
                 <div class="settings-header-info">
                     <div class="settings-header-icon-box">
-                        <svg class="settings-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <svg class="settings-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3.2"></circle>
-                            <polyline points="12 2 13.5 4.5 15.5 4 16 6.5 18.5 7 18 9.5 20.5 11 19 13 21 15 18.5 16 18 18.5 15.5 18 14 20.5 12 19 10 20.5 8.5 18 6 18.5 5.5 16 3 15 5 13 3.5 11 6 9.5 5.5 7 8 6.5 8.5 4 10.5 4.5 12 2"></polyline>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                         </svg>
                     </div>
                     <div>

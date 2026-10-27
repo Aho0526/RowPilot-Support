@@ -249,6 +249,56 @@
             bgKey: 'space-nebula',
             desc: '星雲・ネビュラ背景画像'
         },
+        'assets/octopus.png': {
+            name: 'octopus.png',
+            path: '../assets/octopus.png',
+            type: 'image',
+            editable: false,
+            isDirty: false,
+            isBinary: true,
+            folder: 'assets',
+            desc: 'タコ型インベーダー アイコン画像'
+        },
+        'assets/squid.png': {
+            name: 'squid.png',
+            path: '../assets/squid.png',
+            type: 'image',
+            editable: false,
+            isDirty: false,
+            isBinary: true,
+            folder: 'assets',
+            desc: 'イカ型インベーダー アイコン画像'
+        },
+        'assets/crab.png': {
+            name: 'crab.png',
+            path: '../assets/crab.png',
+            type: 'image',
+            editable: false,
+            isDirty: false,
+            isBinary: true,
+            folder: 'assets',
+            desc: 'カニ型インベーダー アイコン画像'
+        },
+        'assets/player.png': {
+            name: 'player.png',
+            path: '../assets/player.png',
+            type: 'image',
+            editable: false,
+            isDirty: false,
+            isBinary: true,
+            folder: 'assets',
+            desc: '自機砲台 アイコン画像'
+        },
+        'assets/ufo.png': {
+            name: 'ufo.png',
+            path: '../assets/ufo.png',
+            type: 'image',
+            editable: false,
+            isDirty: false,
+            isBinary: true,
+            folder: 'assets',
+            desc: 'UFOボーナス敵 アイコン画像'
+        },
         'editor/index.html': {
             name: 'index.html',
             path: './index.html',
@@ -455,20 +505,250 @@
         if (!code) return '';
 
         if (type === 'javascript' || type === 'json') {
-            const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:const|let|var|function|return|if|else|for|while|class|new|true|false|null|undefined|this|import|export|from)\b)|(-?\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z0-9_$]+(?=\s*:))/g;
+            const KEYWORDS = new Set([
+                'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'do',
+                'class', 'new', 'true', 'false', 'null', 'undefined', 'this', 'import', 'export',
+                'from', 'as', 'default', 'case', 'switch', 'break', 'continue', 'typeof', 'instanceof',
+                'void', 'delete', 'throw', 'try', 'catch', 'finally', 'async', 'await', 'yield',
+                'get', 'set', 'of', 'in'
+            ]);
+
             let result = '';
-            let lastIndex = 0;
-            let match;
-            while ((match = regex.exec(code)) !== null) {
-                result += escapeHtml(code.slice(lastIndex, match.index));
-                if (match[1]) result += '<span class="token-comment">' + escapeHtml(match[1]) + '</span>';
-                else if (match[2]) result += '<span class="token-string">' + escapeHtml(match[2]) + '</span>';
-                else if (match[3]) result += '<span class="token-keyword">' + escapeHtml(match[3]) + '</span>';
-                else if (match[4]) result += '<span class="token-number">' + escapeHtml(match[4]) + '</span>';
-                else if (match[5]) result += '<span class="token-property">' + escapeHtml(match[5]) + '</span>';
-                lastIndex = regex.lastIndex;
+            const len = code.length;
+            let i = 0;
+            let lastTokenEnd = 0;
+            let prevTokenKind = '';
+
+            function flush(toIdx) {
+                if (toIdx > lastTokenEnd) {
+                    result += escapeHtml(code.slice(lastTokenEnd, toIdx));
+                    lastTokenEnd = toIdx;
+                }
             }
-            result += escapeHtml(code.slice(lastIndex));
+
+            const templateStack = [];
+
+            while (i < len) {
+                const ch = code[i];
+                const next = code[i + 1] || '';
+
+                // 1. 一行コメント
+                if (ch === '/' && next === '/') {
+                    flush(i);
+                    const start = i;
+                    i += 2;
+                    while (i < len && code[i] !== '\n') i++;
+                    result += '<span class="token-comment">' + escapeHtml(code.slice(start, i)) + '</span>';
+                    lastTokenEnd = i;
+                    continue;
+                }
+
+                // 2. ブロックコメント
+                if (ch === '/' && next === '*') {
+                    flush(i);
+                    const start = i;
+                    i += 2;
+                    while (i < len && !(code[i] === '*' && code[i + 1] === '/')) i++;
+                    if (i < len) i += 2;
+                    result += '<span class="token-comment">' + escapeHtml(code.slice(start, i)) + '</span>';
+                    lastTokenEnd = i;
+                    continue;
+                }
+
+                // 3. 通常文字列 ("..." または '...')
+                if (ch === '"' || ch === "'") {
+                    flush(i);
+                    const quote = ch;
+                    const start = i;
+                    i++;
+                    while (i < len) {
+                        if (code[i] === '\\') {
+                            i += 2;
+                        } else if (code[i] === quote) {
+                            i++;
+                            break;
+                        } else if (code[i] === '\n') {
+                            break;
+                        } else {
+                            i++;
+                        }
+                    }
+                    result += '<span class="token-string">' + escapeHtml(code.slice(start, i)) + '</span>';
+                    lastTokenEnd = i;
+                    prevTokenKind = 'literal';
+                    continue;
+                }
+
+                // 4. テンプレートリテラル (`...`)
+                if (ch === '`') {
+                    flush(i);
+                    const start = i;
+                    i++;
+                    while (i < len) {
+                        if (code[i] === '\\') {
+                            i += 2;
+                        } else if (code[i] === '$' && code[i + 1] === '{') {
+                            i += 2;
+                            templateStack.push(1);
+                            break;
+                        } else if (code[i] === '`') {
+                            i++;
+                            break;
+                        } else {
+                            i++;
+                        }
+                    }
+                    result += '<span class="token-string">' + escapeHtml(code.slice(start, i)) + '</span>';
+                    lastTokenEnd = i;
+                    prevTokenKind = 'literal';
+                    continue;
+                }
+
+                // テンプレート式内の波括弧管理 (${...})
+                if (templateStack.length > 0) {
+                    if (ch === '{') {
+                        templateStack[templateStack.length - 1]++;
+                    } else if (ch === '}') {
+                        templateStack[templateStack.length - 1]--;
+                        if (templateStack[templateStack.length - 1] === 0) {
+                            templateStack.pop();
+                            flush(i);
+                            result += escapeHtml('}');
+                            lastTokenEnd = i + 1;
+                            i++;
+                            const start = i;
+                            while (i < len) {
+                                if (code[i] === '\\') {
+                                    i += 2;
+                                } else if (code[i] === '$' && code[i + 1] === '{') {
+                                    i += 2;
+                                    templateStack.push(1);
+                                    break;
+                                } else if (code[i] === '`') {
+                                    i++;
+                                    break;
+                                } else {
+                                    i++;
+                                }
+                            }
+                            if (i > start) {
+                                result += '<span class="token-string">' + escapeHtml(code.slice(start, i)) + '</span>';
+                                lastTokenEnd = i;
+                                prevTokenKind = 'literal';
+                            }
+                            continue;
+                        }
+                    }
+                }
+
+                // 5. 正規表現リテラル (/.../) の判定
+                if (ch === '/') {
+                    const isRegex = !prevTokenKind ||
+                        ['operator', 'open-paren', 'open-brace', 'open-bracket', 'comma', 'colon', 'semicolon', 'keyword-regex'].includes(prevTokenKind);
+
+                    if (isRegex) {
+                        flush(i);
+                        const start = i;
+                        i++;
+                        let inCharClass = false;
+                        while (i < len) {
+                            if (code[i] === '\\') {
+                                i += 2;
+                            } else if (code[i] === '[') {
+                                inCharClass = true;
+                                i++;
+                            } else if (code[i] === ']' && inCharClass) {
+                                inCharClass = false;
+                                i++;
+                            } else if (code[i] === '/' && !inCharClass) {
+                                i++;
+                                while (i < len && /[a-z]/i.test(code[i])) i++;
+                                break;
+                            } else if (code[i] === '\n') {
+                                break;
+                            } else {
+                                i++;
+                            }
+                        }
+                        result += '<span class="token-string">' + escapeHtml(code.slice(start, i)) + '</span>';
+                        lastTokenEnd = i;
+                        prevTokenKind = 'literal';
+                        continue;
+                    }
+                }
+
+                // 6. 数値リテラル
+                if (/[0-9]/.test(ch) || (ch === '-' && /[0-9]/.test(next) && ['operator', 'open-paren', 'comma', 'colon'].includes(prevTokenKind))) {
+                    flush(i);
+                    const start = i;
+                    if (ch === '-') i++;
+                    if (code[i] === '0' && (code[i + 1] === 'x' || code[i + 1] === 'X')) {
+                        i += 2;
+                        while (i < len && /[0-9a-fA-F]/.test(code[i])) i++;
+                    } else {
+                        while (i < len && /[0-9]/.test(code[i])) i++;
+                        if (code[i] === '.' && /[0-9]/.test(code[i + 1])) {
+                            i++;
+                            while (i < len && /[0-9]/.test(code[i])) i++;
+                        }
+                        if (code[i] === 'e' || code[i] === 'E') {
+                            i++;
+                            if (code[i] === '+' || code[i] === '-') i++;
+                            while (i < len && /[0-9]/.test(code[i])) i++;
+                        }
+                    }
+                    result += '<span class="token-number">' + escapeHtml(code.slice(start, i)) + '</span>';
+                    lastTokenEnd = i;
+                    prevTokenKind = 'literal';
+                    continue;
+                }
+
+                // 7. 識別子・キーワード・プロパティ名
+                if (/[a-zA-Z_$]/.test(ch)) {
+                    flush(i);
+                    const start = i;
+                    while (i < len && /[a-zA-Z0-9_$]/.test(code[i])) i++;
+                    const word = code.slice(start, i);
+
+                    let k = i;
+                    while (k < len && (code[k] === ' ' || code[k] === '\t')) k++;
+                    const isProperty = (code[k] === ':' && code[k + 1] !== ':');
+
+                    if (isProperty && !KEYWORDS.has(word)) {
+                        result += '<span class="token-property">' + escapeHtml(word) + '</span>';
+                        prevTokenKind = 'ident';
+                    } else if (KEYWORDS.has(word)) {
+                        result += '<span class="token-keyword">' + escapeHtml(word) + '</span>';
+                        if (['return', 'case', 'typeof', 'delete', 'void', 'throw', 'yield', 'await', 'in', 'instanceof'].includes(word)) {
+                            prevTokenKind = 'keyword-regex';
+                        } else {
+                            prevTokenKind = 'keyword';
+                        }
+                    } else {
+                        result += escapeHtml(word);
+                        prevTokenKind = 'ident';
+                    }
+                    lastTokenEnd = i;
+                    continue;
+                }
+
+                // 8. 記号・演算子・空白
+                if (ch === '(') prevTokenKind = 'open-paren';
+                else if (ch === '{') prevTokenKind = 'open-brace';
+                else if (ch === '[') prevTokenKind = 'open-bracket';
+                else if (ch === ')') prevTokenKind = 'close-paren';
+                else if (ch === '}') prevTokenKind = 'close-brace';
+                else if (ch === ']') prevTokenKind = 'close-bracket';
+                else if (ch === ',') prevTokenKind = 'comma';
+                else if (ch === ':') prevTokenKind = 'colon';
+                else if (ch === ';') prevTokenKind = 'semicolon';
+                else if ('=+-*%&|^!<>?~'.includes(ch)) prevTokenKind = 'operator';
+                else if (!/\s/.test(ch)) prevTokenKind = 'other';
+
+                i++;
+            }
+
+            flush(len);
             return result;
         } else if (type === 'css') {
             const regex = /(\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(#[a-fA-F0-9]{3,8}|rgba?\([^)]+\))|(-?\b\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|s|ms)?\b)|([a-zA-Z0-9_-]+(?=\s*:))|([^{}]+(?=\{))/g;
@@ -864,19 +1144,25 @@
         const otherSuffix = otherErrorCount > 0 ? `（他ファイルにエラー ${otherErrorCount} 件）` : '';
 
         diagnosticsBar.className = 'editor-diagnostics-bar';
+        if (diagnosticsPanelResizer) {
+            diagnosticsPanelResizer.className = 'diagnostics-panel-resizer';
+        }
 
         if (errorCount > 0) {
             diagnosticsBar.classList.add('has-errors');
+            diagnosticsPanelResizer?.classList.add('has-errors');
             diagnosticsStatusDot.className = 'diagnostics-status-dot error';
             diagnosticsStatusDot.textContent = '●';
             diagnosticsStatusText.textContent = `[${fileKey}] エラーが ${errorCount} 件あります${otherSuffix}`;
         } else if (otherErrorCount > 0) {
             diagnosticsBar.classList.add('has-errors');
+            diagnosticsPanelResizer?.classList.add('has-errors');
             diagnosticsStatusDot.className = 'diagnostics-status-dot error';
             diagnosticsStatusDot.textContent = '●';
             diagnosticsStatusText.textContent = `[${fileKey}] エラーなし ／ 他ファイルにエラーが ${otherErrorCount} 件あります`;
         } else if (warningCount > 0) {
             diagnosticsBar.classList.add('has-warnings-only');
+            diagnosticsPanelResizer?.classList.add('has-warnings-only');
             diagnosticsStatusDot.className = 'diagnostics-status-dot warning';
             diagnosticsStatusDot.textContent = '●';
             diagnosticsStatusText.textContent = `[${fileKey}] 注意・確認箇所が ${warningCount} 件あります`;
@@ -982,24 +1268,39 @@
     // 診断バー＆パネルの直接ドラッグ式引き出し機能
     // （エラーバーをそのままマウスで上に引き出せる）
     // ─────────────────────────────────────────────
-    let isResizingDiag = false;
-    let isDraggingBar = false;
+    // 診断バー＆パネルの直接ドラッグ式引き出し機能
+    // （赤いエラーライン／バーをそのままマウスで上に引き出せる）
+    // ─────────────────────────────────────────────
+    let isDraggingDiagnostics = false;
     let startDiagY = 0;
     let startDiagHeight = 140;
-    let hasDraggedBar = false;
+    let hasDraggedDistance = false;
 
-    // エラーバー自体のドラッグ＆クリック
-    diagnosticsBar?.addEventListener('mousedown', (e) => {
+    function startDiagnosticsDrag(e) {
         if (e.target.closest('#btn-toggle-diagnostics')) return;
-        isDraggingBar = true;
-        hasDraggedBar = false;
+        isDraggingDiagnostics = true;
+        hasDraggedDistance = false;
         startDiagY = e.clientY;
         const currentH = (diagnosticsPanel && diagnosticsPanel.offsetHeight > 0)
             ? diagnosticsPanel.offsetHeight
             : (parseInt(localStorage.getItem('invader_editor_diagnostics_height'), 10) || 140);
         startDiagHeight = currentH;
+        diagnosticsPanelResizer?.classList.add('dragging');
         document.body.style.cursor = 'row-resize';
         document.body.style.userSelect = 'none';
+        e.preventDefault();
+    }
+
+    // 上端の赤いライン、またはエラー通知バー自体のどちらをつかんでもドラッグ可能！
+    diagnosticsPanelResizer?.addEventListener('mousedown', startDiagnosticsDrag);
+    diagnosticsBar?.addEventListener('mousedown', startDiagnosticsDrag);
+
+    // ダブルクリックで開閉またはデフォルト高さにリセット
+    diagnosticsPanelResizer?.addEventListener('dblclick', () => {
+        toggleDiagnosticsPanel();
+    });
+    diagnosticsBar?.addEventListener('dblclick', () => {
+        toggleDiagnosticsPanel();
     });
 
     btnToggleDiagnostics?.addEventListener('click', (e) => {
@@ -1007,52 +1308,43 @@
         toggleDiagnosticsPanel();
     });
 
-    diagnosticsPanelResizer?.addEventListener('mousedown', (e) => {
-        isResizingDiag = true;
-        startDiagY = e.clientY;
-        startDiagHeight = diagnosticsPanel.offsetHeight || 140;
-        diagnosticsPanelResizer.classList.add('dragging');
-        document.body.style.cursor = 'row-resize';
-        document.body.style.userSelect = 'none';
-        e.preventDefault();
-    });
-
-    diagnosticsPanelResizer?.addEventListener('dblclick', () => {
-        diagnosticsPanel.style.height = '140px';
-        try { localStorage.setItem('invader_editor_diagnostics_height', '140'); } catch (e) { }
-    });
-
     window.addEventListener('mousemove', (e) => {
-        if (!isResizingDiag && !isDraggingBar) return;
-        const delta = startDiagY - e.clientY; // 上に動かすと正の値
-        if (isDraggingBar && Math.abs(delta) > 3) {
-            hasDraggedBar = true;
-            if (!diagnosticsPanelOpen) {
-                toggleDiagnosticsPanel(true);
-            }
+        if (!isDraggingDiagnostics) return;
+        const delta = startDiagY - e.clientY; // 上に動かすと正の値（拡大）
+
+        if (Math.abs(delta) > 3) {
+            hasDraggedDistance = true;
         }
-        if (diagnosticsPanelOpen || isResizingDiag) {
-            const newHeight = Math.max(60, Math.min(500, startDiagHeight + delta));
-            if (diagnosticsPanel) diagnosticsPanel.style.height = newHeight + 'px';
-            try { localStorage.setItem('invader_editor_diagnostics_height', String(Math.round(newHeight))); } catch (e) { }
+
+        if (!diagnosticsPanelOpen && delta > 4) {
+            // 閉じた状態から上に引き上げた場合、パネルをオープン！
+            toggleDiagnosticsPanel(true);
+        }
+
+        if (diagnosticsPanelOpen) {
+            const newHeight = startDiagHeight + delta;
+            if (newHeight <= 40) {
+                // 下限まで押し下げたら自動で閉じる
+                toggleDiagnosticsPanel(false);
+            } else {
+                const clampedHeight = Math.min(500, Math.max(60, newHeight));
+                if (diagnosticsPanel) diagnosticsPanel.style.height = clampedHeight + 'px';
+                try { localStorage.setItem('invader_editor_diagnostics_height', String(Math.round(clampedHeight))); } catch (e) { }
+            }
         }
     });
 
     window.addEventListener('mouseup', () => {
-        if (isDraggingBar) {
-            if (!hasDraggedBar) {
-                // 移動距離がわずか（クリック）ならパネル開閉をトグル
-                toggleDiagnosticsPanel();
-            }
-            isDraggingBar = false;
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-        }
-        if (isResizingDiag) {
-            isResizingDiag = false;
+        if (isDraggingDiagnostics) {
+            isDraggingDiagnostics = false;
             diagnosticsPanelResizer?.classList.remove('dragging');
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
+
+            // 単なるクリック（ドラッグ移動ほぼなし）だった場合は開閉トグル
+            if (!hasDraggedDistance) {
+                toggleDiagnosticsPanel();
+            }
         }
     });
 
@@ -1357,6 +1649,11 @@
             diagnosticsDebounceTimer = setTimeout(() => {
                 runDiagnostics(currentFileKey);
             }, 200);
+
+            // index.html 編集時はブラウザ親タブのタイトル・アイコンも即座に同期！
+            if (currentFileKey === 'index.html') {
+                syncParentTabMetaFromIndexHtml();
+            }
         }
     });
 
@@ -1436,6 +1733,31 @@
     // ─────────────────────────────────────────────
     // タブ & サイドバー UI & ファイル展開ビュー
     // ─────────────────────────────────────────────
+    function getTabIconHtml(key, file) {
+        if (key.endsWith('.html')) {
+            return '<span class="tab-file-icon icon-html">&lt;/&gt;</span>';
+        } else if (key.endsWith('.js')) {
+            return '<span class="tab-file-icon icon-js">JS</span>';
+        } else if (key.endsWith('.css')) {
+            return '<span class="tab-file-icon icon-css">{ }</span>';
+        } else if (key.endsWith('.json')) {
+            return '<span class="tab-file-icon icon-json">{ }</span>';
+        } else if (file && file.isBinary) {
+            return '<span class="tab-file-icon icon-img"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3zm10 9l-3-3-2 2-2-2-2 3h9z"/></svg></span>';
+        }
+        return '<span class="tab-file-icon">📄</span>';
+    }
+
+    function getTabFolderPath(key) {
+        if (key.startsWith('editor/')) {
+            return '.../trial-admission/editor';
+        } else if (key.startsWith('assets/')) {
+            return '.../trial-admission/assets';
+        } else {
+            return '.../trial-admission';
+        }
+    }
+
     function updateTabsUI() {
         tabContainer.innerHTML = '';
         openTabs.forEach(key => {
@@ -1446,13 +1768,31 @@
             const tab = document.createElement('div');
             tab.className = 'editor-tab' + (key === currentFileKey ? ' active' : '') + (hasDiff ? ' is-dirty' : '');
 
+            // 1. ファイルタイプアイコン (HTML, JS, CSS 等)
+            const iconSpan = document.createElement('span');
+            iconSpan.innerHTML = getTabIconHtml(key, file);
+            tab.appendChild(iconSpan.firstElementChild || iconSpan);
+
+            // 2. ファイル名
             const name = document.createElement('span');
             name.className = 'tab-title';
             name.textContent = file.name;
-
             tab.appendChild(name);
 
-            // 閉じるボタン (タブが2つ以上の時に表示)
+            // 3. フォルダパス表示 (主張しすぎない控えめなグレー表示)
+            const folderPath = document.createElement('span');
+            folderPath.className = 'tab-folder-path';
+            folderPath.textContent = getTabFolderPath(key);
+            tab.appendChild(folderPath);
+
+            // 4. 変更マーク (M)
+            const dirtyM = document.createElement('span');
+            dirtyM.className = 'tab-dirty-m';
+            dirtyM.textContent = 'M';
+            dirtyM.title = '未保存の変更があります';
+            tab.appendChild(dirtyM);
+
+            // 5. 閉じるボタン (タブが2つ以上の時に表示)
             if (openTabs.length > 1) {
                 const closeBtn = document.createElement('span');
                 closeBtn.className = 'tab-close-btn';
@@ -1746,7 +2086,9 @@
         if (!isDragging) return;
         const containerRect = document.querySelector('.studio-workspace').getBoundingClientRect();
         const newPreviewWidth = containerRect.right - e.clientX;
-        const clampedWidth = Math.max(300, Math.min(containerRect.width - 280, newPreviewWidth));
+        // コードエリアを常に広々（最低450px以上）確保
+        const maxAllowedPreview = Math.max(280, containerRect.width - 450);
+        const clampedWidth = Math.max(270, Math.min(maxAllowedPreview, newPreviewWidth));
         previewPane.style.width = clampedWidth + 'px';
         try { localStorage.setItem('invader_editor_pane_width', String(Math.round(clampedWidth))); } catch (e) { }
     });
@@ -1806,9 +2148,44 @@
         return html;
     }
 
+    // ─────────────────────────────────────────────
+    // 親タブのタイトル＆ファビコンを index.html に自動同期
+    // ─────────────────────────────────────────────
+    function syncParentTabMetaFromIndexHtml() {
+        if (!files['index.html']) return;
+        const html = files['index.html'].content || '';
+
+        // 1. タブタイトルの自動同期 (例: KAITOのインベーダー - エディタ)
+        const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        if (titleMatch && titleMatch[1]) {
+            const rawTitle = titleMatch[1].trim();
+            if (rawTitle) {
+                document.title = `${rawTitle} - エディタ`;
+            }
+        }
+
+        // 2. タブファビコンの自動同期 (例: assets/squid.png -> ../assets/squid.png)
+        const iconMatch = html.match(/<link\s+[^>]*rel=["'](?:shortcut\s+)?icon["'][^>]*href=["']([^"']+)["'][^>]*>/i);
+        if (iconMatch && iconMatch[1]) {
+            let iconPath = iconMatch[1].trim();
+            if (!iconPath.startsWith('http') && !iconPath.startsWith('/') && !iconPath.startsWith('../')) {
+                iconPath = '../' + iconPath;
+            }
+            let link = document.querySelector("link[rel*='icon']");
+            if (!link) {
+                link = document.createElement('link');
+                link.rel = 'icon';
+                link.type = 'image/png';
+                document.head.appendChild(link);
+            }
+            link.href = iconPath;
+        }
+    }
+
     function updatePreview() {
         const fullHtml = buildCompositeHtml();
         previewIframe.srcdoc = fullHtml;
+        syncParentTabMetaFromIndexHtml();
     }
 
     function saveAndApplyChanges() {
@@ -2756,10 +3133,149 @@
         }
     });
 
-    // 初期化
+    // ─────────────────────────────────────────────
+    // 体験入学用コード破壊・復元イースターエッグ (editor 5連打)
+    // ─────────────────────────────────────────────
+    let editorClickCount = 0;
+    let editorClickTimer = null;
+
+    function handleEditorEasterEggClick(e) {
+        editorClickCount++;
+        clearTimeout(editorClickTimer);
+        editorClickTimer = setTimeout(() => {
+            editorClickCount = 0;
+        }, 1800);
+
+        if (editorClickCount >= 5) {
+            editorClickCount = 0;
+            const isBroken = isTrialAdmissionBroken();
+            if (!isBroken) {
+                if (confirm('壊しますか？\n（体験入学用の穴埋め・準備モードに切り替えます）')) {
+                    applyTrialAdmissionBreak();
+                }
+            } else {
+                if (confirm('完成版コードに復元しますか？')) {
+                    restoreTrialAdmission();
+                }
+            }
+        }
+    }
+
+    function isTrialAdmissionBroken() {
+        if (!files['index.html']) return false;
+        const html = files['index.html'].content || '';
+        const cfg = files['config.js']?.content || '';
+        const hasCoreScript = /<script\s+[^>]*src=["']core\.js["'][^>]*>/i.test(html);
+        const hasZeroSpeed = /speed:\s*0\b/.test(cfg);
+        return !hasCoreScript || hasZeroSpeed;
+    }
+
+    function applyTrialAdmissionBreak() {
+        if (files['index.html']) {
+            let html = files['index.html'].content;
+            // core.js 読み込みタグを削除して未ロード状態（ゲーム停止）にする
+            html = html.replace(
+                /<script\s+[^>]*src=["']core\.js["'][^>]*>\s*<\/script>/gi,
+                ''
+            );
+            files['index.html'].content = html;
+            files['index.html'].isDirty = true;
+        }
+
+        if (files['config.js']) {
+            let cfg = files['config.js'].content;
+            // player speed: 5 -> 0 (自機が最初は動かない)
+            cfg = cfg.replace(
+                /(player:\s*\{[\s\S]*?speed:\s*)[0-9.]+/i,
+                '$10'
+            );
+            // bullet speed: -8 -> 0 (弾が最初は出ない)
+            cfg = cfg.replace(
+                /(bullet:\s*\{[\s\S]*?speed:\s*)-?[0-9.]+/i,
+                '$10'
+            );
+            files['config.js'].content = cfg;
+            files['config.js'].isDirty = true;
+        }
+
+        // エディタ表示とプレビューの更新
+        if (codeTextarea && files[currentFileKey]) {
+            codeTextarea.value = files[currentFileKey].content;
+            updateCodeHighlight();
+            if (stickyScrollController && !files[currentFileKey].isBinary) {
+                stickyScrollController.updateFile(currentFileKey, files[currentFileKey].content, files[currentFileKey].type);
+            }
+        }
+        updateTabsUI();
+        updatePreview();
+        showToast('⚡ 体験入学準備モード（穴埋め版）に切り替えました！', false);
+    }
+
+    function restoreTrialAdmission() {
+        if (files['index.html']) {
+            let html = files['index.html'].content;
+            if (!/<script\s+[^>]*src=["']core\.js["'][^>]*>/i.test(html)) {
+                // core.js 読み込みを復元
+                html = html.replace(
+                    /(<!-- 【STEP 1-3】ゲームの心臓[\s\S]*?-->[\s\S]*?)(<\/body>)/i,
+                    '$1    <script src="core.js"></script>\n$2'
+                );
+                files['index.html'].content = html;
+                files['index.html'].isDirty = true;
+            }
+        }
+
+        if (files['config.js']) {
+            let cfg = files['config.js'].content;
+            // player speed: 0 -> 5 に復元
+            cfg = cfg.replace(
+                /(player:\s*\{[\s\S]*?speed:\s*)0\b/i,
+                '$15'
+            );
+            // bullet speed: 0 -> -8 に復元
+            cfg = cfg.replace(
+                /(bullet:\s*\{[\s\S]*?speed:\s*)0\b/i,
+                '$1-8'
+            );
+            files['config.js'].content = cfg;
+            files['config.js'].isDirty = true;
+        }
+
+        // エディタ表示とプレビューの更新
+        if (codeTextarea && files[currentFileKey]) {
+            codeTextarea.value = files[currentFileKey].content;
+            updateCodeHighlight();
+            if (stickyScrollController && !files[currentFileKey].isBinary) {
+                stickyScrollController.updateFile(currentFileKey, files[currentFileKey].content, files[currentFileKey].type);
+            }
+        }
+        updateTabsUI();
+        updatePreview();
+        showToast('✨ 完成版コードに復元しました！', false);
+    }
+
+    // イベントリスナーの登録 (サイドバーの editor フォルダ行 & ヘッダーのエディタ文字)
+    const folderToggleEditor = document.getElementById('folder-toggle-editor');
+    if (folderToggleEditor) {
+        folderToggleEditor.addEventListener('click', handleEditorEasterEggClick);
+    }
+    const brandSub = document.querySelector('.brand-sub');
+    if (brandSub) {
+        brandSub.style.cursor = 'pointer';
+        brandSub.addEventListener('click', handleEditorEasterEggClick);
+    }
+
+    // 初期化 (どんなPC端末・画面比率でも画像2の黄金比で美しく起動)
     try {
         const savedWidth = parseInt(localStorage.getItem('invader_editor_pane_width'), 10);
-        if (savedWidth >= 300) previewPane.style.width = savedWidth + 'px';
+        const winWidth = window.innerWidth;
+        // 過去の古い値（画面を圧迫する巨大幅）を補正し、画面幅の25〜30%（320〜380px）を標準にする
+        if (savedWidth >= 270 && savedWidth <= Math.max(360, winWidth * 0.32)) {
+            previewPane.style.width = savedWidth + 'px';
+        } else {
+            const idealWidth = Math.min(380, Math.max(300, Math.round(winWidth * 0.27)));
+            previewPane.style.width = idealWidth + 'px';
+        }
     } catch (e) { }
     updateSoundUI();
     renderEditor();
@@ -2907,7 +3423,7 @@
         const cSelector = isLight ? '#800000' : '#d7ba7d';
 
         if (type === 'javascript' || type === 'json') {
-            const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:const|let|var|function|return|if|else|for|while|class|new|true|false|null|undefined|this|import|export|from)\b)|(-?\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z0-9_$]+(?=\s*:))/g;
+            const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(\/(?:\\.|\[(?:\\.|[^\]\\])*\]|[^\/\\\[\r\n])+\/[a-z]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:const|let|var|function|return|if|else|for|while|class|new|true|false|null|undefined|this|import|export|from)\b)|(-?\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z0-9_$]+(?=\s*:))/g;
             let lastIdx = 0;
             let match;
             while ((match = regex.exec(text)) !== null) {

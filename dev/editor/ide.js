@@ -807,20 +807,250 @@ colorBtn.addEventListener('click', () => {
         if (!code) return '';
 
         if (type === 'javascript' || type === 'json') {
-            const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:const|let|var|function|return|if|else|for|while|class|new|true|false|null|undefined|this|import|export|from|async|await|try|catch|finally|switch|case|break|default)\b)|(-?\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z0-9_$]+(?=\s*:))/g;
+            const KEYWORDS = new Set([
+                'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'do',
+                'class', 'new', 'true', 'false', 'null', 'undefined', 'this', 'import', 'export',
+                'from', 'as', 'default', 'case', 'switch', 'break', 'continue', 'typeof', 'instanceof',
+                'void', 'delete', 'throw', 'try', 'catch', 'finally', 'async', 'await', 'yield',
+                'get', 'set', 'of', 'in'
+            ]);
+
             let result = '';
-            let lastIndex = 0;
-            let match;
-            while ((match = regex.exec(code)) !== null) {
-                result += escapeHtml(code.slice(lastIndex, match.index));
-                if (match[1]) result += '<span class="token-comment">' + escapeHtml(match[1]) + '</span>';
-                else if (match[2]) result += '<span class="token-string">' + escapeHtml(match[2]) + '</span>';
-                else if (match[3]) result += '<span class="token-keyword">' + escapeHtml(match[3]) + '</span>';
-                else if (match[4]) result += '<span class="token-number">' + escapeHtml(match[4]) + '</span>';
-                else if (match[5]) result += '<span class="token-property">' + escapeHtml(match[5]) + '</span>';
-                lastIndex = regex.lastIndex;
+            const len = code.length;
+            let i = 0;
+            let lastTokenEnd = 0;
+            let prevTokenKind = '';
+
+            function flush(toIdx) {
+                if (toIdx > lastTokenEnd) {
+                    result += escapeHtml(code.slice(lastTokenEnd, toIdx));
+                    lastTokenEnd = toIdx;
+                }
             }
-            result += escapeHtml(code.slice(lastIndex));
+
+            const templateStack = [];
+
+            while (i < len) {
+                const ch = code[i];
+                const next = code[i + 1] || '';
+
+                // 1. 一行コメント
+                if (ch === '/' && next === '/') {
+                    flush(i);
+                    const start = i;
+                    i += 2;
+                    while (i < len && code[i] !== '\n') i++;
+                    result += '<span class="token-comment">' + escapeHtml(code.slice(start, i)) + '</span>';
+                    lastTokenEnd = i;
+                    continue;
+                }
+
+                // 2. ブロックコメント
+                if (ch === '/' && next === '*') {
+                    flush(i);
+                    const start = i;
+                    i += 2;
+                    while (i < len && !(code[i] === '*' && code[i + 1] === '/')) i++;
+                    if (i < len) i += 2;
+                    result += '<span class="token-comment">' + escapeHtml(code.slice(start, i)) + '</span>';
+                    lastTokenEnd = i;
+                    continue;
+                }
+
+                // 3. 通常文字列 ("..." または '...')
+                if (ch === '"' || ch === "'") {
+                    flush(i);
+                    const quote = ch;
+                    const start = i;
+                    i++;
+                    while (i < len) {
+                        if (code[i] === '\\') {
+                            i += 2;
+                        } else if (code[i] === quote) {
+                            i++;
+                            break;
+                        } else if (code[i] === '\n') {
+                            break;
+                        } else {
+                            i++;
+                        }
+                    }
+                    result += '<span class="token-string">' + escapeHtml(code.slice(start, i)) + '</span>';
+                    lastTokenEnd = i;
+                    prevTokenKind = 'literal';
+                    continue;
+                }
+
+                // 4. テンプレートリテラル (`...`)
+                if (ch === '`') {
+                    flush(i);
+                    const start = i;
+                    i++;
+                    while (i < len) {
+                        if (code[i] === '\\') {
+                            i += 2;
+                        } else if (code[i] === '$' && code[i + 1] === '{') {
+                            i += 2;
+                            templateStack.push(1);
+                            break;
+                        } else if (code[i] === '`') {
+                            i++;
+                            break;
+                        } else {
+                            i++;
+                        }
+                    }
+                    result += '<span class="token-string">' + escapeHtml(code.slice(start, i)) + '</span>';
+                    lastTokenEnd = i;
+                    prevTokenKind = 'literal';
+                    continue;
+                }
+
+                // テンプレート式内の波括弧管理 (${...})
+                if (templateStack.length > 0) {
+                    if (ch === '{') {
+                        templateStack[templateStack.length - 1]++;
+                    } else if (ch === '}') {
+                        templateStack[templateStack.length - 1]--;
+                        if (templateStack[templateStack.length - 1] === 0) {
+                            templateStack.pop();
+                            flush(i);
+                            result += escapeHtml('}');
+                            lastTokenEnd = i + 1;
+                            i++;
+                            const start = i;
+                            while (i < len) {
+                                if (code[i] === '\\') {
+                                    i += 2;
+                                } else if (code[i] === '$' && code[i + 1] === '{') {
+                                    i += 2;
+                                    templateStack.push(1);
+                                    break;
+                                } else if (code[i] === '`') {
+                                    i++;
+                                    break;
+                                } else {
+                                    i++;
+                                }
+                            }
+                            if (i > start) {
+                                result += '<span class="token-string">' + escapeHtml(code.slice(start, i)) + '</span>';
+                                lastTokenEnd = i;
+                                prevTokenKind = 'literal';
+                            }
+                            continue;
+                        }
+                    }
+                }
+
+                // 5. 正規表現リテラル (/.../) の判定
+                if (ch === '/') {
+                    const isRegex = !prevTokenKind ||
+                        ['operator', 'open-paren', 'open-brace', 'open-bracket', 'comma', 'colon', 'semicolon', 'keyword-regex'].includes(prevTokenKind);
+
+                    if (isRegex) {
+                        flush(i);
+                        const start = i;
+                        i++;
+                        let inCharClass = false;
+                        while (i < len) {
+                            if (code[i] === '\\') {
+                                i += 2;
+                            } else if (code[i] === '[') {
+                                inCharClass = true;
+                                i++;
+                            } else if (code[i] === ']' && inCharClass) {
+                                inCharClass = false;
+                                i++;
+                            } else if (code[i] === '/' && !inCharClass) {
+                                i++;
+                                while (i < len && /[a-z]/i.test(code[i])) i++;
+                                break;
+                            } else if (code[i] === '\n') {
+                                break;
+                            } else {
+                                i++;
+                            }
+                        }
+                        result += '<span class="token-string">' + escapeHtml(code.slice(start, i)) + '</span>';
+                        lastTokenEnd = i;
+                        prevTokenKind = 'literal';
+                        continue;
+                    }
+                }
+
+                // 6. 数値リテラル
+                if (/[0-9]/.test(ch) || (ch === '-' && /[0-9]/.test(next) && ['operator', 'open-paren', 'comma', 'colon'].includes(prevTokenKind))) {
+                    flush(i);
+                    const start = i;
+                    if (ch === '-') i++;
+                    if (code[i] === '0' && (code[i + 1] === 'x' || code[i + 1] === 'X')) {
+                        i += 2;
+                        while (i < len && /[0-9a-fA-F]/.test(code[i])) i++;
+                    } else {
+                        while (i < len && /[0-9]/.test(code[i])) i++;
+                        if (code[i] === '.' && /[0-9]/.test(code[i + 1])) {
+                            i++;
+                            while (i < len && /[0-9]/.test(code[i])) i++;
+                        }
+                        if (code[i] === 'e' || code[i] === 'E') {
+                            i++;
+                            if (code[i] === '+' || code[i] === '-') i++;
+                            while (i < len && /[0-9]/.test(code[i])) i++;
+                        }
+                    }
+                    result += '<span class="token-number">' + escapeHtml(code.slice(start, i)) + '</span>';
+                    lastTokenEnd = i;
+                    prevTokenKind = 'literal';
+                    continue;
+                }
+
+                // 7. 識別子・キーワード・プロパティ名
+                if (/[a-zA-Z_$]/.test(ch)) {
+                    flush(i);
+                    const start = i;
+                    while (i < len && /[a-zA-Z0-9_$]/.test(code[i])) i++;
+                    const word = code.slice(start, i);
+
+                    let k = i;
+                    while (k < len && (code[k] === ' ' || code[k] === '\t')) k++;
+                    const isProperty = (code[k] === ':' && code[k + 1] !== ':');
+
+                    if (isProperty && !KEYWORDS.has(word)) {
+                        result += '<span class="token-property">' + escapeHtml(word) + '</span>';
+                        prevTokenKind = 'ident';
+                    } else if (KEYWORDS.has(word)) {
+                        result += '<span class="token-keyword">' + escapeHtml(word) + '</span>';
+                        if (['return', 'case', 'typeof', 'delete', 'void', 'throw', 'yield', 'await', 'in', 'instanceof'].includes(word)) {
+                            prevTokenKind = 'keyword-regex';
+                        } else {
+                            prevTokenKind = 'keyword';
+                        }
+                    } else {
+                        result += escapeHtml(word);
+                        prevTokenKind = 'ident';
+                    }
+                    lastTokenEnd = i;
+                    continue;
+                }
+
+                // 8. 記号・演算子・空白
+                if (ch === '(') prevTokenKind = 'open-paren';
+                else if (ch === '{') prevTokenKind = 'open-brace';
+                else if (ch === '[') prevTokenKind = 'open-bracket';
+                else if (ch === ')') prevTokenKind = 'close-paren';
+                else if (ch === '}') prevTokenKind = 'close-brace';
+                else if (ch === ']') prevTokenKind = 'close-bracket';
+                else if (ch === ',') prevTokenKind = 'comma';
+                else if (ch === ':') prevTokenKind = 'colon';
+                else if (ch === ';') prevTokenKind = 'semicolon';
+                else if ('=+-*%&|^!<>?~'.includes(ch)) prevTokenKind = 'operator';
+                else if (!/\s/.test(ch)) prevTokenKind = 'other';
+
+                i++;
+            }
+
+            flush(len);
             return result;
         } else if (type === 'css') {
             const regex = /(\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(#[a-fA-F0-9]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))|(-?\b\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|s|ms)?\b)|([a-zA-Z0-9_-]+(?=\s*:))|([^{}]+(?=\{))/g;
@@ -1013,7 +1243,7 @@ colorBtn.addEventListener('click', () => {
         const cSelector = isLight ? '#800000' : '#d7ba7d';
 
         if (type === 'javascript' || type === 'json') {
-            const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:const|let|var|function|return|if|else|for|while|class|new|true|false|null|undefined|this|import|export|from)\b)|(-?\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z0-9_$]+(?=\s*:))/g;
+            const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(\/(?:\\.|\[(?:\\.|[^\]\\])*\]|[^\/\\\[\r\n])+\/[a-z]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:const|let|var|function|return|if|else|for|while|class|new|true|false|null|undefined|this|import|export|from)\b)|(-?\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z0-9_$]+(?=\s*:))/g;
             let lastIdx = 0;
             let match;
             while ((match = regex.exec(text)) !== null) {

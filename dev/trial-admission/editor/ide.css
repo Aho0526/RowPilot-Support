@@ -22,7 +22,7 @@
     --font-code: "SF Mono", Monaco, Menlo, Consolas, "Courier New", monospace;
     
     /* エディタ行高さ・フォント（厳密にピクセル単位で同期） */
-    --editor-font-size: 13px;
+    --editor-font-size: 12px;
     --editor-line-height: 22px;
 }
 
@@ -246,7 +246,7 @@ body.is-sprite-editor #btn-save {
 
 /* ── 左サイドバー: ファイルツリー ── */
 .studio-sidebar {
-    width: 250px;
+    width: 185px;
     background-color: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -1029,8 +1029,8 @@ body.theme-light .indent-guide::before {
 
 /* ── 右ペイン: プレビュー画面 (完全可変・リサイズ連動) ── */
 .studio-preview-pane {
-    width: 520px;
-    min-width: 300px;
+    width: 350px;
+    min-width: 270px;
     background-color: var(--bg-preview);
     display: flex;
     flex-direction: column;
@@ -1552,7 +1552,7 @@ body.transitioning-to-game .studio-preview-pane {
     position: relative;
 }
 
-/* 診断パネルのドラッグリサイザー */
+/* 診断パネルのドラッグリサイザー (エラーバー直上・上のライン部分) */
 .diagnostics-panel-resizer {
     height: 6px;
     background-color: transparent;
@@ -1560,18 +1560,34 @@ body.transitioning-to-game .studio-preview-pane {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.15s;
+    transition: background-color 0.15s, box-shadow 0.15s;
     user-select: none;
     flex-shrink: 0;
+    z-index: 7;
+    margin-bottom: -6px;
+    position: relative;
 }
 
 .diagnostics-panel-resizer:hover,
 .diagnostics-panel-resizer.dragging {
     background-color: #38bdf8;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+}
+
+.diagnostics-panel-resizer.has-errors:hover,
+.diagnostics-panel-resizer.has-errors.dragging {
+    background-color: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+}
+
+.diagnostics-panel-resizer.has-warnings-only:hover,
+.diagnostics-panel-resizer.has-warnings-only.dragging {
+    background-color: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.8);
 }
 
 .resizer-handle-grip {
-    width: 32px;
+    width: 36px;
     height: 2px;
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 1px;
@@ -2152,11 +2168,82 @@ body.transitioning-to-game .studio-preview-pane {
     font-size: 11px;
 }
 
-/* タブの閉じるボタン＆アイコン拡張 */
-.editor-tab .tab-icon {
+/* タブの言語アイコン・フォルダパス＆閉じるボタン拡張 */
+.editor-tab .tab-file-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Consolas, Monaco, "Courier New", monospace;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 5px;
+    flex-shrink: 0;
+    letter-spacing: -0.3px;
+    line-height: 1;
+}
+
+.editor-tab .tab-file-icon.icon-html {
+    color: #e44d26;
+}
+
+.editor-tab .tab-file-icon.icon-js {
+    color: #eab308;
+    font-size: 10.5px;
+}
+
+.editor-tab .tab-file-icon.icon-css {
+    color: #38bdf8;
+    font-size: 11px;
+}
+
+.editor-tab .tab-file-icon.icon-json {
+    color: #10b981;
+}
+
+.editor-tab .tab-file-icon.icon-img {
+    color: #a855f7;
+}
+
+.editor-tab .tab-file-icon svg {
+    width: 13px;
+    height: 13px;
+}
+
+/* タブ内のフォルダパス表示 (主張しすぎない控えめな表示) */
+.editor-tab .tab-folder-path {
     font-size: 10px;
-    margin-right: 4px;
-    opacity: 0.8;
+    color: #64748b;
+    margin-left: 5px;
+    font-weight: 400;
+    letter-spacing: 0.1px;
+    opacity: 0.65;
+    user-select: none;
+    transition: opacity 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.editor-tab:hover .tab-folder-path {
+    opacity: 0.85;
+    color: #94a3b8;
+}
+
+.editor-tab.active .tab-folder-path {
+    opacity: 0.9;
+    color: #94a3b8;
+}
+
+/* タブ内の変更マーク (M) */
+.editor-tab .tab-dirty-m {
+    display: none;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #eab308;
+    margin-left: 4px;
+    user-select: none;
+}
+
+.editor-tab.is-dirty .tab-dirty-m {
+    display: inline-block;
 }
 
 .editor-tab .tab-close-btn {
@@ -2866,8 +2953,8 @@ body.hide-diagnostics #editor-diagnostics-panel {
 }
 
 .settings-header-icon {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
 }
 
 .settings-modal-title {
@@ -3058,10 +3145,10 @@ body.hide-diagnostics #editor-diagnostics-panel {
     background-color: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 8px;
-    padding: 10px 12px;
+    padding: 12px 14px 14px 14px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .settings-meta-item {
@@ -3069,6 +3156,7 @@ body.hide-diagnostics #editor-diagnostics-panel {
     align-items: center;
     gap: 20px;
     font-size: 12px;
+    line-height: 1.4;
 }
 
 .settings-meta-key {
@@ -3256,5 +3344,36 @@ body.theme-light .settings-modal-footer {
 
 body.theme-light .settings-footer-note {
     color: #6b7280;
+}
+
+/* ─────────────────────────────────────────────
+   画面サイズ・PC端末別のレスポンシブ黄金比
+   ───────────────────────────────────────────── */
+@media (max-width: 1200px) {
+    .studio-sidebar {
+        width: 170px;
+    }
+    .studio-preview-pane {
+        width: 310px;
+        min-width: 250px;
+    }
+}
+
+@media (min-width: 1201px) and (max-width: 1500px) {
+    .studio-sidebar {
+        width: 185px;
+    }
+    .studio-preview-pane {
+        width: 340px;
+    }
+}
+
+@media (min-width: 1501px) {
+    .studio-sidebar {
+        width: 195px;
+    }
+    .studio-preview-pane {
+        width: 380px;
+    }
 }
 
