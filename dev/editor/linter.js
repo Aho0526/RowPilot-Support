@@ -42,7 +42,7 @@
         player: ['speed', 'color', 'lives', 'maxBullets', 'fireInterval', 'muzzle'],
         bullet: ['speed', 'color', 'width', 'height'],
         enemy: ['rows', 'cols', 'speed', 'dropAmount', 'shootInterval', 'bulletSpeed', 'colors', 'scores'],
-        bunker: ['enabled', 'count', 'width', 'height', 'color', 'regenerateEachWave', 'passThroughPlayer'],
+        bunker: ['enabled', 'count', 'color', 'regenerateEachWave', 'passThroughPlayer'],
         ufo: ['enabled', 'speed', 'bonusScore', 'score', 'interval', 'color'],
         sprites: ['player', 'squid', 'crab', 'octopus', 'ufo'],
         display: ['background', 'sound', 'canvasWidth', 'canvasHeight', 'scale']

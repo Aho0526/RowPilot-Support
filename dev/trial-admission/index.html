@@ -1,13 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <!-- 【STEP 1-1】ブラウザのタブの名前を自分のゲーム名にしよう！ -->
     <title>スペースインベーダー</title>
-
-    <!-- 【STEP 1-2】タブのアイコンをお気に入りのキャラにしよう！ -->
-    <!-- （octopus.png / squid.png / crab.png / player.png / ufo.png）の中から選んで書いてみよう -->
     <link rel="icon" href="assets/octopus.png" type="image/png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=3.2">
 </head>
+
 <body>
     <!-- 上部バー（エディタへ移動ボタン） -->
     <header class="game-top-bar" id="game-top-bar">
@@ -40,7 +38,7 @@
     <div id="game-container">
         <div class="canvas-wrapper">
             <canvas id="gameCanvas" width="480" height="560" tabindex="0"></canvas>
-            
+
             <!-- ホーム画面 (本格アーケード・タイトルスクリーン) -->
             <div id="start-overlay" class="game-overlay">
                 <div class="arcade-home-container">
@@ -120,7 +118,8 @@
             </div>
 
             <!-- クイックポーズボタン (ゲームプレイ中に右上表示) -->
-            <button type="button" id="btn-quick-pause" class="quick-pause-btn" title="ゲームを一時停止 (Esc)" style="display: none;">
+            <button type="button" id="btn-quick-pause" class="quick-pause-btn" title="ゲームを一時停止 (Esc)"
+                style="display: none;">
                 ⏸ PAUSE
             </button>
 
@@ -160,7 +159,8 @@
         </div>
 
         <div class="controls-hint">
-            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動　/　<span class="key-tag">Space</span> 攻撃　/　<span class="key-tag">Esc</span> 一時停止・中止
+            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動　/　<span class="key-tag">Space</span>
+            攻撃　/　<span class="key-tag">Esc</span> 一時停止・中止
         </div>
     </div>
 
@@ -183,7 +183,16 @@
                 </div>
                 <div class="mock-code">
                     <div class="mock-line-nums">
-                        <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>10</div>
+                        <div>1</div>
+                        <div>2</div>
+                        <div>3</div>
+                        <div>4</div>
+                        <div>5</div>
+                        <div>6</div>
+                        <div>7</div>
+                        <div>8</div>
+                        <div>9</div>
+                        <div>10</div>
                     </div>
                     <div class="mock-code-lines">
                         <div class="mock-code-bar" style="width: 55%;"></div>
@@ -208,7 +217,7 @@
                 <button type="button" class="dot-modal-close" id="btn-close-dot-modal">✕ 閉じる</button>
             </div>
             <div class="dot-modal-toolbar">
-                <label>キャラ: 
+                <label>キャラ:
                     <select id="modal-sprite-select">
                         <option value="player">自機 (player)</option>
                         <option value="squid">イカ (squid)</option>
@@ -248,9 +257,6 @@
 
     <!-- 設定ファイル -->
     <script src="config.js"></script>
-    
-    <!-- 【STEP 1-3】ゲームの心臓 (core.js) を読み込もう！ -->
-    <!-- ▼ ここに「<script src="core.js"></script>」と書いてゲームを起動させよう -->
     <script src="core.js"></script>
 
     <!-- シームレス画面遷移スクリプト -->
@@ -259,13 +265,14 @@
             document.body.classList.add('in-iframe');
         }
 
-        document.getElementById('btn-goto-editor')?.addEventListener('click', function(e) {
+        document.getElementById('btn-goto-editor')?.addEventListener('click', function (e) {
             e.preventDefault();
             document.body.classList.add('transitioning-to-editor');
-            setTimeout(function() {
+            setTimeout(function () {
                 window.location.href = 'editor/?from=game';
             }, 420);
         });
     </script>
 </body>
+
 </html>

@@ -1,6 +1,8 @@
-// ===============================================================
-// Space Invaders Studio Controller (ide.js)
-// ===============================================================
+/**
+ * ide.js - Webエディタ メインコントローラー
+ * 仮想ファイルシステムの管理、タブ切り替え、コード編集やドット絵エディタの操作、
+ * およびゲーム画面へのリアルタイム保存・反映処理などエディタ全体の機能を統括します。
+ */
 
 (function () {
     'use strict';
@@ -471,6 +473,9 @@
                     const isHtml = files[key].type === 'html' || key.endsWith('.html');
                     files[key].content = isHtml ? cleanInjectedPlatformScripts(rawText) : rawText;
                     files[key].baselineContent = files[key].content;
+                    if (!files[key].productionContent) {
+                        files[key].productionContent = files[key].content;
+                    }
                     files[key].isDirty = false;
                     files[key].isLoaded = true;
                 }
@@ -488,9 +493,20 @@
         }
         updatePreview();
         updateAllFilesDiagnostics();
+        updateSettingsModeDisplay();
         if (spritePane && spritePane.style.display !== 'none') {
             loadSpriteFromConfig();
             renderSpriteGrid();
+        }
+
+        // URLパラメータ ?mode=trial がある場合は初期状態で体験入学モードを適用
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('mode') === 'trial' && !isTrialAdmissionBroken()) {
+                applyTrialAdmissionBreak();
+            }
+        } catch (e) {
+            console.warn('URLパラメータの解析に失敗しました:', e);
         }
     }
 
@@ -784,7 +800,7 @@
                     const openBracket = tagStr.startsWith('</') ? '</' : '<';
                     const tagName = tagStr.slice(openBracket.length);
                     result += '<span class="token-punctuation">' + escapeHtml(openBracket) + '</span>' +
-                              '<span class="token-tag-name">' + escapeHtml(tagName) + '</span>';
+                        '<span class="token-tag-name">' + escapeHtml(tagName) + '</span>';
                 } else if (match[4]) {
                     result += '<span class="token-punctuation">' + escapeHtml(match[4]) + '</span>';
                 } else if (match[5]) {
@@ -961,11 +977,9 @@
     // ─────────────────────────────────────────────
     // 構文診断 (Linter) 連携 & 初心者向けエラー表示
     // ─────────────────────────────────────────────
-    // ─────────────────────────────────────────────
-    // 構文診断 (Linter) 連携 & 初心者向けエラー表示
-    // ─────────────────────────────────────────────
-    // 全ファイルのエラー状態マップ (ファイルパス -> エラー件数 / 全issue配列)
+    // 全ファイルのエラー・警告状態マップ (ファイルパス -> エラー/警告件数 / 全issue配列)
     const fileErrorCountMap = {};
+    const fileWarningCountMap = {};
     const fileIssuesMap = {};
 
     function runDiagnostics(fileKey, skipHighlightUpdate) {
@@ -1027,6 +1041,7 @@
             const f = files[k];
             if (!f || f.editable === false || f.isBinary || f.type === 'xml' || f.type === 'text' || typeof f.content !== 'string') {
                 fileErrorCountMap[k] = 0;
+                fileWarningCountMap[k] = 0;
                 fileIssuesMap[k] = [];
                 continue;
             }
@@ -1040,62 +1055,105 @@
                 issues.forEach(iss => { iss.filename = k; });
                 fileIssuesMap[k] = issues;
                 const errCount = issues.filter(i => i.severity === 'error').length;
+                const warnCount = issues.filter(i => i.severity === 'warning').length;
                 fileErrorCountMap[k] = errCount;
+                fileWarningCountMap[k] = warnCount;
             } catch (e) {
                 console.warn('Linter check failed for', k, e);
             }
         }
 
         updateFileTreeErrorIndicators();
+        updateSaveButtonState();
     }
+
+    // 警告用の高品質SVGアイコン (黄色の三角形 + !)
+    const WARNING_TRIANGLE_SVG = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M12 2.5L1.5 21h21L12 2.5z" fill="#f59e0b" stroke="#d97706" stroke-width="1.5" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="14" stroke="#1c1917" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.5" r="1.2" fill="#1c1917"/></svg>`;
 
     function updateFileTreeErrorIndicators() {
         const fileItems = document.querySelectorAll('.tree-item-row.file-item');
         const folderGroups = document.querySelectorAll('.tree-folder-group');
 
-        // 各ファイルの赤字＆エラーバッジ（!）の反映
+        // 各ファイルの赤字(エラー)・黄字(警告) & バッジの反映
         fileItems.forEach(el => {
             const path = el.getAttribute('data-path');
             const errCount = fileErrorCountMap[path] || 0;
-            const existingBadge = el.querySelector('.tree-error-badge');
+            const warnCount = fileWarningCountMap[path] || 0;
+            const existingErrorBadge = el.querySelector('.tree-error-badge');
+            const existingWarningBadge = el.querySelector('.tree-warning-badge');
 
             if (errCount > 0) {
                 el.classList.add('has-error');
-                if (!existingBadge) {
+                el.classList.remove('has-warning');
+                if (existingWarningBadge) existingWarningBadge.remove();
+
+                if (!existingErrorBadge) {
                     const badge = document.createElement('span');
                     badge.className = 'tree-error-badge';
                     badge.textContent = '!';
                     badge.title = `構文エラーが ${errCount} 件あります`;
                     el.appendChild(badge);
                 } else {
-                    existingBadge.title = `構文エラーが ${errCount} 件あります`;
+                    existingErrorBadge.title = `構文エラーが ${errCount} 件あります`;
+                }
+            } else if (warnCount > 0) {
+                el.classList.remove('has-error');
+                el.classList.add('has-warning');
+                if (existingErrorBadge) existingErrorBadge.remove();
+
+                if (!existingWarningBadge) {
+                    const badge = document.createElement('span');
+                    badge.className = 'tree-warning-badge';
+                    badge.title = `警告・確認箇所が ${warnCount} 件あります`;
+                    badge.innerHTML = WARNING_TRIANGLE_SVG;
+                    el.appendChild(badge);
+                } else {
+                    existingWarningBadge.title = `警告・確認箇所が ${warnCount} 件あります`;
                 }
             } else {
                 el.classList.remove('has-error');
-                if (existingBadge) {
-                    existingBadge.remove();
-                }
+                el.classList.remove('has-warning');
+                if (existingErrorBadge) existingErrorBadge.remove();
+                if (existingWarningBadge) existingWarningBadge.remove();
             }
         });
 
-        // 親フォルダグループの赤ドット反映（内部にエラーファイルがあるか）
+        // 親フォルダグループのドット反映（内部にエラー/警告ファイルがあるか）
         folderGroups.forEach(fg => {
             const toggleBtn = fg.querySelector(':scope > .tree-item-row[data-folder]');
             if (!toggleBtn) return;
 
             const childErrors = fg.querySelectorAll('.tree-item-row.file-item.has-error');
-            const existingDot = toggleBtn.querySelector('.folder-error-dot');
+            const childWarnings = fg.querySelectorAll('.tree-item-row.file-item.has-warning');
+            const existingDot = toggleBtn.querySelector('.folder-status-dot');
 
             if (childErrors.length > 0) {
                 toggleBtn.classList.add('has-error-child');
+                toggleBtn.classList.remove('has-warning-child');
                 if (!existingDot) {
                     const dot = document.createElement('span');
-                    dot.className = 'folder-error-dot';
+                    dot.className = 'folder-status-dot folder-error-dot';
                     dot.title = `フォルダ内のファイルにエラーがあります`;
                     toggleBtn.appendChild(dot);
+                } else {
+                    existingDot.className = 'folder-status-dot folder-error-dot';
+                    existingDot.title = `フォルダ内のファイルにエラーがあります`;
+                }
+            } else if (childWarnings.length > 0) {
+                toggleBtn.classList.remove('has-error-child');
+                toggleBtn.classList.add('has-warning-child');
+                if (!existingDot) {
+                    const dot = document.createElement('span');
+                    dot.className = 'folder-status-dot folder-warning-dot';
+                    dot.title = `フォルダ内のファイルに警告があります`;
+                    toggleBtn.appendChild(dot);
+                } else {
+                    existingDot.className = 'folder-status-dot folder-warning-dot';
+                    existingDot.title = `フォルダ内のファイルに警告があります`;
                 }
             } else {
                 toggleBtn.classList.remove('has-error-child');
+                toggleBtn.classList.remove('has-warning-child');
                 if (existingDot) {
                     existingDot.remove();
                 }
@@ -1141,31 +1199,47 @@
 
         const otherIssues = getOtherFilesIssues(fileKey);
         const otherErrorCount = otherIssues.filter(i => i.severity === 'error').length;
-        const otherSuffix = otherErrorCount > 0 ? `（他ファイルにエラー ${otherErrorCount} 件）` : '';
+        const otherWarningCount = otherIssues.filter(i => i.severity === 'warning').length;
 
         diagnosticsBar.className = 'editor-diagnostics-bar';
         if (diagnosticsPanelResizer) {
             diagnosticsPanelResizer.className = 'diagnostics-panel-resizer';
         }
 
+        const warningDotSvg = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" style="vertical-align: -2px; margin-right: 2px;"><path d="M12 2.5L1.5 21h21L12 2.5z" fill="#f97316" stroke="#ea580c" stroke-width="1.5" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="14" stroke="#1c1917" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.5" r="1.2" fill="#1c1917"/></svg>`;
+
         if (errorCount > 0) {
+            // 開いているファイル自体にエラーがある場合 -> 赤色
             diagnosticsBar.classList.add('has-errors');
             diagnosticsPanelResizer?.classList.add('has-errors');
             diagnosticsStatusDot.className = 'diagnostics-status-dot error';
             diagnosticsStatusDot.textContent = '●';
+            const otherSuffix = otherErrorCount > 0 ? `（他ファイルにエラー ${otherErrorCount} 件）` : '';
             diagnosticsStatusText.textContent = `[${fileKey}] エラーが ${errorCount} 件あります${otherSuffix}`;
+        } else if (warningCount > 0) {
+            // 開いているファイルに警告がある場合 -> オレンジ色
+            diagnosticsBar.classList.add('has-warnings');
+            diagnosticsPanelResizer?.classList.add('has-warnings');
+            diagnosticsStatusDot.className = 'diagnostics-status-dot warning';
+            diagnosticsStatusDot.innerHTML = warningDotSvg;
+
+            const otherErrSuffix = otherErrorCount > 0 ? ` ／ 他ファイルにエラーが ${otherErrorCount} 件あります` : '';
+            const otherWarnSuffix = (otherErrorCount === 0 && otherWarningCount > 0) ? `（他ファイルに警告 ${otherWarningCount} 件）` : '';
+            diagnosticsStatusText.textContent = `[${fileKey}] 警告が ${warningCount} 件あります${otherErrSuffix}${otherWarnSuffix}`;
         } else if (otherErrorCount > 0) {
+            // 開いているファイルは正常だが他ファイルにエラーがある場合 -> 赤色
             diagnosticsBar.classList.add('has-errors');
             diagnosticsPanelResizer?.classList.add('has-errors');
             diagnosticsStatusDot.className = 'diagnostics-status-dot error';
             diagnosticsStatusDot.textContent = '●';
             diagnosticsStatusText.textContent = `[${fileKey}] エラーなし ／ 他ファイルにエラーが ${otherErrorCount} 件あります`;
-        } else if (warningCount > 0) {
-            diagnosticsBar.classList.add('has-warnings-only');
-            diagnosticsPanelResizer?.classList.add('has-warnings-only');
+        } else if (otherWarningCount > 0) {
+            // 開いているファイルは正常だが他ファイルに警告がある場合 -> オレンジ色
+            diagnosticsBar.classList.add('has-warnings');
+            diagnosticsPanelResizer?.classList.add('has-warnings');
             diagnosticsStatusDot.className = 'diagnostics-status-dot warning';
-            diagnosticsStatusDot.textContent = '●';
-            diagnosticsStatusText.textContent = `[${fileKey}] 注意・確認箇所が ${warningCount} 件あります`;
+            diagnosticsStatusDot.innerHTML = warningDotSvg;
+            diagnosticsStatusText.textContent = `[${fileKey}] 正常 ／ 他ファイルに警告が ${otherWarningCount} 件あります`;
         } else {
             diagnosticsStatusDot.className = 'diagnostics-status-dot ok';
             diagnosticsStatusDot.textContent = '●';
@@ -1178,7 +1252,9 @@
     function renderDiagnosticItemHtml(item, defaultFileKey) {
         const isErr = item.severity === 'error';
         const itemClass = isErr ? 'severity-error' : 'severity-warning';
-        const icon = isErr ? '!' : 'i';
+        const iconHtml = isErr 
+            ? `<span class="diag-badge-icon error" title="エラー">!</span>` 
+            : `<span class="diag-badge-icon warning" title="警告">${WARNING_TRIANGLE_SVG}</span>`;
         const targetFile = item.filename || defaultFileKey;
         const fileBadge = `<span class="diagnostic-file-badge">${escapeHtml(targetFile)}</span>`;
         const lineBadge = `<span class="diagnostic-line-badge">行 ${item.line}</span>`;
@@ -1197,7 +1273,7 @@
                     ${editedBadge}
                 </div>
                 <div class="diagnostic-content">
-                    <div class="diagnostic-message">${icon} ${escapeHtml(item.message)}</div>
+                    <div class="diagnostic-message">${iconHtml}<span>${escapeHtml(item.message)}</span></div>
                     <div class="diagnostic-hint">${escapeHtml(item.hint)}</div>
                     ${previewHtml}
                 </div>
@@ -1649,11 +1725,6 @@
             diagnosticsDebounceTimer = setTimeout(() => {
                 runDiagnostics(currentFileKey);
             }, 200);
-
-            // index.html 編集時はブラウザ親タブのタイトル・アイコンも即座に同期！
-            if (currentFileKey === 'index.html') {
-                syncParentTabMetaFromIndexHtml();
-            }
         }
     });
 
@@ -1837,12 +1908,46 @@
         if (btnSave) {
             btnSave.classList.toggle('has-unsaved', shouldHighlightSave);
         }
+        updateSaveButtonState();
     }
 
-    // 未保存ステータスピル（クリックで真上の「保存して反映」を実行）
-    document.getElementById('unsaved-status-pill')?.addEventListener('click', () => {
-        saveAndApplyChanges();
-    });
+    function updateSaveButtonState() {
+        const btnSave = document.getElementById('btn-save');
+        if (!btnSave) return;
+        const btnSaveText = document.getElementById('btn-save-text');
+
+        let hasError = false;
+        if (typeof fileErrorCountMap === 'object' && Object.keys(fileErrorCountMap).length > 0) {
+            hasError = Object.values(fileErrorCountMap).some(count => count > 0);
+        } else if (window.Linter && files) {
+            for (const k in files) {
+                const f = files[k];
+                if (!f || f.editable === false || f.isBinary || f.type === 'xml' || f.type === 'text') continue;
+                const changedLines = window.Linter.computeChangedLines(f.baselineContent || '', f.content);
+                const issues = window.Linter.lint(k, f.content, {
+                    baselineCode: f.baselineContent,
+                    changedLines: changedLines,
+                    allFiles: files
+                });
+                if ((issues || []).some(i => i.severity === 'error')) {
+                    hasError = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasError) {
+            btnSave.classList.add('has-error');
+            if (btnSaveText) btnSaveText.textContent = '無理やり保存して反映';
+            btnSave.title = '構文エラーがありますが、無理やり保存してゲームに反映します (⌘S)';
+        } else {
+            btnSave.classList.remove('has-error');
+            if (btnSaveText) btnSaveText.textContent = '保存して反映';
+            btnSave.title = 'コードを保存してゲームに反映 (⌘S / Ctrl+S)';
+        }
+    }
+
+
 
     function closeTab(key) {
         const idx = openTabs.indexOf(key);
@@ -2105,7 +2210,16 @@
     // ─────────────────────────────────────────────
     // プレビュー合成 & 保存
     // ─────────────────────────────────────────────
+    let toastTimeout = null;
     function showToast(msg, isError) {
+        if (!toast || !toastMsg) return;
+        clearTimeout(toastTimeout);
+        const actions = document.getElementById('ide-toast-actions');
+        if (actions) {
+            actions.style.display = 'none';
+            actions.innerHTML = '';
+        }
+        toast.classList.remove('has-actions');
         toastMsg.textContent = msg;
         if (isError) {
             toast.classList.add('toast-error');
@@ -2113,7 +2227,57 @@
             toast.classList.remove('toast-error');
         }
         toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), isError ? 3500 : 2000);
+        toastTimeout = setTimeout(() => toast.classList.remove('show'), isError ? 3500 : 2500);
+    }
+
+    function showToastConfirm(question, onConfirm, actionLabel = '壊す', isBreak = true) {
+        if (!toast || !toastMsg) return;
+        clearTimeout(toastTimeout);
+        toastMsg.textContent = question;
+        toast.classList.remove('toast-error');
+        toast.classList.add('has-actions');
+
+        let actions = document.getElementById('ide-toast-actions');
+        if (!actions) {
+            actions = document.createElement('div');
+            actions.id = 'ide-toast-actions';
+            actions.className = 'toast-actions';
+            toast.appendChild(actions);
+        }
+        const btnClass = isBreak ? 'toast-btn-break' : 'toast-btn-restore';
+        actions.innerHTML = `
+            <button type="button" class="toast-btn ${btnClass}" id="toast-btn-confirm">${actionLabel}</button>
+            <button type="button" class="toast-btn toast-btn-cancel" id="toast-btn-cancel">キャンセル</button>
+        `;
+        actions.style.display = 'inline-flex';
+
+        const btnConfirm = actions.querySelector('#toast-btn-confirm');
+        const btnCancel = actions.querySelector('#toast-btn-cancel');
+
+        function cleanup() {
+            actions.style.display = 'none';
+            actions.innerHTML = '';
+            toast.classList.remove('has-actions');
+        }
+
+        btnConfirm.onclick = (e) => {
+            e.stopPropagation();
+            cleanup();
+            toast.classList.remove('show');
+            onConfirm();
+        };
+
+        btnCancel.onclick = (e) => {
+            e.stopPropagation();
+            cleanup();
+            toast.classList.remove('show');
+        };
+
+        toast.classList.add('show');
+        toastTimeout = setTimeout(() => {
+            cleanup();
+            toast.classList.remove('show');
+        }, 8000);
     }
 
     function buildCompositeHtml() {
@@ -2155,12 +2319,12 @@
         if (!files['index.html']) return;
         const html = files['index.html'].content || '';
 
-        // 1. タブタイトルの自動同期 (例: KAITOのインベーダー - エディタ)
+        // 1. タブタイトルの自動同期 (例: KAITOのインベーダー)
         const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
         if (titleMatch && titleMatch[1]) {
             const rawTitle = titleMatch[1].trim();
             if (rawTitle) {
-                document.title = `${rawTitle} - エディタ`;
+                document.title = rawTitle;
             }
         }
 
@@ -2202,13 +2366,10 @@
             }
         }
 
-        // セーブ前に「現在開いているファイル」を最優先しつつ、編集可能な全ファイルを横断して構文・整合性チェック
+        // 全ファイルの構文エラー数を集計（エラーがあってもブロックせず無理やり保存・反映する）
+        let totalErrors = 0;
         if (window.Linter) {
-            const orderedKeys = [
-                currentFileKey,
-                ...Object.keys(files).filter(k => k !== currentFileKey)
-            ];
-            for (const k of orderedKeys) {
+            for (const k in files) {
                 const f = files[k];
                 if (!f || f.editable === false || f.isBinary || f.type === 'xml' || f.type === 'text') continue;
                 const changedLines = window.Linter.computeChangedLines(f.baselineContent || '', f.content);
@@ -2217,35 +2378,28 @@
                     changedLines: changedLines,
                     allFiles: files
                 });
-                const errors = (issues || []).filter(i => i.severity === 'error');
-                if (errors.length > 0) {
-                    // エラーがある場合は対象ファイルへ切り替えて保存をブロック
-                    if (currentFileKey !== k) {
-                        switchToFile(k);
-                    } else {
-                        runDiagnostics(k);
-                    }
-                    showToast(`[${k}] にエラーが ${errors.length} 件あるため保存できません`, true);
-                    toggleDiagnosticsPanel(true);
-                    jumpToLine(errors[0].line, errors[0].col);
-                    return;
-                }
+                const errCount = (issues || []).filter(i => i.severity === 'error').length;
+                totalErrors += errCount;
             }
         }
 
         // config.js のみの変更なら即時リロードを試みる
         const otherCodeDirty = ['style.css', 'core.js', 'index.html', 'editor/linter.js'].some(k => files[k] && files[k].isDirty);
-        const onlyConfigDirty = files['config.js'].isDirty && !otherCodeDirty;
+        const onlyConfigDirty = files['config.js'] && files['config.js'].isDirty && !otherCodeDirty;
 
         for (let k in files) {
+            if (files[k] && !files[k].isBinary) {
+                files[k].baselineContent = files[k].content;
+            }
             files[k].isDirty = false;
         }
         if (!files[currentFileKey]?.isBinary) {
             runDiagnostics(currentFileKey);
         }
         updateTabsUI();
+        updateAllFilesDiagnostics();
 
-        if (onlyConfigDirty) {
+        if (onlyConfigDirty && totalErrors === 0) {
             try {
                 const win = previewIframe.contentWindow;
                 if (win && typeof win.reloadGameWithNewConfig === 'function') {
@@ -2267,7 +2421,11 @@
         }
 
         updatePreview();
-        showToast('保存しました（プレビュー更新）');
+        if (totalErrors > 0) {
+            showToast('無理やり保存して反映しました');
+        } else {
+            showToast('保存しました（プレビュー更新）');
+        }
     }
 
     // ─────────────────────────────────────────────
@@ -3134,30 +3292,54 @@
     });
 
     // ─────────────────────────────────────────────
-    // 体験入学用コード破壊・復元イースターエッグ (editor 5連打)
+    // 設定モーダル内の動作モード表示更新 (Trial-admission / Production)
     // ─────────────────────────────────────────────
-    let editorClickCount = 0;
-    let editorClickTimer = null;
+    function updateSettingsModeDisplay() {
+        const badge = document.getElementById('settings-current-mode-val');
+        if (!badge) return;
+        const isBroken = isTrialAdmissionBroken();
+        if (isBroken) {
+            badge.textContent = 'Trial-admission';
+            badge.className = 'settings-meta-val settings-mode-badge is-trial';
+            badge.title = '体験入学モード（課題・穴埋め状態）';
+        } else {
+            badge.textContent = 'Production';
+            badge.className = 'settings-meta-val settings-mode-badge is-production';
+            badge.title = '通常・本番モード（完成版状態）';
+        }
+    }
 
-    function handleEditorEasterEggClick(e) {
-        editorClickCount++;
-        clearTimeout(editorClickTimer);
-        editorClickTimer = setTimeout(() => {
-            editorClickCount = 0;
-        }, 1800);
+    // ─────────────────────────────────────────────
+    // 体験入学用コード破壊・復元イースターエッグ (trial-admission / editor 5連打)
+    // ─────────────────────────────────────────────
+    let easterEggClickCount = 0;
+    let easterEggClickTimer = null;
 
-        if (editorClickCount >= 5) {
-            editorClickCount = 0;
-            const isBroken = isTrialAdmissionBroken();
-            if (!isBroken) {
-                if (confirm('壊しますか？\n（体験入学用の穴埋め・準備モードに切り替えます）')) {
-                    applyTrialAdmissionBreak();
-                }
-            } else {
-                if (confirm('完成版コードに復元しますか？')) {
-                    restoreTrialAdmission();
-                }
-            }
+    function handleEasterEggClick(e) {
+        easterEggClickCount++;
+        clearTimeout(easterEggClickTimer);
+        easterEggClickTimer = setTimeout(() => {
+            easterEggClickCount = 0;
+        }, 2500);
+
+        if (easterEggClickCount >= 5) {
+            easterEggClickCount = 0;
+            triggerModeToggleConfirm();
+        }
+    }
+
+    function triggerModeToggleConfirm() {
+        const isBroken = isTrialAdmissionBroken();
+        if (!isBroken) {
+            showToastConfirm('体験入学モードに切り替えますか？（課題用にコードを穴埋め状態にします）', () => {
+                if (typeof closeSettingsModal === 'function') closeSettingsModal();
+                applyTrialAdmissionBreak();
+            }, '切り替え', true);
+        } else {
+            showToastConfirm('完成版コード（Production）に復元しますか？', () => {
+                if (typeof closeSettingsModal === 'function') closeSettingsModal();
+                restoreTrialAdmission();
+            }, '復元', false);
         }
     }
 
@@ -3166,104 +3348,208 @@
         const html = files['index.html'].content || '';
         const cfg = files['config.js']?.content || '';
         const hasCoreScript = /<script\s+[^>]*src=["']core\.js["'][^>]*>/i.test(html);
-        const hasZeroSpeed = /speed:\s*0\b/.test(cfg);
-        return !hasCoreScript || hasZeroSpeed;
+        const hasStepComment = html.includes('【STEP') || cfg.includes('【STEP');
+        const hasZeroSpeed = /(?:player|bullet):\s*\{[\s\S]*?speed:\s*0\b/i.test(cfg);
+        return !hasCoreScript || hasZeroSpeed || hasStepComment;
     }
 
     function applyTrialAdmissionBreak() {
-        if (files['index.html']) {
-            let html = files['index.html'].content;
-            // core.js 読み込みタグを削除して未ロード状態（ゲーム停止）にする
-            html = html.replace(
-                /<script\s+[^>]*src=["']core\.js["'][^>]*>\s*<\/script>/gi,
-                ''
-            );
-            files['index.html'].content = html;
-            files['index.html'].isDirty = true;
-        }
-
-        if (files['config.js']) {
-            let cfg = files['config.js'].content;
-            // player speed: 5 -> 0 (自機が最初は動かない)
-            cfg = cfg.replace(
-                /(player:\s*\{[\s\S]*?speed:\s*)[0-9.]+/i,
-                '$10'
-            );
-            // bullet speed: -8 -> 0 (弾が最初は出ない)
-            cfg = cfg.replace(
-                /(bullet:\s*\{[\s\S]*?speed:\s*)-?[0-9.]+/i,
-                '$10'
-            );
-            files['config.js'].content = cfg;
-            files['config.js'].isDirty = true;
-        }
-
-        // エディタ表示とプレビューの更新
-        if (codeTextarea && files[currentFileKey]) {
-            codeTextarea.value = files[currentFileKey].content;
-            updateCodeHighlight();
-            if (stickyScrollController && !files[currentFileKey].isBinary) {
-                stickyScrollController.updateFile(currentFileKey, files[currentFileKey].content, files[currentFileKey].type);
+        // 1. 本番完成版コード（Production）が未退避であれば確実に退避
+        for (let k in files) {
+            if (files[k] && !files[k].isBinary && typeof files[k].content === 'string') {
+                if (!files[k].productionContent) {
+                    files[k].productionContent = files[k].content;
+                }
             }
         }
+
+        // 2. index.html に体験入学用 STEP コメント（1-1, 1-2, 1-3）を挿入し、core.js 読み込みを外す
+        if (files['index.html']) {
+            let html = files['index.html'].productionContent || files['index.html'].content;
+            // STEP 1-1
+            if (!html.includes('【STEP 1-1】')) {
+                html = html.replace(/(<title>)/i, '    <!-- 【STEP 1-1】ブラウザのタブの名前を自分のゲーム名にしよう！ -->\n$1');
+            }
+            // STEP 1-2
+            if (!html.includes('【STEP 1-2】')) {
+                html = html.replace(/(<link\s+[^>]*rel=["']icon["'][^>]*>)/i, '    <!-- 【STEP 1-2】タブのアイコンをお気に入りのキャラにしよう！ -->\n    <!-- assetsフォルダの中から好きな画像を選んで書いてみよう -->\n$1');
+            }
+            // STEP 1-3 & core.js タグの穴埋め化
+            html = html.replace(/<script\s+[^>]*src=["']core\.js["'][^>]*>\s*<\/script>\s*/gi, '');
+            if (!html.includes('【STEP 1-3】')) {
+                html = html.replace(
+                    /(<script\s+[^>]*src=["']config\.js["'][^>]*>\s*<\/script>)/i,
+                    '$1\n\n    <!-- 【STEP 1-3】ゲームの心臓 (core.js) を読み込もう！ -->\n    <!-- ▼ ここに「<script src="core.js"></script>」と書いてゲームを起動させよう -->\n'
+                );
+            }
+            files['index.html'].content = html;
+        }
+
+        // 3. config.js に STEP コメント（3-1, 3-2）を挿入し、スピードを 0 に設定
+        if (files['config.js']) {
+            let cfg = files['config.js'].productionContent || files['config.js'].content;
+            // STEP 3-1: player speed: 0
+            cfg = cfg.replace(/\s*\/\/\s*【STEP 3-1】[^\n]*\n?/gi, '');
+            cfg = cfg.replace(
+                /(player:\s*\{[\s\S]*?)(speed:\s*)[0-9.]+/i,
+                '$1// 【STEP 3-1】自機の移動スピードを決めよう！ (推奨: 5)\n        $20'
+            );
+            // STEP 3-2: bullet speed: 0
+            cfg = cfg.replace(/\s*\/\/\s*【STEP 3-2】[^\n]*\n?/gi, '');
+            cfg = cfg.replace(
+                /(bullet:\s*\{[\s\S]*?)(speed:\s*)-?[0-9.]+/i,
+                '$1// 【STEP 3-2】弾のスピードを決めよう！ (上向きに飛ばすのでマイナス -8 を指定)\n        $20'
+            );
+            files['config.js'].content = cfg;
+        }
+
+        // 4. style.css に STEP 2 コメントを挿入
+        if (files['style.css']) {
+            let css = files['style.css'].productionContent || files['style.css'].content;
+            if (!css.includes('【STEP 2】')) {
+                css = css.replace(
+                    /(\.arcade-play-btn\s*\{)/i,
+                    '/* 【STEP 2】特大スタートボタンを自分の好きな色に光らせよう！ */\n/* （お手本: #00ffff 水色, #ff007f ピンク, #ffcc00 黄色） */\n$1'
+                );
+                files['style.css'].content = css;
+            }
+        }
+
+        // 5. 体験入学モード切り替え直後は、この穴埋め版をベースラインとする（生徒の編集差分判定用）
+        for (let k in files) {
+            if (files[k] && !files[k].isBinary) {
+                files[k].baselineContent = files[k].content;
+                files[k].isDirty = false;
+            }
+        }
+
+        // 6. ★即座に index.html を開き、診断を実行してバグ箇所を即座に特定表示
+        switchToFile('index.html');
+        runDiagnostics('index.html');
+
         updateTabsUI();
+        updateSidebarUI();
         updatePreview();
-        showToast('⚡ 体験入学準備モード（穴埋め版）に切り替えました！', false);
+        updateAllFilesDiagnostics();
+        updateSaveButtonState();
+        updateSettingsModeDisplay();
+
+        // エラー詳細パネルを自動展開してバグ原因と修正方法を明示
+        toggleDiagnosticsPanel(true);
+
+        // 7. index.html 内のバグ箇所（STEP 1-3 の空行）へ自動スクロール＆キャレット移動
+        setTimeout(() => {
+            if (files['index.html']) {
+                const lines = (codeTextarea ? codeTextarea.value : files['index.html'].content).split('\n');
+                let targetLine = -1;
+                for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].includes('STEP 1-3') || lines[i].includes('ゲームの心臓')) {
+                        targetLine = Math.min(lines.length, i + 2); // 案内コメントの次行（記述行）
+                        break;
+                    }
+                }
+                if (targetLine > 0) {
+                    jumpToLine(targetLine, 1);
+                }
+            }
+        }, 100);
+
+        showToast('体験入学モード（Trial-admission）に切り替えました！', false);
     }
 
     function restoreTrialAdmission() {
+        // 1. 完成版コード（Production）へ復元：体験入学用コメントを完全消去し、完成した本番コードへ戻す
         if (files['index.html']) {
-            let html = files['index.html'].content;
-            if (!/<script\s+[^>]*src=["']core\.js["'][^>]*>/i.test(html)) {
-                // core.js 読み込みを復元
-                html = html.replace(
-                    /(<!-- 【STEP 1-3】ゲームの心臓[\s\S]*?-->[\s\S]*?)(<\/body>)/i,
-                    '$1    <script src="core.js"></script>\n$2'
-                );
-                files['index.html'].content = html;
-                files['index.html'].isDirty = true;
+            let restored = files['index.html'].productionContent || files['index.html'].content;
+            // STEP 1-1, 1-2, 1-3 関連コメントを綺麗に除去
+            restored = restored.replace(/\s*<!--\s*【STEP 1-1】[^\n]*-->\s*\n?/gi, '\n');
+            restored = restored.replace(/\s*<!--\s*【STEP 1-2】[^\n]*-->\s*\n?/gi, '\n');
+            restored = restored.replace(/\s*<!--\s*assetsフォルダの中から[^\n]*-->\s*\n?/gi, '\n');
+            restored = restored.replace(/\s*<!--\s*【STEP 1-3】[^\n]*-->\s*\n?/gi, '\n');
+            restored = restored.replace(/\s*<!--\s*▼ ここに「.*?」と書いてゲームを起動させよう\s*-->\s*\n?/gi, '\n');
+
+            // core.js タグがなければ config.js の直後に確実に再配置
+            if (!/<script\s+[^>]*src=["']core\.js["'][^>]*>/i.test(restored)) {
+                if (/<script\s+[^>]*src=["']config\.js["'][^>]*>/i.test(restored)) {
+                    restored = restored.replace(
+                        /(<script\s+[^>]*src=["']config\.js["'][^>]*>\s*<\/script>)/i,
+                        '$1\n    <script src="core.js"><\/script>'
+                    );
+                } else if (restored.includes('</body>')) {
+                    restored = restored.replace('</body>', '    <script src="core.js"></script>\n</body>');
+                } else {
+                    restored += '\n    <script src="core.js"></script>';
+                }
             }
+            files['index.html'].content = restored;
+            files['index.html'].productionContent = restored;
         }
 
         if (files['config.js']) {
-            let cfg = files['config.js'].content;
-            // player speed: 0 -> 5 に復元
-            cfg = cfg.replace(
-                /(player:\s*\{[\s\S]*?speed:\s*)0\b/i,
-                '$15'
-            );
-            // bullet speed: 0 -> -8 に復元
-            cfg = cfg.replace(
-                /(bullet:\s*\{[\s\S]*?speed:\s*)0\b/i,
-                '$1-8'
-            );
-            files['config.js'].content = cfg;
-            files['config.js'].isDirty = true;
+            let restored = files['config.js'].productionContent || files['config.js'].content;
+            // STEP 3-1, STEP 3-2 コメントを除去
+            restored = restored.replace(/\s*\/\/\s*【STEP 3-1】[^\n]*\n?/gi, '');
+            restored = restored.replace(/\s*\/\/\s*【STEP 3-2】[^\n]*\n?/gi, '');
+            // 速度パラメータを完成値に戻す
+            restored = restored.replace(/(player:\s*\{[\s\S]*?speed:\s*)0\b/i, '$15');
+            restored = restored.replace(/(bullet:\s*\{[\s\S]*?speed:\s*)0\b/i, '$1-8');
+            files['config.js'].content = restored;
+            files['config.js'].productionContent = restored;
         }
 
-        // エディタ表示とプレビューの更新
-        if (codeTextarea && files[currentFileKey]) {
-            codeTextarea.value = files[currentFileKey].content;
-            updateCodeHighlight();
-            if (stickyScrollController && !files[currentFileKey].isBinary) {
-                stickyScrollController.updateFile(currentFileKey, files[currentFileKey].content, files[currentFileKey].type);
+        if (files['style.css']) {
+            let restored = files['style.css'].productionContent || files['style.css'].content;
+            // STEP 2 コメントを除去
+            restored = restored.replace(/\s*\/\*\s*【STEP 2】[\s\S]*?\*\/\s*\n?/gi, '\n');
+            restored = restored.replace(/\s*\/\*\s*（お手本:[^\n]*\*\/\s*\n?/gi, '\n');
+            files['style.css'].content = restored;
+            files['style.css'].productionContent = restored;
+        }
+
+        // 2. 完全版復元直後もクリーンな保存済み状態にする
+        for (let k in files) {
+            if (files[k] && !files[k].isBinary) {
+                if (files[k].productionContent) {
+                    files[k].content = files[k].productionContent;
+                }
+                files[k].baselineContent = files[k].content;
+                files[k].isDirty = false;
             }
         }
+
+        // 3. エディタ全体を完全再描画（現在のファイルの内容・ハイライト・診断・スティッキースクロール）
+        renderEditor();
+        runDiagnostics(currentFileKey);
+
         updateTabsUI();
+        updateSidebarUI();
         updatePreview();
-        showToast('✨ 完成版コードに復元しました！', false);
+        updateAllFilesDiagnostics();
+        updateSaveButtonState();
+        updateSettingsModeDisplay();
+
+        // エラー解消に伴い診断詳細パネルを閉じる
+        toggleDiagnosticsPanel(false);
+
+        showToast('完成版コード（Production）に復元しました！', false);
     }
 
-    // イベントリスナーの登録 (サイドバーの editor フォルダ行 & ヘッダーのエディタ文字)
+    // イベントリスナーの登録 (trial-admission / editor フォルダ行 & ヘッダーのエディタ文字)
+    const folderToggleRoot = document.getElementById('folder-toggle-root');
+    if (folderToggleRoot) {
+        folderToggleRoot.addEventListener('click', handleEasterEggClick);
+    }
     const folderToggleEditor = document.getElementById('folder-toggle-editor');
     if (folderToggleEditor) {
-        folderToggleEditor.addEventListener('click', handleEditorEasterEggClick);
+        folderToggleEditor.addEventListener('click', handleEasterEggClick);
     }
     const brandSub = document.querySelector('.brand-sub');
     if (brandSub) {
         brandSub.style.cursor = 'pointer';
-        brandSub.addEventListener('click', handleEditorEasterEggClick);
+        brandSub.addEventListener('click', handleEasterEggClick);
     }
+
+
 
     // 初期化 (どんなPC端末・画面比率でも画像2の黄金比で美しく起動)
     try {
@@ -3684,7 +3970,7 @@
         try {
             localStorage.setItem('rowpilot_editor_settings', JSON.stringify(editorSettings));
             localStorage.setItem('rowpilot_editor_theme', editorSettings.theme);
-        } catch (e) {}
+        } catch (e) { }
     }
 
     // テーマ適用
@@ -3748,6 +4034,7 @@
             themeChoiceDark.classList.toggle('is-active', editorSettings.theme !== 'light');
             themeChoiceLight.classList.toggle('is-active', editorSettings.theme === 'light');
         }
+        updateSettingsModeDisplay();
 
         settingsModalOverlay.style.display = 'flex';
         requestAnimationFrame(() => {
@@ -3876,19 +4163,19 @@
 
     bannerBtnMinimize?.addEventListener('click', () => {
         bannerContainer?.classList.add('is-minimized');
-        try { localStorage.setItem('rowpilot_system_banner_minimized', '1'); } catch (e) {}
+        try { localStorage.setItem('rowpilot_system_banner_minimized', '1'); } catch (e) { }
     });
 
     bannerBtnExpand?.addEventListener('click', () => {
         bannerContainer?.classList.remove('is-minimized');
-        try { localStorage.setItem('rowpilot_system_banner_minimized', '0'); } catch (e) {}
+        try { localStorage.setItem('rowpilot_system_banner_minimized', '0'); } catch (e) { }
     });
 
     try {
         if (localStorage.getItem('rowpilot_system_banner_minimized') === '1') {
             bannerContainer?.classList.add('is-minimized');
         }
-    } catch (e) {}
+    } catch (e) { }
 
     // スティッキースクロールの初期化
     if (window.StickyScrollController) {
@@ -3934,6 +4221,8 @@
             stickyScrollController.updateFile(currentFileKey, currentFile.content, currentFile.type);
             stickyScrollController.updateScroll(codeTextarea.scrollTop, codeTextarea.scrollLeft);
         }
+        window.__applyTrialAdmissionBreak = applyTrialAdmissionBreak;
+        window.__restoreTrialAdmission = restoreTrialAdmission;
     }
 
 })();

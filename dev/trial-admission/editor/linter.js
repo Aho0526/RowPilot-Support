@@ -1,6 +1,7 @@
 /**
- * linter.js - 初心者向け - 構文エラー診断エンジン
- *　外部ライブラリ非依存で、ファイルを横断した即時の構文チェックに対応
+ * linter.js - リアルタイム構文診断エンジン
+ * 初心者がつまずきやすい全角記号の混入や構文エラー、ドット絵データの形式不備などを
+ * 外部ライブラリ非依存で即座に検出し、わかりやすい日本語で修正ヒントを提示します。
  */
 
 (function (global) {
@@ -42,7 +43,7 @@
         player: ['speed', 'color', 'lives', 'maxBullets', 'fireInterval', 'muzzle'],
         bullet: ['speed', 'color', 'width', 'height'],
         enemy: ['rows', 'cols', 'speed', 'dropAmount', 'shootInterval', 'bulletSpeed', 'colors', 'scores'],
-        bunker: ['enabled', 'count', 'width', 'height', 'color', 'regenerateEachWave', 'passThroughPlayer'],
+        bunker: ['enabled', 'count', 'color', 'regenerateEachWave', 'passThroughPlayer'],
         ufo: ['enabled', 'speed', 'bonusScore', 'score', 'interval', 'color'],
         sprites: ['player', 'squid', 'crab', 'octopus', 'ufo'],
         display: ['background', 'sound', 'canvasWidth', 'canvasHeight', 'scale']
@@ -919,8 +920,6 @@
         'enemy.scores': { type: 'numberArray' },
         'bunker.enabled': { type: 'boolean' },
         'bunker.count': { type: 'number', min: 0, max: 8 },
-        'bunker.width': { type: 'number', min: 1, max: 200 },
-        'bunker.height': { type: 'number', min: 1, max: 200 },
         'bunker.color': { type: 'color' },
         'bunker.regenerateEachWave': { type: 'boolean' },
         'bunker.passThroughPlayer': { type: 'boolean' },
@@ -939,6 +938,17 @@
 
     const REQUIRED_CONFIG_SECTIONS = ['game', 'player', 'bullet', 'enemy', 'bunker', 'ufo', 'display', 'sprites'];
 
+    const REQUIRED_CONFIG_PROPERTIES = {
+        game: ['maxWaves', 'difficulty'],
+        player: ['speed', 'color', 'lives', 'maxBullets', 'fireInterval', 'muzzle'],
+        bullet: ['speed', 'color', 'width', 'height'],
+        enemy: ['rows', 'cols', 'speed', 'dropAmount', 'shootInterval', 'bulletSpeed', 'colors', 'scores'],
+        bunker: ['enabled', 'count', 'color', 'regenerateEachWave', 'passThroughPlayer'],
+        ufo: ['enabled', 'speed', 'bonusScore', 'interval', 'color'],
+        display: ['background', 'sound'],
+        sprites: ['player', 'squid', 'crab', 'octopus', 'ufo']
+    };
+
     /**
      * 4. config.js 固有の初心者ミス＆タイポ・設定値・実行時エラー検知
      * （差分行だけでなくファイル全体の構造・型・値域・スプライト整合性を常時検証）
@@ -955,6 +965,7 @@
         let braceDepth = 0;
         let bracketDepth = 0;
         const seenTopSections = new Map(); // secName -> firstLine
+        const allSectionPropKeys = new Map(); // secName -> Map(key -> firstLine)
         let sectionPropKeys = new Map();   // key -> firstLine
 
         // 事前に各行のコメント除去済みテキストを計算
@@ -1053,6 +1064,24 @@
             const bracketBefore = bracketDepth;
             const deltas = countStructuralDeltas(clean);
 
+            // GameConfig の外 (depthBefore === 0) に不要なコード・プロパティが書かれている場合
+            if (depthBefore === 0) {
+                const isGameConfigLine = /^(?:(?:const|let|var)\s+[a-zA-Z0-9_$]+\s*=|(?:window\.)?GameConfig\s*=)/.test(clean) ||
+                    /^if\s*\(\s*typeof\s+window\b/.test(clean) ||
+                    /^window\.GameConfig\s*=\s*GameConfig\b/.test(clean) ||
+                    clean === '};' || clean === '}';
+                if (!isGameConfigLine) {
+                    issues.push(createIssue(
+                        i + 1,
+                        Math.max(1, rawLine.search(/\S/) + 1),
+                        `GameConfig の「 { ... }; 」の外に不要な記述「${clean.slice(0, 30)}」があります`,
+                        `設定項目はすべて「const GameConfig = { ... };」の各カテゴリ（player, bullet など）の中に書いてください`,
+                        'error',
+                        rawLine
+                    ));
+                }
+            }
+
             // トップレベルセクション開始の検知 (braceDepth === 1 のときのみ: game: {, player: { 等)
             const sectionMatch = clean.match(/^([^\s:{}]+)\s*:\s*\{/);
             if (sectionMatch && depthBefore === 1) {
@@ -1104,9 +1133,37 @@
                 currentSpriteKey = null;
                 currentArrayPropKey = null;
                 sectionPropKeys = new Map();
+                allSectionPropKeys.set(secName, sectionPropKeys);
                 braceDepth += deltas.dBrace;
                 bracketDepth += deltas.dBracket;
                 continue;
+            }
+
+            // GameConfig 直下 (depthBefore === 1) にカテゴリ（{...}）以外の項目が直接書かれた場合 (例: speed: 10)
+            if (depthBefore === 1 && clean !== '};' && clean !== '}' && clean !== '},') {
+                const strayTopMatch = clean.match(/^([^\s:{}]+)\s*:\s*(.+)$/);
+                if (strayTopMatch) {
+                    const strayKey = strayTopMatch[1].replace(/^["']|["']$/g, '');
+                    issues.push(createIssue(
+                        i + 1,
+                        Math.max(1, rawLine.indexOf(strayKey) + 1),
+                        `「${strayKey}」がカテゴリの外（GameConfig直下）に書かれています`,
+                        KNOWN_CONFIG_SCHEMA[strayKey]
+                            ? `カテゴリ「${strayKey}」は「${strayKey}: { ... },」のように波括弧 { } で囲んでください`
+                            : `「player: { ... }」や「bullet: { ... }」など対応するカテゴリの波括弧 { } の中に記述してください`,
+                        'error',
+                        rawLine
+                    ));
+                } else {
+                    issues.push(createIssue(
+                        i + 1,
+                        Math.max(1, rawLine.search(/\S/) + 1),
+                        `GameConfig 直下に不正な記述「${clean.slice(0, 30)}」があります`,
+                        `不要な文字を削除するか、正しいカテゴリ（player: { ... } など）の中に記述してください`,
+                        'error',
+                        rawLine
+                    ));
+                }
             }
 
             // sprites セクション内の各スプライト配列開始検知 (player: [ 等)
@@ -1272,7 +1329,7 @@
 
             // 代入記号イコールの誤用 (speed = 5)
             const assignMatch = clean.match(/^([^\s:{}]+)\s*=\s*(.+)$/);
-            if (assignMatch && !clean.startsWith('const ') && !clean.startsWith('let ') && !clean.startsWith('var ')) {
+            if (assignMatch && !clean.startsWith('const ') && !clean.startsWith('let ') && !clean.startsWith('var ') && !clean.startsWith('window.')) {
                 issues.push(createIssue(
                     i + 1,
                     rawLine.indexOf('=') + 1,
@@ -1315,6 +1372,19 @@
                 braceDepth += deltas.dBrace;
                 bracketDepth += deltas.dBracket;
                 continue;
+            }
+
+            // カタカナ長音記号「ー」でマイナスを書いてしまった場合 (例: speed: ー8)
+            const chouonMatch = clean.match(/[:=,\[\s]ー([0-9０-９]+)/);
+            if (chouonMatch) {
+                issues.push(createIssue(
+                    i + 1,
+                    rawLine.indexOf('ー') + 1,
+                    `全角の長音記号「ー」が使われています（マイナスのつもりではありませんか？）`,
+                    `引き算やマイナスの数値には、半角マイナス「 - 」を使用してください`,
+                    'error',
+                    rawLine
+                ));
             }
 
             // オブジェクト内のプロパティ行末尾にセミコロン（;）を書いてしまった場合
@@ -1601,12 +1671,17 @@
                                         rawLine
                                     ));
                                 } else if (spec.min !== undefined && numVal < spec.min) {
+                                    const isZeroSpeedWarn = (currentSection === 'player' && key === 'speed' && numVal === 0);
                                     issues.push(createIssue(
                                         i + 1,
                                         rawLine.lastIndexOf(rawVal) + 1,
-                                        `「${currentSection}.${key}」には ${spec.min} 以上の数値を指定してください（現在: ${rawVal}）`,
-                                        `${spec.min} 未満の数値にするとゲームが正常に動作しません`,
-                                        'error',
+                                        isZeroSpeedWarn
+                                            ? `自機の速度（player.speed）が 0 になっているため自機が動きません`
+                                            : `「${currentSection}.${key}」には ${spec.min} 以上の数値を指定してください（現在: ${rawVal}）`,
+                                        isZeroSpeedWarn
+                                            ? `【STEP 3-1】の案内に従って「 5 」などの数値を入力して動かしてみましょう`
+                                            : `${spec.min} 未満の数値にするとゲームが正常に動作しません`,
+                                        isZeroSpeedWarn ? 'warning' : 'error',
                                         rawLine
                                     ));
                                 } else if (spec.max !== undefined && numVal > spec.max) {
@@ -1751,11 +1826,10 @@
             }
         }
 
-        // 必須セクションが丸ごと消されていないか確認
+        // 必須セクションおよび各セクション内の必須プロパティが消されていないか確認
         if (hasGameConfigDecl && seenTopSections.size > 0) {
             for (const reqSec of REQUIRED_CONFIG_SECTIONS) {
                 if (!seenTopSections.has(reqSec)) {
-                    // すでにタイポとして検出されているか確認
                     let alreadyReportedTypo = false;
                     for (const foundSec of seenTopSections.keys()) {
                         if (!KNOWN_CONFIG_SCHEMA[foundSec] && levenshtein(foundSec.toLowerCase(), reqSec.toLowerCase()) <= 3) {
@@ -1768,10 +1842,37 @@
                             1,
                             1,
                             `config.js 内に必須の設定カテゴリ「${reqSec}: { ... }」がありません`,
-                            `「${reqSec}」セクションを誤って削除していないか確認してください`,
+                            `「${reqSec}」セクションを誤って削除またはコメントアウトしていないか確認してください`,
                             'error',
                             lines[0] || ''
                         ));
+                    }
+                } else {
+                    const reqProps = REQUIRED_CONFIG_PROPERTIES[reqSec] || [];
+                    const foundProps = allSectionPropKeys.get(reqSec) || new Map();
+                    const secLine = seenTopSections.get(reqSec) || 1;
+                    const knownSchemaKeys = KNOWN_CONFIG_SCHEMA[reqSec] || [];
+                    for (const reqProp of reqProps) {
+                        if (reqSec === 'ufo' && reqProp === 'bonusScore' && foundProps.has('score')) continue;
+                        if (!foundProps.has(reqProp)) {
+                            let alreadyTypo = false;
+                            for (const fk of foundProps.keys()) {
+                                if (!knownSchemaKeys.includes(fk) && levenshtein(fk.toLowerCase(), reqProp.toLowerCase()) <= 3) {
+                                    alreadyTypo = true;
+                                    break;
+                                }
+                            }
+                            if (!alreadyTypo) {
+                                issues.push(createIssue(
+                                    secLine,
+                                    1,
+                                    `「${reqSec}」セクション内に必須の設定項目「${reqProp}」がありません`,
+                                    `「${reqSec}.${reqProp}」の行を誤って削除またはコメントアウトしていないか確認してください`,
+                                    'error',
+                                    lines[secLine - 1] || ''
+                                ));
+                            }
+                        }
                     }
                 }
             }
@@ -1919,14 +2020,35 @@
                 }
                 // 実行時オブジェクトの深い整合性検証（複数行にわたる破壊や特殊構文によるスキーマすり抜けも完全に捕捉）
                 const runtimeIssues = [];
-                if (cfg.sprites && typeof cfg.sprites === 'object') {
-                    for (const spKey of REQUIRED_CONFIG_SECTIONS.includes('sprites') ? KNOWN_CONFIG_SCHEMA.sprites : []) {
-                        const spVal = cfg.sprites[spKey];
-                        if (!Array.isArray(spVal) || spVal.length === 0) {
-                            let spLine = 1;
+                if (cfg.enemy && typeof cfg.enemy === 'object') {
+                    for (const arrProp of ['colors', 'scores']) {
+                        const arrVal = cfg.enemy[arrProp];
+                        if (!Array.isArray(arrVal) || arrVal.length === 0) {
+                            let arrLine = 1;
                             for (let idx = 0; idx < lines.length; idx++) {
-                                if (new RegExp(`\\b${spKey}\\s*:`).test(lines[idx])) { spLine = idx + 1; break; }
+                                if (new RegExp(`\\b${arrProp}\\s*:`).test(lines[idx])) { arrLine = idx + 1; break; }
                             }
+                            runtimeIssues.push(createIssue(
+                                arrLine,
+                                1,
+                                `「enemy.${arrProp}」の配列が空か、正しく設定されていません`,
+                                arrProp === 'colors'
+                                    ? `colors: [ "#FFFF00", "#00FFFF" ] のように1つ以上の色コードを指定してください`
+                                    : `scores: [ 30, 20, 10 ] のように1つ以上の数値を指定してください`,
+                                'error',
+                                lines[arrLine - 1] || ''
+                            ));
+                        }
+                    }
+                }
+                if (cfg.sprites && typeof cfg.sprites === 'object') {
+                    for (const spKey of KNOWN_CONFIG_SCHEMA.sprites) {
+                        const spVal = cfg.sprites[spKey];
+                        let spLine = 1;
+                        for (let idx = 0; idx < lines.length; idx++) {
+                            if (new RegExp(`\\b${spKey}\\s*:`).test(lines[idx])) { spLine = idx + 1; break; }
+                        }
+                        if (!Array.isArray(spVal) || spVal.length === 0) {
                             runtimeIssues.push(createIssue(
                                 spLine,
                                 1,
@@ -1935,6 +2057,18 @@
                                 'error',
                                 lines[spLine - 1] || ''
                             ));
+                        } else {
+                            const hasAnyOne = spVal.some(row => typeof row === 'string' && row.includes('1'));
+                            if (!hasAnyOne) {
+                                runtimeIssues.push(createIssue(
+                                    spLine,
+                                    1,
+                                    `ドット絵（sprites.${spKey}）がすべて「0」（透明）になっているため画面に表示されません`,
+                                    `少なくとも1箇所以上に「1」（色あり）を含めてキャラクターの形を作ってください`,
+                                    'error',
+                                    lines[spLine - 1] || ''
+                                ));
+                            }
                         }
                     }
                 }
@@ -2041,6 +2175,24 @@
         'import', 'charset', 'supports', 'font-face', 'layer', 'container', 'page', 'property', 'namespace'
     ]);
 
+    const CSS_STRING_ALLOWED_PROPERTIES = new Set([
+        'font-family', 'font', 'content', 'quotes', 'grid-template-areas', 'grid-template', 'list-style-type', 'counter-reset', 'counter-increment'
+    ]);
+
+    const VALID_CSS_BORDER_STYLES = new Set([
+        'none', 'hidden', 'dotted', 'dashed', 'solid', 'double', 'groove', 'ridge', 'inset', 'outset'
+    ]);
+
+    const CSS_BORDER_SHORTHAND_PROPERTIES = new Set([
+        'border', 'border-top', 'border-right', 'border-bottom', 'border-left', 'outline', 'column-rule'
+    ]);
+
+    const VALID_CSS_BACKGROUND_KEYWORDS = new Set([
+        'none', 'transparent', 'currentcolor', 'repeat', 'repeat-x', 'repeat-y', 'no-repeat', 'space', 'round',
+        'scroll', 'fixed', 'local', 'center', 'top', 'bottom', 'left', 'right', 'cover', 'contain', 'auto',
+        'border-box', 'padding-box', 'content-box', 'text'
+    ]);
+
     /**
      * CSSのプロパティ値を検証するヘルパー（値キーワードのタイポ、不正なカラーコード、不正な単位、型違反を検出）
      */
@@ -2051,6 +2203,23 @@
         // !important を除去して評価
         const cleanVal = valStr.replace(/!important\s*$/i, '').trim();
         if (!cleanVal) return;
+
+        // 0. 文字列リテラルを取らないCSSプロパティでダブルクォート・シングルクォートが使われた場合 (例: color: "#00ffff";)
+        if (!CSS_STRING_ALLOWED_PROPERTIES.has(lowProp) && !lowProp.startsWith('--')) {
+            const withoutUrl = cleanVal.replace(/url\([^)]*\)/gi, '');
+            const quoteMatch = withoutUrl.match(/(["'])([^"']*)\1/);
+            if (quoteMatch) {
+                issues.push(createIssue(
+                    lineNum,
+                    Math.max(1, rawLine.indexOf(quoteMatch[0]) + 1),
+                    `CSSの「${lowProp}」の値「${quoteMatch[0]}」にクォート（${quoteMatch[1]}）は不要です`,
+                    `CSSでは「${lowProp}: ${quoteMatch[2]};」のようにクォート（" "）を外して指定してください`,
+                    'error',
+                    rawLine
+                ));
+                return;
+            }
+        }
 
         // 1. カラーコード (#...) の検証
         const hexMatches = cleanVal.match(/#[0-9a-zA-Z]+/g);
@@ -2069,6 +2238,54 @@
                 }
             }
         }
+
+        // 1.5 先頭の「#」が抜けた16進数カラーコード（例: 00ffff, ffff00, 080d1a 等）の事前検知
+        const withoutFuncsAndStrings = cleanVal
+            .replace(/"[^"]*"|'[^']*'/g, ' ')
+            .replace(/url\([^)]*\)/gi, ' ')
+            .replace(/[a-zA-Z_-]+\([^)]*\)/g, ' ');
+        const bareTokens = withoutFuncsAndStrings.split(/[\s,/]+/).filter(Boolean);
+        let foundUnhashedHex = false;
+        const canContainColor = CSS_COLOR_ONLY_PROPERTIES.has(lowProp) ||
+            CSS_BORDER_SHORTHAND_PROPERTIES.has(lowProp) ||
+            lowProp === 'background' ||
+            lowProp === 'box-shadow' ||
+            lowProp === 'text-shadow' ||
+            lowProp.startsWith('--');
+        if (canContainColor) {
+            for (const bTok of bareTokens) {
+                if (bTok.startsWith('#')) continue;
+                const bLow = bTok.toLowerCase();
+                // 3桁・6桁・8桁の16進数で、英字(a-f)と数字の両方を含むか、6桁のa-fのみ（ffff00, 00ffff, ff00aa, ffffff 等）
+                // ※ 100s, 200ms, 100dpcm 等の正当な数値+単位は除外
+                const numUnitCheck = bLow.match(/^(-?\d+(?:\.\d+)?)([a-z%]+)$/);
+                if (numUnitCheck && VALID_CSS_UNITS.has(numUnitCheck[2])) continue;
+                if (/^[0-9a-f]{6}$/i.test(bTok) && (/[a-f]/i.test(bTok) || CSS_COLOR_ONLY_PROPERTIES.has(lowProp) || lowProp === 'background')) {
+                    if (!VALID_CSS_COLOR_NAMES.has(bLow)) {
+                        issues.push(createIssue(
+                            lineNum,
+                            Math.max(1, rawLine.lastIndexOf(bTok) + 1),
+                            `カラーコード「${bTok}」の先頭に「#」がありません`,
+                            `「#${bTok}」のように先頭に半角の「 # 」を付けて指定してください`,
+                            'error',
+                            rawLine
+                        ));
+                        foundUnhashedHex = true;
+                    }
+                } else if (/^[0-9a-f]{3}$/i.test(bTok) && /[0-9]/.test(bTok) && /[a-f]/i.test(bTok)) {
+                    issues.push(createIssue(
+                        lineNum,
+                        Math.max(1, rawLine.lastIndexOf(bTok) + 1),
+                        `カラーコード「${bTok}」の先頭に「#」がありません`,
+                        `「#${bTok}」のように先頭に半角の「 # 」を付けて指定してください`,
+                        'error',
+                        rawLine
+                    ));
+                    foundUnhashedHex = true;
+                }
+            }
+        }
+        if (foundUnhashedHex) return;
 
         // 2. 数値＋単位の検証（文字列や #hex や関数名を除外）
         const withoutStringsAndHex = cleanVal
@@ -2133,18 +2350,80 @@
             const valLow = cleanVal.toLowerCase();
             if (!CSS_GLOBAL_KEYWORDS.has(valLow) && valLow !== 'currentcolor' && valLow !== 'transparent' && valLow !== 'none') {
                 if (!cleanVal.startsWith('#') && !isValidCssColorString(cleanVal)) {
-                    const closestColor = findClosestInCollection(valLow, VALID_CSS_COLOR_NAMES, 2);
-                    issues.push(createIssue(
-                        lineNum,
-                        Math.max(1, rawLine.lastIndexOf(cleanVal) + 1),
-                        `CSSプロパティ「${lowProp}」の色指定「${cleanVal}」は正しくありません`,
-                        closestColor
-                            ? `「${closestColor}」のスペルミスではありませんか？または「#ffffff」のようなカラーコードで指定してください`
-                            : `「#00f0ff」のようなカラーコード、または正しい色名（red, white, transparent など）を指定してください`,
-                        'error',
-                        rawLine
-                    ));
+                    if (/^[0-9a-fA-F]{3,8}$/.test(cleanVal)) {
+                        issues.push(createIssue(
+                            lineNum,
+                            Math.max(1, rawLine.lastIndexOf(cleanVal) + 1),
+                            `カラーコード「${cleanVal}」の先頭に「#」がありません`,
+                            `「#${cleanVal}」のように先頭に半角の「 # 」を付けてください`,
+                            'error',
+                            rawLine
+                        ));
+                    } else {
+                        const closestColor = findClosestInCollection(valLow, VALID_CSS_COLOR_NAMES, 2);
+                        issues.push(createIssue(
+                            lineNum,
+                            Math.max(1, rawLine.lastIndexOf(cleanVal) + 1),
+                            `CSSプロパティ「${lowProp}」の色指定「${cleanVal}」は正しくありません`,
+                            closestColor
+                                ? `「${closestColor}」のスペルミスではありませんか？または「#ffffff」のようなカラーコードで指定してください`
+                                : `「#00f0ff」のようなカラーコード、または正しい色名（red, white, transparent など）を指定してください`,
+                            'error',
+                            rawLine
+                        ));
+                    }
                 }
+            }
+        }
+
+        // 4.5 border / border-top / outline 等の複合ショートハンドおよび border-style / background の検証 (STEP 2 対策)
+        if ((CSS_BORDER_SHORTHAND_PROPERTIES.has(lowProp) || lowProp === 'border-style' || lowProp === 'outline-style') && !cleanVal.startsWith('--')) {
+            const strippedFuncs = cleanVal.replace(/[a-zA-Z_-]+\([^)]*\)/g, ' ');
+            const tokens = strippedFuncs.split(/\s+/).filter(Boolean);
+            for (const tok of tokens) {
+                if (tok.startsWith('#') || /^[-+]?\d/.test(tok)) continue;
+                const tokLow = tok.toLowerCase();
+                if (CSS_GLOBAL_KEYWORDS.has(tokLow) || VALID_CSS_BORDER_STYLES.has(tokLow)) continue;
+                if (CSS_BORDER_SHORTHAND_PROPERTIES.has(lowProp)) {
+                    if (tokLow === 'thin' || tokLow === 'medium' || tokLow === 'thick') continue;
+                    if (tokLow === 'transparent' || tokLow === 'currentcolor' || VALID_CSS_COLOR_NAMES.has(tokLow)) continue;
+                }
+                const closestStyle = findClosestInCollection(tokLow, VALID_CSS_BORDER_STYLES, 2);
+                const closestColor = CSS_BORDER_SHORTHAND_PROPERTIES.has(lowProp) ? findClosestInCollection(tokLow, VALID_CSS_COLOR_NAMES, 2) : null;
+                issues.push(createIssue(
+                    lineNum,
+                    Math.max(1, rawLine.lastIndexOf(tok) + 1),
+                    `CSSプロパティ「${lowProp}」の値「${tok}」は正しくありません`,
+                    closestStyle
+                        ? `線の種類「${closestStyle}」のスペルミスではありませんか？（例: 2px ${closestStyle} #00ff66）`
+                        : closestColor
+                            ? `色名「${closestColor}」のスペルミスではありませんか？または「#00ff66」のようなカラーコードで指定してください`
+                            : `「2px solid #00ff66」のように太さ・線の種類（solid, dashed 等）・色を指定してください`,
+                    'error',
+                    rawLine
+                ));
+            }
+        } else if (lowProp === 'background' && !cleanVal.startsWith('--')) {
+            const strippedFuncs = cleanVal.replace(/[a-zA-Z_-]+\([^)]*\)/g, ' ');
+            const tokens = strippedFuncs.split(/[\s,/]+/).filter(Boolean);
+            for (const tok of tokens) {
+                if (tok.startsWith('#') || /^[-+]?\d/.test(tok)) continue;
+                const tokLow = tok.toLowerCase();
+                if (CSS_GLOBAL_KEYWORDS.has(tokLow) || VALID_CSS_BACKGROUND_KEYWORDS.has(tokLow) || VALID_CSS_COLOR_NAMES.has(tokLow)) continue;
+                const closestColor = findClosestInCollection(tokLow, VALID_CSS_COLOR_NAMES, 2);
+                const closestBgKw = findClosestInCollection(tokLow, VALID_CSS_BACKGROUND_KEYWORDS, 2);
+                issues.push(createIssue(
+                    lineNum,
+                    Math.max(1, rawLine.lastIndexOf(tok) + 1),
+                    `CSSプロパティ「background」の値「${tok}」は正しくありません`,
+                    closestColor
+                        ? `色名「${closestColor}」のスペルミスではありませんか？または「#080d1a」のようなカラーコードで指定してください`
+                        : closestBgKw
+                            ? `「${closestBgKw}」のスペルミスではありませんか？`
+                            : `「#080d1a」のようなカラーコード、または正しい色名を指定してください`,
+                    'error',
+                    rawLine
+                ));
             }
         }
 
@@ -2314,7 +2593,19 @@
                     rawLine
                 ));
             } else {
-                validateCssPropertyValue(propName, valPart, offset + lineIdx + 1, rawLine, issues);
+                const valWithoutUrlAndQuotes = valPart.replace(/url\([^)]*\)/gi, '').replace(/"[^"]*"|'[^']*'/g, '');
+                if (valWithoutUrlAndQuotes.includes(':')) {
+                    issues.push(createIssue(
+                        offset + lineIdx + 1,
+                        Math.max(1, rawLine.lastIndexOf(':') + 1),
+                        `1行に複数のCSSプロパティがセミコロン（;）なしで並んでいます`,
+                        `各プロパティの後ろを「 ; 」で区切るか、改行して1行ずつ記述してください`,
+                        'error',
+                        rawLine
+                    ));
+                } else {
+                    validateCssPropertyValue(propName, valPart, offset + lineIdx + 1, rawLine, issues);
+                }
             }
 
             if (requireSemicolon && !trimmed.endsWith(';')) {
@@ -2635,6 +2926,38 @@
                         continue;
                     }
 
+                    // 1行にセミコロンなしで複数プロパティが書かれた場合の検知 (例: width: 100px height: 50px;)
+                    const valWithoutUrlAndQuotes = valPart.replace(/url\([^)]*\)/gi, '').replace(/"[^"]*"|'[^']*'/g, '');
+                    if (!clean.slice(colonIdx + 1).includes(';') && valWithoutUrlAndQuotes.includes(':')) {
+                        issues.push(createIssue(
+                            offset + i + 1,
+                            Math.max(1, rawLine.lastIndexOf(':') + 1),
+                            `1行に複数のCSSプロパティがセミコロン（;）なしで並んでいます`,
+                            `各プロパティの後ろを「 ; 」で区切るか、改行して1行ずつ記述してください`,
+                            'error',
+                            rawLine
+                        ));
+                        continue;
+                    }
+                    // 行末に ; はあるが途中に別の : がある場合 (例: width: 100px height: 50px;)
+                    const semiParts = clean.split(';').map(s => s.trim()).filter(Boolean);
+                    if (semiParts.length > 1) {
+                        for (const sp of semiParts) {
+                            checkSingleCssDeclaration(sp + ';', i, rawLine, false);
+                        }
+                        continue;
+                    } else if (valWithoutUrlAndQuotes.includes(':')) {
+                        issues.push(createIssue(
+                            offset + i + 1,
+                            Math.max(1, rawLine.lastIndexOf(':') + 1),
+                            `1行に複数のCSSプロパティがセミコロン（;）なしで並んでいます`,
+                            `前のプロパティの後ろに「 ; 」を追加してください`,
+                            'error',
+                            rawLine
+                        ));
+                        continue;
+                    }
+
                     // プロパティ名のタイポ・未知プロパティ検証
                     if (propName && !propName.startsWith('--') && !propName.startsWith('-')) {
                         const lowProp = propName.toLowerCase();
@@ -2749,6 +3072,11 @@
         'selected', 'shadowrootclonable', 'shadowrootdelegatesfocus', 'shadowrootserializable'
     ]);
 
+    const SVG_SELF_CLOSING_TAGS = new Set([
+        'svg', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon', 'ellipse',
+        'use', 'stop', 'g', 'defs', 'clippath', 'lineargradient', 'radialgradient', 'mask', 'pattern', 'image'
+    ]);
+
     /**
      * 7. HTML (index.html) チェック
      * （タグ対応・タグ名タイポ・属性タイポ・属性クォート・未閉じ山括弧・未閉じコメント・重複ID・不要な文字・インラインScript・インラインStyle）
@@ -2783,17 +3111,22 @@
                     rawLine
                 ));
             }
-            // <body> の外（ファイルの先頭・<head>直下・</html>の後など）に書かれた不要なテキストの検出
+            // <body> の外、または <body> / <head> / <html> / <select> / <svg> 直下に書かれた不要なテキスト・開始 '<' 抜けタグの検出
             const trimmedSeg = segText.replace(/>/g, '').trim();
             if (trimmedSeg) {
                 const insideBody = tagStack.some(t => t.tag === 'body');
                 const topTag = tagStack.length > 0 ? tagStack[tagStack.length - 1].tag : null;
-                if (!insideBody && topTag !== 'title') {
+                const looksLikeBrokenTag = /\b(?:id|class|src|href|style|type|rel|width|height|data-[a-z-]+)\s*=/i.test(trimmedSeg) ||
+                    /^(?:div|span|canvas|script|link|meta|title|head|body|html|button|img|a|p|h[1-6])\b/i.test(trimmedSeg);
+                const isDirectContainerText = topTag === 'body' || topTag === 'head' || topTag === 'html' || topTag === 'select' || topTag === 'svg' || topTag === 'tr' || topTag === 'ul' || topTag === 'ol';
+                if ((!insideBody && topTag !== 'title') || looksLikeBrokenTag || isDirectContainerText) {
                     issues.push(createIssue(
                         lineIdx + 1,
                         Math.max(1, rawLine.indexOf(trimmedSeg) + 1),
-                        `HTMLタグの外に不要な文字「${trimmedSeg.slice(0, 25)}」が書かれています`,
-                        `タグの「 < 」が消えていないか確認するか、不要な文字を削除してください`,
+                        looksLikeBrokenTag
+                            ? `HTMLタグの先頭の「 < 」が抜けているか、タグの外に属性「${trimmedSeg.slice(0, 25)}」が書かれています`
+                            : `HTMLタグの外に不要な文字「${trimmedSeg.slice(0, 25)}」が書かれています`,
+                        `タグの先頭に「 < 」があるか確認するか、不要な文字を削除してください`,
                         'error',
                         rawLine
                     ));
@@ -2844,11 +3177,14 @@
                         // Cloudflare や CDN インフラ自動注入スクリプトは構文チェック対象外
                         const isPlatformInjected = /\/cdn-cgi\/|__CF\$cv\$params|cloudflare/i.test(scriptCode);
                         if (!isPlatformInjected) {
-                            const jsIssues = []
+                            let jsIssues = []
                                 .concat(checkFullwidthCharacters('inline.js', scriptCode))
                                 .concat(checkUnclosedQuotes('inline.js', scriptCode))
                                 .concat(checkBracketPairs('inline.js', scriptCode))
                                 .concat(checkJavaScriptNativeSyntax(scriptCode, null, false));
+                            if (jsIssues.length === 0) {
+                                jsIssues = jsIssues.concat(checkJavaScriptSemanticAndConfigRefs('inline.js', scriptCode));
+                            }
                             jsIssues.forEach(item => {
                                 issues.push(createIssue(
                                     scriptStartLine + item.line,
@@ -3120,6 +3456,36 @@
                                 ));
                             }
 
+                            // タグと属性の組み合わせミス (<script href="...">, <link src="...">, <a src="...">, <img href="...">)
+                            if (tagName === 'script' && attrLow === 'href') {
+                                issues.push(createIssue(
+                                    tagLineIdx + 1,
+                                    Math.max(1, tagRawLine.indexOf(attrName, ltIdx) + 1),
+                                    `<script>タグでは「href」ではなく「src」属性を使います`,
+                                    `<script src="core.js"></script> のように「src="..."」で指定してください`,
+                                    'error',
+                                    tagRawLine
+                                ));
+                            } else if ((tagName === 'link' || tagName === 'a') && attrLow === 'src') {
+                                issues.push(createIssue(
+                                    tagLineIdx + 1,
+                                    Math.max(1, tagRawLine.indexOf(attrName, ltIdx) + 1),
+                                    `<${tagName}>タグでは「src」ではなく「href」属性を使います`,
+                                    `「href="..."」に書き直してください`,
+                                    'error',
+                                    tagRawLine
+                                ));
+                            } else if (tagName === 'img' && attrLow === 'href') {
+                                issues.push(createIssue(
+                                    tagLineIdx + 1,
+                                    Math.max(1, tagRawLine.indexOf(attrName, ltIdx) + 1),
+                                    `<img>タグでは「href」ではなく「src」属性を使います`,
+                                    `「src="..."」に書き直してください`,
+                                    'error',
+                                    tagRawLine
+                                ));
+                            }
+
                             if (hasEquals && rawAttrVal === undefined) {
                                 issues.push(createIssue(
                                     tagLineIdx + 1,
@@ -3166,6 +3532,55 @@
                                         } else {
                                             seenHtmlIds.set(trimmedId, tagLineIdx + 1);
                                         }
+                                    } else if ((attrLow === 'src' && tagName !== 'iframe' && !tagContent.includes('image-viewer-img')) || attrLow === 'href') {
+                                        if (!unquotedVal.trim()) {
+                                            issues.push(createIssue(
+                                                tagLineIdx + 1,
+                                                Math.max(1, tagRawLine.indexOf(attrName, ltIdx) + 1),
+                                                `HTML属性「${attrName}=""」の値が空になっています`,
+                                                attrLow === 'href' && tagName === 'link'
+                                                    ? `「href="assets/octopus.png"」や「href="style.css"」のように読み込むファイル名を指定してください`
+                                                    : `「${attrName}="..."」の中にファイル名やパスを指定してください`,
+                                                'error',
+                                                tagRawLine
+                                            ));
+                                        }
+                                    } else if (attrLow === 'data-diff') {
+                                        const diffVal = unquotedVal.trim();
+                                        if (!['easy', 'normal', 'hard'].includes(diffVal)) {
+                                            issues.push(createIssue(
+                                                tagLineIdx + 1,
+                                                Math.max(1, tagRawLine.indexOf(attrName, ltIdx) + 1),
+                                                `data-diff属性の値「${unquotedVal}」は正しくありません`,
+                                                `"easy"、"normal"、"hard" のいずれかを指定してください`,
+                                                'error',
+                                                tagRawLine
+                                            ));
+                                        }
+                                    } else if (attrLow === 'data-waves') {
+                                        const wavesVal = unquotedVal.trim();
+                                        if (!/^[1-9]\d*$/.test(wavesVal) || Number(wavesVal) > 10) {
+                                            issues.push(createIssue(
+                                                tagLineIdx + 1,
+                                                Math.max(1, tagRawLine.indexOf(attrName, ltIdx) + 1),
+                                                `data-waves属性の値「${unquotedVal}」には 1〜10 の整数を指定してください`,
+                                                `例: data-waves="3"`,
+                                                'error',
+                                                tagRawLine
+                                            ));
+                                        }
+                                    } else if ((attrLow === 'width' || attrLow === 'height') && tagName === 'canvas') {
+                                        const dimVal = unquotedVal.trim();
+                                        if (!/^[1-9]\d*$/.test(dimVal)) {
+                                            issues.push(createIssue(
+                                                tagLineIdx + 1,
+                                                Math.max(1, tagRawLine.indexOf(attrName, ltIdx) + 1),
+                                                `<canvas>の${attrLow}属性「${unquotedVal}」には 1 以上の半角数値を指定してください`,
+                                                `単位（pxなど）は付けずに数値のみを指定してください（例: ${attrLow}="480"）`,
+                                                'error',
+                                                tagRawLine
+                                            ));
+                                        }
                                     } else if (attrLow === 'style') {
                                         // インライン style="..." のCSSプロパティ・値チェック
                                         const inlineCssBlock = `.inline-style { ${unquotedVal} }`;
@@ -3199,11 +3614,26 @@
                     }
                 }
 
-                if (VOID_HTML_TAGS.has(tagName) || isSelfClosing) continue;
+                if (VOID_HTML_TAGS.has(tagName) || SVG_SELF_CLOSING_TAGS.has(tagName)) {
+                    if (isSelfClosing || VOID_HTML_TAGS.has(tagName)) continue;
+                } else if (isSelfClosing) {
+                    issues.push(createIssue(
+                        tagLineIdx + 1,
+                        ltIdx + 1,
+                        `<${rawTagName}> タグは「 /> 」で省略して閉じることができません`,
+                        tagName === 'script'
+                            ? `HTMLのscriptタグは必ず「<script src="core.js"></script>」のように閉じタグ </script> を書いてください`
+                            : `「<${rawTagName}>...</${rawTagName}>」のように閉じタグ </${rawTagName}> を記述してください`,
+                        'error',
+                        tagRawLine
+                    ));
+                    continue;
+                }
 
                 if (!isClosing) {
                     tagStack.push({ tag: tagName, line: i + 1, col: ltIdx + 1, lineText: rawLine });
                     if (tagName === 'script') {
+                        const hasSrc = /\bsrc\s*=/i.test(tagContent);
                         const restOfLine = line.substring(pos);
                         const sameLineClose = restOfLine.match(/<\/script\s*>/i);
                         if (sameLineClose) {
@@ -3211,11 +3641,14 @@
                             // Cloudflare や CDN インフラ自動注入スクリプトは構文チェック対象外
                             const isPlatformInjected = /\/cdn-cgi\/|__CF\$cv\$params|cloudflare/i.test(inlineJs);
                             if (inlineJs && !isPlatformInjected) {
-                                const jsIssues = []
+                                let jsIssues = []
                                     .concat(checkFullwidthCharacters('inline.js', inlineJs))
                                     .concat(checkUnclosedQuotes('inline.js', inlineJs))
                                     .concat(checkBracketPairs('inline.js', inlineJs))
                                     .concat(checkJavaScriptNativeSyntax(inlineJs, null, false));
+                                if (jsIssues.length === 0) {
+                                    jsIssues = jsIssues.concat(checkJavaScriptSemanticAndConfigRefs('inline.js', inlineJs));
+                                }
                                 jsIssues.forEach(item => {
                                     issues.push(createIssue(
                                         i + 1,
@@ -3229,6 +3662,18 @@
                             }
                             tagStack.pop();
                             pos += sameLineClose.index + sameLineClose[0].length;
+                        } else if (hasSrc) {
+                            // src属性があるのに閉じタグがない場合、初心者ミス（<img>と同様に閉じないと思い込む）を親切に案内
+                            issues.push(createIssue(
+                                i + 1,
+                                ltIdx + 1,
+                                `<script src="..."> タグが閉じられていません（</script> が抜けています）`,
+                                `HTMLのscriptタグは必ず閉じタグが必要です。「${rawLine.trim()}</script>」のように記述してください`,
+                                'error',
+                                rawLine
+                            ));
+                            tagStack.pop(); // 後続HTMLの巻き込みを防止
+                            continue;
                         } else {
                             inScript = true;
                             if (restOfLine.trim()) {
@@ -3449,10 +3894,116 @@
         { name: 'initBunkers', desc: '防壁初期化関数 initBunkers()' },
         { name: 'resetGame', desc: 'ゲームリセット関数 resetGame()' },
         { name: 'startGame', desc: 'ゲーム開始関数 startGame()' },
+        { name: 'pauseGame', desc: '一時停止関数 pauseGame()' },
+        { name: 'resumeGame', desc: '再開関数 resumeGame()' },
+        { name: 'quitToHome', desc: 'タイトル帰還関数 quitToHome()' },
+        { name: 'firePlayerBullet', desc: 'プレイヤー弾発射関数 firePlayerBullet()' },
+        { name: 'fireEnemyBullet', desc: '敵弾発射関数 fireEnemyBullet()' },
+        { name: 'updateUFO', desc: 'UFO更新関数 updateUFO()' },
         { name: 'update', desc: 'ゲーム更新関数 update()' },
         { name: 'draw', desc: 'ゲーム描画関数 draw()' },
-        { name: 'loop', desc: 'メインループ関数 loop()' }
+        { name: 'loop', desc: 'メインループ関数 loop()' },
+        { name: 'start', desc: '起動関数 start()' },
+        { name: 'drawPixelPattern', desc: 'スプライト描画関数 drawPixelPattern()' },
+        { name: 'getSprite', desc: 'スプライト取得関数 getSprite()' },
+        { name: 'renderHomePreviewSprites', desc: 'ホーム画面プレビュー描画関数 renderHomePreviewSprites()' },
+        { name: 'setupHomeUI', desc: 'ホーム画面UI初期化関数 setupHomeUI()' },
+        { name: 'setupPauseUI', desc: '一時停止UI初期化関数 setupPauseUI()' },
+        { name: 'applyConfigToActiveGame', desc: '設定即時反映関数 applyConfigToActiveGame()' }
     ];
+
+    const BUILTIN_OBJECT_MEMBERS = {
+        Math: new Set([
+            'abs', 'acos', 'acosh', 'asin', 'asinh', 'atan', 'atan2', 'atanh', 'cbrt', 'ceil',
+            'clz32', 'cos', 'cosh', 'exp', 'expm1', 'floor', 'fround', 'hypot', 'imul', 'log',
+            'log10', 'log1p', 'log2', 'max', 'min', 'pow', 'random', 'round', 'sign', 'sin',
+            'sinh', 'sqrt', 'tan', 'tanh', 'trunc', 'E', 'LN10', 'LN2', 'LOG10E', 'LOG2E', 'PI', 'SQRT1_2', 'SQRT2'
+        ]),
+        document: new Set([
+            'getElementById', 'querySelector', 'querySelectorAll', 'getElementsByClassName',
+            'getElementsByTagName', 'getElementsByName', 'createElement', 'createDocumentFragment',
+            'createTextNode', 'createComment', 'createEvent', 'addEventListener', 'removeEventListener',
+            'dispatchEvent', 'body', 'head', 'documentElement', 'title', 'cookie', 'readyState',
+            'activeElement', 'hidden', 'visibilityState', 'hasFocus', 'execCommand', 'write', 'writeln'
+        ]),
+        console: new Set([
+            'log', 'warn', 'error', 'info', 'debug', 'trace', 'dir', 'table', 'time', 'timeEnd',
+            'timeLog', 'assert', 'clear', 'count', 'countReset', 'group', 'groupCollapsed', 'groupEnd'
+        ]),
+        JSON: new Set(['parse', 'stringify']),
+        localStorage: new Set(['getItem', 'setItem', 'removeItem', 'clear', 'key', 'length']),
+        sessionStorage: new Set(['getItem', 'setItem', 'removeItem', 'clear', 'key', 'length']),
+        classList: new Set(['add', 'remove', 'toggle', 'contains', 'replace', 'item', 'entries', 'forEach', 'keys', 'values', 'length', 'value'])
+    };
+
+    const VALID_JS_MEMBER_NAMES = new Set([
+        // core.js project members
+        'AudioContext', 'GameConfig', 'UFO', 'abs', 'action', 'active', 'activeElement', 'add',
+        'addEventListener', 'alive', 'alpha', 'animFrame', 'arcade', 'background', 'blur',
+        'bonusScore', 'buffer', 'bullet', 'bulletSpeed', 'bunker', 'checkHit', 'classList',
+        'clearRect', 'code', 'col', 'color', 'colors', 'cols', 'complete', 'connect', 'corrode',
+        'count', 'createBuffer', 'createBufferSource', 'createGain', 'createOscillator',
+        'currentTime', 'damage', 'data', 'destination', 'difficulty', 'dir', 'disconnect',
+        'display', 'draw', 'drawImage', 'dropAmount', 'dyingTimer', 'enabled', 'enemy', 'exp',
+        'exponentialRampToValueAtTime', 'fillRect', 'fillStyle', 'fillText', 'filter',
+        'fireInterval', 'floor', 'focus', 'font', 'forEach', 'frequency', 'gain', 'game',
+        'getAttribute', 'getChannelData', 'getContext', 'getElementById', 'getItem', 'grid',
+        'height', 'includes', 'interval', 'isArray', 'isNaN', 'jpg', 'js', 'key', 'left',
+        'length', 'linearRampToValueAtTime', 'lives', 'map', 'max', 'maxBullets', 'maxWaves',
+        'min', 'muzzle', 'naturalWidth', 'noPassThrough', 'normal', 'now', 'padStart',
+        'passThroughPlayer', 'pattern', 'pixelSize', 'playInvaderHit', 'playPlayerHit',
+        'playShoot', 'playUFOHit', 'playWalk', 'player', 'playerBlow', 'preventDefault',
+        'push', 'querySelectorAll', 'random', 'readyState', 'regenerateEachWave',
+        'reloadGameWithNewConfig', 'remove', 'restore', 'resume', 'right', 'round', 'row',
+        'rows', 'sampleRate', 'save', 'scale', 'score', 'scoreText', 'scores', 'setItem',
+        'setValueAtTime', 'shoot', 'shootInterval', 'sin', 'size', 'slice', 'sound', 'speed',
+        'splice', 'spriteKey', 'spritePattern', 'sprites', 'sqrt', 'src', 'start', 'startUFO',
+        'state', 'stop', 'stopPropagation', 'stopUFO', 'style', 'textAlign', 'textBaseline',
+        'textContent', 'timer', 'toggle', 'twinkleSpeed', 'type', 'ufo', 'ufoGain', 'ufoOsc',
+        'updateLiveSpritePreview', 'vx', 'walkPitches', 'walkStep', 'webkitAudioContext',
+        'width', 'wiggleTimer', 'x', 'y', 'vy', 'id', 'className', 'innerHTML', 'innerText',
+        'value', 'disabled', 'checked', 'href', 'rel', 'target', 'dataset', 'parentElement',
+        'parentNode', 'children', 'childNodes', 'firstChild', 'lastChild', 'nextSibling',
+        'previousSibling', 'appendChild', 'removeChild', 'insertBefore', 'replaceChild',
+        'cloneNode', 'contains', 'setAttribute', 'removeAttribute', 'hasAttribute',
+        'getBoundingClientRect', 'scrollIntoView', 'click', 'submit', 'reset',
+        'querySelector', 'createElement', 'removeItem', 'clear', 'parse', 'stringify',
+        // Standard Canvas 2D & Web APIs & Array/String/Number/Object prototype methods
+        'strokeRect', 'strokeText', 'measureText', 'beginPath', 'closePath', 'moveTo',
+        'lineTo', 'arc', 'arcTo', 'quadraticCurveTo', 'bezierCurveTo', 'rect', 'roundRect',
+        'fill', 'stroke', 'clip', 'translate', 'rotate', 'transform', 'setTransform',
+        'resetTransform', 'createLinearGradient', 'createRadialGradient', 'createPattern',
+        'getImageData', 'putImageData', 'createImageData', 'globalAlpha', 'globalCompositeOperation',
+        'lineWidth', 'lineCap', 'lineJoin', 'miterLimit', 'strokeStyle', 'shadowColor',
+        'shadowBlur', 'shadowOffsetX', 'shadowOffsetY', 'imageSmoothingEnabled', 'canvas',
+        'concat', 'every', 'fill', 'find', 'findIndex', 'flat', 'flatMap', 'indexOf',
+        'join', 'keys', 'lastIndexOf', 'pop', 'reduce', 'reduceRight', 'reverse', 'shift',
+        'some', 'sort', 'unshift', 'values', 'entries', 'at', 'charAt', 'charCodeAt',
+        'endsWith', 'match', 'matchAll', 'padEnd', 'repeat', 'replace', 'replaceAll',
+        'search', 'split', 'startsWith', 'substring', 'substr', 'toLowerCase', 'toUpperCase',
+        'trim', 'trimStart', 'trimEnd', 'toString', 'toFixed', 'toPrecision', 'valueOf',
+        'hasOwnProperty', 'assign', 'freeze', 'seal', 'create', 'defineProperty', 'fromEntries',
+        'log', 'warn', 'error', 'info', 'debug', 'PI', 'ceil', 'cos', 'tan', 'atan2', 'pow',
+        'sign', 'trunc', 'hypot', 'postMessage', 'location', 'reload', 'href', 'origin',
+        'protocol', 'host', 'hostname', 'port', 'pathname', 'search', 'hash', 'navigator',
+        'userAgent', ' innerWidth', 'innerHeight', 'devicePixelRatio', 'requestAnimationFrame',
+        'cancelAnimationFrame', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
+        'display', 'visibility', 'opacity', 'transform', 'transition', 'backgroundColor',
+        'borderColor', 'color', 'width', 'height', 'top', 'left', 'right', 'bottom',
+        'margin', 'padding', 'zIndex', 'cursor', 'pointerEvents', 'overflow', 'fontSize',
+        'fontFamily', 'fontWeight', 'textShadow', 'boxShadow', 'border', 'borderRadius'
+    ]);
+
+    const VALID_DOM_EVENT_NAMES = new Set([
+        'click', 'dblclick', 'mousedown', 'mouseup', 'mousemove', 'mouseenter', 'mouseleave',
+        'mouseover', 'mouseout', 'contextmenu', 'wheel', 'keydown', 'keyup', 'keypress',
+        'touchstart', 'touchend', 'touchmove', 'touchcancel', 'pointerdown', 'pointerup',
+        'pointermove', 'pointerenter', 'pointerleave', 'pointercancel', 'focus', 'blur',
+        'focusin', 'focusout', 'change', 'input', 'submit', 'reset', 'load', 'unload',
+        'beforeunload', 'resize', 'scroll', 'error', 'message', 'DOMContentLoaded',
+        'visibilitychange', 'animationstart', 'animationend', 'animationiteration',
+        'transitionstart', 'transitionend', 'ended', 'play', 'pause'
+    ]);
 
     /**
      * 8.5 JavaScript (core.js 等) の未定義識別子・関数名タイポ・GameConfigプロパティ参照チェック
@@ -3771,7 +4322,7 @@
             }
         }
 
-        // 4. core.js 固有の GameConfig セクション・プロパティ参照および必須関数チェック
+        // 4. core.js 固有の GameConfig セクション・プロパティ参照・メンバータイポ・条件式代入・必須関数チェック
         if (filename === 'core.js' || filename.endsWith('/core.js')) {
             // GameConfig のエイリアス変数 (pCfg = GameConfig.player, bCfg = GameConfig.bullet || GameConfig.bunker 等) を追跡
             const activeConfigVarMap = new Map([
@@ -3791,8 +4342,10 @@
                 const rawLine = lines[lineIdx];
                 if (!sLine.trim()) continue;
 
-                // 行内で const pCfg = ... GameConfig.<sec> が束縛された場合はターゲットセクションを記録
-                const lineAliasMatch = sLine.match(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*[^;]*?\bGameConfig\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?![.\[])/);
+                // 行内で const pCfg = ... GameConfig.<sec> または cfg.<sec> が束縛された場合はターゲットセクションを記録
+                // ※ ただし (cfg.enemy && cfg.enemy.colors) のように2階層目のプロパティを代入している場合はセクションエイリアスではない
+                const hasTwoLevelAccess = /\b(?:GameConfig|cfg)\.[a-zA-Z_$][a-zA-Z0-9_$]*\.[a-zA-Z_$][a-zA-Z0-9_$]*/.test(sLine);
+                const lineAliasMatch = !hasTwoLevelAccess && sLine.match(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*[^;]*?\b(?:GameConfig|cfg)\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?![.\[])/);
                 if (lineAliasMatch) {
                     const varName = lineAliasMatch[1];
                     const secName = lineAliasMatch[2];
@@ -3806,10 +4359,12 @@
                     }
                 }
 
-                // (a) GameConfig.<section> および GameConfig.<section>.<prop> の検証
-                const gcAccessRe = /\bGameConfig\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\.([a-zA-Z_$][a-zA-Z0-9_$]*))?/g;
+                // (a) GameConfig.<section> / cfg.<section>（cfg がルートを指しているときのみ）および GameConfig.<section>.<prop> の検証
+                const rootCfgPattern = activeConfigVarMap.has('cfg')
+                    ? /\bGameConfig\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\.([a-zA-Z_$][a-zA-Z0-9_$]*))?/g
+                    : /\b(?:GameConfig|cfg)\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\.([a-zA-Z_$][a-zA-Z0-9_$]*))?/g;
                 let gcM;
-                while ((gcM = gcAccessRe.exec(sLine)) !== null) {
+                while ((gcM = rootCfgPattern.exec(sLine)) !== null) {
                     const sec = gcM[1];
                     const prop = gcM[2];
                     if (!KNOWN_CONFIG_SCHEMA[sec]) {
@@ -3861,9 +4416,92 @@
                         }
                     }
                 }
+
+                // (c) 標準オブジェクト（Math, document, console, JSON, localStorage, classList）および一般オブジェクトの .member タイポ検証
+                const dotMemberRe = /\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\.\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/g;
+                let dmM;
+                while ((dmM = dotMemberRe.exec(sLine)) !== null) {
+                    const objName = dmM[1];
+                    const memName = dmM[2];
+                    if (objName === 'GameConfig' || objName === 'cfg' || objName === 'window' || activeConfigVarMap.has(objName)) {
+                        continue;
+                    }
+                    if (BUILTIN_OBJECT_MEMBERS[objName]) {
+                        const validSet = BUILTIN_OBJECT_MEMBERS[objName];
+                        if (!validSet.has(memName)) {
+                            const closestMem = findClosestInCollection(memName, validSet, 3);
+                            issues.push(createIssue(
+                                lineIdx + 1,
+                                Math.max(1, rawLine.indexOf(memName, rawLine.indexOf(objName)) + 1),
+                                `「${objName}.${memName}」は存在しないメソッドまたはプロパティです`,
+                                closestMem
+                                    ? `「${objName}.${closestMem}」のスペルミスではありませんか？`
+                                    : `${objName} の正しいメソッド・プロパティ名を確認してください`,
+                                'error',
+                                rawLine
+                            ));
+                        }
+                    } else if (!VALID_JS_MEMBER_NAMES.has(memName) && !declared.has(memName)) {
+                        const closestMem = findClosestInCollection(memName, VALID_JS_MEMBER_NAMES, 2);
+                        issues.push(createIssue(
+                            lineIdx + 1,
+                            Math.max(1, rawLine.lastIndexOf(memName) + 1),
+                            `プロパティまたはメソッド「.${memName}」は存在しません`,
+                            closestMem
+                                ? `「.${closestMem}」のスペルミスではありませんか？`
+                                : `プロパティ名・メソッド名のスペルを確認してください`,
+                            'error',
+                            rawLine
+                        ));
+                    }
+                }
+
+                // (d) if (...) 条件式内の誤代入（= と == / === の間違い）の検出
+                const ifAssignMatch = sLine.match(/\bif\s*\(([^)]*)\)/);
+                if (ifAssignMatch) {
+                    const cond = ifAssignMatch[1];
+                    if (/(?<![=!<>])=(?!=)/.test(cond)) {
+                        issues.push(createIssue(
+                            lineIdx + 1,
+                            Math.max(1, rawLine.indexOf('=', rawLine.indexOf('if')) + 1),
+                            `if文の条件式の中で代入「 = 」が使われています（比較は「 === 」または「 == 」を使います）`,
+                            `等しいかどうか調べるには「 === 」に書き直してください`,
+                            'error',
+                            rawLine
+                        ));
+                    }
+                }
+
+                // (e) getContext("2d") および addEventListener("<event>", ...) の文字列引数タイポ検証
+                const cleanRaw = stripLineComment(rawLine);
+                const ctxMatch = cleanRaw.match(/\.getContext\(\s*["']([^"']*)["']\s*\)/);
+                if (ctxMatch && ctxMatch[1] !== '2d' && ctxMatch[1] !== 'webgl' && ctxMatch[1] !== 'webgl2') {
+                    issues.push(createIssue(
+                        lineIdx + 1,
+                        Math.max(1, rawLine.indexOf(ctxMatch[1]) + 1),
+                        `getContext("${ctxMatch[1]}") の指定が正しくありません`,
+                        `2Dキャンバスを描画するには getContext("2d") と指定してください`,
+                        'error',
+                        rawLine
+                    ));
+                }
+                const evMatch = cleanRaw.match(/\.addEventListener\(\s*["']([^"']*)["']/);
+                if (evMatch && !VALID_DOM_EVENT_NAMES.has(evMatch[1])) {
+                    const closestEv = findClosestInCollection(evMatch[1], VALID_DOM_EVENT_NAMES, 3);
+                    issues.push(createIssue(
+                        lineIdx + 1,
+                        Math.max(1, rawLine.indexOf(evMatch[1]) + 1),
+                        `addEventListener("${evMatch[1]}") は存在しないイベント名です`,
+                        closestEv
+                            ? `「"${closestEv}"」のスペルミスではありませんか？`
+                            : `正しいイベント名（"click", "keydown", "keyup" など）を指定してください`,
+                        'error',
+                        rawLine
+                    ));
+                }
             }
 
-            // (c) core.js の必須トップレベル関数が消されていないか検証
+            // (f) core.js の必須トップレベル関数が消されていないか検証
             for (const reqFn of CORE_JS_REQUIRED_FUNCTIONS) {
                 if (!declared.has(reqFn.name)) {
                     const closestFn = findClosestInCollection(reqFn.name, declared, 3);
@@ -3931,11 +4569,34 @@
             return false;
         }
 
+        function findAssetSuggestion(resolvedPath) {
+            const allKeys = Object.keys(allFiles);
+            if (!resolvedPath.startsWith('assets/') && Object.prototype.hasOwnProperty.call(allFiles, 'assets/' + resolvedPath)) {
+                return `先頭に「assets/」が抜けています。「assets/${resolvedPath}」のように指定してください`;
+            }
+            const closestDirect = findClosestInCollection(resolvedPath, allKeys, 3);
+            if (closestDirect) {
+                return `「${closestDirect}」のスペルミスではありませんか？ファイル名を確認してください`;
+            }
+            if (!resolvedPath.startsWith('assets/')) {
+                const closestInAssets = findClosestInCollection('assets/' + resolvedPath, allKeys, 3);
+                if (closestInAssets) {
+                    return `「${closestInAssets}」のスペルミスではありませんか？（assets/ フォルダ内のファイル名を確認してください）`;
+                }
+            }
+            return `プロジェクト内に存在するファイル名（assets/octopus.png など）を指定してください`;
+        }
+
         const getFileContent = (key) => {
             const v = allFiles[key];
             if (typeof v === 'string') return v;
             if (v && typeof v === 'object') return v.content || '';
             return '';
+        };
+
+        // HTMLから <!-- ... --> コメントを空白置換（行番号維持）するヘルパー
+        const stripHtmlCommentsPreservingLines = (htmlStr) => {
+            return htmlStr.replace(/<!--[\s\S]*?-->/g, m => m.replace(/[^\n]/g, ' '));
         };
 
         // ── A. HTMLファイルの横断チェック (リンク先ファイル存在 & ゲーム必須DOM ID・必須タグ) ──
@@ -3945,32 +4606,32 @@
             let styleCssLinkLine = -1;
             let inScript = false;
             let inStyle = false;
+            const commentFreeHtml = stripHtmlCommentsPreservingLines(code);
+            const commentFreeLines = commentFreeHtml.split('\n');
 
-            for (let i = 0; i < lines.length; i++) {
+            for (let i = 0; i < commentFreeLines.length; i++) {
                 const rawLine = lines[i];
-                const trimmed = rawLine.trim();
-
-                // コメント行は除外
-                if (trimmed.startsWith('<!--')) continue;
+                const cfLine = commentFreeLines[i];
+                if (!cfLine.trim()) continue;
 
                 // <script> や <style> タグ内のインラインコードは HTML 属性チェックから除外
                 if (inScript) {
-                    if (/<\/script>/i.test(rawLine)) inScript = false;
+                    if (/<\/script>/i.test(cfLine)) inScript = false;
                     continue;
                 }
                 if (inStyle) {
-                    if (/<\/style>/i.test(rawLine)) inStyle = false;
+                    if (/<\/style>/i.test(cfLine)) inStyle = false;
                     continue;
                 }
 
                 // 同一行内に完結するインライン <script>...</script> や <style>...</style> の内容を除去
-                let scanLine = rawLine.replace(/<script(?![^>]*\bsrc\s*=)[^>]*>[\s\S]*?<\/script>/gi, '');
+                let scanLine = cfLine.replace(/<script(?![^>]*\bsrc\s*=)[^>]*>[\s\S]*?<\/script>/gi, '');
                 scanLine = scanLine.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
 
-                if (/<script\b/i.test(rawLine) && !/<\/script>/i.test(rawLine)) {
+                if (/<script\b/i.test(cfLine) && !/<\/script>/i.test(cfLine)) {
                     inScript = true;
                 }
-                if (/<style\b/i.test(rawLine) && !/<\/style>/i.test(rawLine)) {
+                if (/<style\b/i.test(cfLine) && !/<\/style>/i.test(cfLine)) {
                     inStyle = true;
                 }
 
@@ -3978,7 +4639,7 @@
                 const refRegex = /\b(src|href)\s*=\s*["']([^"']+)["']/gi;
                 let rMatch;
                 while ((rMatch = refRegex.exec(scanLine)) !== null) {
-                    const attr = rMatch[1];
+                    const attr = rMatch[1].toLowerCase();
                     const refVal = rMatch[2];
                     const resolved = resolveProjectPath(filename, refVal);
 
@@ -3986,32 +4647,54 @@
                     const isKnownNavPath = (refVal === 'editor/' || refVal === 'editor' || refVal === '../' || refVal === './' || resolved === 'editor/index.html' || resolved === 'index.html');
 
                     if (resolved && !fileExistsInProject(resolved) && !isKnownNavPath) {
-                        const allKeys = Object.keys(allFiles);
-                        const closestFile = findClosestInCollection(resolved, allKeys, 3);
                         issues.push(createIssue(
                             i + 1,
                             Math.max(1, rawLine.indexOf(refVal) + 1),
-                            `[ファイル横断] ${attr}="${refVal}" で指定されたファイル「${resolved}」が見つかりません`,
-                            closestFile
-                                ? `「${closestFile}」のスペルミスではありませんか？ファイル名を確認してください`
-                                : `プロジェクト内に存在するファイル名を指定してください`,
+                            `[ファイル横断] ${rMatch[1]}="${refVal}" で指定されたファイル「${resolved}」が見つかりません`,
+                            findAssetSuggestion(resolved),
                             'error',
                             rawLine
                         ));
                     }
-                    if (resolved === 'config.js') configScriptLine = i + 1;
-                    if (resolved === 'core.js') coreScriptLine = i + 1;
-                    if (resolved === 'style.css') styleCssLinkLine = i + 1;
+                    if (resolved === 'config.js' && /<script\b/i.test(scanLine) && attr === 'src') configScriptLine = i + 1;
+                    if (resolved === 'core.js' && /<script\b/i.test(scanLine) && attr === 'src') coreScriptLine = i + 1;
+                    if (resolved === 'style.css' && /<link\b/i.test(scanLine) && attr === 'href') styleCssLinkLine = i + 1;
                 }
             }
 
             // ルート index.html の場合、core.js が必須とする要素・外部ファイル読み込み・順序を検証
             if (filename === 'index.html') {
+                // STEP 1-1: <title> タグの存在・空文字チェック
+                const titleMatch = commentFreeHtml.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
+                if (!titleMatch) {
+                    issues.push(createIssue(
+                        1,
+                        1,
+                        `[ファイル横断] index.html 内に <title>...</title> タグが見つかりません`,
+                        `<head> 内に <title>SPACE INVADERS</title> のようにタイトルタグを記述してください`,
+                        'error',
+                        lines[0] || ''
+                    ));
+                } else if (!titleMatch[1].trim()) {
+                    let titleLine = 1;
+                    for (let k = 0; k < commentFreeLines.length; k++) {
+                        if (/<title\b/i.test(commentFreeLines[k])) { titleLine = k + 1; break; }
+                    }
+                    issues.push(createIssue(
+                        titleLine,
+                        1,
+                        `[ファイル横断] <title></title> の中身が空になっています`,
+                        `【STEP 1-1】の案内に従って、<title> と </title> の間に好きなゲームタイトルを入力してください`,
+                        'error',
+                        lines[titleLine - 1] || ''
+                    ));
+                }
+
                 const htmlIds = new Set();
                 const idRegex = /\bid\s*=\s*["']([^"']+)["']/gi;
                 let idMatch;
-                while ((idMatch = idRegex.exec(code)) !== null) {
-                    htmlIds.add(idMatch[1]);
+                while ((idMatch = idRegex.exec(commentFreeHtml)) !== null) {
+                    htmlIds.add(idMatch[1].trim());
                 }
 
                 const requiredIds = [
@@ -4022,7 +4705,21 @@
                     { id: 'wave-options', desc: 'WAVE数選択ボタン群 (id="wave-options")' },
                     { id: 'home-hiscore', desc: 'ハイスコア表示 (id="home-hiscore")' },
                     { id: 'pause-overlay', desc: '一時停止オーバーレイ (id="pause-overlay")' },
-                    { id: 'btn-quick-pause', desc: '一時停止ボタン (id="btn-quick-pause")' }
+                    { id: 'btn-quick-pause', desc: '一時停止ボタン (id="btn-quick-pause")' },
+                    { id: 'preview-ufo', desc: 'UFOプレビュー用キャンバス (id="preview-ufo")' },
+                    { id: 'preview-squid', desc: 'SQUIDプレビュー用キャンバス (id="preview-squid")' },
+                    { id: 'preview-crab', desc: 'CRABプレビュー用キャンバス (id="preview-crab")' },
+                    { id: 'preview-octopus', desc: 'OCTOPUSプレビュー用キャンバス (id="preview-octopus")' },
+                    { id: 'preview-player', desc: 'PLAYERプレビュー用キャンバス (id="preview-player")' },
+                    { id: 'pause-menu-box', desc: 'ポーズメニュー枠 (id="pause-menu-box")' },
+                    { id: 'pause-hud-box', desc: 'ポーズHUD枠 (id="pause-hud-box")' },
+                    { id: 'btn-pause-edit', desc: '改造画面移動ボタン (id="btn-pause-edit")' },
+                    { id: 'btn-pause-quit', desc: 'タイトルへ戻るボタン (id="btn-pause-quit")' },
+                    { id: 'btn-hud-resume', desc: 'ゲーム再開ボタン (id="btn-hud-resume")' },
+                    { id: 'btn-hud-quit', desc: 'HUD終了ボタン (id="btn-hud-quit")' },
+                    { id: 'game-container', desc: 'ゲーム外枠コンテナ (id="game-container")' },
+                    { id: 'game-top-bar', desc: '上部バー (id="game-top-bar")' },
+                    { id: 'btn-goto-editor', desc: 'コード改造ボタン (id="btn-goto-editor")' }
                 ];
 
                 for (const req of requiredIds) {
@@ -4036,6 +4733,13 @@
                                     break;
                                 }
                             }
+                        } else {
+                            for (let k = 0; k < lines.length; k++) {
+                                if (lines[k].includes(req.id)) {
+                                    targetLine = k + 1;
+                                    break;
+                                }
+                            }
                         }
                         issues.push(createIssue(
                             targetLine,
@@ -4043,7 +4747,7 @@
                             `[ファイル横断] core.js が使用する ${req.desc} が index.html 内に見つかりません`,
                             closestId
                                 ? `行 ${targetLine} の id="${closestId}" は id="${req.id}" のスペルミスではありませんか？`
-                                : `index.html 内に id="${req.id}" を持つ要素が必要です`,
+                                : `index.html 内の id="${req.id}" を持つ要素が消去またはコメントアウトされていないか確認してください`,
                             'error',
                             lines[targetLine - 1] || ''
                         ));
@@ -4051,33 +4755,82 @@
                 }
 
                 if (configScriptLine === -1) {
+                    let targetLine = -1;
+                    for (let k = 0; k < lines.length; k++) {
+                        if (lines[k].includes('config.js') || lines[k].includes('設定ファイル')) {
+                            targetLine = Math.min(lines.length, k + 2);
+                            break;
+                        }
+                    }
+                    if (targetLine === -1) {
+                        for (let k = lines.length - 1; k >= 0; k--) {
+                            if (lines[k].includes('</body>')) {
+                                targetLine = k + 1;
+                                break;
+                            }
+                        }
+                        if (targetLine === -1) targetLine = lines.length;
+                    }
                     issues.push(createIssue(
-                        lines.length,
+                        targetLine,
                         1,
                         `[ファイル横断] index.html 内で config.js が読み込まれていません`,
-                        `</body> の前に <script src="config.js"></script> を記述してください`,
+                        `<body> の最後に <script src="config.js"></script> を記述してください`,
                         'error',
-                        lines[lines.length - 1] || ''
+                        lines[targetLine - 1] || ''
                     ));
                 }
                 if (coreScriptLine === -1) {
+                    let targetLine = -1;
+                    // 【STEP 1-3】の案内コメント行（ゲームの心臓 / core.js）を探す
+                    for (let k = 0; k < lines.length; k++) {
+                        const l = lines[k];
+                        if (l.includes('STEP 1-3') || l.includes('ゲームの心臓') || (l.includes('core.js') && l.includes('<!--'))) {
+                            targetLine = Math.min(lines.length, k + 2);
+                            break;
+                        }
+                    }
+                    if (targetLine === -1) {
+                        if (configScriptLine !== -1) {
+                            targetLine = Math.min(lines.length, configScriptLine + 1);
+                        } else {
+                            for (let k = lines.length - 1; k >= 0; k--) {
+                                if (lines[k].includes('</body>')) {
+                                    targetLine = k + 1;
+                                    break;
+                                }
+                            }
+                            if (targetLine === -1) targetLine = lines.length;
+                        }
+                    }
                     issues.push(createIssue(
-                        lines.length,
+                        targetLine,
                         1,
                         `[ファイル横断] index.html 内で core.js が読み込まれていません`,
-                        `</body> の前に <script src="core.js"></script> を記述してください`,
+                        `【STEP 1-3】（行 ${targetLine > 1 ? targetLine - 1 : targetLine} 付近）の案内に従って、<script src="core.js"></script> を記述してください`,
                         'error',
-                        lines[lines.length - 1] || ''
+                        lines[targetLine - 1] || ''
                     ));
                 }
                 if (styleCssLinkLine === -1) {
+                    let targetLine = 1;
+                    for (let k = 0; k < lines.length; k++) {
+                        if (lines[k].includes('style.css')) {
+                            targetLine = k + 1;
+                            break;
+                        }
+                        if (lines[k].includes('</head>')) {
+                            targetLine = k + 1;
+                            break;
+                        }
+                    }
                     issues.push(createIssue(
-                        1,
+                        targetLine,
                         1,
                         `[ファイル横断] index.html 内で style.css が読み込まれていません`,
                         `<head> 内に <link rel="stylesheet" href="style.css"> を記述してください`,
                         'error',
-                        lines[0] || ''
+                        lines[targetLine - 1] || ''
                     ));
                 }
 
@@ -4105,14 +4858,11 @@
                     const refUrl = uMatch[1].trim();
                     const resolved = resolveProjectPath(filename, refUrl);
                     if (resolved && !fileExistsInProject(resolved)) {
-                        const closestAsset = findClosestInCollection(resolved, Object.keys(allFiles), 3);
                         issues.push(createIssue(
                             i + 1,
                             Math.max(1, rawLine.indexOf(refUrl) + 1),
                             `[ファイル横断] CSSの url("${refUrl}") で指定された画像ファイルが見つかりません`,
-                            closestAsset
-                                ? `「${closestAsset}」のスペルミスではありませんか？`
-                                : `assets/ フォルダ内の正しいファイル名を指定してください`,
+                            findAssetSuggestion(resolved),
                             'error',
                             rawLine
                         ));
@@ -4135,7 +4885,7 @@
                 ]);
                 knownIds.add('monaca-error-hud');
 
-                const htmlText = getFileContent('index.html');
+                const htmlText = stripHtmlCommentsPreservingLines(getFileContent('index.html'));
                 const jsText = getFileContent('core.js');
 
                 let m;
@@ -4245,9 +4995,9 @@
             }
         }
 
-        // ── C. core.js の横断チェック (index.html のDOM ID/クラス参照整合性) ──
+        // ── C. core.js の横断チェック (index.html のDOM ID/クラス参照 & スプライト名 & アセットパス整合性) ──
         if (filename === 'core.js' && allFiles['index.html']) {
-            const htmlText = getFileContent('index.html');
+            const htmlText = stripHtmlCommentsPreservingLines(getFileContent('index.html'));
             const htmlIds = new Set(['monaca-error-hud', 'btn-left', 'btn-right', 'btn-fire', 'btn-sound']);
             const htmlClasses = new Set([
                 'in-iframe', 'hidden', 'active', 'edit-mode', 'transitioning-to-editor',
@@ -4282,6 +5032,57 @@
                             closestId
                                 ? `index.html 内の id="${closestId}" のスペルミスか、index.html 側で id が変更されています`
                                 : `index.html 側に id="${targetId}" の要素が存在するか確認してください`,
+                            'error',
+                            rawLine
+                        ));
+                    }
+                }
+
+                // drawToCanvas("canvasId", "spriteKey", ...) の検証
+                const drawCanvasRe = /\bdrawToCanvas\(\s*["']([^"']+)["']\s*,\s*["']([^"']+)["']/g;
+                let dcM;
+                while ((dcM = drawCanvasRe.exec(clean)) !== null) {
+                    const cId = dcM[1];
+                    const spKey = dcM[2];
+                    if (!htmlIds.has(cId)) {
+                        const closestId = findClosestInCollection(cId, htmlIds, 3);
+                        issues.push(createIssue(
+                            i + 1,
+                            Math.max(1, rawLine.indexOf(cId) + 1),
+                            `[ファイル横断] drawToCanvas("${cId}", ...) に対応する <canvas id="${cId}"> が index.html にありません`,
+                            closestId
+                                ? `「"${closestId}"」のスペルミスではありませんか？`
+                                : `index.html 内のプレビュー用 canvas の id を確認してください`,
+                            'error',
+                            rawLine
+                        ));
+                    }
+                    if (!KNOWN_CONFIG_SCHEMA.sprites.includes(spKey)) {
+                        const closestSp = findClosestInCollection(spKey, KNOWN_CONFIG_SCHEMA.sprites, 3);
+                        issues.push(createIssue(
+                            i + 1,
+                            Math.max(1, rawLine.indexOf(spKey) + 1),
+                            `[ファイル横断] drawToCanvas のスプライト名「"${spKey}"」は config.js の sprites に存在しません`,
+                            closestSp
+                                ? `「"${closestSp}"」のスペルミスではありませんか？`
+                                : `有効なスプライト名（${KNOWN_CONFIG_SCHEMA.sprites.join(', ')}）を指定してください`,
+                            'error',
+                            rawLine
+                        ));
+                    }
+                }
+
+                // "assets/..." ファイルパス文字列の存在検証
+                const assetStrRe = /["'](assets\/[^"']+)["']/g;
+                let asM;
+                while ((asM = assetStrRe.exec(clean)) !== null) {
+                    const assetPath = asM[1];
+                    if (!fileExistsInProject(assetPath)) {
+                        issues.push(createIssue(
+                            i + 1,
+                            Math.max(1, rawLine.indexOf(assetPath) + 1),
+                            `[ファイル横断] core.js 内の画像パス「"${assetPath}"」が見つかりません`,
+                            findAssetSuggestion(assetPath),
                             'error',
                             rawLine
                         ));
