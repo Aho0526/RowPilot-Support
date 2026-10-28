@@ -376,7 +376,7 @@ canvas:focus {
     justify-content: space-between;
     padding: 0 16px;
     background: #080d1a; /*ボタン本体の色*/
-    border: 2px solid #00ff66;　/*ボタンの枠線の色*/
+    border: 2px solid #00ff66; /*ボタンの枠線の色*/
     border-radius: 4px; /*ボタンの影の色*/
     cursor: pointer;
     box-shadow: 0 4px 0 #047857;
