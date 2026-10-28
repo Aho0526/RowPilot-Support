@@ -587,7 +587,7 @@
             lives: 5,
             shootInterval: 70,
             bulletSpeed: 2.8,
-            passThroughPlayer: true,
+            passThroughPlayer: false,
             fireInterval: 8,
             maxBullets: 10
         },
@@ -595,7 +595,7 @@
             lives: 3,
             shootInterval: 50,
             bulletSpeed: 3.5,
-            passThroughPlayer: true,
+            passThroughPlayer: false,
             fireInterval: 10,
             maxBullets: 8
         },
@@ -623,7 +623,7 @@
     // ホーム画面で選んだ項目は優先し、未選択の場合は config.js の設定を使う
     let difficultyChosen = false;
     let wavesChosen = false;
-    let currentBunkerPassThrough = true;
+    let currentBunkerPassThrough = false;
     let bunkerPassThroughChosen = false;
 
     function applyGameSettings() {
@@ -637,7 +637,7 @@
             maxWaves = safeNum(gCfg.maxWaves, 1, 10, 3);
         }
         if (!bunkerPassThroughChosen) {
-            currentBunkerPassThrough = (bCfg.passThroughPlayer !== false);
+            currentBunkerPassThrough = (bCfg.passThroughPlayer === true);
         }
         syncHomeButtons();
     }
@@ -660,16 +660,15 @@
         if (guideEl) {
             const isHard = currentDifficulty === "hard";
             const isEasy = currentDifficulty === "easy";
-            const passStr = currentBunkerPassThrough ? "貫通" : "衝突";
             const eCfg = (window.GameConfig && window.GameConfig.enemy) || {};
             const hardHpActive = isHard && !!eCfg.hardHpBoost;
 
             if (isEasy) {
-                guideEl.textContent = `EASY: 残機+2 / 自弾はトーチカ【${passStr}】`;
+                guideEl.textContent = `EASY: 残機+2（敵弾ゆっくり・連射しやすい）`;
             } else if (isHard) {
-                guideEl.textContent = `HARD: 敵高速・残機-1${hardHpActive ? "・上段HP2" : ""} / 自弾はトーチカ【${passStr}】`;
+                guideEl.textContent = `HARD: 敵高速・残機-1${hardHpActive ? "・上段HP2" : ""}`;
             } else {
-                guideEl.textContent = `NORMAL: 標準バランス / 自弾はトーチカ【${passStr}】`;
+                guideEl.textContent = `NORMAL: 標準バランス（原作仕様）`;
             }
         }
     }

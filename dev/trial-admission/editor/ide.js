@@ -102,22 +102,22 @@
                             </div>
                         </div>
 
-                        <div class="option-row">
+                        <div class="option-row" style="display: none;">
                             <span class="option-caption">BUNKER:</span>
                             <div class="option-pill-group" id="bunker-options">
-                                <button type="button" class="arcade-pill active" data-bunker="penetrate">
+                                <button type="button" class="arcade-pill" data-bunker="penetrate">
                                     <span class="pill-name">PENETRATE</span>
                                 </button>
-                                <button type="button" class="arcade-pill" data-bunker="block">
+                                <button type="button" class="arcade-pill active" data-bunker="block">
                                     <span class="pill-name">BLOCK</span>
                                 </button>
                             </div>
                         </div>
 
                         <!-- 難易度案内・トーチカ貫通等のガイド表示 -->
-                        <div class="diff-guide-row" id="diff-guide-text">
+                        <div class="diff-guide-row" id="diff-guide-text" style="display: none;">
                             <span class="diff-guide-icon">ℹ</span>
-                            <span class="diff-guide-msg">NORMAL: 標準バランス / 自弾はトーチカ【貫通】</span>
+                            <span class="diff-guide-msg">NORMAL: 標準バランス（原作仕様）</span>
                         </div>
 
                         <div class="option-row">
@@ -191,7 +191,7 @@
         </div>
 
         <div class="controls-hint">
-            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動　/　<span class="key-tag">Enter</span> 開始　/　<span class="key-tag">Space</span> 攻撃・終了　/　<span class="key-tag">Esc</span> 一時停止
+            <span class="hint-group"><span class="key-tag">←</span> <span class="key-tag">→</span> 移動</span><span class="hint-sep">/</span><span class="hint-group"><span class="key-tag">Enter</span> 開始</span><span class="hint-sep">/</span><span class="hint-group"><span class="key-tag">Space</span> 攻撃・終了</span><span class="hint-sep">/</span><span class="hint-group"><span class="key-tag">Esc</span> 一時停止</span>
         </div>
     </div>
 
@@ -491,6 +491,9 @@
                     const isHtml = files[key].type === 'html' || key.endsWith('.html');
                     files[key].content = isHtml ? cleanInjectedPlatformScripts(rawText) : rawText;
                     files[key].baselineContent = files[key].content;
+                    if (!files[key].cleanProductionText) {
+                        files[key].cleanProductionText = files[key].content;
+                    }
                     if (!files[key].productionContent) {
                         files[key].productionContent = files[key].content;
                     }
@@ -2367,7 +2370,10 @@
         // config.js と core.js の差し替え ($記号の特殊展開を防ぐため関数で返す)
         const configScriptRegex = /<script\s+[^>]*src=["']config\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script>/i;
         if (configScriptRegex.test(html)) {
-            html = html.replace(configScriptRegex, () => `<script>${config}<\/script>`);
+            const passThroughOverride = (typeof editorSettings !== 'undefined' && editorSettings && typeof editorSettings.bunkerPassThrough === 'boolean')
+                ? `\nif (typeof GameConfig !== "undefined" && GameConfig && GameConfig.bunker) { GameConfig.bunker.passThroughPlayer = ${editorSettings.bunkerPassThrough}; }`
+                : '';
+            html = html.replace(configScriptRegex, () => `<script>${config}${passThroughOverride}<\/script>`);
         }
         const coreScriptRegex = /<script\s+[^>]*src=["']core\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script>/i;
         if (coreScriptRegex.test(html)) {
@@ -2479,6 +2485,9 @@
                     const newConfig = fn();
                     if (newConfig && newConfig.display) {
                         newConfig.display.sound = !isMuted;
+                    }
+                    if (newConfig && newConfig.bunker && typeof editorSettings !== 'undefined' && editorSettings && typeof editorSettings.bunkerPassThrough === 'boolean') {
+                        newConfig.bunker.passThroughPlayer = editorSettings.bunkerPassThrough;
                     }
                     if (newConfig) {
                         win.reloadGameWithNewConfig(newConfig);
@@ -3543,73 +3552,91 @@
     }
 
     function restoreTrialAdmission() {
-        // 1. 完成版コード（Production）へ復元：体験入学用コメントを完全消去し、完成した本番コードへ戻す
-        if (files['index.html']) {
-            let restored = files['index.html'].productionContent || files['index.html'].content;
-            // STEP 1-1, 1-2, 1-3 関連コメントを綺麗に除去
-            restored = restored.replace(/[ \t]*<!--\s*【STEP 1-1】[^\n]*-->[ \t]*\r?\n?/gi, '');
-            restored = restored.replace(/[ \t]*<!--\s*【STEP 1-2】[^\n]*-->[ \t]*\r?\n?(?:[ \t]*\r?\n)?/gi, '');
-            restored = restored.replace(/[ \t]*<!--\s*assetsフォルダの中から[^\n]*-->[ \t]*\r?\n?/gi, '');
-            restored = restored.replace(/\r?\n?[ \t]*<!--\s*【STEP 1-3】[^\n]*-->[ \t]*\r?\n?(?:[ \t]*\r?\n)?/gi, '\n');
-            restored = restored.replace(/[ \t]*<!--\s*▼ ここに「.*?」と書いてゲームを起動させよう\s*-->[ \t]*\r?\n?/gi, '');
-
-            // icon タグがなければ <title> の直後に確実に再配置
-            if (!/<link\s+[^>]*rel=["'](?:shortcut\s+)?icon["'][^>]*>/i.test(restored)) {
-                restored = restored.replace(
-                    /(<title>[\s\S]*?<\/title>)/i,
-                    '$1\n    <link rel="icon" href="assets/octopus.png" type="image/png">'
-                );
+        // 1. 完成版コード（Production）へ復元：
+        // 初期ディスク読み込み時の完全無傷な完成版コード（cleanProductionText）があればそれをそのまま復元。
+        // これにより、生徒がどんなにコードを消去・破壊・変造していても、生徒のバグとは100%完全に切り離されて初期の完成版コードに戻る。
+        let restoredFromClean = false;
+        if (files['index.html']?.cleanProductionText && files['config.js']?.cleanProductionText) {
+            for (let k in files) {
+                if (files[k] && !files[k].isBinary && typeof files[k].cleanProductionText === 'string') {
+                    files[k].content = files[k].cleanProductionText;
+                    files[k].productionContent = files[k].cleanProductionText;
+                    files[k].baselineContent = files[k].cleanProductionText;
+                    files[k].isDirty = false;
+                }
             }
+            restoredFromClean = true;
+        }
 
-            // core.js タグがなければ config.js の直後に確実に再配置
-            if (!/<script\s+[^>]*src=["']core\.js["'][^>]*>/i.test(restored)) {
-                if (/<script\s+[^>]*src=["']config\.js["'][^>]*>/i.test(restored)) {
+        if (!restoredFromClean) {
+            // cleanProductionText がない場合の安全フォールバック（正規表現復元）
+            if (files['index.html']) {
+                let restored = files['index.html'].productionContent || files['index.html'].content;
+                // STEP 1-1, 1-2, 1-3 関連コメントを綺麗に除去
+                restored = restored.replace(/[ \t]*<!--\s*【STEP 1-1】[^\n]*-->[ \t]*\r?\n?/gi, '');
+                restored = restored.replace(/[ \t]*<!--\s*【STEP 1-2】[^\n]*-->[ \t]*\r?\n?(?:[ \t]*\r?\n)?/gi, '');
+                restored = restored.replace(/[ \t]*<!--\s*assetsフォルダの中から[^\n]*-->[ \t]*\r?\n?/gi, '');
+                restored = restored.replace(/\r?\n?[ \t]*<!--\s*【STEP 1-3】[^\n]*-->[ \t]*\r?\n?(?:[ \t]*\r?\n)?/gi, '\n');
+                restored = restored.replace(/[ \t]*<!--\s*▼ ここに「.*?」と書いてゲームを起動させよう\s*-->[ \t]*\r?\n?/gi, '');
+
+                // icon タグがなければ <title> の直後に確実に再配置
+                if (!/<link\s+[^>]*rel=["'](?:shortcut\s+)?icon["'][^>]*>/i.test(restored)) {
                     restored = restored.replace(
-                        /(<script\s+[^>]*src=["']config\.js["'][^>]*>\s*<\/script>)/i,
-                        '$1\n    <script src="core.js"><\/script>'
+                        /(<title>[\s\S]*?<\/title>)/i,
+                        '$1\n    <link rel="icon" href="assets/octopus.png" type="image/png">'
                     );
-                } else if (restored.includes('</body>')) {
-                    restored = restored.replace('</body>', '    <script src="core.js"></script>\n</body>');
-                } else {
-                    restored += '\n    <script src="core.js"></script>';
                 }
+
+                // core.js タグがなければ config.js の直後に確実に再配置
+                if (!/<script\s+[^>]*src=["']core\.js["'][^>]*>/i.test(restored)) {
+                    if (/<script\s+[^>]*src=["']config\.js["'][^>]*>/i.test(restored)) {
+                        restored = restored.replace(
+                            /(<script\s+[^>]*src=["']config\.js["'][^>]*>\s*<\/script>)/i,
+                            '$1\n    <script src="core.js"><\/script>'
+                        );
+                    } else if (restored.includes('</body>')) {
+                        restored = restored.replace('</body>', '    <script src="core.js"></script>\n</body>');
+                    } else {
+                        restored += '\n    <script src="core.js"></script>';
+                    }
+                }
+                files['index.html'].content = restored;
+                files['index.html'].productionContent = restored;
             }
-            files['index.html'].content = restored;
-            files['index.html'].productionContent = restored;
-        }
 
-        if (files['config.js']) {
-            let restored = files['config.js'].productionContent || files['config.js'].content;
-            // STEP 3-1, STEP 3-2 コメントを除去
-            restored = restored.replace(/\s*\/\/\s*【STEP 3-1】[^\n]*\n?/gi, '');
-            restored = restored.replace(/\s*\/\/\s*【STEP 3-2】[^\n]*\n?/gi, '');
-            // 速度パラメータを完成値に戻す
-            restored = restored.replace(/(player:\s*\{[\s\S]*?speed:\s*)[0-9.]+/i, '$15');
-            restored = restored.replace(/(bullet:\s*\{[\s\S]*?speed:\s*)-?[0-9.]+/i, '$1-8');
-            files['config.js'].content = restored;
-            files['config.js'].productionContent = restored;
-        }
+            if (files['config.js']) {
+                let restored = files['config.js'].productionContent || files['config.js'].content;
+                // STEP 3-1, STEP 3-2 コメントを除去
+                restored = restored.replace(/\s*\/\/\s*【STEP 3-1】[^\n]*\n?/gi, '');
+                restored = restored.replace(/\s*\/\/\s*【STEP 3-2】[^\n]*\n?/gi, '');
+                // 速度パラメータを完成値に戻す
+                restored = restored.replace(/(player:\s*\{[\s\S]*?speed:\s*)[0-9.]+/i, '$15');
+                restored = restored.replace(/(bullet:\s*\{[\s\S]*?speed:\s*)-?[0-9.]+/i, '$1-8');
+                files['config.js'].content = restored;
+                files['config.js'].productionContent = restored;
+            }
 
-        if (files['style.css']) {
-            let restored = files['style.css'].productionContent || files['style.css'].content;
-            // 万が一複合セレクタの途中に STEP 2 コメントが挟まっていた場合もスペース1つに復元
-            restored = restored.replace(/(\.is-standby)[ \t]*\/\*\s*【STEP 2】[\s\S]*?\*\/(?:\s*\/\*\s*（お手本:[^\n]*\*\/)?\s*(\.arcade-play-btn)/gi, '$1 $2');
-            restored = restored.replace(/(\.arcade-home-container\.is-standby)\s*\n+\s*(\.arcade-play-btn\s*\{)/gi, '$1 $2');
-            // STEP 2 コメントを除去
-            restored = restored.replace(/\s*\/\*\s*【STEP 2】[\s\S]*?\*\/\s*\n?/gi, '\n');
-            restored = restored.replace(/\s*\/\*\s*（お手本:[^\n]*\*\/\s*\n?/gi, '\n');
-            files['style.css'].content = restored;
-            files['style.css'].productionContent = restored;
-        }
+            if (files['style.css']) {
+                let restored = files['style.css'].productionContent || files['style.css'].content;
+                // 万が一複合セレクタの途中に STEP 2 コメントが挟まっていた場合もスペース1つに復元
+                restored = restored.replace(/(\.is-standby)[ \t]*\/\*\s*【STEP 2】[\s\S]*?\*\/(?:\s*\/\*\s*（お手本:[^\n]*\*\/)?\s*(\.arcade-play-btn)/gi, '$1 $2');
+                restored = restored.replace(/(\.arcade-home-container\.is-standby)\s*\n+\s*(\.arcade-play-btn\s*\{)/gi, '$1 $2');
+                // STEP 2 コメントを除去
+                restored = restored.replace(/\s*\/\*\s*【STEP 2】[\s\S]*?\*\/\s*\n?/gi, '\n');
+                restored = restored.replace(/\s*\/\*\s*（お手本:[^\n]*\*\/\s*\n?/gi, '\n');
+                files['style.css'].content = restored;
+                files['style.css'].productionContent = restored;
+            }
 
-        // 2. 完全版復元直後もクリーンな保存済み状態にする
-        for (let k in files) {
-            if (files[k] && !files[k].isBinary) {
-                if (files[k].productionContent) {
-                    files[k].content = files[k].productionContent;
+            // 2. 完全版復元直後もクリーンな保存済み状態にする
+            for (let k in files) {
+                if (files[k] && !files[k].isBinary) {
+                    if (files[k].productionContent) {
+                        files[k].content = files[k].productionContent;
+                    }
+                    files[k].baselineContent = files[k].content;
+                    files[k].isDirty = false;
                 }
-                files[k].baselineContent = files[k].content;
-                files[k].isDirty = false;
             }
         }
 
@@ -4070,13 +4097,16 @@
     const settingToggleMinimap = document.getElementById('setting-toggle-minimap');
     const settingToggleIndentGuides = document.getElementById('setting-toggle-indent-guides');
     const settingToggleDiagnostics = document.getElementById('setting-toggle-diagnostics');
+    const btnBunkerBlock = document.getElementById('btn-bunker-block');
+    const btnBunkerPenetrate = document.getElementById('btn-bunker-penetrate');
 
     // デフォルト設定定義
     const DEFAULT_SETTINGS = {
         theme: 'dark',
         minimap: true,
         indentGuides: true,
-        diagnostics: true
+        diagnostics: true,
+        bunkerPassThrough: false // デフォルトは貫通しない
     };
 
     let editorSettings = Object.assign({}, DEFAULT_SETTINGS);
@@ -4158,6 +4188,36 @@
         // 4. 画面下部エラー表示
         document.body.classList.toggle('hide-diagnostics', !editorSettings.diagnostics);
         if (settingToggleDiagnostics) settingToggleDiagnostics.checked = !!editorSettings.diagnostics;
+
+        // 5. トーチカ貫通設定
+        if (btnBunkerBlock && btnBunkerPenetrate) {
+            btnBunkerBlock.classList.toggle('is-active', !editorSettings.bunkerPassThrough);
+            btnBunkerPenetrate.classList.toggle('is-active', !!editorSettings.bunkerPassThrough);
+        }
+    }
+
+    function applyBunkerSetting(passThrough) {
+        editorSettings.bunkerPassThrough = !!passThrough;
+        if (btnBunkerBlock && btnBunkerPenetrate) {
+            btnBunkerBlock.classList.toggle('is-active', !editorSettings.bunkerPassThrough);
+            btnBunkerPenetrate.classList.toggle('is-active', !!editorSettings.bunkerPassThrough);
+        }
+        saveEditorSettings();
+
+        // プレビュー中のゲームに即時反映
+        try {
+            const win = previewIframe.contentWindow;
+            if (win && win.GameConfig && win.GameConfig.bunker) {
+                win.GameConfig.bunker.passThroughPlayer = editorSettings.bunkerPassThrough;
+                if (typeof win.syncHomeButtons === 'function') {
+                    win.syncHomeButtons();
+                }
+            } else {
+                updatePreview();
+            }
+        } catch (e) {
+            updatePreview();
+        }
     }
 
     // モーダルを開く
@@ -4170,6 +4230,10 @@
         if (themeChoiceDark && themeChoiceLight) {
             themeChoiceDark.classList.toggle('is-active', editorSettings.theme !== 'light');
             themeChoiceLight.classList.toggle('is-active', editorSettings.theme === 'light');
+        }
+        if (btnBunkerBlock && btnBunkerPenetrate) {
+            btnBunkerBlock.classList.toggle('is-active', !editorSettings.bunkerPassThrough);
+            btnBunkerPenetrate.classList.toggle('is-active', !!editorSettings.bunkerPassThrough);
         }
         updateSettingsModeDisplay();
 
@@ -4220,6 +4284,20 @@
     if (btnSaveSettings) {
         btnSaveSettings.addEventListener('click', () => {
             closeSettingsModal();
+        });
+    }
+
+    if (btnBunkerBlock) {
+        btnBunkerBlock.addEventListener('click', () => {
+            applyBunkerSetting(false);
+            showToast('トーチカ設定: 貫通しない（原作仕様）に設定しました');
+        });
+    }
+
+    if (btnBunkerPenetrate) {
+        btnBunkerPenetrate.addEventListener('click', () => {
+            applyBunkerSetting(true);
+            showToast('トーチカ設定: 貫通する（すり抜け）に設定しました');
         });
     }
 

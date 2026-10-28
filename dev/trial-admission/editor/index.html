@@ -11,8 +11,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>スペースインベーダー</title>
     <link rel="icon" id="ide-favicon" href="../assets/octopus.png" type="image/png">
-    <link rel="stylesheet" href="ide.css?v=7.3">
-    <link rel="stylesheet" href="sticky-scroll.css?v=7.3">
+    <link rel="stylesheet" href="ide.css?v=8.0">
+    <link rel="stylesheet" href="sticky-scroll.css?v=8.0">
 </head>
 
 <body>
@@ -380,8 +380,8 @@
                     </span>
                 </button>
                 <div class="sidebar-build-meta" id="sidebar-build-meta" title="システムバージョン / 最終ビルド">
-                    <span class="build-badge">v7.2</span>
-                    <span class="build-time">10.27 23:00</span>
+                    <span class="build-badge">v8.0</span>
+                    <span class="build-time">10.28 22:30</span>
                 </div>
             </div>
         </aside>
@@ -742,15 +742,36 @@
                     </div>
                 </div>
 
+                <!-- セクション: ゲーム設定 -->
+                <div class="settings-section">
+                    <div class="settings-section-title">ゲーム設定</div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-label">自弾のトーチカ貫通</span>
+                            <span class="settings-row-desc">自分の弾がトーチカ（防壁）をすり抜けるかを設定します</span>
+                        </div>
+                        <div class="settings-theme-selector">
+                            <button type="button" class="theme-choice-btn is-active" id="btn-bunker-block"
+                                title="トーチカに自弾が当たり、削れます（原作仕様）">
+                                <span>貫通しない</span>
+                            </button>
+                            <button type="button" class="theme-choice-btn" id="btn-bunker-penetrate"
+                                title="トーチカを自弾がすり抜けます（初心者向け）">
+                                <span>貫通する</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- セクション: システム情報 -->
                 <div class="settings-section settings-section-meta">
                     <div class="settings-meta-item">
                         <span class="settings-meta-key">システムバージョン</span>
-                        <span class="settings-meta-val">v7.2</span>
+                        <span class="settings-meta-val">v8.0</span>
                     </div>
                     <div class="settings-meta-item">
                         <span class="settings-meta-key">ビルド情報</span>
-                        <span class="settings-meta-val">10.27 23:00 (Production Build5)</span>
+                        <span class="settings-meta-val">10.28 22:30 (Production Build 2)</span>
                     </div>
                     <div class="settings-meta-item">
                         <span class="settings-meta-key">現在のモード</span>
@@ -768,9 +789,9 @@
         </div>
     </div>
 
-    <script src="linter.js?v=7.3"></script>
-    <script src="sticky-scroll.js?v=7.3"></script>
-    <script src="ide.js?v=7.3"></script>
+    <script src="linter.js?v=8.0"></script>
+    <script src="sticky-scroll.js?v=8.0"></script>
+    <script src="ide.js?v=8.0"></script>
 </body>
 
 </html>

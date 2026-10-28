@@ -58,7 +58,7 @@ const GameConfig = {
         enabled: true,              // 防壁を配置するか (true: 配置する, false: なし)
         count: 4,                   // 防壁の数 (0 - 6)
         color: "#33FF33",           // 防壁の色
-        passThroughPlayer: true,    // 自分の弾が防壁をすり抜けるか (true: すり抜ける, false: 衝突して削れる)
+        passThroughPlayer: false,   // 自分の弾が防壁をすり抜けるか (false: 衝突して削れる[原作仕様], true: すり抜ける)
         regenerateEachWave: true    // ウェーブクリアごとに防壁が全回復するか (true: 回復する, false: 引き継ぐ)
     },
 
