@@ -2027,6 +2027,8 @@
         } else {
             updateTabsUI();
         }
+        // 閉じたファイルの記録は破棄（再度開くと1行目から）
+        delete fileViewState[key];
     }
 
     function updateSidebarUI() {
@@ -2044,8 +2046,64 @@
         });
     }
 
-    function switchToFile(key) {
+    // ─────────────────────────────────────────────
+    // ファイルごとの最終閲覧位置（スクロール上端の行・キャレット）の記憶 (メモリのみ / リロードで初期化)
+    // ─────────────────────────────────────────────
+    const fileViewState = {};
+    const VIEW_LINE_HEIGHT = 22;
+
+    function isTextFileKey(key) {
+        const f = files[key];
+        return !!(f && !f.isBinary && f.type !== 'image');
+    }
+
+    function saveViewState(key) {
+        if (!codeTextarea || !isTextFileKey(key)) return;
+        fileViewState[key] = {
+            topLine: codeTextarea.scrollTop / VIEW_LINE_HEIGHT,
+            caretStart: codeTextarea.selectionStart,
+            caretEnd: codeTextarea.selectionEnd
+        };
+    }
+
+    function resetAllViewStates() {
+        for (const k in fileViewState) delete fileViewState[k];
+    }
+
+    // 記録があればその位置へ、初めて開くファイルは1行目へ（フォーカスは奪わない）
+    function applyViewState(key) {
+        if (!codeTextarea || !isTextFileKey(key)) return;
+        const st = fileViewState[key];
+        const len = codeTextarea.value.length;
+        const apply = () => {
+            let top = 0;
+            if (st) {
+                const maxScroll = Math.max(0, codeTextarea.scrollHeight - codeTextarea.clientHeight);
+                top = Math.max(0, Math.min(maxScroll, Math.round(st.topLine * VIEW_LINE_HEIGHT)));
+            }
+            codeTextarea.scrollTop = top;
+            syncScroll();
+        };
+        try {
+            const s = st ? Math.min(st.caretStart, len) : 0;
+            const e = st ? Math.min(st.caretEnd, len) : 0;
+            codeTextarea.setSelectionRange(s, e);
+        } catch (err) { }
+        apply();
+        // レイアウト確定後（画像ビューアからの復帰直後など）に再適用
+        requestAnimationFrame(() => {
+            if (currentFileKey === key) apply();
+        });
+    }
+
+    function switchToFile(key, opts) {
         if (!files[key]) return;
+        const resetView = !!(opts && opts.resetView);
+        if (resetView) {
+            resetAllViewStates();
+        } else if (currentFileKey && currentFileKey !== key) {
+            saveViewState(currentFileKey);
+        }
         currentFileKey = key;
         if (!openTabs.includes(key)) {
             openTabs.push(key);
@@ -2073,6 +2131,7 @@
         } else {
             hideImageViewer();
             renderEditor();
+            applyViewState(key);
         }
     }
 
@@ -3517,8 +3576,10 @@
         }
 
         // 6. 即座に index.html を開き、エディタ・診断を完全再描画
-        switchToFile('index.html');
+        // （閲覧位置の記録は全クリアし、index.html は1行目から開始する）
+        switchToFile('index.html', { resetView: true });
         renderEditor();
+        applyViewState('index.html');
         runDiagnostics('index.html');
 
         updateTabsUI();
@@ -3530,23 +3591,6 @@
 
         // エラー詳細パネルを自動展開してバグ原因と修正方法を明示
         toggleDiagnosticsPanel(true);
-
-        // 7. index.html 内のバグ箇所（STEP 1-3 の空行）へ自動スクロール＆キャレット移動
-        setTimeout(() => {
-            if (files['index.html']) {
-                const lines = (codeTextarea ? codeTextarea.value : files['index.html'].content).split('\n');
-                let targetLine = -1;
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].includes('<!--') && (lines[i].includes('STEP 1-3') || lines[i].includes('ゲームの心臓'))) {
-                        targetLine = Math.min(lines.length, i + 2); // 案内コメントの次行（記述行）
-                        break;
-                    }
-                }
-                if (targetLine > 0) {
-                    jumpToLine(targetLine, 1);
-                }
-            }
-        }, 100);
 
         showToast('体験入学モード（Trial-admission）に切り替えました！', false);
     }
@@ -3641,7 +3685,10 @@
         }
 
         // 3. エディタ全体を完全再描画（現在のファイルの内容・ハイライト・診断・スティッキースクロール）
+        // 中身が丸ごと変わるため、閲覧位置の記録は全クリアして1行目から表示する
+        resetAllViewStates();
         renderEditor();
+        applyViewState(currentFileKey);
         runDiagnostics(currentFileKey);
 
         updateTabsUI();
