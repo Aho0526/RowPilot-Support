@@ -3,7 +3,7 @@
 // ※ 基本的に編集不要ですが、コードを読んで改造してもOK！
 // ===============================================================
 
-(function() {
+(function () {
     'use strict';
 
     let canvas = document.getElementById("gameCanvas");
@@ -162,7 +162,7 @@
             this.ufoGain = audioCtx.createGain();
             this.ufoOsc.type = "sawtooth";
             this.ufoGain.gain.setValueAtTime(0.07, audioCtx.currentTime);
-            
+
             // ピロピロ変調
             const now = audioCtx.currentTime;
             this.ufoOsc.frequency.setValueAtTime(450, now);
@@ -179,7 +179,7 @@
                 try {
                     this.ufoOsc.stop();
                     this.ufoOsc.disconnect();
-                } catch(e) {}
+                } catch (e) { }
                 this.ufoOsc = null;
             }
         },
@@ -425,7 +425,7 @@
             this.cols = BUNKER_TEMPLATE[0].length;
             this.width = this.cols * pixelSize;
             this.height = this.rows * pixelSize;
-            
+
             // ピクセルの状態グリッド (1: 存在, 0: 破壊)
             this.grid = [];
             for (let r = 0; r < this.rows; r++) {
@@ -445,7 +445,7 @@
             for (let r = centerR - radius; r <= centerR + radius; r++) {
                 for (let c = centerC - radius; c <= centerC + radius; c++) {
                     if (r >= 0 && r < this.rows && c >= 0 && c < this.cols) {
-                        const dist = Math.sqrt((r - centerR)**2 + (c - centerC)**2);
+                        const dist = Math.sqrt((r - centerR) ** 2 + (c - centerC) ** 2);
                         if (dist <= radius + (Math.random() * 0.8)) {
                             if (this.grid[r][c] === 1) {
                                 this.grid[r][c] = 0;
@@ -559,14 +559,14 @@
     function getStoredHiScore() {
         try {
             return parseInt(localStorage.getItem("invader_hiscore") || "0", 10) || 0;
-        } catch(e) {
+        } catch (e) {
             return 0;
         }
     }
     function saveStoredHiScore(val) {
         try {
             localStorage.setItem("invader_hiscore", String(val));
-        } catch(e) {}
+        } catch (e) { }
     }
 
     let gameState = "READY"; // "READY", "PLAYING", "PLAYER_DYING", "GAME_OVER", "CLEAR"
@@ -612,9 +612,9 @@
     // 難易度による補正 (config.js の値を NORMAL として、そこからの増減)
     //   lives: 残機の増減 / interval: 敵の発射間隔の倍率 / speed: 敵弾速度の倍率
     const DIFFICULTY_MODS = {
-        easy:   { lives: 2,  interval: 1.4,  speed: 0.8 },
-        normal: { lives: 0,  interval: 1.0,  speed: 1.0 },
-        hard:   { lives: -1, interval: 0.65, speed: 1.2 }
+        easy: { lives: 2, interval: 1.4, speed: 0.8 },
+        normal: { lives: 0, interval: 1.0, speed: 1.0 },
+        hard: { lives: -1, interval: 0.65, speed: 1.2 }
     };
     function diffMod() {
         return DIFFICULTY_MODS[currentDifficulty] || DIFFICULTY_MODS.normal;
@@ -745,7 +745,7 @@
         const maxFormationH = 250; // バンカーや自機に初期配置で接触しない最大縦幅
         const targetMaxUnitW = Math.floor(maxFormationW / Math.max(1, cols));
         const targetMaxUnitH = Math.floor(maxFormationH / Math.max(1, rows));
-        
+
         // 敵のドット数・行数・列数に応じて pixelSize を動的に最適化 (大ドット絵や大量の行数・列数でも画面に綺麗に収まる)
         let calcPixelSize = 2.0;
         if (maxEnemyCols * calcPixelSize > targetMaxUnitW) {
@@ -1168,18 +1168,14 @@
     let homeAnimFrame = 0;
     let homeAnimTimer = null;
 
-    // ⚡ core.js 起動時のタイトル画面ピカピカ覚醒エフェクト (S1-3 読込時の感動演出)
+    // core.js 起動時のタイトル画面覚醒制御 (待機モード解除)
     function bootTitleScreen() {
         const container = document.getElementById("arcade-home-container") || document.querySelector(".arcade-home-container");
         if (!container) return;
 
-        // 待機モードを解除し、ピカピカ大起動エフェクトを発火
+        // 待機モードを解除して通電
         container.classList.remove("is-standby");
-        container.classList.add("is-powered-on", "boot-flash");
-
-        setTimeout(() => {
-            container.classList.remove("boot-flash");
-        }, 1300);
+        container.classList.add("is-powered-on");
     }
 
     function renderHomePreviewSprites() {
@@ -1191,7 +1187,7 @@
             cCtx.clearRect(0, 0, cvs.width, cvs.height);
             const pattern = getSprite(spriteKey, frame);
             if (!pattern || pattern.length === 0) return;
-            
+
             const rows = pattern.length;
             const cols = pattern[0].length;
             if (cols === 0 || rows === 0) return;
@@ -1885,7 +1881,7 @@
         // 2. ヘッダースコア (クラシックなアーケード表示)
         ctx.font = "14px 'Courier New', monospace, monospace";
         ctx.textBaseline = "top";
-        
+
         ctx.fillStyle = "#00FFFF";
         ctx.fillText("SCORE<1>", 30, 10);
         ctx.fillStyle = "#FFFFFF";
@@ -2098,7 +2094,7 @@
     }
 
     // ドット絵エディタからのリアルタイム更新受け口
-    window.updateLiveSpritePreview = function(key, pattern, muzzle) {
+    window.updateLiveSpritePreview = function (key, pattern, muzzle) {
         if (!key || !pattern || !Array.isArray(pattern)) return;
         ensureGlobalConfig();
         if (!window.GameConfig) window.GameConfig = {};
@@ -2136,7 +2132,7 @@
     };
 
     // 設定変更時のリスタート用グローバル関数（IDEからの更新連携用）
-    window.reloadGameWithNewConfig = function(newConfig) {
+    window.reloadGameWithNewConfig = function (newConfig) {
         if (newConfig) window.GameConfig = newConfig;
 
         if (gameState === "PAUSED") {

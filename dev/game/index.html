@@ -131,6 +131,7 @@
             </div>
 
             <button class="help-btn" id="helpBtn" title="遊び方・使い方ガイド (?キー / クリック)">?</button>
+            <button class="help-btn answer-top-btn" id="answerBtn" title="答え合わせガイドを表示 / 隠す (💡 / .キー)">💡</button>
         </div>
 
         <!-- ステージ開始時アナウンスバナー -->
@@ -170,14 +171,9 @@
                     <button class="btn btn-start btn-large" id="startBtn" title="ゲーム開始 (Spaceキー / Enterキー)">
                         <span class="btn-main-label">スタート</span>
                     </button>
-                    <div class="controls-sub-row">
-                        <button class="btn btn-reset btn-large" id="resetBtn" title="配置を全クリア (Mキー / Shiftキー)">
-                            <span class="btn-main-label">リセット</span>
-                        </button>
-                        <button class="btn btn-answer btn-large" id="answerBtn" title="答えの配置ガイドを表示 (.キー)">
-                            <span class="btn-main-label">答え合わせ</span>
-                        </button>
-                    </div>
+                    <button class="btn btn-reset btn-large" id="resetBtn" title="配置を全クリア (Mキー / Shiftキー)">
+                        <span class="btn-main-label">リセット</span>
+                    </button>
                 </div>
 
                 <!-- ギミック凡例 & ヒント -->
@@ -231,7 +227,7 @@
                     <li><span class="modal-kbd">クリック</span> または <span class="modal-kbd">Q〜N</span>: ブロック配置 / 削除</li>
                     <li><span class="modal-kbd">Space</span> / <span class="modal-kbd">Enter</span>: スタート</li>
                     <li><span class="modal-kbd">M</span> / <span class="modal-kbd">Shift</span>: 全リセット</li>
-                    <li><span class="modal-kbd">. (ピリオド)</span>: 答え合わせガイド表示</li>
+                    <li><span class="modal-kbd">💡ボタン</span> または <span class="modal-kbd">. (ピリオド)</span>: 答え合わせガイド表示</li>
                     <li><span class="modal-kbd">Backspace</span>: 1手戻す</li>
                     <li><span class="modal-kbd">◀</span> / <span class="modal-kbd">▶</span>: ステージ切り替え</li>
                 </ul>

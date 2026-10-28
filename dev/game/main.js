@@ -904,17 +904,20 @@ function checkSolutionMatch() {
     };
 }
 
+function updateAnswerBtnUI() {
+    if (!answerBtn) return;
+    if (showSolution) {
+        answerBtn.classList.add('active');
+        answerBtn.title = '答え合わせガイドを隠す (💡 / .キー)';
+    } else {
+        answerBtn.classList.remove('active');
+        answerBtn.title = '答え合わせガイドを表示 (💡 / .キー)';
+    }
+}
+
 function toggleSolution() {
     showSolution = !showSolution;
-    if (answerBtn) {
-        if (showSolution) {
-            answerBtn.classList.add('active');
-            answerBtn.innerHTML = '<span class="btn-main-label">答えを隠す</span><span class="btn-key-badge">.</span>';
-        } else {
-            answerBtn.classList.remove('active');
-            answerBtn.innerHTML = '<span class="btn-main-label">答え合わせ</span><span class="btn-key-badge">.</span>';
-        }
-    }
+    updateAnswerBtnUI();
 
     if (showSolution) {
         const check = checkSolutionMatch();
@@ -943,10 +946,7 @@ function applySolutionToGrid() {
     });
 
     showSolution = true;
-    if (answerBtn) {
-        answerBtn.classList.add('active');
-        answerBtn.textContent = '答えを隠す';
-    }
+    updateAnswerBtnUI();
     updateBlockBadge();
     statusBar.innerHTML = '<span class="status-clear">答えのブロックを配置しました！スタートで確認しよう！</span>';
     render();
@@ -1609,10 +1609,7 @@ function selectStage(idx) {
     currentRoundIndex = 0;
     originalGrid = null;
     showSolution = false;
-    if (answerBtn) {
-        answerBtn.classList.remove('active');
-        answerBtn.innerHTML = '<span class="btn-main-label">答え合わせ</span><span class="btn-key-badge">.</span>';
-    }
+    updateAnswerBtnUI();
     phase = 'place';
     man = makeMan();
     startBtn.disabled = false;

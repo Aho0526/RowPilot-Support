@@ -11,8 +11,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>スペースインベーダー</title>
     <link rel="icon" id="ide-favicon" href="../assets/octopus.png" type="image/png">
-    <link rel="stylesheet" href="ide.css?v=6.2-2300">
-    <link rel="stylesheet" href="sticky-scroll.css?v=6.2">
+    <link rel="stylesheet" href="ide.css?v=7.3">
+    <link rel="stylesheet" href="sticky-scroll.css?v=7.3">
 </head>
 
 <body>
@@ -721,6 +721,27 @@
                     </div>
                 </div>
 
+                <!-- セクション: 動作モード -->
+                <div class="settings-section">
+                    <div class="settings-section-title">動作モード</div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-label">現在の動作モード</span>
+                            <span class="settings-row-desc">体験入学用（課題穴埋め状態）と通常本番（完成版状態）を切り替えます</span>
+                        </div>
+                        <div class="settings-theme-selector">
+                            <button type="button" class="theme-choice-btn is-active" id="btn-mode-production"
+                                title="完成版モード（全機能開放・プレイ可能）">
+                                <span>Production</span>
+                            </button>
+                            <button type="button" class="theme-choice-btn" id="btn-mode-trial"
+                                title="体験入学モード（課題・穴埋め状態）">
+                                <span>Trial-admission</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- セクション: システム情報 -->
                 <div class="settings-section settings-section-meta">
                     <div class="settings-meta-item">
@@ -733,7 +754,8 @@
                     </div>
                     <div class="settings-meta-item">
                         <span class="settings-meta-key">現在のモード</span>
-                        <span class="settings-meta-val settings-mode-badge is-production" id="settings-current-mode-val">Production</span>
+                        <span class="settings-meta-val settings-mode-badge is-production" id="settings-current-mode-val"
+                            style="cursor: pointer;" title="クリックでモードを切り替え">Production</span>
                     </div>
                 </div>
             </div>
@@ -746,9 +768,9 @@
         </div>
     </div>
 
-    <script src="linter.js?v=7.2"></script>
-    <script src="sticky-scroll.js?v=7.2"></script>
-    <script src="ide.js?v=7.2"></script>
+    <script src="linter.js?v=7.3"></script>
+    <script src="sticky-scroll.js?v=7.3"></script>
+    <script src="ide.js?v=7.3"></script>
 </body>
 
 </html>

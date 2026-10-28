@@ -135,7 +135,7 @@
 
                     <!-- アーケード特大スタートボタン (dev/game風の押し込みボタン) -->
                     <div class="arcade-action-wrap">
-                        <button type="button" id="btn-game-start" class="arcade-play-btn" onclick="if (!window.GameCoreLoaded) { alert('【STEP 1-3】ゲームの心臓 (core.js) を読み込もう！\n\nindex.html の案内に従って core.js を読み込むタグを記述し、「保存して反映」を押すとゲームが起動します！'); }">
+                        <button type="button" id="btn-game-start" class="arcade-play-btn">
                             <div class="btn-player-icon-box">
                                 <canvas id="preview-player" width="26" height="16"></canvas>
                             </div>
@@ -191,14 +191,12 @@
         </div>
 
         <div class="controls-hint">
-            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動 (A/D可)　/　<span class="key-tag">Enter</span> 開始　/　<span class="key-tag">Space</span> 攻撃 (Z可)・終了　/　<span class="key-tag">Esc</span> 一時停止
+            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動　/　<span class="key-tag">Enter</span> 開始　/　<span class="key-tag">Space</span> 攻撃・終了　/　<span class="key-tag">Esc</span> 一時停止
         </div>
     </div>
 
     <!-- 設定ファイル -->
     <script src="config.js"></script>
-    
-    <!-- コアエンジン -->
     <script src="core.js"></script>
 </body>
 </html>`
@@ -487,7 +485,7 @@
                 return;
             }
             try {
-                const resp = await fetch(files[key].path + cacheBust);
+                const resp = await fetch(files[key].path + cacheBust, { cache: 'no-store' });
                 if (resp.ok) {
                     const rawText = await resp.text();
                     const isHtml = files[key].type === 'html' || key.endsWith('.html');
@@ -519,11 +517,14 @@
             renderSpriteGrid();
         }
 
-        // URLパラメータ ?mode=trial がある場合は初期状態で体験入学モードを適用
+        // URLパラメータ ?mode=trial / ?mode=production による初期モード適用
         try {
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('mode') === 'trial' && !isTrialAdmissionBroken()) {
+            const modeParam = urlParams.get('mode');
+            if (modeParam === 'trial' && !isTrialAdmissionBroken()) {
                 applyTrialAdmissionBreak();
+            } else if (modeParam === 'production' && isTrialAdmissionBroken()) {
+                restoreTrialAdmission();
             }
         } catch (e) {
             console.warn('URLパラメータの解析に失敗しました:', e);
@@ -1276,8 +1277,8 @@
     function renderDiagnosticItemHtml(item, defaultFileKey) {
         const isErr = item.severity === 'error';
         const itemClass = isErr ? 'severity-error' : 'severity-warning';
-        const iconHtml = isErr 
-            ? `<span class="diag-badge-icon error" title="エラー">!</span>` 
+        const iconHtml = isErr
+            ? `<span class="diag-badge-icon error" title="エラー">!</span>`
             : `<span class="diag-badge-icon warning" title="警告">${WARNING_TRIANGLE_SVG}</span>`;
         const targetFile = item.filename || defaultFileKey;
         const fileBadge = `<span class="diagnostic-file-badge">${escapeHtml(targetFile)}</span>`;
@@ -2393,9 +2394,10 @@
         }
 
         // 2. タブファビコンの自動同期 (例: assets/squid.png -> ../assets/squid.png)
-        const iconMatch = html.match(/<link\s+[^>]*rel=["'](?:shortcut\s+)?icon["'][^>]*href=["']([^"']+)["'][^>]*>/i);
-        if (iconMatch && iconMatch[1]) {
-            let iconPath = iconMatch[1].trim();
+        const iconTagMatch = html.match(/<link\s+[^>]*rel=["'](?:shortcut\s+)?icon["'][^>]*>/i);
+        const iconHrefMatch = iconTagMatch ? iconTagMatch[0].match(/href=["']([^"']+)["']/i) : null;
+        if (iconHrefMatch && iconHrefMatch[1]) {
+            let iconPath = iconHrefMatch[1].trim();
             if (!iconPath.startsWith('http') && !iconPath.startsWith('/') && !iconPath.startsWith('../')) {
                 iconPath = '../' + iconPath;
             }
@@ -2407,6 +2409,11 @@
                 document.head.appendChild(link);
             }
             link.href = iconPath;
+        } else {
+            const link = document.querySelector("link[rel*='icon']");
+            if (link) {
+                link.href = 'data:,';
+            }
         }
     }
 
@@ -3365,17 +3372,18 @@
     // ─────────────────────────────────────────────
     function updateSettingsModeDisplay() {
         const badge = document.getElementById('settings-current-mode-val');
-        if (!badge) return;
+        const btnProd = document.getElementById('btn-mode-production');
+        const btnTrial = document.getElementById('btn-mode-trial');
         const isBroken = isTrialAdmissionBroken();
-        if (isBroken) {
-            badge.textContent = 'Trial-admission';
-            badge.className = 'settings-meta-val settings-mode-badge is-trial';
-            badge.title = '体験入学モード（課題・穴埋め状態）';
-        } else {
-            badge.textContent = 'Production';
-            badge.className = 'settings-meta-val settings-mode-badge is-production';
-            badge.title = '通常・本番モード（完成版状態）';
+
+        if (badge) {
+            badge.textContent = isBroken ? 'Trial-admission' : 'Production';
+            badge.className = `settings-meta-val settings-mode-badge ${isBroken ? 'is-trial' : 'is-production'}`;
+            badge.title = isBroken ? '体験入学モード（課題・穴埋め状態）- クリックで完成版へ' : '通常・完成版モード（動作可能）- クリックで体験入学版へ';
         }
+
+        if (btnProd) btnProd.classList.toggle('is-active', !isBroken);
+        if (btnTrial) btnTrial.classList.toggle('is-active', isBroken);
     }
 
     // ─────────────────────────────────────────────
@@ -3417,38 +3425,44 @@
         const html = files['index.html'].content || '';
         const cfg = files['config.js']?.content || '';
         const hasCoreScript = /<script\s+[^>]*src=["']core\.js["'][^>]*>/i.test(html);
-        const hasStepComment = html.includes('【STEP') || cfg.includes('【STEP');
+        // HTMLコメント・JSコメントの【STEP】のみを対象とする (ボタンのonclick属性内等のテキストを誤検知しない)
+        const hasStepComment = /<!--\s*【STEP/i.test(html) || /\/\/\s*【STEP/i.test(cfg);
         const hasZeroSpeed = /(?:player|bullet):\s*\{[\s\S]*?speed:\s*0\b/i.test(cfg);
         return !hasCoreScript || hasZeroSpeed || hasStepComment;
     }
 
     function applyTrialAdmissionBreak() {
         // 1. 本番完成版コード（Production）が未退避であれば確実に退避
+        const currentlyBroken = isTrialAdmissionBroken();
         for (let k in files) {
             if (files[k] && !files[k].isBinary && typeof files[k].content === 'string') {
-                if (!files[k].productionContent) {
+                if (!files[k].productionContent && !currentlyBroken) {
                     files[k].productionContent = files[k].content;
                 }
             }
         }
 
-        // 2. index.html に体験入学用 STEP コメント（1-1, 1-2, 1-3）を挿入し、core.js 読み込みを外す
+        // 2. index.html に体験入学用 STEP コメント（1-1, 1-2, 1-3）を挿入し、icon・core.js 読み込みを外す
         if (files['index.html']) {
             let html = files['index.html'].productionContent || files['index.html'].content;
             // STEP 1-1
-            if (!html.includes('【STEP 1-1】')) {
-                html = html.replace(/(<title>)/i, '    <!-- 【STEP 1-1】ブラウザのタブの名前を自分のゲーム名にしよう！ -->\n$1');
+            if (!/<!--\s*【STEP 1-1】/i.test(html)) {
+                html = html.replace(/^([ \t]*)(<title>)/im, '$1<!-- 【STEP 1-1】ブラウザのタブの名前を自分のゲーム名にしよう！ -->\n$1$2');
             }
-            // STEP 1-2
-            if (!html.includes('【STEP 1-2】')) {
-                html = html.replace(/(<link\s+[^>]*rel=["']icon["'][^>]*>)/i, '    <!-- 【STEP 1-2】タブのアイコンをお気に入りのキャラにしよう！ -->\n    <!-- assetsフォルダの中から好きな画像を選んで書いてみよう -->\n$1');
+            // STEP 1-2 (9行目にコメントを配置し、その下の <link rel="icon" ...> は生徒に書かせる)
+            if (!/<!--\s*【STEP 1-2】/i.test(html)) {
+                if (/<link\s+[^>]*rel=["'](?:shortcut\s+)?icon["'][^>]*>/i.test(html)) {
+                    html = html.replace(/^([ \t]*)<link\s+[^>]*rel=["'](?:shortcut\s+)?icon["'][^>]*>/im, '$1<!-- 【STEP 1-2】タブのアイコンをお気に入りのキャラにしよう！ -->\n$1');
+                } else {
+                    html = html.replace(/(<\/title>)/i, '$1\n    <!-- 【STEP 1-2】タブのアイコンをお気に入りのキャラにしよう！ -->\n    ');
+                }
             }
-            // STEP 1-3 & core.js タグの穴埋め化
-            html = html.replace(/<script\s+[^>]*src=["']core\.js["'][^>]*>\s*<\/script>\s*/gi, '');
-            if (!html.includes('【STEP 1-3】')) {
+            // STEP 1-3 & core.js タグの穴埋め化 (263行目にコメント、264行目に記述行)
+            html = html.replace(/[ \t]*<script\s+[^>]*src=["']core\.js["'][^>]*>\s*<\/script>[ \t]*\r?\n?/gi, '');
+            if (!/<!--\s*【STEP 1-3】/i.test(html)) {
                 html = html.replace(
                     /(<script\s+[^>]*src=["']config\.js["'][^>]*>\s*<\/script>)/i,
-                    '$1\n\n    <!-- 【STEP 1-3】ゲームの心臓 (core.js) を読み込もう！ -->\n    <!-- ▼ ここに「<script src="core.js"></script>」と書いてゲームを起動させよう -->\n'
+                    '$1\n\n    <!-- 【STEP 1-3】ゲームの心臓(core.js)を読み込もう！ -->\n    '
                 );
             }
             files['index.html'].content = html;
@@ -3475,9 +3489,9 @@
         // 4. style.css に STEP 2 コメントを挿入
         if (files['style.css']) {
             let css = files['style.css'].productionContent || files['style.css'].content;
-            if (!css.includes('【STEP 2】')) {
+            if (!/\/\*\s*【STEP 2】/i.test(css)) {
                 css = css.replace(
-                    /(\.arcade-play-btn\s*\{)/i,
+                    /^([ \t]*\.arcade-play-btn\s*\{)/m,
                     '/* 【STEP 2】特大スタートボタンを自分の好きな色に光らせよう！ */\n/* （お手本: #00ffff 水色, #ff007f ピンク, #ffcc00 黄色） */\n$1'
                 );
                 files['style.css'].content = css;
@@ -3493,8 +3507,9 @@
             }
         }
 
-        // 6. ★即座に index.html を開き、診断を実行してバグ箇所を即座に特定表示
+        // 6. 即座に index.html を開き、エディタ・診断を完全再描画
         switchToFile('index.html');
+        renderEditor();
         runDiagnostics('index.html');
 
         updateTabsUI();
@@ -3513,7 +3528,7 @@
                 const lines = (codeTextarea ? codeTextarea.value : files['index.html'].content).split('\n');
                 let targetLine = -1;
                 for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].includes('STEP 1-3') || lines[i].includes('ゲームの心臓')) {
+                    if (lines[i].includes('<!--') && (lines[i].includes('STEP 1-3') || lines[i].includes('ゲームの心臓'))) {
                         targetLine = Math.min(lines.length, i + 2); // 案内コメントの次行（記述行）
                         break;
                     }
@@ -3532,11 +3547,19 @@
         if (files['index.html']) {
             let restored = files['index.html'].productionContent || files['index.html'].content;
             // STEP 1-1, 1-2, 1-3 関連コメントを綺麗に除去
-            restored = restored.replace(/\s*<!--\s*【STEP 1-1】[^\n]*-->\s*\n?/gi, '\n');
-            restored = restored.replace(/\s*<!--\s*【STEP 1-2】[^\n]*-->\s*\n?/gi, '\n');
-            restored = restored.replace(/\s*<!--\s*assetsフォルダの中から[^\n]*-->\s*\n?/gi, '\n');
-            restored = restored.replace(/\s*<!--\s*【STEP 1-3】[^\n]*-->\s*\n?/gi, '\n');
-            restored = restored.replace(/\s*<!--\s*▼ ここに「.*?」と書いてゲームを起動させよう\s*-->\s*\n?/gi, '\n');
+            restored = restored.replace(/[ \t]*<!--\s*【STEP 1-1】[^\n]*-->[ \t]*\r?\n?/gi, '');
+            restored = restored.replace(/[ \t]*<!--\s*【STEP 1-2】[^\n]*-->[ \t]*\r?\n?(?:[ \t]*\r?\n)?/gi, '');
+            restored = restored.replace(/[ \t]*<!--\s*assetsフォルダの中から[^\n]*-->[ \t]*\r?\n?/gi, '');
+            restored = restored.replace(/\r?\n?[ \t]*<!--\s*【STEP 1-3】[^\n]*-->[ \t]*\r?\n?(?:[ \t]*\r?\n)?/gi, '\n');
+            restored = restored.replace(/[ \t]*<!--\s*▼ ここに「.*?」と書いてゲームを起動させよう\s*-->[ \t]*\r?\n?/gi, '');
+
+            // icon タグがなければ <title> の直後に確実に再配置
+            if (!/<link\s+[^>]*rel=["'](?:shortcut\s+)?icon["'][^>]*>/i.test(restored)) {
+                restored = restored.replace(
+                    /(<title>[\s\S]*?<\/title>)/i,
+                    '$1\n    <link rel="icon" href="assets/octopus.png" type="image/png">'
+                );
+            }
 
             // core.js タグがなければ config.js の直後に確実に再配置
             if (!/<script\s+[^>]*src=["']core\.js["'][^>]*>/i.test(restored)) {
@@ -3561,14 +3584,17 @@
             restored = restored.replace(/\s*\/\/\s*【STEP 3-1】[^\n]*\n?/gi, '');
             restored = restored.replace(/\s*\/\/\s*【STEP 3-2】[^\n]*\n?/gi, '');
             // 速度パラメータを完成値に戻す
-            restored = restored.replace(/(player:\s*\{[\s\S]*?speed:\s*)0\b/i, '$15');
-            restored = restored.replace(/(bullet:\s*\{[\s\S]*?speed:\s*)0\b/i, '$1-8');
+            restored = restored.replace(/(player:\s*\{[\s\S]*?speed:\s*)[0-9.]+/i, '$15');
+            restored = restored.replace(/(bullet:\s*\{[\s\S]*?speed:\s*)-?[0-9.]+/i, '$1-8');
             files['config.js'].content = restored;
             files['config.js'].productionContent = restored;
         }
 
         if (files['style.css']) {
             let restored = files['style.css'].productionContent || files['style.css'].content;
+            // 万が一複合セレクタの途中に STEP 2 コメントが挟まっていた場合もスペース1つに復元
+            restored = restored.replace(/(\.is-standby)[ \t]*\/\*\s*【STEP 2】[\s\S]*?\*\/(?:\s*\/\*\s*（お手本:[^\n]*\*\/)?\s*(\.arcade-play-btn)/gi, '$1 $2');
+            restored = restored.replace(/(\.arcade-home-container\.is-standby)\s*\n+\s*(\.arcade-play-btn\s*\{)/gi, '$1 $2');
             // STEP 2 コメントを除去
             restored = restored.replace(/\s*\/\*\s*【STEP 2】[\s\S]*?\*\/\s*\n?/gi, '\n');
             restored = restored.replace(/\s*\/\*\s*（お手本:[^\n]*\*\/\s*\n?/gi, '\n');
@@ -3604,7 +3630,34 @@
         showToast('完成版コード（Production）に復元しました！', false);
     }
 
-    // イベントリスナーの登録 (trial-admission / editor フォルダ行 & ヘッダーのエディタ文字)
+    // イベントリスナーの登録 (設定モーダルのモード切替ボタン & trial-admission / editor フォルダ行 & ヘッダーのエディタ文字)
+    const btnModeProduction = document.getElementById('btn-mode-production');
+    if (btnModeProduction) {
+        btnModeProduction.addEventListener('click', () => {
+            if (!isTrialAdmissionBroken()) {
+                showToast('すでに Production (完成版) モードです');
+            } else {
+                restoreTrialAdmission();
+            }
+        });
+    }
+
+    const btnModeTrial = document.getElementById('btn-mode-trial');
+    if (btnModeTrial) {
+        btnModeTrial.addEventListener('click', () => {
+            if (isTrialAdmissionBroken()) {
+                showToast('すでに Trial-admission (体験入学) モードです');
+            } else {
+                applyTrialAdmissionBreak();
+            }
+        });
+    }
+
+    const modeBadgeVal = document.getElementById('settings-current-mode-val');
+    if (modeBadgeVal) {
+        modeBadgeVal.addEventListener('click', triggerModeToggleConfirm);
+    }
+
     const folderToggleRoot = document.getElementById('folder-toggle-root');
     if (folderToggleRoot) {
         folderToggleRoot.addEventListener('click', handleEasterEggClick);

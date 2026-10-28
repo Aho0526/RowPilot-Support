@@ -3060,6 +3060,8 @@
         let pendingProperty = null; // 複数行にわたるプロパティ宣言の追跡
         let insideAtMedia = false;
         let atMediaDepth = 0;
+        let insideAtKeyframes = false;
+        let atKeyframesDepth = 0;
 
         for (let i = 0; i < lines.length; i++) {
             const rawLine = lines[i];
@@ -3074,6 +3076,10 @@
             if (hasOpenBrace && /^@media\b/i.test(clean)) {
                 insideAtMedia = true;
                 atMediaDepth = depthBeforeLine + 1;
+            }
+            if (hasOpenBrace && /^@(?:-webkit-)?keyframes\b/i.test(clean)) {
+                insideAtKeyframes = true;
+                atKeyframesDepth = depthBeforeLine + 1;
             }
 
             // 1行完結ルール（例: 0%, 49% { opacity: 1; } や .box { positio: relative; }）の検査
@@ -3116,6 +3122,9 @@
                     braceDepth = Math.max(0, braceDepth - 1);
                     if (insideAtMedia && braceDepth < atMediaDepth) {
                         insideAtMedia = false;
+                    }
+                    if (insideAtKeyframes && braceDepth < atKeyframesDepth) {
+                        insideAtKeyframes = false;
                     }
                     if (pendingProperty) {
                         issues.push(createIssue(
@@ -3400,6 +3409,17 @@
                         }
                         if (leadsToOpenBrace) continue;
                     }
+                    if (insideAtKeyframes && braceDepth === atKeyframesDepth) {
+                        // @keyframes 内のキーフレームセレクタ (from, to, 0% 等)
+                        let leadsToOpenBrace = false;
+                        for (let j = i + 1; j < lines.length; j++) {
+                            const nextClean = cleanLines[j].trim();
+                            if (!nextClean) continue;
+                            if (nextClean.includes('{')) { leadsToOpenBrace = true; break; }
+                            if (nextClean.includes('}') || nextClean.includes(';')) break;
+                        }
+                        if (leadsToOpenBrace) continue;
+                    }
                     issues.push(createIssue(
                         offset + i + 1,
                         rawLine.indexOf(clean) + 1,
@@ -3408,6 +3428,25 @@
                         'error',
                         rawLine
                     ));
+                } else if (insideAtKeyframes && braceDepth === atKeyframesDepth) {
+                    // @keyframes 内のキーフレームセレクタ (0%, 50%, 100% など)
+                    let leadsToOpenBrace = false;
+                    for (let j = i + 1; j < lines.length; j++) {
+                        const nextClean = cleanLines[j].trim();
+                        if (!nextClean) continue;
+                        if (nextClean.includes('{')) { leadsToOpenBrace = true; break; }
+                        if (nextClean.includes('}') || nextClean.includes(';')) break;
+                    }
+                    if (!leadsToOpenBrace && !clean.endsWith(',')) {
+                        issues.push(createIssue(
+                            offset + i + 1,
+                            Math.max(1, rawLine.indexOf(clean) + 1),
+                            `キーフレームセレクタ「${clean}」の後に波括弧「 { 」がありません`,
+                            `キーフレームの後ろに「 { ... } 」を記述してください`,
+                            'error',
+                            rawLine
+                        ));
+                    }
                 } else if (!(insideAtMedia && braceDepth === atMediaDepth && clean.endsWith(','))) {
                     issues.push(createIssue(
                         offset + i + 1,
@@ -3534,8 +3573,8 @@
                     }
                     if (scriptLines.length > 0) {
                         const scriptCode = scriptLines.join('\n');
-                        // Cloudflare や CDN インフラ自動注入スクリプトは構文チェック対象外
-                        const isPlatformInjected = /\/cdn-cgi\/|__CF\$cv\$params|cloudflare/i.test(scriptCode);
+                        // Cloudflare や Live Server 等の開発インフラ自動注入スクリプトは構文チェック対象外
+                        const isPlatformInjected = /\/cdn-cgi\/|__CF\$cv\$params|cloudflare|\brefreshCSS\b|live-server|Live-Reloading|IsThisFirstTime_Log_From_LiveServer/i.test(scriptCode);
                         if (!isPlatformInjected) {
                             let jsIssues = []
                                 .concat(checkFullwidthCharacters('inline.js', scriptCode))
@@ -4298,24 +4337,24 @@
 
     const VALID_JS_MEMBER_NAMES = new Set([
         // core.js project members
-        'AudioContext', 'GameConfig', 'UFO', 'abs', 'action', 'active', 'activeElement', 'add',
-        'addEventListener', 'alive', 'alpha', 'animFrame', 'arcade', 'background', 'blur',
-        'bonusScore', 'buffer', 'bullet', 'bulletSpeed', 'bunker', 'checkHit', 'classList',
+        'AudioContext', 'GameConfig', 'UFO', 'WebSocket', 'abs', 'action', 'active', 'activeElement', 'add',
+        'addEventListener', 'alive', 'alpha', 'animFrame', 'apply', 'arcade', 'background', 'bind', 'blur',
+        'bonusScore', 'buffer', 'bullet', 'bulletSpeed', 'bunker', 'call', 'checkHit', 'classList',
         'clearRect', 'code', 'col', 'color', 'colors', 'cols', 'complete', 'connect', 'corrode',
         'count', 'createBuffer', 'createBufferSource', 'createGain', 'createOscillator',
         'currentTime', 'damage', 'damageFlashTimer', 'data', 'destination', 'difficulty', 'dir', 'disconnect',
         'display', 'draw', 'drawImage', 'dropAmount', 'dyingTimer', 'enabled', 'enemy', 'exp',
         'exponentialRampToValueAtTime', 'fillRect', 'fillStyle', 'fillText', 'filter',
         'fireInterval', 'floor', 'focus', 'font', 'forEach', 'frequency', 'gain', 'game',
-        'getAttribute', 'getChannelData', 'getContext', 'getElementById', 'getItem', 'grid',
+        'getAttribute', 'getChannelData', 'getContext', 'getElementById', 'getElementsByTagName', 'getItem', 'grid',
         'hardHpBoost', 'height', 'hp', 'includes', 'interval', 'isArray', 'isNaN', 'jpg', 'js', 'key', 'left',
         'length', 'linearRampToValueAtTime', 'lives', 'map', 'max', 'maxBullets', 'maxHp', 'maxWaves',
-        'min', 'muzzle', 'naturalWidth', 'noPassThrough', 'normal', 'now', 'padStart',
+        'min', 'muzzle', 'naturalWidth', 'noPassThrough', 'normal', 'now', 'onmessage', 'onerror', 'onopen', 'onclose', 'padStart',
         'passThroughPlayer', 'pattern', 'pixelSize', 'playBunkerHit', 'playInvaderHit', 'playPlayerHit',
         'playShoot', 'playUFOHit', 'playWalk', 'player', 'playerBlow', 'preventDefault',
         'prevY', 'push', 'querySelectorAll', 'random', 'readyState', 'regenerateEachWave',
         'reloadGameWithNewConfig', 'remove', 'restore', 'resume', 'right', 'round', 'row',
-        'rows', 'sampleRate', 'save', 'scale', 'score', 'scoreText', 'scores', 'setItem',
+        'rows', 'sampleRate', 'save', 'scale', 'score', 'scoreText', 'scores', 'send', 'setItem',
         'setValueAtTime', 'shoot', 'shootInterval', 'sin', 'size', 'slice', 'sound', 'speed',
         'splice', 'spriteKey', 'spritePattern', 'sprites', 'sqrt', 'src', 'start', 'startUFO',
         'state', 'stop', 'stopPropagation', 'stopUFO', 'style', 'textAlign', 'textBaseline',
@@ -4327,7 +4366,7 @@
         'previousSibling', 'appendChild', 'removeChild', 'insertBefore', 'replaceChild',
         'cloneNode', 'contains', 'setAttribute', 'removeAttribute', 'hasAttribute',
         'getBoundingClientRect', 'scrollIntoView', 'click', 'submit', 'reset',
-        'querySelector', 'createElement', 'removeItem', 'clear', 'parse', 'stringify',
+        'querySelector', 'createElement', 'close', 'removeItem', 'clear', 'parse', 'stringify',
         // Standard Canvas 2D & Web APIs & Array/String/Number/Object prototype methods
         'strokeRect', 'strokeText', 'measureText', 'beginPath', 'closePath', 'moveTo',
         'lineTo', 'arc', 'arcTo', 'quadraticCurveTo', 'bezierCurveTo', 'rect', 'roundRect',
@@ -5124,7 +5163,6 @@
                     { id: 'start-overlay', desc: 'ホーム画面オーバーレイ (id="start-overlay")' },
                     { id: 'btn-game-start', desc: 'ゲーム開始ボタン (id="btn-game-start")' },
                     { id: 'diff-options', desc: '難易度選択ボタン群 (id="diff-options")' },
-                    { id: 'bunker-options', desc: 'トーチカ貫通選択ボタン群 (id="bunker-options")' },
                     { id: 'wave-options', desc: 'WAVE数選択ボタン群 (id="wave-options")' },
                     { id: 'home-hiscore', desc: 'ハイスコア表示 (id="home-hiscore")' },
                     { id: 'pause-overlay', desc: '一時停止オーバーレイ (id="pause-overlay")' },
@@ -5208,7 +5246,7 @@
                     // 【STEP 1-3】の案内コメント行（ゲームの心臓 / core.js）を探す
                     for (let k = 0; k < lines.length; k++) {
                         const l = lines[k];
-                        if (l.includes('STEP 1-3') || l.includes('ゲームの心臓') || (l.includes('core.js') && l.includes('<!--'))) {
+                        if (l.includes('<!--') && (l.includes('STEP 1-3') || l.includes('ゲームの心臓') || l.includes('core.js'))) {
                             targetLine = Math.min(lines.length, k + 2);
                             break;
                         }
@@ -5330,18 +5368,26 @@
 
             // 2. style.css の ID / クラスセレクタが index.html / core.js に存在するか横断チェック（@media 内も含む）
             if (filename === 'style.css' && allFiles['index.html']) {
-                const knownIds = new Set();
+                const knownIds = new Set([
+                    'monaca-error-hud', 'arcade-home-container', 'diff-guide-text',
+                    'start-btn-sub', 'arcade-start-hint', 'bunker-options'
+                ]);
                 const knownClasses = new Set([
                     // JSで動的に付与されるHUDやUIモック用クラス・ID
-                    'hidden', 'active', 'edit-mode',
-                    'modal-sprite-cell', 'monaca-error-hud', 'monaca-hud-badge', 'hud-badge-dot',
+                    'hidden', 'active', 'edit-mode', 'is-standby', 'in-iframe', 'transitioning-to-editor',
+                    'diff-guide-row', 'diff-guide-icon', 'diff-guide-msg',
+                    'modal-sprite-cell', 'dot-modal-overlay', 'dot-modal-box', 'dot-modal-header',
+                    'dot-modal-title', 'dot-modal-close', 'dot-modal-toolbar', 'modal-sym-label',
+                    'modal-btn', 'dot-modal-body', 'modal-grid-wrap', 'modal-sprite-grid',
+                    'modal-preview-box', 'modal-preview-title', 'modal-size-info', 'dot-modal-footer',
+                    'modal-btn-apply', 'modal-btn-copy',
+                    'monaca-error-hud', 'monaca-hud-badge', 'hud-badge-dot',
                     'hud-badge-title', 'hud-badge-line', 'monaca-hud-body', 'monaca-hud-title',
                     'monaca-hud-msg', 'monaca-hud-hint', 'monaca-hud-footer',
                     'editor-transition-mock', 'mock-header', 'mock-brand', 'mock-body',
                     'mock-sidebar', 'mock-item', 'mock-dot', 'mock-editor', 'mock-tabs',
                     'mock-tab', 'mock-code', 'mock-line-nums', 'mock-code-lines', 'mock-code-bar'
                 ]);
-                knownIds.add('monaca-error-hud');
 
                 const htmlText = stripHtmlCommentsPreservingLines(getFileContent('index.html'));
                 // core.js および index.html のインラインスクリプト両方から classList / className 参照を動的収集
@@ -5457,9 +5503,13 @@
         // ── C. core.js の横断チェック (index.html のDOM ID/クラス参照 & スプライト名 & アセットパス整合性) ──
         if (filename === 'core.js' && allFiles['index.html']) {
             const htmlText = stripHtmlCommentsPreservingLines(getFileContent('index.html'));
-            const htmlIds = new Set(['monaca-error-hud', 'btn-left', 'btn-right', 'btn-fire', 'btn-sound']);
+            const htmlIds = new Set([
+                'monaca-error-hud', 'btn-left', 'btn-right', 'btn-fire', 'btn-sound',
+                'arcade-home-container', 'diff-guide-text', 'start-btn-sub', 'arcade-start-hint', 'bunker-options'
+            ]);
             const htmlClasses = new Set([
                 'in-iframe', 'hidden', 'active', 'edit-mode', 'transitioning-to-editor',
+                'is-standby', 'diff-guide-row', 'diff-guide-icon', 'diff-guide-msg',
                 'modal-sprite-cell', 'monaca-error-hud'
             ]);
 
