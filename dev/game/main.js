@@ -10,10 +10,10 @@ const CELL = 56;
 const LEFT_W = 108;
 const RIGHT_W = 108;
 const TOTAL_W = LEFT_W + COLS * CELL + RIGHT_W;
+const GY = 36;
 const TOTAL_H = ROWS * CELL + 44;
 
 const GX = LEFT_W;
-const GY = 0;
 
 const WALK_SPEED = 0.015;
 const JUMP_SPEED = 0.040;
@@ -234,13 +234,13 @@ function simulateGimmickBlockMoves() {
             break;
         }
 
-        // 衝突を避ける自然な順序でソート（先頭側のブロックから動かす）
+        // 衝突を避ける自然な順序でソート（横方向の移動を先に退避させ、縦の落下・上昇を処理）
+        const rightMoves = candidateMoves.filter(m => m.gimmick.dir === 'right').sort((a, b) => b.fromCol - a.fromCol);
+        const leftMoves = candidateMoves.filter(m => m.gimmick.dir === 'left').sort((a, b) => a.fromCol - b.fromCol);
         const upMoves = candidateMoves.filter(m => m.gimmick.dir === 'up').sort((a, b) => a.fromRow - b.fromRow);
         const downMoves = candidateMoves.filter(m => m.gimmick.dir === 'down').sort((a, b) => b.fromRow - a.fromRow);
-        const leftMoves = candidateMoves.filter(m => m.gimmick.dir === 'left').sort((a, b) => a.fromCol - b.fromCol);
-        const rightMoves = candidateMoves.filter(m => m.gimmick.dir === 'right').sort((a, b) => b.fromCol - a.fromCol);
 
-        const orderedMoves = [...upMoves, ...downMoves, ...leftMoves, ...rightMoves];
+        const orderedMoves = [...rightMoves, ...leftMoves, ...upMoves, ...downMoves];
         const roundMoves = [];
 
         orderedMoves.forEach(m => {
@@ -519,11 +519,12 @@ function drawGround() {
     ctx.fillRect(gridRight - 14, goalGroundY, 14, TOTAL_H - goalGroundY);
 
     // 奈落の最下部グラデーション
-    const pitGrad = ctx.createLinearGradient(0, ROWS * CELL, 0, TOTAL_H);
+    const pitTop = GY + ROWS * CELL;
+    const pitGrad = ctx.createLinearGradient(0, pitTop, 0, TOTAL_H);
     pitGrad.addColorStop(0, 'rgba(15, 23, 42, 0.12)');
     pitGrad.addColorStop(1, 'rgba(15, 23, 42, 0.50)');
     ctx.fillStyle = pitGrad;
-    ctx.fillRect(gridLeft, ROWS * CELL, gridRight - gridLeft, TOTAL_H - ROWS * CELL);
+    ctx.fillRect(gridLeft, pitTop, gridRight - gridLeft, Math.max(0, TOTAL_H - pitTop));
 
     ctx.restore();
 }
@@ -1065,6 +1066,19 @@ function solveRoute() {
                 curTime += (COLS - 0.5 + 0.15 - curX) / JUMP_SPEED * 16.67;
                 curX = COLS - 0.5 + 0.15;
                 curY = st.goalRow;
+                keyframes.push({ x: curX, y: curY, type: 'done', time: curTime });
+                return keyframes;
+            } else if (curY === st.goalRow - 1) {
+                // グリッドを出た後に1マス下がってゴールイン！（S5, S9, S17等）
+                keyframes[curKfIdx].type = 'walk';
+                curTime += (COLS - 0.15 - curX) / WALK_SPEED * 16.67;
+                curX = COLS - 0.15;
+                keyframes.push({ x: curX, y: curY, type: 'fall', time: curTime });
+                curTime += 60;
+                curY = st.goalRow;
+                keyframes.push({ x: curX, y: curY, type: 'walk', time: curTime });
+                curTime += (COLS - 0.5 + 0.15 - curX) / WALK_SPEED * 16.67;
+                curX = COLS - 0.5 + 0.15;
                 keyframes.push({ x: curX, y: curY, type: 'done', time: curTime });
                 return keyframes;
             } else {
@@ -2024,6 +2038,16 @@ window.addEventListener('DOMContentLoaded', () => {
     updateBlockBadge();
     updateLegendUI();
     updateSelectScreenUI();
+
+    // 外部/テスト用露出
+    window.__game = {
+        selectStage,
+        applySolutionToGrid,
+        triggerStart,
+        triggerReset,
+        switchView,
+        getStage
+    };
 
     // 初期画面はホーム
     switchView('home');

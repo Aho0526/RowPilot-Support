@@ -21,7 +21,6 @@ const STAGES = [
         ],
         gimmicks: [
             { col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: true },
-            { col: 2, row: 1, type: 'dash', dir: 'left', purpleBorder: false },
             { col: 3, row: 1, type: 'step', dir: 'left', steps: 1 }
         ],
         solution: [
@@ -121,7 +120,7 @@ const STAGES = [
         ],
         solution: [
             { col: 1, row: 1 }, { col: 2, row: 1 },
-            { col: 2, row: 2 },
+            { col: 3, row: 2 },
             { col: 1, row: 3 }, { col: 2, row: 3 }
         ],
         legends: [
@@ -279,7 +278,7 @@ const STAGES = [
         subtitle: '上へ持ち上げられるブロック',
         maxBlocks: 6,
         startRow: 2,
-        goalRow: 1,
+        goalRow: 0,
         forbidden: [
             { col: 2, row: 0 },
             { col: 2, row: 3 }
@@ -326,11 +325,10 @@ const STAGES = [
             { col: 0, row: 4, type: 'step', dir: 'right', steps: 1 }
         ],
         solution: [
-            { col: 1, row: 0 },
+            { col: 1, row: 0 }, { col: 2, row: 0 },
             { col: 3, row: 1 },
-            { col: 1, row: 2 }, { col: 3, row: 2 },
-            { col: 3, row: 3 },
-            { col: 0, row: 4 }
+            { col: 3, row: 2 },
+            { col: 2, row: 3 }, { col: 3, row: 3 }
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
@@ -358,7 +356,7 @@ const STAGES = [
         ],
         solution: [
             { col: 2, row: 0 },
-            { col: 1, row: 1 }, { col: 4, row: 1 },
+            { col: 1, row: 1 }, { col: 4, row: 2 },
             { col: 0, row: 2 }, { col: 3, row: 2 },
             { col: 1, row: 3 }, { col: 2, row: 3 }
         ],
@@ -442,47 +440,11 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 14
+    // ステージ 14 (旧ステージ 15)
     // ------------------------------------------
     {
         id: 14,
         title: 'ステージ 14',
-        subtitle: 'ジグザグの狭路',
-        maxBlocks: 5,
-        startRow: 1,
-        goalRow: 3,
-        forbidden: [
-            { col: 2, row: 0 }, { col: 4, row: 0 },
-            { col: 2, row: 1 }, { col: 4, row: 1 },
-            { col: 0, row: 2 },
-            { col: 0, row: 3 }, { col: 4, row: 3 },
-            { col: 0, row: 4 }, { col: 4, row: 4 }
-        ],
-        gimmicks: [
-            { col: 3, row: 0, type: 'step', dir: 'right', steps: 1 },
-            { col: 1, row: 1, type: 'step', dir: 'left', steps: 1 },
-            { col: 1, row: 4, type: 'dash', dir: 'right', purpleBorder: true },
-            { col: 3, row: 4, type: 'step', dir: 'up', steps: 1 }
-        ],
-        solution: [
-            { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 },
-            { col: 1, row: 3 },
-            { col: 1, row: 4 }
-        ],
-        legends: [
-            { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
-            { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
-            { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
-        ]
-    },
-
-    // ------------------------------------------
-    // ステージ 15
-    // ------------------------------------------
-    {
-        id: 15,
-        title: 'ステージ 15',
         subtitle: '外周ギミックを回せ',
         maxBlocks: 6,
         startRow: 1,
@@ -500,8 +462,8 @@ const STAGES = [
         ],
         solution: [
             { col: 0, row: 1 }, { col: 0, row: 2 },
-            { col: 1, row: 3 }, { col: 2, row: 3 },
-            { col: 0, row: 4 }, { col: 4, row: 2 }
+            { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 },
+            { col: 0, row: 4 }
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
@@ -512,11 +474,11 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 16
+    // ステージ 15 (旧ステージ 16)
     // ------------------------------------------
     {
-        id: 16,
-        title: 'ステージ 16',
+        id: 15,
+        title: 'ステージ 15',
         subtitle: '左右の壁に挟まれた回廊',
         maxBlocks: 5,
         startRow: 1,
@@ -547,11 +509,11 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 17
+    // ステージ 16 (旧ステージ 17)
     // ------------------------------------------
     {
-        id: 17,
-        title: 'ステージ 17',
+        id: 16,
+        title: 'ステージ 16',
         subtitle: '高低差を乗り越えろ',
         maxBlocks: 5,
         startRow: 3,
@@ -578,11 +540,11 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 18
+    // ステージ 17 (旧ステージ 18)
     // ------------------------------------------
     {
-        id: 18,
-        title: 'ステージ 18',
+        id: 17,
+        title: 'ステージ 17',
         subtitle: '斜め障害物を縫う道',
         maxBlocks: 5,
         startRow: 1,
@@ -611,11 +573,11 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 19
+    // ステージ 18 (旧ステージ 19)
     // ------------------------------------------
     {
-        id: 19,
-        title: 'ステージ 19',
+        id: 18,
+        title: 'ステージ 18',
         subtitle: '最終関門・中央の壁',
         maxBlocks: 6,
         startRow: 2,
@@ -636,6 +598,42 @@ const STAGES = [
             { col: 1, row: 1 },
             { col: 0, row: 2 }, { col: 2, row: 2 },
             { col: 1, row: 3 }, { col: 2, row: 3 },
+            { col: 1, row: 4 }
+        ],
+        legends: [
+            { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
+            { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
+            { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
+        ]
+    },
+
+    // ------------------------------------------
+    // ステージ 19 (旧ステージ 14・クリア不可ステージ)
+    // ------------------------------------------
+    {
+        id: 19,
+        title: 'ステージ 19',
+        subtitle: 'ジグザグの狭路',
+        maxBlocks: 5,
+        startRow: 1,
+        goalRow: 3,
+        forbidden: [
+            { col: 2, row: 0 }, { col: 4, row: 0 },
+            { col: 2, row: 1 }, { col: 4, row: 1 },
+            { col: 0, row: 2 },
+            { col: 0, row: 3 }, { col: 4, row: 3 },
+            { col: 0, row: 4 }, { col: 4, row: 4 }
+        ],
+        gimmicks: [
+            { col: 3, row: 0, type: 'step', dir: 'right', steps: 1 },
+            { col: 1, row: 1, type: 'step', dir: 'left', steps: 1 },
+            { col: 1, row: 4, type: 'dash', dir: 'right', purpleBorder: true },
+            { col: 3, row: 4, type: 'step', dir: 'up', steps: 1 }
+        ],
+        solution: [
+            { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 },
+            { col: 1, row: 3 },
             { col: 1, row: 4 }
         ],
         legends: [

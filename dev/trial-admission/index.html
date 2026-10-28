@@ -41,7 +41,7 @@
 
             <!-- ホーム画面 (本格アーケード・タイトルスクリーン) -->
             <div id="start-overlay" class="game-overlay">
-                <div class="arcade-home-container">
+                <div class="arcade-home-container is-standby" id="arcade-home-container">
                     <!-- タイトルヘッダー -->
                     <div class="arcade-title-box">
                         <div class="arcade-coin-tag">PUSH START</div>
@@ -70,7 +70,7 @@
                         </div>
                     </div>
 
-                    <!-- セレクターパネル (難易度・クリア条件) -->
+                    <!-- セレクターパネル (難易度・トーチカ・クリア条件) -->
                     <div class="arcade-options-panel">
                         <div class="option-row">
                             <span class="option-caption">DIFFICULTY:</span>
@@ -88,6 +88,24 @@
                         </div>
 
                         <div class="option-row">
+                            <span class="option-caption">BUNKER:</span>
+                            <div class="option-pill-group" id="bunker-options">
+                                <button type="button" class="arcade-pill active" data-bunker="penetrate">
+                                    <span class="pill-name">PENETRATE</span>
+                                </button>
+                                <button type="button" class="arcade-pill" data-bunker="block">
+                                    <span class="pill-name">BLOCK</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 難易度案内・トーチカ貫通等のガイド表示 -->
+                        <div class="diff-guide-row" id="diff-guide-text">
+                            <span class="diff-guide-icon">ℹ</span>
+                            <span class="diff-guide-msg">NORMAL: 標準バランス / 自弾はトーチカ【貫通】</span>
+                        </div>
+
+                        <div class="option-row">
                             <span class="option-caption">CLEAR GOAL:</span>
                             <div class="option-pill-group" id="wave-options">
                                 <button type="button" class="arcade-pill active" data-waves="3">
@@ -102,17 +120,17 @@
 
                     <!-- アーケード特大スタートボタン (dev/game風の押し込みボタン) -->
                     <div class="arcade-action-wrap">
-                        <button type="button" id="btn-game-start" class="arcade-play-btn">
+                        <button type="button" id="btn-game-start" class="arcade-play-btn" onclick="if (!window.GameCoreLoaded) { alert('【STEP 1-3】ゲームの心臓 (core.js) を読み込もう！\n\nindex.html の案内に従って core.js を読み込むタグを記述し、「保存して反映」を押すとゲームが起動します！'); }">
                             <div class="btn-player-icon-box">
                                 <canvas id="preview-player" width="26" height="16"></canvas>
                             </div>
                             <div class="btn-label-group">
                                 <span class="btn-label-main">ゲーム開始</span>
-                                <span class="btn-label-sub">1 PLAYER START</span>
+                                <span class="btn-label-sub" id="start-btn-sub">1 PLAYER START</span>
                             </div>
                             <span class="btn-blink-arrow">▶</span>
                         </button>
-                        <div class="arcade-start-hint">[SPACE] KEY TO START</div>
+                        <div class="arcade-start-hint" id="arcade-start-hint">[ENTER] KEY TO START</div>
                     </div>
                 </div>
             </div>
@@ -159,8 +177,7 @@
         </div>
 
         <div class="controls-hint">
-            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動　/　<span class="key-tag">Space</span>
-            攻撃　/　<span class="key-tag">Esc</span> 一時停止・中止
+            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動 (A/D可)　/　<span class="key-tag">Enter</span> 開始　/　<span class="key-tag">Space</span> 攻撃 (Z可)・終了　/　<span class="key-tag">Esc</span> 一時停止
         </div>
     </div>
 

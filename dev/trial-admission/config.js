@@ -47,7 +47,10 @@ const GameConfig = {
         ],
 
         // 倒したときの得点
-        scores: [30, 20, 20, 10, 10]
+        scores: [30, 20, 20, 10, 10],
+
+        // HARDモード時の耐久力強化 (true: HARD選択時に最上段の敵の体力が2になる, false: 一律体力1)
+        hardHpBoost: false
     },
 
     // 防壁 (トーチカ) の設定

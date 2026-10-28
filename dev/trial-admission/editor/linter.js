@@ -42,7 +42,7 @@
         game: ['maxWaves', 'difficulty'],
         player: ['speed', 'color', 'lives', 'maxBullets', 'fireInterval', 'muzzle'],
         bullet: ['speed', 'color', 'width', 'height'],
-        enemy: ['rows', 'cols', 'speed', 'dropAmount', 'shootInterval', 'bulletSpeed', 'colors', 'scores'],
+        enemy: ['rows', 'cols', 'speed', 'dropAmount', 'shootInterval', 'bulletSpeed', 'colors', 'scores', 'hardHpBoost'],
         bunker: ['enabled', 'count', 'color', 'regenerateEachWave', 'passThroughPlayer'],
         ufo: ['enabled', 'speed', 'bonusScore', 'score', 'interval', 'color'],
         sprites: ['player', 'squid', 'crab', 'octopus', 'ufo'],
@@ -900,13 +900,13 @@
     const CONFIG_PROPERTY_SPECS = {
         'game.maxWaves': { type: 'number', min: 1, max: 10 },
         'game.difficulty': { type: 'enum', values: ['easy', 'normal', 'hard'] },
-        'player.speed': { type: 'number', min: 0.5, max: 100 },
+        'player.speed': { type: 'number', min: 0, max: 100 },
         'player.color': { type: 'color' },
-        'player.lives': { type: 'number', min: 1, max: 99999 },
+        'player.lives': { type: 'number', min: 0, max: 99999 },
         'player.maxBullets': { type: 'number', min: 1, max: 300 },
         'player.fireInterval': { type: 'number', min: 1, max: 300 },
         'player.muzzle': { type: 'muzzle' },
-        'bullet.speed': { type: 'number', min: -200, max: -0.1, warnPositive: true },
+        'bullet.speed': { type: 'number', min: -200, max: 0, warnPositive: true },
         'bullet.color': { type: 'color' },
         'bullet.width': { type: 'number', min: 1, max: 480 },
         'bullet.height': { type: 'number', min: 1, max: 200 },
@@ -918,6 +918,7 @@
         'enemy.bulletSpeed': { type: 'number', min: 0.5, max: 50 },
         'enemy.colors': { type: 'colorArray' },
         'enemy.scores': { type: 'numberArray' },
+        'enemy.hardHpBoost': { type: 'boolean' },
         'bunker.enabled': { type: 'boolean' },
         'bunker.count': { type: 'number', min: 0, max: 8 },
         'bunker.color': { type: 'color' },
@@ -942,7 +943,7 @@
         game: ['maxWaves', 'difficulty'],
         player: ['speed', 'color', 'lives', 'maxBullets', 'fireInterval', 'muzzle'],
         bullet: ['speed', 'color', 'width', 'height'],
-        enemy: ['rows', 'cols', 'speed', 'dropAmount', 'shootInterval', 'bulletSpeed', 'colors', 'scores'],
+        enemy: ['rows', 'cols', 'speed', 'dropAmount', 'shootInterval', 'bulletSpeed', 'colors', 'scores', 'hardHpBoost'],
         bunker: ['enabled', 'count', 'color', 'regenerateEachWave', 'passThroughPlayer'],
         ufo: ['enabled', 'speed', 'bonusScore', 'interval', 'color'],
         display: ['background', 'sound'],
@@ -1670,27 +1671,50 @@
                                         'warning',
                                         rawLine
                                     ));
-                                } else if (spec.min !== undefined && numVal < spec.min) {
-                                    const isZeroSpeedWarn = (currentSection === 'player' && key === 'speed' && numVal === 0);
+                                } else if (currentSection === 'player' && key === 'speed' && numVal === 0) {
                                     issues.push(createIssue(
                                         i + 1,
                                         rawLine.lastIndexOf(rawVal) + 1,
-                                        isZeroSpeedWarn
-                                            ? `自機の速度（player.speed）が 0 になっているため自機が動きません`
-                                            : `「${currentSection}.${key}」には ${spec.min} 以上の数値を指定してください（現在: ${rawVal}）`,
-                                        isZeroSpeedWarn
-                                            ? `【STEP 3-1】の案内に従って「 5 」などの数値を入力して動かしてみましょう`
-                                            : `${spec.min} 未満の数値にするとゲームが正常に動作しません`,
-                                        isZeroSpeedWarn ? 'warning' : 'error',
+                                        `自機の速度（player.speed）が 0 になっているため自機が動きません`,
+                                        `【STEP 3-1】の案内に従って「 5 」などの数値を入力して動かしてみましょう`,
+                                        'warning',
+                                        rawLine
+                                    ));
+                                } else if (currentSection === 'bullet' && key === 'speed' && numVal === 0) {
+                                    issues.push(createIssue(
+                                        i + 1,
+                                        rawLine.lastIndexOf(rawVal) + 1,
+                                        `弾の速度（bullet.speed）が 0 になっているため弾が前に飛びません`,
+                                        `【STEP 3-2】の案内に従って「 -8 」などの数値を入力して上へ飛ばしてみましょう`,
+                                        'warning',
+                                        rawLine
+                                    ));
+                                } else if (currentSection === 'player' && key === 'lives' && numVal === 0) {
+                                    issues.push(createIssue(
+                                        i + 1,
+                                        rawLine.lastIndexOf(rawVal) + 1,
+                                        `残機（player.lives）が 0 に設定されています（オワタ式モード）`,
+                                        `1回の被弾で即ゲームオーバーになります。難関チャレンジとしてそのまま遊ぶことができます！`,
+                                        'warning',
+                                        rawLine
+                                    ));
+                                } else if (spec.min !== undefined && numVal < spec.min) {
+                                    issues.push(createIssue(
+                                        i + 1,
+                                        rawLine.lastIndexOf(rawVal) + 1,
+                                        `「${currentSection}.${key}」には ${spec.min} 以上の数値を指定してください（現在: ${rawVal}）`,
+                                        `${spec.min} 未満の数値にするとゲームが正常に動作しません`,
+                                        'error',
                                         rawLine
                                     ));
                                 } else if (spec.max !== undefined && numVal > spec.max) {
+                                    // 生徒がふざけて入力した極端に大きい数値は、エラーではなく警告（warning）として扱う
                                     issues.push(createIssue(
                                         i + 1,
                                         rawLine.lastIndexOf(rawVal) + 1,
-                                        `「${currentSection}.${key}」の値（${rawVal}）が大きすぎます（上限: ${spec.max}）`,
-                                        `${spec.min !== undefined ? spec.min : 0} 〜 ${spec.max} の範囲で指定してください`,
-                                        'error',
+                                        `「${currentSection}.${key}」の値（${rawVal}）が非常に大きくなっています（推奨上限: ${spec.max}）`,
+                                        `極端に大きな数値でもゲームは起動しますが、バランスが崩れたり表示・動作に影響が出る場合があります`,
+                                        'warning',
                                         rawLine
                                     ));
                                 }
@@ -2193,12 +2217,331 @@
         'border-box', 'padding-box', 'content-box', 'text'
     ]);
 
+    // 有効なCSS総称フォントファミリー名 (Generic Font Families)
+    const CSS_GENERIC_FONT_FAMILIES = new Set([
+        'sans-serif', 'serif', 'monospace', 'cursive', 'fantasy', 'system-ui',
+        'ui-serif', 'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'emoji', 'fangsong'
+    ]);
+
+    // 代表的な既知フォント名（OS標準・Web標準フォント）
+    const KNOWN_COMMON_FONT_FAMILIES = new Set([
+        '-apple-system', 'blinkmacsystemfont', 'roboto', 'helvetica', 'arial', 'verdana', 'tahoma',
+        'trebuchet ms', 'times new roman', 'georgia', 'garamond', 'courier new', 'consolas', 'monaco',
+        'menlo', 'lucida console', 'meiryo', 'yu gothic', 'yu mincho', 'hiragino sans',
+        'hiragino kaku gothic pron', 'hiragino mincho pron', 'noto sans', 'noto sans jp',
+        'noto serif', 'noto serif jp', 'ms gothic', 'ms pgothic', 'ms mincho', 'ms pmincho',
+        'segoe ui', 'sf pro', 'sf mono', 'impact', 'comic sans ms', 'courier', 'lucida grande',
+        'geneva', 'optima', 'palatino', 'century gothic', 'franklin gothic medium', 'futura'
+    ]);
+
+    /**
+     * font-family プロパティの値を詳細検証する
+     * （カンマ抜け、末尾カンマ、連続カンマ、空白フォント名のクォート漏れ、総称フォント名タイポ、無効な文字・値を検出）
+     */
+    function validateFontFamily(valStr, lineNum, rawLine, issues) {
+        const clean = valStr.replace(/!important\s*$/i, '').trim();
+        if (!clean) {
+            issues.push(createIssue(
+                lineNum,
+                Math.max(1, rawLine.indexOf('font-family') + 1),
+                `CSSプロパティ「font-family」の値が入力されていません`,
+                `「font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;」のようにフォント名を指定してください`,
+                'error',
+                rawLine
+            ));
+            return;
+        }
+
+        if (clean === ',' || /^,+$/.test(clean)) {
+            issues.push(createIssue(
+                lineNum,
+                Math.max(1, rawLine.indexOf(',') + 1),
+                `CSSプロパティ「font-family」の値がカンマ（,）のみになっています`,
+                `フォント名または総称フォント名（例: sans-serif）を指定してください`,
+                'error',
+                rawLine
+            ));
+            return;
+        }
+
+        if (clean.startsWith(',')) {
+            issues.push(createIssue(
+                lineNum,
+                Math.max(1, rawLine.indexOf(',') + 1),
+                `font-family の先頭に余分なカンマ（,）があります`,
+                `先頭のカンマを削除してください`,
+                'error',
+                rawLine
+            ));
+            return;
+        }
+
+        if (clean.endsWith(',')) {
+            issues.push(createIssue(
+                lineNum,
+                Math.max(1, rawLine.lastIndexOf(',') + 1),
+                `font-family の末尾に余分なカンマ（,）があります`,
+                `末尾に続くフォント名を指定するか、不要なカンマを削除してください`,
+                'error',
+                rawLine
+            ));
+            return;
+        }
+
+        if (clean.includes(',,')) {
+            issues.push(createIssue(
+                lineNum,
+                Math.max(1, rawLine.indexOf(',,') + 1),
+                `font-family にカンマが2つ連続しています（,,）`,
+                `カンマは1つ（,）にしてください`,
+                'error',
+                rawLine
+            ));
+            return;
+        }
+
+        // クォートおよび関数括弧（var(...)等）を考慮してカンマでトークン分割
+        const tokens = [];
+        let curTok = '';
+        let inQ = null;
+        let parenDepth = 0;
+        for (let i = 0; i < clean.length; i++) {
+            const ch = clean[i];
+            if (inQ) {
+                curTok += ch;
+                if (ch === inQ) inQ = null;
+            } else {
+                if (ch === '"' || ch === "'") {
+                    inQ = ch;
+                    curTok += ch;
+                } else if (ch === '(') {
+                    parenDepth++;
+                    curTok += ch;
+                } else if (ch === ')') {
+                    if (parenDepth > 0) parenDepth--;
+                    curTok += ch;
+                } else if (ch === ',' && parenDepth === 0) {
+                    tokens.push(curTok.trim());
+                    curTok = '';
+                } else {
+                    curTok += ch;
+                }
+            }
+        }
+        tokens.push(curTok.trim());
+
+        let hasGenericOrValid = false;
+        const placeholderWords = new Set(['hoge', 'hogehoge', 'fuga', 'piyo', 'test', 'foo', 'bar', 'baz', 'asdf', 'abc', 'xyz']);
+
+        for (let t = 0; t < tokens.length; t++) {
+            const rawTok = tokens[t];
+            if (!rawTok) {
+                issues.push(createIssue(
+                    lineNum,
+                    Math.max(1, rawLine.indexOf('font-family') + 1),
+                    `font-family のカンマの間にフォント名が指定されていません`,
+                    `フォント名を指定するか、余分なカンマを削除してください`,
+                    'error',
+                    rawLine
+                ));
+                continue;
+            }
+
+            const isQuoted = (rawTok.startsWith('"') && rawTok.endsWith('"')) || (rawTok.startsWith("'") && rawTok.endsWith("'"));
+            const unquoted = isQuoted ? rawTok.slice(1, -1).trim() : rawTok.trim();
+            const unquotedLow = unquoted.toLowerCase();
+
+            if (isQuoted && !unquoted) {
+                issues.push(createIssue(
+                    lineNum,
+                    Math.max(1, rawLine.indexOf(rawTok) + 1),
+                    `空のフォント名「""」が指定されています`,
+                    `具体的なフォント名（例: "Segoe UI"）を指定してください`,
+                    'error',
+                    rawLine
+                ));
+                continue;
+            }
+
+            // CSS変数・関数 (var(--font-ui), var(--font-code, ...) 等) は有効なフォント定義として許容
+            if (/^var\s*\(/i.test(unquoted)) {
+                hasGenericOrValid = true;
+                continue;
+            }
+
+            // クォートなしで空白を含んでいる場合 (例: Segoe UI, Hiragino Sans)
+            if (!isQuoted && /\s+/.test(unquoted)) {
+                const parts = unquoted.split(/\s+/);
+                const lastPartLow = parts[parts.length - 1].toLowerCase();
+                if (CSS_GENERIC_FONT_FAMILIES.has(lastPartLow) || KNOWN_COMMON_FONT_FAMILIES.has(lastPartLow)) {
+                    issues.push(createIssue(
+                        lineNum,
+                        Math.max(1, rawLine.indexOf(rawTok) + 1),
+                        `フォント名の間をカンマ（,）で区切っていません（「${unquoted}」）`,
+                        `「${parts.slice(0, -1).join(' ')}, ${parts[parts.length - 1]}」のようにカンマ（,）で区切ってください`,
+                        'error',
+                        rawLine
+                    ));
+                    continue;
+                } else {
+                    issues.push(createIssue(
+                        lineNum,
+                        Math.max(1, rawLine.indexOf(rawTok) + 1),
+                        `空白を含むフォント名「${unquoted}」はダブルクォートで囲む必要があります`,
+                        `「"${unquoted}"」のようにダブルクォート（"）で囲んでください`,
+                        'error',
+                        rawLine
+                    ));
+                    continue;
+                }
+            }
+
+            // 数値のみ、または単位付き数値（123, 16px 等）
+            if (/^[-+]?\d+(?:\.\d+)?(?:[a-zA-Z%]+)?$/.test(unquoted)) {
+                issues.push(createIssue(
+                    lineNum,
+                    Math.max(1, rawLine.indexOf(rawTok) + 1),
+                    `フォント名に数値またはサイズ「${unquoted}」を指定することはできません`,
+                    `フォントサイズは font-size プロパティで指定し、font-family にはフォント名（sans-serif など）を指定してください`,
+                    'error',
+                    rawLine
+                ));
+                continue;
+            }
+
+            // CSS色名やプロパティキーワードなどの無関係な単語
+            if (VALID_CSS_COLOR_NAMES.has(unquotedLow) && !isQuoted) {
+                issues.push(createIssue(
+                    lineNum,
+                    Math.max(1, rawLine.indexOf(rawTok) + 1),
+                    `「${unquoted}」はフォント名ではなく色名です`,
+                    `font-family には正しいフォント名または総称フォント名（sans-serif, serif 等）を指定してください`,
+                    'error',
+                    rawLine
+                ));
+                continue;
+            }
+
+            // CSSグローバルキーワード (inherit, initial, unset)
+            if (CSS_GLOBAL_KEYWORDS.has(unquotedLow)) {
+                if (tokens.length > 1) {
+                    issues.push(createIssue(
+                        lineNum,
+                        Math.max(1, rawLine.indexOf(rawTok) + 1),
+                        `CSSキーワード「${unquoted}」は他のフォント名と併用することはできません`,
+                        `「${unquoted}」を単独で指定するか、フォント名リストから削除してください`,
+                        'error',
+                        rawLine
+                    ));
+                }
+                hasGenericOrValid = true;
+                continue;
+            }
+
+            // 総称フォントファミリー名の検証・タイポ検知
+            if (CSS_GENERIC_FONT_FAMILIES.has(unquotedLow)) {
+                if (isQuoted) {
+                    issues.push(createIssue(
+                        lineNum,
+                        Math.max(1, rawLine.indexOf(rawTok) + 1),
+                        `総称フォント名「${unquoted}」にクォート（${rawTok[0]}）は付けません`,
+                        `クォートを外して「${unquoted}」と記述してください`,
+                        'error',
+                        rawLine
+                    ));
+                }
+                hasGenericOrValid = true;
+                continue;
+            }
+
+            // 総称フォントファミリーのタイポ検知 (san-serif, sans-serf, monospac 等)
+            const closestGeneric = findClosestInCollection(unquotedLow, CSS_GENERIC_FONT_FAMILIES, 2);
+            if (closestGeneric) {
+                issues.push(createIssue(
+                    lineNum,
+                    Math.max(1, rawLine.indexOf(rawTok) + 1),
+                    `総称フォント名「${unquoted}」は「${closestGeneric}」のスペルミスです`,
+                    `「${closestGeneric}」に修正してください`,
+                    'error',
+                    rawLine
+                ));
+                continue;
+            }
+
+            // 既知フォント名かどうかの確認
+            if (KNOWN_COMMON_FONT_FAMILIES.has(unquotedLow)) {
+                hasGenericOrValid = true;
+                continue;
+            }
+
+            // 既知フォント名のタイポ検知（例: -aple-system, BlinkMacSystem, Robotoo 等）
+            const closestKnown = findClosestInCollection(unquotedLow, KNOWN_COMMON_FONT_FAMILIES, 2);
+            if (closestKnown) {
+                issues.push(createIssue(
+                    lineNum,
+                    Math.max(1, rawLine.indexOf(rawTok) + 1),
+                    `フォント名「${unquoted}」は「${closestKnown}」のスペルミスではありませんか？`,
+                    `「${closestKnown}」に修正するか、正しいフォント名を確認してください`,
+                    'error',
+                    rawLine
+                ));
+                continue;
+            }
+
+            // プレースホルダー単語（hoge, test, asdf 等）
+            if (placeholderWords.has(unquotedLow)) {
+                issues.push(createIssue(
+                    lineNum,
+                    Math.max(1, rawLine.indexOf(rawTok) + 1),
+                    `フォント名「${unquoted}」は有効なフォント名ではありません`,
+                    `正しいフォント名（例: -apple-system, "Segoe UI", Roboto）または総称フォント名（sans-serif, serif, monospace）を指定してください`,
+                    'error',
+                    rawLine
+                ));
+                continue;
+            }
+
+            if (!/^[a-zA-Z_一-龠ぁ-んァ-ヶ][a-zA-Z0-9_\s一-龠ぁ-んァ-ヶ-]*$/.test(unquoted)) {
+                issues.push(createIssue(
+                    lineNum,
+                    Math.max(1, rawLine.indexOf(rawTok) + 1),
+                    `フォント名「${unquoted}」に不正な記号が含まれています`,
+                    `有効なフォント名を入力してください`,
+                    'error',
+                    rawLine
+                ));
+                continue;
+            }
+
+            // その他のカスタムフォント名は許容
+            hasGenericOrValid = true;
+        }
+
+        // 全体として有効な総称フォント名または既知フォントが1つも含まれていない場合
+        if (!hasGenericOrValid && tokens.length > 0) {
+            issues.push(createIssue(
+                lineNum,
+                Math.max(1, rawLine.indexOf('font-family') + 1),
+                `CSSプロパティ「font-family」に有効なフォント名が指定されていません`,
+                `末尾に総称フォント名（例: sans-serif）を含めたフォントリストを指定してください（例: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;）`,
+                'error',
+                rawLine
+            ));
+        }
+    }
+
     /**
      * CSSのプロパティ値を検証するヘルパー（値キーワードのタイポ、不正なカラーコード、不正な単位、型違反を検出）
      */
     function validateCssPropertyValue(propName, valStr, lineNum, rawLine, issues) {
         if (!propName || !valStr) return;
         const lowProp = propName.toLowerCase();
+
+        // font-family の詳細検証
+        if (lowProp === 'font-family') {
+            validateFontFamily(valStr, lineNum, rawLine, issues);
+            return;
+        }
 
         // !important を除去して評価
         const cleanVal = valStr.replace(/!important\s*$/i, '').trim();
@@ -2840,6 +3183,23 @@
             }
 
             if (!hasOpenBrace && !hasCloseBrace && braceDepth > 0) {
+                if (pendingProperty) {
+                    // もし現在の行が新しいプロパティ宣言（例: margin: 0;）である場合、
+                    // 直前の pendingProperty は値が入力されないまま新しい行が始まったと判定してエラーを発行
+                    const isNewPropertyDeclaration = clean.includes(':') && !clean.startsWith('@') && /^[a-zA-Z_-][a-zA-Z0-9_-]*\s*:/.test(clean);
+                    if (isNewPropertyDeclaration) {
+                        issues.push(createIssue(
+                            offset + pendingProperty.line,
+                            pendingProperty.col,
+                            `CSSのプロパティ値が入力されていません`,
+                            `コロン（:）の後に色やサイズなどの値を入力してください（例: ${pendingProperty.propName}: ...;）`,
+                            'error',
+                            lines[pendingProperty.line - 1]
+                        ));
+                        pendingProperty = null;
+                    }
+                }
+
                 if (pendingProperty) {
                     // 複数行プロパティの継続行
                     pendingProperty.valAccum += ' ' + clean;
@@ -3943,17 +4303,17 @@
         'bonusScore', 'buffer', 'bullet', 'bulletSpeed', 'bunker', 'checkHit', 'classList',
         'clearRect', 'code', 'col', 'color', 'colors', 'cols', 'complete', 'connect', 'corrode',
         'count', 'createBuffer', 'createBufferSource', 'createGain', 'createOscillator',
-        'currentTime', 'damage', 'data', 'destination', 'difficulty', 'dir', 'disconnect',
+        'currentTime', 'damage', 'damageFlashTimer', 'data', 'destination', 'difficulty', 'dir', 'disconnect',
         'display', 'draw', 'drawImage', 'dropAmount', 'dyingTimer', 'enabled', 'enemy', 'exp',
         'exponentialRampToValueAtTime', 'fillRect', 'fillStyle', 'fillText', 'filter',
         'fireInterval', 'floor', 'focus', 'font', 'forEach', 'frequency', 'gain', 'game',
         'getAttribute', 'getChannelData', 'getContext', 'getElementById', 'getItem', 'grid',
-        'height', 'includes', 'interval', 'isArray', 'isNaN', 'jpg', 'js', 'key', 'left',
-        'length', 'linearRampToValueAtTime', 'lives', 'map', 'max', 'maxBullets', 'maxWaves',
+        'hardHpBoost', 'height', 'hp', 'includes', 'interval', 'isArray', 'isNaN', 'jpg', 'js', 'key', 'left',
+        'length', 'linearRampToValueAtTime', 'lives', 'map', 'max', 'maxBullets', 'maxHp', 'maxWaves',
         'min', 'muzzle', 'naturalWidth', 'noPassThrough', 'normal', 'now', 'padStart',
-        'passThroughPlayer', 'pattern', 'pixelSize', 'playInvaderHit', 'playPlayerHit',
+        'passThroughPlayer', 'pattern', 'pixelSize', 'playBunkerHit', 'playInvaderHit', 'playPlayerHit',
         'playShoot', 'playUFOHit', 'playWalk', 'player', 'playerBlow', 'preventDefault',
-        'push', 'querySelectorAll', 'random', 'readyState', 'regenerateEachWave',
+        'prevY', 'push', 'querySelectorAll', 'random', 'readyState', 'regenerateEachWave',
         'reloadGameWithNewConfig', 'remove', 'restore', 'resume', 'right', 'round', 'row',
         'rows', 'sampleRate', 'save', 'scale', 'score', 'scoreText', 'scores', 'setItem',
         'setValueAtTime', 'shoot', 'shootInterval', 'sin', 'size', 'slice', 'sound', 'speed',
@@ -3991,7 +4351,8 @@
         'display', 'visibility', 'opacity', 'transform', 'transition', 'backgroundColor',
         'borderColor', 'color', 'width', 'height', 'top', 'left', 'right', 'bottom',
         'margin', 'padding', 'zIndex', 'cursor', 'pointerEvents', 'overflow', 'fontSize',
-        'fontFamily', 'fontWeight', 'textShadow', 'boxShadow', 'border', 'borderRadius'
+        'fontFamily', 'fontWeight', 'textShadow', 'boxShadow', 'border', 'borderRadius',
+        'tagName', 'isContentEditable', 'closest'
     ]);
 
     const VALID_DOM_EVENT_NAMES = new Set([
@@ -4001,7 +4362,7 @@
         'pointermove', 'pointerenter', 'pointerleave', 'pointercancel', 'focus', 'blur',
         'focusin', 'focusout', 'change', 'input', 'submit', 'reset', 'load', 'unload',
         'beforeunload', 'resize', 'scroll', 'error', 'message', 'DOMContentLoaded',
-        'visibilitychange', 'animationstart', 'animationend', 'animationiteration',
+        'visibilitychange', 'pageshow', 'pagehide', 'popstate', 'animationstart', 'animationend', 'animationiteration',
         'transitionstart', 'transitionend', 'ended', 'play', 'pause'
     ]);
 
@@ -4322,8 +4683,11 @@
             }
         }
 
-        // 4. core.js 固有の GameConfig セクション・プロパティ参照・メンバータイポ・条件式代入・必須関数チェック
-        if (filename === 'core.js' || filename.endsWith('/core.js')) {
+        // 4. core.js および HTMLインラインJS（inline.js）の GameConfig 参照・メンバータイポ・条件式代入・DOMメソッド検証
+        const isCoreJs = filename === 'core.js' || filename.endsWith('/core.js');
+        const isInlineJs = filename === 'inline.js';
+
+        if (isCoreJs || isInlineJs) {
             // GameConfig のエイリアス変数 (pCfg = GameConfig.player, bCfg = GameConfig.bullet || GameConfig.bunker 等) を追跡
             const activeConfigVarMap = new Map([
                 ['pCfg', 'player'],
@@ -4342,80 +4706,82 @@
                 const rawLine = lines[lineIdx];
                 if (!sLine.trim()) continue;
 
-                // 行内で const pCfg = ... GameConfig.<sec> または cfg.<sec> が束縛された場合はターゲットセクションを記録
-                // ※ ただし (cfg.enemy && cfg.enemy.colors) のように2階層目のプロパティを代入している場合はセクションエイリアスではない
-                const hasTwoLevelAccess = /\b(?:GameConfig|cfg)\.[a-zA-Z_$][a-zA-Z0-9_$]*\.[a-zA-Z_$][a-zA-Z0-9_$]*/.test(sLine);
-                const lineAliasMatch = !hasTwoLevelAccess && sLine.match(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*[^;]*?\b(?:GameConfig|cfg)\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?![.\[])/);
-                if (lineAliasMatch) {
-                    const varName = lineAliasMatch[1];
-                    const secName = lineAliasMatch[2];
-                    if (KNOWN_CONFIG_SCHEMA[secName]) {
-                        activeConfigVarMap.set(varName, secName);
+                if (isCoreJs) {
+                    // 行内で const pCfg = ... GameConfig.<sec> または cfg.<sec> が束縛された場合はターゲットセクションを記録
+                    // ※ ただし (cfg.enemy && cfg.enemy.colors) のように2階層目のプロパティを代入している場合はセクションエイリアスではない
+                    const hasTwoLevelAccess = /\b(?:GameConfig|cfg)\.[a-zA-Z_$][a-zA-Z0-9_$]*\.[a-zA-Z_$][a-zA-Z0-9_$]*/.test(sLine);
+                    const lineAliasMatch = !hasTwoLevelAccess && sLine.match(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*[^;]*?\b(?:GameConfig|cfg)\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?![.\[])/);
+                    if (lineAliasMatch) {
+                        const varName = lineAliasMatch[1];
+                        const secName = lineAliasMatch[2];
+                        if (KNOWN_CONFIG_SCHEMA[secName]) {
+                            activeConfigVarMap.set(varName, secName);
+                        }
+                    } else if (/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:window\.)?GameConfig\b(?![.\[])/.test(sLine)) {
+                        const rootAliasMatch = sLine.match(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:window\.)?GameConfig\b(?![.\[])/);
+                        if (rootAliasMatch) {
+                            activeConfigVarMap.delete(rootAliasMatch[1]);
+                        }
                     }
-                } else if (/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:window\.)?GameConfig\b(?![.\[])/.test(sLine)) {
-                    const rootAliasMatch = sLine.match(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:window\.)?GameConfig\b(?![.\[])/);
-                    if (rootAliasMatch) {
-                        activeConfigVarMap.delete(rootAliasMatch[1]);
-                    }
-                }
 
-                // (a) GameConfig.<section> / cfg.<section>（cfg がルートを指しているときのみ）および GameConfig.<section>.<prop> の検証
-                const rootCfgPattern = activeConfigVarMap.has('cfg')
-                    ? /\bGameConfig\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\.([a-zA-Z_$][a-zA-Z0-9_$]*))?/g
-                    : /\b(?:GameConfig|cfg)\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\.([a-zA-Z_$][a-zA-Z0-9_$]*))?/g;
-                let gcM;
-                while ((gcM = rootCfgPattern.exec(sLine)) !== null) {
-                    const sec = gcM[1];
-                    const prop = gcM[2];
-                    if (!KNOWN_CONFIG_SCHEMA[sec]) {
-                        const closestSec = findClosestInCollection(sec, validSections, 3);
-                        issues.push(createIssue(
-                            lineIdx + 1,
-                            Math.max(1, rawLine.indexOf(sec) + 1),
-                            `GameConfig.${sec} という設定カテゴリは config.js に存在しません`,
-                            closestSec
-                                ? `「GameConfig.${closestSec}」のスペルミスではありませんか？`
-                                : `有効なセクション名（${validSections.join(', ')}）を指定してください`,
-                            'error',
-                            rawLine
-                        ));
-                    } else if (prop && !KNOWN_CONFIG_SCHEMA[sec].includes(prop)) {
-                        const closestProp = findClosestInCollection(prop, KNOWN_CONFIG_SCHEMA[sec], 3);
-                        issues.push(createIssue(
-                            lineIdx + 1,
-                            Math.max(1, rawLine.indexOf(prop, rawLine.indexOf(sec)) + 1),
-                            `GameConfig.${sec}.${prop} という設定項目は config.js に存在しません`,
-                            closestProp
-                                ? `「GameConfig.${sec}.${closestProp}」のスペルミスではありませんか？`
-                                : `GameConfig.${sec} の有効な項目（${KNOWN_CONFIG_SCHEMA[sec].join(', ')}）を指定してください`,
-                            'error',
-                            rawLine
-                        ));
-                    }
-                }
-
-                // (b) pCfg.<prop>, eCfg.<prop> などのエイリアス変数経由のプロパティアクセス検証
-                for (const [varName, secName] of activeConfigVarMap.entries()) {
-                    const varPropRe = new RegExp(`\\b${varName}\\.([a-zA-Z_$][a-zA-Z0-9_$]*)`, 'g');
-                    let vpM;
-                    while ((vpM = varPropRe.exec(sLine)) !== null) {
-                        const prop = vpM[1];
-                        const allowedProps = KNOWN_CONFIG_SCHEMA[secName];
-                        if (allowedProps && !allowedProps.includes(prop)) {
-                            const closestProp = findClosestInCollection(prop, allowedProps, 3);
+                    // (a) GameConfig.<section> / cfg.<section>（cfg がルートを指しているときのみ）および GameConfig.<section>.<prop> の検証
+                    const rootCfgPattern = activeConfigVarMap.has('cfg')
+                        ? /\bGameConfig\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\.([a-zA-Z_$][a-zA-Z0-9_$]*))?/g
+                        : /\b(?:GameConfig|cfg)\.([a-zA-Z_$][a-zA-Z0-9_$]*)(?:\.([a-zA-Z_$][a-zA-Z0-9_$]*))?/g;
+                    let gcM;
+                    while ((gcM = rootCfgPattern.exec(sLine)) !== null) {
+                        const sec = gcM[1];
+                        const prop = gcM[2];
+                        if (!KNOWN_CONFIG_SCHEMA[sec]) {
+                            const closestSec = findClosestInCollection(sec, validSections, 3);
                             issues.push(createIssue(
                                 lineIdx + 1,
-                                Math.max(1, rawLine.indexOf(`${varName}.${prop}`) + varName.length + 2),
-                                `${varName}.${prop}（GameConfig.${secName}.${prop}）という設定項目は存在しません`,
+                                Math.max(1, rawLine.indexOf(sec) + 1),
+                                `GameConfig.${sec} という設定カテゴリは config.js に存在しません`,
+                                closestSec
+                                    ? `「GameConfig.${closestSec}」のスペルミスではありませんか？`
+                                    : `有効なセクション名（${validSections.join(', ')}）を指定してください`,
+                                'error',
+                                rawLine
+                            ));
+                        } else if (prop && !KNOWN_CONFIG_SCHEMA[sec].includes(prop)) {
+                            const closestProp = findClosestInCollection(prop, KNOWN_CONFIG_SCHEMA[sec], 3);
+                            issues.push(createIssue(
+                                lineIdx + 1,
+                                Math.max(1, rawLine.indexOf(prop, rawLine.indexOf(sec)) + 1),
+                                `GameConfig.${sec}.${prop} という設定項目は config.js に存在しません`,
                                 closestProp
-                                    ? `「${varName}.${closestProp}」のスペルミスではありませんか？`
-                                    : `GameConfig.${secName} の有効な項目（${allowedProps.join(', ')}）を確認してください`,
+                                    ? `「GameConfig.${sec}.${closestProp}」のスペルミスではありませんか？`
+                                    : `GameConfig.${sec} の有効な項目（${KNOWN_CONFIG_SCHEMA[sec].join(', ')}）を指定してください`,
+                                'error',
+                                rawLine
+                            ));
+                        }
+                    }
+
+                    // (b) pCfg.<prop>, eCfg.<prop> などのエイリアス変数経由のプロパティアクセス検証
+                    for (const [varName, secName] of activeConfigVarMap.entries()) {
+                        const varPropRe = new RegExp(`\\b${varName}\\.([a-zA-Z_$][a-zA-Z0-9_$]*)`, 'g');
+                        let vpM;
+                        while ((vpM = varPropRe.exec(sLine)) !== null) {
+                            const prop = vpM[1];
+                            const allowedProps = KNOWN_CONFIG_SCHEMA[secName];
+                            if (allowedProps && !allowedProps.includes(prop)) {
+                                const closestProp = findClosestInCollection(prop, allowedProps, 3);
+                                issues.push(createIssue(
+                                    lineIdx + 1,
+                                    Math.max(1, rawLine.indexOf(`${varName}.${prop}`) + varName.length + 2),
+                                    `${varName}.${prop}（GameConfig.${secName}.${prop}）という設定項目は存在しません`,
+                                    closestProp
+                                        ? `「${varName}.${closestProp}」のスペルミスではありませんか？`
+                                        : `GameConfig.${secName} の有効な項目（${allowedProps.join(', ')}）を確認してください`,
                                 'error',
                                 rawLine
                             ));
                         }
                     }
                 }
+            }
 
                 // (c) 標準オブジェクト（Math, document, console, JSON, localStorage, classList）および一般オブジェクトの .member タイポ検証
                 const dotMemberRe = /\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\.\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/g;
@@ -4499,31 +4865,87 @@
                         rawLine
                     ));
                 }
+
+                // (e2) classList.(add|remove|toggle|contains) の引数検証（空白混入・空文字・タイポ検知）
+                const classListRegex = /\.classList\.(add|remove|toggle|contains)\s*\(\s*(['"])([^'"]*)\2\s*\)/g;
+                let clM;
+                while ((clM = classListRegex.exec(cleanRaw)) !== null) {
+                    const clMethod = clM[1];
+                    const rawCls = clM[3];
+                    const cls = rawCls.trim();
+
+                    if (!cls) {
+                        issues.push(createIssue(
+                            lineIdx + 1,
+                            Math.max(1, rawLine.indexOf(clM[0]) + 1),
+                            `classList.${clMethod}() に空のクラス名が指定されています`,
+                            `有効なクラス名（例: "in-iframe"）を指定してください`,
+                            'error',
+                            rawLine
+                        ));
+                        continue;
+                    }
+
+                    // 空白文字混入の検知（ブラウザ実行時に DOMException となり画面遷移やスタイルが破壊される）
+                    if (/\s/.test(rawCls)) {
+                        issues.push(createIssue(
+                            lineIdx + 1,
+                            Math.max(1, rawLine.indexOf(rawCls) + 1),
+                            `classList.${clMethod}("${rawCls}") に空白文字が含まれています`,
+                            `classList に渡すクラス名にスペースを含めることはできません。ハイフン「-」等で繋ぐか（例: "in-iframe"）、引数をカンマで分けてください`,
+                            'error',
+                            rawLine
+                        ));
+                        continue;
+                    }
+
+                    // 既知のDOMクラス名（プロジェクト全体の主要クラス名）
+                    const KNOWN_DOM_CLASSES = new Set([
+                        'in-iframe', 'transitioning-to-editor', 'active', 'hidden', 'edit-mode',
+                        'modal-sprite-cell', 'monaca-error-hud', 'game-top-bar', 'game-container'
+                    ]);
+
+                    if (!KNOWN_DOM_CLASSES.has(cls)) {
+                        const closestCls = findClosestInCollection(cls, KNOWN_DOM_CLASSES, 2);
+                        if (closestCls) {
+                            issues.push(createIssue(
+                                lineIdx + 1,
+                                Math.max(1, rawLine.indexOf(rawCls) + 1),
+                                `クラス名「${cls}」は「${closestCls}」のスペルミスです`,
+                                `「"${closestCls}"」に修正してください`,
+                                'error',
+                                rawLine
+                            ));
+                        }
+                    }
+                }
             }
 
             // (f) core.js の必須トップレベル関数が消されていないか検証
-            for (const reqFn of CORE_JS_REQUIRED_FUNCTIONS) {
-                if (!declared.has(reqFn.name)) {
-                    const closestFn = findClosestInCollection(reqFn.name, declared, 3);
-                    let targetLine = 1;
-                    if (closestFn) {
-                        for (let k = 0; k < strippedLines.length; k++) {
-                            if (new RegExp(`\\bfunction\\s+${closestFn}\\b`).test(strippedLines[k])) {
-                                targetLine = k + 1;
-                                break;
+            if (isCoreJs) {
+                for (const reqFn of CORE_JS_REQUIRED_FUNCTIONS) {
+                    if (!declared.has(reqFn.name)) {
+                        const closestFn = findClosestInCollection(reqFn.name, declared, 3);
+                        let targetLine = 1;
+                        if (closestFn) {
+                            for (let k = 0; k < strippedLines.length; k++) {
+                                if (new RegExp(`\\bfunction\\s+${closestFn}\\b`).test(strippedLines[k])) {
+                                    targetLine = k + 1;
+                                    break;
+                                }
                             }
                         }
+                        issues.push(createIssue(
+                            targetLine,
+                            1,
+                            `core.js 内の必須関数「${reqFn.desc}」が見つかりません`,
+                            closestFn
+                                ? `関数名「${closestFn}」は「${reqFn.name}」のスペルミスではありませんか？`
+                                : `ゲームを動かすために function ${reqFn.name}() が必要です`,
+                            'error',
+                            lines[targetLine - 1] || ''
+                        ));
                     }
-                    issues.push(createIssue(
-                        targetLine,
-                        1,
-                        `core.js 内の必須関数「${reqFn.desc}」が見つかりません`,
-                        closestFn
-                            ? `関数名「${closestFn}」は「${reqFn.name}」のスペルミスではありませんか？`
-                            : `ゲームを動かすために function ${reqFn.name}() が必要です`,
-                        'error',
-                        lines[targetLine - 1] || ''
-                    ));
                 }
             }
         }
@@ -4702,6 +5124,7 @@
                     { id: 'start-overlay', desc: 'ホーム画面オーバーレイ (id="start-overlay")' },
                     { id: 'btn-game-start', desc: 'ゲーム開始ボタン (id="btn-game-start")' },
                     { id: 'diff-options', desc: '難易度選択ボタン群 (id="diff-options")' },
+                    { id: 'bunker-options', desc: 'トーチカ貫通選択ボタン群 (id="bunker-options")' },
                     { id: 'wave-options', desc: 'WAVE数選択ボタン群 (id="wave-options")' },
                     { id: 'home-hiscore', desc: 'ハイスコア表示 (id="home-hiscore")' },
                     { id: 'pause-overlay', desc: '一時停止オーバーレイ (id="pause-overlay")' },
@@ -4844,6 +5267,41 @@
                         lines[coreScriptLine - 1] || ''
                     ));
                 }
+
+                // シームレス画面遷移スクリプトの必須検証（エディタ連携用 in-iframe / transitioning-to-editor）
+                const hasInIframeScript = /classList\.(add|toggle)\(\s*['"]in-iframe['"]\s*\)/.test(commentFreeHtml);
+                if (!hasInIframeScript) {
+                    let targetLine = 1;
+                    let foundTypo = null;
+                    const typoMatch = commentFreeHtml.match(/classList\.(?:add|toggle)\(\s*['"]([^'"]+)['"]\s*\)/);
+                    if (typoMatch) {
+                        const cand = typoMatch[1];
+                        if (cand !== 'in-iframe' && (cand.includes('ifrae') || cand.includes('ifra') || cand.includes('iframe') || findClosestInCollection(cand, ['in-iframe'], 2))) {
+                            foundTypo = cand;
+                        }
+                    }
+                    for (let k = 0; k < lines.length; k++) {
+                        if (lines[k].includes('in-iframe') || (foundTypo && lines[k].includes(foundTypo)) || lines[k].includes('シームレス画面遷移')) {
+                            targetLine = k + 1;
+                            break;
+                        }
+                    }
+                    if (targetLine === 1) {
+                        for (let k = lines.length - 1; k >= 0; k--) {
+                            if (lines[k].includes('</body>')) { targetLine = k + 1; break; }
+                        }
+                    }
+                    issues.push(createIssue(
+                        targetLine,
+                        1,
+                        foundTypo
+                            ? `[ファイル横断] クラス名「${foundTypo}」はエディタプレビュー用クラス「in-iframe」のスペルミスです`
+                            : `[ファイル横断] index.html 内にエディタプレビュー用クラス「in-iframe」を付与するスクリプト（document.body.classList.add('in-iframe')）が見つかりません`,
+                        `エディタのプレビュー表示を正常に動作させるため、<script> 内で document.body.classList.add('in-iframe'); を記述してください`,
+                        'error',
+                        lines[targetLine - 1] || ''
+                    ));
+                }
             }
         }
 
@@ -4874,8 +5332,8 @@
             if (filename === 'style.css' && allFiles['index.html']) {
                 const knownIds = new Set();
                 const knownClasses = new Set([
-                    // JSで動的に付与されるクラス・ID
-                    'in-iframe', 'hidden', 'active', 'edit-mode', 'transitioning-to-editor',
+                    // JSで動的に付与されるHUDやUIモック用クラス・ID
+                    'hidden', 'active', 'edit-mode',
                     'modal-sprite-cell', 'monaca-error-hud', 'monaca-hud-badge', 'hud-badge-dot',
                     'hud-badge-title', 'hud-badge-line', 'monaca-hud-body', 'monaca-hud-title',
                     'monaca-hud-msg', 'monaca-hud-hint', 'monaca-hud-footer',
@@ -4886,7 +5344,8 @@
                 knownIds.add('monaca-error-hud');
 
                 const htmlText = stripHtmlCommentsPreservingLines(getFileContent('index.html'));
-                const jsText = getFileContent('core.js');
+                // core.js および index.html のインラインスクリプト両方から classList / className 参照を動的収集
+                const jsText = getFileContent('core.js') + '\n' + htmlText;
 
                 let m;
                 const htmlIdRe = /\bid\s*=\s*["']([^"']+)["']/gi;

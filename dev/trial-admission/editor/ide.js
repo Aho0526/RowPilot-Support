@@ -56,7 +56,7 @@
             
             <!-- ホーム画面 (本格アーケード・タイトルスクリーン) -->
             <div id="start-overlay" class="game-overlay">
-                <div class="arcade-home-container">
+                <div class="arcade-home-container is-standby" id="arcade-home-container">
                     <!-- タイトルヘッダー -->
                     <div class="arcade-title-box">
                         <div class="arcade-coin-tag">PUSH START</div>
@@ -85,7 +85,7 @@
                         </div>
                     </div>
 
-                    <!-- セレクターパネル (難易度・クリア条件) -->
+                    <!-- セレクターパネル (難易度・トーチカ・クリア条件) -->
                     <div class="arcade-options-panel">
                         <div class="option-row">
                             <span class="option-caption">DIFFICULTY:</span>
@@ -103,6 +103,24 @@
                         </div>
 
                         <div class="option-row">
+                            <span class="option-caption">BUNKER:</span>
+                            <div class="option-pill-group" id="bunker-options">
+                                <button type="button" class="arcade-pill active" data-bunker="penetrate">
+                                    <span class="pill-name">PENETRATE</span>
+                                </button>
+                                <button type="button" class="arcade-pill" data-bunker="block">
+                                    <span class="pill-name">BLOCK</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 難易度案内・トーチカ貫通等のガイド表示 -->
+                        <div class="diff-guide-row" id="diff-guide-text">
+                            <span class="diff-guide-icon">ℹ</span>
+                            <span class="diff-guide-msg">NORMAL: 標準バランス / 自弾はトーチカ【貫通】</span>
+                        </div>
+
+                        <div class="option-row">
                             <span class="option-caption">CLEAR GOAL:</span>
                             <div class="option-pill-group" id="wave-options">
                                 <button type="button" class="arcade-pill active" data-waves="3">
@@ -117,17 +135,17 @@
 
                     <!-- アーケード特大スタートボタン (dev/game風の押し込みボタン) -->
                     <div class="arcade-action-wrap">
-                        <button type="button" id="btn-game-start" class="arcade-play-btn">
+                        <button type="button" id="btn-game-start" class="arcade-play-btn" onclick="if (!window.GameCoreLoaded) { alert('【STEP 1-3】ゲームの心臓 (core.js) を読み込もう！\n\nindex.html の案内に従って core.js を読み込むタグを記述し、「保存して反映」を押すとゲームが起動します！'); }">
                             <div class="btn-player-icon-box">
                                 <canvas id="preview-player" width="26" height="16"></canvas>
                             </div>
                             <div class="btn-label-group">
                                 <span class="btn-label-main">ゲーム開始</span>
-                                <span class="btn-label-sub">1 PLAYER START</span>
+                                <span class="btn-label-sub" id="start-btn-sub">1 PLAYER START</span>
                             </div>
                             <span class="btn-blink-arrow">▶</span>
                         </button>
-                        <div class="arcade-start-hint">[SPACE] KEY TO START</div>
+                        <div class="arcade-start-hint" id="arcade-start-hint">[ENTER] KEY TO START</div>
                     </div>
                 </div>
             </div>
@@ -173,7 +191,7 @@
         </div>
 
         <div class="controls-hint">
-            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動　/　<span class="key-tag">Space</span> 攻撃　/　<span class="key-tag">Esc</span> 一時停止・中止
+            <span class="key-tag">←</span> <span class="key-tag">→</span> 移動 (A/D可)　/　<span class="key-tag">Enter</span> 開始　/　<span class="key-tag">Space</span> 攻撃 (Z可)・終了　/　<span class="key-tag">Esc</span> 一時停止
         </div>
     </div>
 
@@ -436,15 +454,17 @@
     let initialFilesLoaded = false;
 
     // ─────────────────────────────────────────────
-    // CDN や Cloudflare 等の自動注入スクリプトを除去して純粋なコードを保持（※HTMLファイルのみ対象）
+    // CDN、Cloudflare、VSCode Live Server 等の自動注入スクリプトを除去して純粋なコードを保持（※HTMLファイルのみ対象）
     function cleanInjectedPlatformScripts(text) {
         if (typeof text !== 'string') return text;
         return text
+            // VSCode Live Server による自動注入スクリプト（コメントブロック全体）
+            .replace(/<!--\s*Code injected by live-server\s*-->[\s\S]*?<\/script>\s*/gi, '')
             // 外部読み込みの /cdn-cgi/ スクリプト
             .replace(/<script\b[^>]*src=["'][^"']*\/cdn-cgi\/[^"']*["'][^>]*>\s*<\/script>\s*/gi, '')
-            // インラインで注入された Cloudflare challenge-platform 等のスクリプト (単一タグ内で完結するもの)
+            // インラインで注入された Cloudflare, Live Server 等のスクリプト (単一タグ内で完結するもの)
             .replace(/<script\b[^>]*>([\s\S]*?)<\/script>\s*/gi, function (match, body) {
-                if (/\/cdn-cgi\/|__CF\$cv\$params|cloudflare-static/i.test(body)) {
+                if (/\/cdn-cgi\/|__CF\$cv\$params|cloudflare-static|\brefreshCSS\b|live-server|Live-Reloading|IsThisFirstTime_Log_From_LiveServer/i.test(body)) {
                     return '';
                 }
                 return match;
@@ -942,6 +962,10 @@
         const file = files[currentFileKey];
         if (!file) return;
 
+        if (file.type === 'html' || currentFileKey.endsWith('.html')) {
+            file.content = cleanInjectedPlatformScripts(file.content);
+        }
+
         const isEditable = !!file.editable;
         codeTextarea.value = file.content;
         codeTextarea.readOnly = !isEditable;
@@ -1338,6 +1362,11 @@
         if (btnToggleDiagnostics) {
             btnToggleDiagnostics.textContent = diagnosticsPanelOpen ? '詳細を閉じる' : '詳細を表示';
         }
+        // 開閉時にコードマップ（ミニマップ）とスライダーを即座に再計算・再描画
+        requestAnimationFrame(() => {
+            if (typeof renderMinimap === 'function') renderMinimap();
+            if (stickyScrollController) stickyScrollController.update();
+        });
     }
 
     // ─────────────────────────────────────────────
@@ -1407,6 +1436,10 @@
                 if (diagnosticsPanel) diagnosticsPanel.style.height = clampedHeight + 'px';
                 try { localStorage.setItem('invader_editor_diagnostics_height', String(Math.round(clampedHeight))); } catch (e) { }
             }
+
+            // エラー表示引き出し中もコードマップ（ミニマップ）が圧縮されないようリアルタイム同期
+            if (typeof renderMinimap === 'function') renderMinimap();
+            if (stickyScrollController) stickyScrollController.update();
         }
     });
 
@@ -1420,6 +1453,9 @@
             // 単なるクリック（ドラッグ移動ほぼなし）だった場合は開閉トグル
             if (!hasDraggedDistance) {
                 toggleDiagnosticsPanel();
+            } else {
+                if (typeof renderMinimap === 'function') renderMinimap();
+                if (stickyScrollController) stickyScrollController.update();
             }
         }
     });
@@ -1746,7 +1782,35 @@
     // ─────────────────────────────────────────────
     // キーボード操作の中継 (エディタ外の操作キーをゲームに転送)
     // ─────────────────────────────────────────────
-    const GAME_KEYS = ["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyA", "KeyD", "KeyZ", "Escape"];
+    // ※文字キー KeyA / KeyD / KeyZ はエディタ編集時の誤爆（意図しない移動・弾発射）を防ぐため除外
+    const GAME_KEYS = ["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Escape", "Enter", "NumpadEnter"];
+
+    function isInputOrEditingElement(el) {
+        if (!el) return false;
+        const tag = (el.tagName || '').toLowerCase();
+        return tag === 'textarea' || tag === 'input' || tag === 'select' || !!el.isContentEditable;
+    }
+
+    // プレビュー側のキー押下状態を強制クリア（連射・移動の残留バグ防止）
+    function resetPreviewKeys() {
+        try {
+            if (previewIframe && previewIframe.contentWindow) {
+                previewIframe.contentWindow.postMessage({
+                    type: 'KEY_EVENT',
+                    action: 'reset'
+                }, '*');
+            }
+        } catch (err) { }
+    }
+
+    // ウィンドウのフォーカス喪失・復帰、タブ切替、ページ復帰時、およびエディタフォーカス時にリセット
+    window.addEventListener('blur', resetPreviewKeys);
+    window.addEventListener('focus', resetPreviewKeys);
+    document.addEventListener('visibilitychange', resetPreviewKeys);
+    window.addEventListener('pageshow', resetPreviewKeys);
+    window.addEventListener('pagehide', resetPreviewKeys);
+    window.addEventListener('popstate', resetPreviewKeys);
+    codeTextarea?.addEventListener('focus', resetPreviewKeys);
 
     window.addEventListener('keydown', (e) => {
         // 保存 (Ctrl+S / ⌘S)
@@ -1772,7 +1836,7 @@
             return;
         }
 
-        if (document.activeElement !== codeTextarea) {
+        if (!isInputOrEditingElement(document.activeElement)) {
             if (GAME_KEYS.includes(e.code)) {
                 e.preventDefault();
                 try {
@@ -1787,7 +1851,7 @@
     });
 
     window.addEventListener('keyup', (e) => {
-        if (document.activeElement !== codeTextarea) {
+        if (!isInputOrEditingElement(document.activeElement)) {
             if (GAME_KEYS.includes(e.code)) {
                 e.preventDefault();
                 try {
@@ -2421,7 +2485,12 @@
         }
 
         updatePreview();
-        if (totalErrors > 0) {
+        const indexHtml = (files['index.html'] && files['index.html'].content) || '';
+        const hasCoreJs = /<script\s+[^>]*src=["']core\.js["'][^>]*>\s*<\/script>/i.test(indexHtml);
+        if (hasCoreJs && !window._s1_3_celebrated) {
+            window._s1_3_celebrated = true;
+            showToast('⚡【STEP 1-3 達成！】ゲームの心臓 (core.js) が起動しました！', false);
+        } else if (totalErrors > 0) {
             showToast('無理やり保存して反映しました');
         } else {
             showToast('保存しました（プレビュー更新）');
@@ -3416,6 +3485,7 @@
         }
 
         // 5. 体験入学モード切り替え直後は、この穴埋め版をベースラインとする（生徒の編集差分判定用）
+        window._s1_3_celebrated = false;
         for (let k in files) {
             if (files[k] && !files[k].isBinary) {
                 files[k].baselineContent = files[k].content;
@@ -3909,7 +3979,21 @@
 
         window.addEventListener('resize', () => {
             renderMinimap();
+            syncMinimapSlider();
         });
+
+        // ResizeObserver でエディタ領域・コードマップ枠の高さ変化を完全検知（エラーパネル引き出し時の圧縮を完全防止）
+        if (typeof ResizeObserver !== 'undefined') {
+            const minimapResizeObserver = new ResizeObserver(() => {
+                requestAnimationFrame(() => {
+                    renderMinimap();
+                    syncMinimapSlider();
+                });
+            });
+            if (editorMinimapWrap) minimapResizeObserver.observe(editorMinimapWrap);
+            const editorBodyContainer = document.getElementById('editor-body-container');
+            if (editorBodyContainer) minimapResizeObserver.observe(editorBodyContainer);
+        }
     }
 
     initMinimapInteraction();

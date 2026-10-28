@@ -122,6 +122,21 @@
             noise.start();
         },
 
+        playBunkerHit() {
+            if (!this.enabled || !audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = "square";
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        },
+
         playPlayerHit() {
             if (!this.enabled || !audioCtx) return;
             const bufferSize = audioCtx.sampleRate * 0.4;
@@ -597,25 +612,32 @@
     // 難易度による補正 (config.js の値を NORMAL として、そこからの増減)
     //   lives: 残機の増減 / interval: 敵の発射間隔の倍率 / speed: 敵弾速度の倍率
     const DIFFICULTY_MODS = {
-        easy:   { lives: 2,  interval: 1.4,  speed: 0.8, noPassThrough: false },
-        normal: { lives: 0,  interval: 1.0,  speed: 1.0, noPassThrough: false },
-        hard:   { lives: -1, interval: 0.65, speed: 1.2, noPassThrough: true }
+        easy:   { lives: 2,  interval: 1.4,  speed: 0.8 },
+        normal: { lives: 0,  interval: 1.0,  speed: 1.0 },
+        hard:   { lives: -1, interval: 0.65, speed: 1.2 }
     };
     function diffMod() {
         return DIFFICULTY_MODS[currentDifficulty] || DIFFICULTY_MODS.normal;
     }
 
-    // ホーム画面で選んだ項目は優先し、未選択の場合は config.js の game 設定を使う
+    // ホーム画面で選んだ項目は優先し、未選択の場合は config.js の設定を使う
     let difficultyChosen = false;
     let wavesChosen = false;
+    let currentBunkerPassThrough = true;
+    let bunkerPassThroughChosen = false;
+
     function applyGameSettings() {
         const gCfg = (window.GameConfig && window.GameConfig.game) || {};
+        const bCfg = (window.GameConfig && window.GameConfig.bunker) || {};
         if (!difficultyChosen) {
             const d = String(gCfg.difficulty || "normal");
             currentDifficulty = DIFFICULTY_MODS[d] ? d : "normal";
         }
         if (!wavesChosen) {
             maxWaves = safeNum(gCfg.maxWaves, 1, 10, 3);
+        }
+        if (!bunkerPassThroughChosen) {
+            currentBunkerPassThrough = (bCfg.passThroughPlayer !== false);
         }
         syncHomeButtons();
     }
@@ -624,11 +646,32 @@
         document.querySelectorAll("#diff-options .arcade-pill").forEach(b => {
             b.classList.toggle("active", b.getAttribute("data-diff") === currentDifficulty);
         });
+        document.querySelectorAll("#bunker-options .arcade-pill").forEach(b => {
+            const isPenetrate = b.getAttribute("data-bunker") === "penetrate";
+            b.classList.toggle("active", isPenetrate === currentBunkerPassThrough);
+        });
         document.querySelectorAll("#wave-options .arcade-pill").forEach(b => {
             b.classList.toggle("active", parseInt(b.getAttribute("data-waves"), 10) === maxWaves);
         });
         const hs = document.getElementById("home-hiscore");
         if (hs) hs.textContent = String(hiScore).padStart(5, "0");
+
+        const guideEl = document.querySelector("#diff-guide-text .diff-guide-msg");
+        if (guideEl) {
+            const isHard = currentDifficulty === "hard";
+            const isEasy = currentDifficulty === "easy";
+            const passStr = currentBunkerPassThrough ? "貫通" : "衝突";
+            const eCfg = (window.GameConfig && window.GameConfig.enemy) || {};
+            const hardHpActive = isHard && !!eCfg.hardHpBoost;
+
+            if (isEasy) {
+                guideEl.textContent = `EASY: 残機+2 / 自弾はトーチカ【${passStr}】`;
+            } else if (isHard) {
+                guideEl.textContent = `HARD: 敵高速・残機-1${hardHpActive ? "・上段HP2" : ""} / 自弾はトーチカ【${passStr}】`;
+            } else {
+                guideEl.textContent = `NORMAL: 標準バランス / 自弾はトーチカ【${passStr}】`;
+            }
+        }
     }
 
     // プレイヤー
@@ -680,6 +723,8 @@
         const cols = Math.floor(safeNum(cfg.cols, 1, 20, 10));
         const colors = (Array.isArray(cfg.colors) && cfg.colors.length > 0) ? cfg.colors : ["#FFFF00", "#00FFFF", "#00FFFF", "#FF3399", "#FF3399"];
         const scores = (Array.isArray(cfg.scores) && cfg.scores.length > 0) ? cfg.scores : [30, 20, 20, 10, 10];
+        const isHard = currentDifficulty === "hard";
+        const hpBoost = !!(cfg.hardHpBoost && isHard);
 
         // 画面幅に合わせた等間隔配置
         // 各種敵スプライトのドット数・寸法を事前調査
@@ -767,6 +812,7 @@
 
                 if (!active) continue;
 
+                const initialHp = (hpBoost && r === 0) ? 2 : 1;
                 enemies.push({
                     x: startX + c * spacingX,
                     y: Math.max(55, baseStartY + r * spacingY + offsetY),
@@ -779,7 +825,10 @@
                     score: rowScore,
                     alive: true,
                     row: r,
-                    col: c
+                    col: c,
+                    hp: initialHp,
+                    maxHp: initialHp,
+                    damageFlashTimer: 0
                 });
             }
         }
@@ -825,6 +874,7 @@
 
     function pauseGame(mode = "menu") {
         if (gameState !== "PLAYING" && gameState !== "PAUSED") return;
+        resetKeyStates();
         gameState = "PAUSED";
         pauseMode = mode;
 
@@ -855,6 +905,7 @@
 
     function resumeGame() {
         if (gameState !== "PAUSED") return;
+        resetKeyStates();
         gameState = "PLAYING";
 
         const pauseOverlay = document.getElementById("pause-overlay");
@@ -880,6 +931,7 @@
     }
 
     function startGame() {
+        resetKeyStates();
         initAudio();
         gameState = "PLAYING";
         const overlay = document.getElementById("start-overlay");
@@ -893,13 +945,14 @@
     }
 
     function resetGame(fullReset = true, autoStart = false) {
+        resetKeyStates();
         ensureGlobalConfig();
         const pCfg = (window.GameConfig && window.GameConfig.player) || {};
         const pSprite = getSprite("player");
         const pDims = getSpriteDimensions(pSprite, player.pixelSize);
         player.width = pDims.width;
         player.height = pDims.height;
-        player.speed = safeNum(pCfg.speed, 0.5, 100, 5);
+        player.speed = safeNum(pCfg.speed, 0, 500, 5);
         player.color = pCfg.color || "#00FF66";
         player.x = V_WIDTH / 2 - player.width / 2;
         const groundY = V_HEIGHT - 32;
@@ -924,7 +977,7 @@
 
         if (fullReset) {
             applyGameSettings();
-            lives = Math.max(1, Math.floor(safeNum(pCfg.lives, 1, 99999, 3)) + diffMod().lives);
+            lives = Math.max(0, Math.floor(safeNum(pCfg.lives, 0, 99999999, 3)) + diffMod().lives);
             score = 0;
             wave = 1;
             playerPowerLevel = 1;
@@ -955,7 +1008,23 @@
     // ─────────────────────────────────────────────
     let shootCooldown = 0;
 
+    // 入力フラグの完全初期化（タブ切り替え・フォーカス喪失・画面遷移時の連射暴走防止）
+    function resetKeyStates() {
+        keys.left = false;
+        keys.right = false;
+        keys.shoot = false;
+        shootCooldown = 0;
+    }
+
+    // 入力要素（input, textarea, select 等）にフォーカスがあるか判定
+    function isInputElement(el) {
+        if (!el) return false;
+        const tag = (el.tagName || '').toLowerCase();
+        return tag === 'input' || tag === 'textarea' || tag === 'select' || !!el.isContentEditable;
+    }
+
     function handleKeyDown(code) {
+        if (isInputElement(document.activeElement)) return;
         initAudio();
 
         if (code === "Escape") {
@@ -964,6 +1033,16 @@
                 return;
             } else if (gameState === "PAUSED") {
                 resumeGame();
+                return;
+            }
+        }
+
+        if (code === "Enter" || code === "NumpadEnter") {
+            if (document.activeElement && document.activeElement !== canvas && document.activeElement.blur) {
+                document.activeElement.blur();
+            }
+            if (gameState === "READY") {
+                startGame();
                 return;
             }
         }
@@ -989,11 +1068,10 @@
                 return;
             }
 
-            if (gameState === "READY") {
-                startGame();
-            } else if (gameState === "GAME_OVER" || gameState === "CLEAR") {
+            // ゲーム終了・クリア画面からタイトルへ戻る（※ゲーム開始はEnterキーのみ受け付けることで連続開始事故を防止）
+            if (gameState === "GAME_OVER" || gameState === "CLEAR") {
                 resetGame(true, false);
-            } else if (shootCooldown <= 0) {
+            } else if (gameState === "PLAYING" && shootCooldown <= 0) {
                 firePlayerBullet();
                 const pCfg = (window.GameConfig && window.GameConfig.player) || {};
                 const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
@@ -1003,6 +1081,7 @@
     }
 
     function handleKeyUp(code) {
+        if (isInputElement(document.activeElement)) return;
         if (code === "ArrowLeft" || code === "KeyA") keys.left = false;
         if (code === "ArrowRight" || code === "KeyD") keys.right = false;
         if (code === "Space" || code === "KeyZ") {
@@ -1012,25 +1091,44 @@
     }
 
     window.addEventListener("keydown", (e) => {
-        if (["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Escape"].includes(e.code)) {
+        if (isInputElement(document.activeElement)) return;
+        if (["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Escape", "Enter", "NumpadEnter"].includes(e.code)) {
+            e.preventDefault();
+        }
+        if (gameState === "PLAYING" && ["KeyA", "KeyD", "KeyZ"].includes(e.code)) {
             e.preventDefault();
         }
         handleKeyDown(e.code);
     });
 
     window.addEventListener("keyup", (e) => {
-        if (["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Escape"].includes(e.code)) {
+        if (isInputElement(document.activeElement)) return;
+        if (["Space", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Escape", "Enter", "NumpadEnter"].includes(e.code)) {
+            e.preventDefault();
+        }
+        if (gameState === "PLAYING" && ["KeyA", "KeyD", "KeyZ"].includes(e.code)) {
             e.preventDefault();
         }
         handleKeyUp(e.code);
     });
+
+    // ウィンドウのフォーカス喪失・復帰、タブ切り替え、戻る/進む（bfcache）等の全復帰イベントで入力フラグを確実リセット
+    window.addEventListener("blur", resetKeyStates);
+    window.addEventListener("focus", resetKeyStates);
+    document.addEventListener("visibilitychange", resetKeyStates);
+    window.addEventListener("pageshow", resetKeyStates);
+    window.addEventListener("pagehide", resetKeyStates);
+    window.addEventListener("popstate", resetKeyStates);
 
     // 親ウィンドウ (IDE) からのキー入力 & 設定ブリッジ
     window.addEventListener("message", (e) => {
         if (!e.data) return;
         if (e.data.type === 'KEY_EVENT') {
             if (e.data.action === 'down') handleKeyDown(e.data.code);
-            if (e.data.action === 'up') handleKeyUp(e.data.code);
+            else if (e.data.action === 'up') handleKeyUp(e.data.code);
+            else if (e.data.action === 'reset') resetKeyStates();
+        } else if (e.data.type === 'RESET_KEYS') {
+            resetKeyStates();
         } else if (e.data.type === 'SPRITE_PREVIEW_UPDATE') {
             if (typeof window.updateLiveSpritePreview === 'function') {
                 const k = e.data.key || e.data.spriteKey;
@@ -1063,9 +1161,26 @@
         }
     });
 
+    // core.js 読み込み完了フラグ
+    window.GameCoreLoaded = true;
+
     // ホーム画面 (本格アーケード演出 & 難易度選択) の初期化
     let homeAnimFrame = 0;
     let homeAnimTimer = null;
+
+    // ⚡ core.js 起動時のタイトル画面ピカピカ覚醒エフェクト (S1-3 読込時の感動演出)
+    function bootTitleScreen() {
+        const container = document.getElementById("arcade-home-container") || document.querySelector(".arcade-home-container");
+        if (!container) return;
+
+        // 待機モードを解除し、ピカピカ大起動エフェクトを発火
+        container.classList.remove("is-standby");
+        container.classList.add("is-powered-on", "boot-flash");
+
+        setTimeout(() => {
+            container.classList.remove("boot-flash");
+        }, 1300);
+    }
 
     function renderHomePreviewSprites() {
         function drawToCanvas(canvasId, spriteKey, color, pixelSize = 2, frame = 0) {
@@ -1115,10 +1230,25 @@
             drawToCanvas("preview-player", "player", playerColor, 2, 0);
         }
 
-        updateSprites();
-        if (!homeAnimTimer) {
-            homeAnimTimer = setInterval(updateSprites, 480);
-        }
+        // ⚡ 起動時の順次点灯エフェクト (UFO → Squid → Crab → Octopus → Player)
+        const cfg = window.GameConfig || {};
+        const eColors = (cfg.enemy && cfg.enemy.colors) || [];
+        const ufoColor = (cfg.ufo && cfg.ufo.color) || "#FF3344";
+        const squidColor = eColors[0] || "#FFFF00";
+        const crabColor = eColors[1] || "#00FFFF";
+        const octopusColor = eColors[3] || eColors[eColors.length - 1] || "#FF3399";
+        const playerColor = (cfg.player && cfg.player.color) || "#00FF66";
+
+        setTimeout(() => drawToCanvas("preview-ufo", "ufo", ufoColor, 2, 0), 60);
+        setTimeout(() => drawToCanvas("preview-squid", "squid", squidColor, 2, 0), 160);
+        setTimeout(() => drawToCanvas("preview-crab", "crab", crabColor, 2, 0), 260);
+        setTimeout(() => drawToCanvas("preview-octopus", "octopus", octopusColor, 2, 0), 360);
+        setTimeout(() => {
+            drawToCanvas("preview-player", "player", playerColor, 2, 0);
+            if (!homeAnimTimer) {
+                homeAnimTimer = setInterval(updateSprites, 480);
+            }
+        }, 480);
     }
 
     function setupPauseUI() {
@@ -1181,6 +1311,18 @@
             });
         });
 
+        // トーチカ貫通設定ボタンの選択
+        const bunkerButtons = document.querySelectorAll("#bunker-options .arcade-pill");
+        bunkerButtons.forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                bunkerPassThroughChosen = true;
+                currentBunkerPassThrough = (btn.getAttribute("data-bunker") === "penetrate");
+                syncHomeButtons();
+                btn.blur();
+            });
+        });
+
         // クリア条件 (ウェーブ数) ボタンの選択
         const waveButtons = document.querySelectorAll("#wave-options .arcade-pill");
         waveButtons.forEach(btn => {
@@ -1194,6 +1336,7 @@
         });
 
         setupPauseUI();
+        bootTitleScreen();
         renderHomePreviewSprites();
     }
 
@@ -1252,13 +1395,13 @@
         const bCfg = (window.GameConfig && window.GameConfig.bullet) || {};
         const pCfg = (window.GameConfig && window.GameConfig.player) || {};
         const preset = DIFFICULTY_PRESETS[currentDifficulty] || DIFFICULTY_PRESETS.normal;
-        const maxBullets = Math.floor(safeNum(pCfg.maxBullets, 1, 300, preset.maxBullets));
+        const maxBullets = Math.floor(safeNum(pCfg.maxBullets, 1, 9999, preset.maxBullets));
 
         if (playerBullets.length >= maxBullets) return;
 
         const bw = safeNum(bCfg.width, 1, V_WIDTH, 3);
         const bh = safeNum(bCfg.height, 1, 200, 12);
-        const spd = safeNum(bCfg.speed, -200, -1, -8);
+        const spd = safeNum(bCfg.speed, -1000, 100, -8);
         const col = bCfg.color || "#FFFF00";
 
         const pSprite = getSprite("player");
@@ -1408,6 +1551,8 @@
                 if (lives > 0) {
                     gameState = "PLAYING";
                     player.x = V_WIDTH / 2 - player.width / 2;
+                    enemyBullets = [];
+                    playerBullets = [];
                 } else {
                     gameState = "GAME_OVER";
                 }
@@ -1418,7 +1563,7 @@
         if (gameState !== "PLAYING") return;
 
         // プレイヤー移動
-        player.speed = safeNum(pCfg.speed, 0.5, 100, 5);
+        player.speed = safeNum(pCfg.speed, 0, 500, 5);
         player.color = pCfg.color || "#00FF66";
         if (keys.left) player.x -= player.speed;
         if (keys.right) player.x += player.speed;
@@ -1436,6 +1581,7 @@
         // プレイヤーの弾移動 (巨大な弾幅でも画面左端で消えないよう b.x + b.width < 0 で判定)
         for (let i = playerBullets.length - 1; i >= 0; i--) {
             const b = playerBullets[i];
+            b.prevY = b.y; // 高速弾の連続衝突判定 (トンネリング貫通バグ防止)
             b.x += (b.vx || 0);
             b.y += b.speed;
             if (b.y + b.height < 30 || b.y > V_HEIGHT + 50 || b.x + b.width < 0 || b.x > V_WIDTH) {
@@ -1572,10 +1718,15 @@
             const pb = playerBullets[bi];
             let bulletRemoved = false;
 
+            // 弾の進行軌跡 (高速弾のすり抜け防止 / 連続衝突判定 CCD)
+            const bulletTop = Math.min(pb.y, (pb.prevY !== undefined ? pb.prevY : pb.y));
+            const bulletBottom = Math.max(pb.y + pb.height, (pb.prevY !== undefined ? pb.prevY : pb.y) + pb.height);
+            const bulletSweepHeight = Math.max(pb.height, bulletBottom - bulletTop);
+
             // UFO との判定
             if (ufo.active) {
                 if (pb.x < ufo.x + ufo.width && pb.x + pb.width > ufo.x &&
-                    pb.y < ufo.y + ufo.height && pb.y + pb.height > ufo.y) {
+                    bulletTop < ufo.y + ufo.height && bulletBottom > ufo.y) {
                     ufo.active = false;
                     playerBullets.splice(bi, 1);
                     bulletRemoved = true;
@@ -1597,39 +1748,52 @@
                 }
             }
 
-            // インベーダーとの判定
+            // インベーダーとの判定 (高速弾で複数行を跨ぐ場合は、最も手前/下の敵に優先ヒット)
+            let hitEnemy = null;
+            let maxHitY = -9999;
             for (let e of aliveEnemies) {
                 if (pb.x < e.x + e.width && pb.x + pb.width > e.x &&
-                    pb.y < e.y + e.height && pb.y + pb.height > e.y) {
-                    e.alive = false;
-                    playerBullets.splice(bi, 1);
-                    bulletRemoved = true;
-                    score += e.score;
+                    bulletTop < e.y + e.height && bulletBottom > e.y) {
+                    if (e.y > maxHitY) {
+                        maxHitY = e.y;
+                        hitEnemy = e;
+                    }
+                }
+            }
+
+            if (hitEnemy) {
+                hitEnemy.hp = (hitEnemy.hp !== undefined ? hitEnemy.hp : 1) - 1;
+                playerBullets.splice(bi, 1);
+                bulletRemoved = true;
+
+                if (hitEnemy.hp > 0) {
+                    // 耐久力あり: 被弾フラッシュと被弾音、まだ倒れない
+                    hitEnemy.damageFlashTimer = 8;
+                    Sound.playBunkerHit();
+                } else {
+                    hitEnemy.alive = false;
+                    score += hitEnemy.score;
                     if (score > hiScore) {
                         hiScore = score;
                         saveStoredHiScore(hiScore);
                     }
                     Sound.playInvaderHit();
                     explosions.push({
-                        x: e.x,
-                        y: e.y,
+                        x: hitEnemy.x,
+                        y: hitEnemy.y,
                         timer: 12,
-                        color: e.color
+                        color: hitEnemy.color
                     });
-                    break;
                 }
             }
 
             if (bulletRemoved) continue;
 
-            // 防壁との判定 (自弾が貫通するかどうか)
-            const bCfg = (window.GameConfig && window.GameConfig.bunker) || {};
-            const passThrough = (bCfg.passThroughPlayer !== false) && !diffMod().noPassThrough;
-
-            if (!passThrough) {
+            // 防壁との判定 (自弾が貫通するかどうか: 個別トグル設定に基づく)
+            if (!currentBunkerPassThrough) {
                 for (let bunker of bunkers) {
-                    if (bunker.checkHit(pb.x, pb.y, pb.width, pb.height)) {
-                        bunker.damage(pb.x + pb.width / 2, pb.y, 4);
+                    if (bunker.checkHit(pb.x, bulletTop, pb.width, bulletSweepHeight)) {
+                        bunker.damage(pb.x + pb.width / 2, bulletTop + 4, 4);
                         playerBullets.splice(bi, 1);
                         break;
                     }
@@ -1668,7 +1832,9 @@
             const eb = enemyBullets[ebi];
             if (eb.x < player.x + player.width && eb.x + eb.width > player.x &&
                 eb.y < player.y + player.height && eb.y + eb.height > player.y) {
-                enemyBullets.splice(ebi, 1);
+                // 連鎖被弾を防ぐため、フィールド上のすべての弾を即座に消去
+                enemyBullets = [];
+                playerBullets = [];
                 lives--;
                 Sound.playPlayerHit();
                 gameState = "PLAYER_DYING";
@@ -1744,7 +1910,12 @@
             if (!e.alive) continue;
             const pattern = getSprite(e.type, animFrame);
             if (pattern) {
-                drawPixelPattern(pattern, e.x, e.y, e.pixelSize, e.color);
+                let drawColor = e.color;
+                if (e.damageFlashTimer > 0) {
+                    drawColor = "#FFFFFF";
+                    e.damageFlashTimer--;
+                }
+                drawPixelPattern(pattern, e.x, e.y, e.pixelSize, drawColor);
             }
         }
 
@@ -1797,7 +1968,7 @@
         ctx.font = "14px 'Courier New', monospace";
         const playerPattern = getSprite("player");
         if (lives <= 5) {
-            ctx.fillText(lives, 25, groundY + 8);
+            ctx.fillText(Math.max(0, lives), 25, groundY + 8);
             for (let i = 0; i < Math.max(0, lives - 1); i++) {
                 drawPixelPattern(playerPattern, 45 + i * 28, groundY + 6, 1.5, player.color);
             }
@@ -1895,7 +2066,7 @@
         const groundY = V_HEIGHT - 32;
         player.y = groundY - 4 - player.height;
         player.color = pCfg.color || "#00FF66";
-        player.speed = safeNum(pCfg.speed, 0.5, 100, player.speed);
+        player.speed = safeNum(pCfg.speed, 0, 500, player.speed);
         if (pCfg.muzzle) {
             player.muzzle = { col: pCfg.muzzle.col, row: pCfg.muzzle.row };
         }
