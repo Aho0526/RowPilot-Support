@@ -348,19 +348,6 @@ canvas:focus {
     justify-content: flex-end;
 }
 
-.arcade-pill {
-    background-color: #16202c;
-    border: 2px solid #243447;
-    border-radius: 4px;
-    padding: 6px 10px;
-    color: #94a3b8;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 3px 0 #0e1620;
-    transition: all 0.1s ease;
-}
 
 .arcade-pill:hover {
     background-color: #202d3d;
@@ -380,23 +367,7 @@ canvas:focus {
     box-shadow: 0 3px 0 #082f49;
 }
 
-.pill-name {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 8px;
-    letter-spacing: 0.5px;
-}
-
 /* 特大アーケードスタートボタン */
-.arcade-action-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    max-width: 340px;
-    gap: 8px;
-    margin-top: 2px;
-}
-
 .arcade-play-btn {
     width: 100%;
     height: 48px;
@@ -410,6 +381,16 @@ canvas:focus {
     cursor: pointer;
     box-shadow: 0 4px 0 #047857;
     transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.1s ease;
+}
+
+.arcade-action-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 340px;
+    gap: 8px;
+    margin-top: 2px;
 }
 
 .arcade-play-btn:hover {
@@ -498,6 +479,26 @@ canvas:focus {
     color: #38bdf8;
     letter-spacing: 1px;
     animation: arcadeBlink 1.4s steps(2, start) infinite;
+}
+
+.arcade-pill {
+    background-color: #16202c;
+    border: 2px solid #243447;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 0 #0e1620;
+    transition: all 0.1s ease;
+}
+
+.pill-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    letter-spacing: 0.5px;
 }
 
 @keyframes arcadeBlink {
