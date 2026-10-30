@@ -446,7 +446,7 @@ const STAGES = [
         id: 14,
         title: 'ステージ 14',
         subtitle: '外周ギミックを回せ',
-        maxBlocks: 6,
+        maxBlocks: 5,
         startRow: 1,
         goalRow: 3,
         forbidden: [
@@ -462,7 +462,7 @@ const STAGES = [
         ],
         solution: [
             { col: 0, row: 1 }, { col: 0, row: 2 },
-            { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 },
+            { col: 1, row: 3 }, { col: 2, row: 3 },
             { col: 0, row: 4 }
         ],
         legends: [
@@ -609,7 +609,7 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 19 (旧ステージ 14・クリア不可ステージ)
+    // ステージ 19 (ジグザグの狭路)
     // ------------------------------------------
     {
         id: 19,
@@ -632,9 +632,11 @@ const STAGES = [
             { col: 3, row: 4, type: 'step', dir: 'up', steps: 1 }
         ],
         solution: [
-            { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 },
-            { col: 1, row: 3 },
-            { col: 1, row: 4 }
+            { col: 0, row: 1 },
+            { col: 1, row: 2 },
+            { col: 2, row: 3 },
+            { col: 1, row: 4 },
+            { col: 3, row: 4 }
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },

@@ -205,12 +205,15 @@ function placeBlock(col, row) {
     render();
 }
 
-// MARK: - Gimmick Block Movements at Start (連鎖・複数ステップ対応シミュレーション)
+// MARK: - Gimmick Block Movements at Start (連鎖・複数ステップ・トポロジカル依存解決対応シミュレーション)
 function simulateGimmickBlockMoves() {
     const st = getStage();
     const rounds = [];
     // シミュレーション作業用の一時グリッド
     const simGrid = grid.map(r => [...r]);
+
+    // 初期ブロックが去ったギミックマスの記録（後から通過するブロックが誤って乗っ取られないようにする）
+    const vacatedGimmickCells = new Set();
 
     const maxRounds = 20;
     let roundCount = 0;
@@ -219,28 +222,110 @@ function simulateGimmickBlockMoves() {
         roundCount++;
         // 矢印ギミック（step または dash）の上にブロックが乗っているか？
         const candidateMoves = [];
-        st.gimmicks.forEach(g => {
-            if ((g.type === 'step' || g.type === 'dash') && simGrid[g.row][g.col]) {
-                candidateMoves.push({
-                    gimmick: g,
-                    fromCol: g.col,
-                    fromRow: g.row
-                });
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (simGrid[r][c]) {
+                    const g = getGimmick(c, r);
+                    if (g && (g.type === 'step' || g.type === 'dash')) {
+                        candidateMoves.push({
+                            gimmick: g,
+                            fromCol: c,
+                            fromRow: r
+                        });
+                    }
+                }
             }
-        });
+        }
 
         if (candidateMoves.length === 0) {
             // 動くブロックがもうない -> シミュレーション完了
             break;
         }
 
-        // 衝突を避ける自然な順序でソート（横方向の移動を先に退避させ、縦の落下・上昇を処理）
-        const rightMoves = candidateMoves.filter(m => m.gimmick.dir === 'right').sort((a, b) => b.fromCol - a.fromCol);
-        const leftMoves = candidateMoves.filter(m => m.gimmick.dir === 'left').sort((a, b) => a.fromCol - b.fromCol);
-        const upMoves = candidateMoves.filter(m => m.gimmick.dir === 'up').sort((a, b) => a.fromRow - b.fromRow);
-        const downMoves = candidateMoves.filter(m => m.gimmick.dir === 'down').sort((a, b) => b.fromRow - a.fromRow);
+        // 初期配置でブロックが置かれていたギミックマスを記録
+        candidateMoves.forEach(m => {
+            vacatedGimmickCells.add(`${m.fromCol},${m.fromRow}`);
+        });
 
-        const orderedMoves = [...rightMoves, ...leftMoves, ...upMoves, ...downMoves];
+        // 1. step（緑：1マス退避）を優先して動かし、その後 dash（水色：端まで滑る）を動かす
+        const stepMoves = candidateMoves.filter(m => m.gimmick.type === 'step');
+        const dashMoves = candidateMoves.filter(m => m.gimmick.type === 'dash');
+
+        // stepMoves 内での依存関係解決（トポロジカルソート）
+        const orderSteps = (group) => {
+            if (group.length <= 1) return group;
+            const inDegree = new Map();
+            const adj = new Map();
+            group.forEach(m => {
+                const key = `${m.fromCol},${m.fromRow}`;
+                inDegree.set(key, 0);
+                adj.set(key, []);
+            });
+
+            for (let i = 0; i < group.length; i++) {
+                const mA = group[i];
+                const keyA = `${mA.fromCol},${mA.fromRow}`;
+                for (let j = 0; j < group.length; j++) {
+                    if (i === j) continue;
+                    const mB = group[j];
+                    const keyB = `${mB.fromCol},${mB.fromRow}`;
+
+                    let inLine = false;
+                    if (mA.gimmick.dir === 'right' && mB.fromRow === mA.fromRow && mB.fromCol > mA.fromCol) inLine = true;
+                    if (mA.gimmick.dir === 'left' && mB.fromRow === mA.fromRow && mB.fromCol < mA.fromCol) inLine = true;
+                    if (mA.gimmick.dir === 'down' && mB.fromCol === mA.fromCol && mB.fromRow > mA.fromRow) inLine = true;
+                    if (mA.gimmick.dir === 'up' && mB.fromCol === mA.fromCol && mB.fromRow < mA.fromRow) inLine = true;
+
+                    if (inLine) {
+                        adj.get(keyB).push(keyA);
+                        inDegree.set(keyA, inDegree.get(keyA) + 1);
+                    }
+                }
+            }
+
+            const stepDirOrder = { up: 0, down: 1, right: 2, left: 3 };
+            const compareMoves = (a, b) => {
+                const d = stepDirOrder[a.gimmick.dir] - stepDirOrder[b.gimmick.dir];
+                if (d !== 0) return d;
+                if (a.gimmick.dir === 'right') return b.fromCol - a.fromCol;
+                if (a.gimmick.dir === 'left') return a.fromCol - b.fromCol;
+                if (a.gimmick.dir === 'up') return a.fromRow - b.fromRow;
+                return b.fromRow - a.fromRow;
+            };
+
+            const ready = group.filter(m => inDegree.get(`${m.fromCol},${m.fromRow}`) === 0);
+            ready.sort(compareMoves);
+
+            const ordered = [];
+            while (ready.length > 0) {
+                const u = ready.shift();
+                ordered.push(u);
+                const uKey = `${u.fromCol},${u.fromRow}`;
+                adj.get(uKey).forEach(vKey => {
+                    inDegree.set(vKey, inDegree.get(vKey) - 1);
+                    if (inDegree.get(vKey) === 0) {
+                        const mV = group.find(m => `${m.fromCol},${m.fromRow}` === vKey);
+                        ready.push(mV);
+                        ready.sort(compareMoves);
+                    }
+                });
+            }
+            group.forEach(m => {
+                if (!ordered.includes(m)) ordered.push(m);
+            });
+            return ordered;
+        };
+
+        // dashMoves は端から外側へ障害物衝突を判定する自然なソート
+        const sortDashes = (arr) => {
+            const r = arr.filter(m => m.gimmick.dir === 'right').sort((a, b) => b.fromCol - a.fromCol);
+            const l = arr.filter(m => m.gimmick.dir === 'left').sort((a, b) => a.fromCol - b.fromCol);
+            const u = arr.filter(m => m.gimmick.dir === 'up').sort((a, b) => a.fromRow - b.fromRow);
+            const d = arr.filter(m => m.gimmick.dir === 'down').sort((a, b) => b.fromRow - a.fromRow);
+            return [...r, ...l, ...u, ...d];
+        };
+
+        const orderedMoves = [...orderSteps(stepMoves), ...sortDashes(dashMoves)];
         const roundMoves = [];
 
         orderedMoves.forEach(m => {
@@ -258,7 +343,7 @@ function simulateGimmickBlockMoves() {
             let curR = originRow;
             let currentDir = g.dir;
             let currentMode = g.type; // 'dash' または 'step'
-            let remainingSteps = (currentMode === 'step') ? 1 : Infinity;
+            let remainingSteps = (currentMode === 'step') ? (g.steps || 1) : Infinity;
 
             const path = [{ col: curC, row: curR }];
             const visited = new Set();
@@ -290,21 +375,24 @@ function simulateGimmickBlockMoves() {
                 path.push({ col: curC, row: curR });
                 totalStepsTaken++;
 
-                // 移動先（または通過中）のマスに矢印ギミックがあるかチェック
+                // 移動先のマスにギミックがあるかチェック
+                const tileKey = `${curC},${curR}`;
                 const tileGimmick = getGimmick(curC, curR);
-                if (tileGimmick && tileGimmick.type) {
-                    // 矢印マスを踏んだ/着地した！
+                const isVacated = vacatedGimmickCells.has(tileKey);
+
+                // 初期配置ブロックが去った後のマスは通過用とし、未消費の正規ギミックのみ連鎖発動
+                if (tileGimmick && tileGimmick.type && !isVacated) {
                     if (tileGimmick.type === 'step') {
                         currentDir = tileGimmick.dir;
                         currentMode = 'step';
-                        remainingSteps = 1;
+                        remainingSteps = tileGimmick.steps || 1;
                     } else if (tileGimmick.type === 'dash') {
                         currentDir = tileGimmick.dir;
                         currentMode = 'dash';
                         remainingSteps = Infinity;
                     }
                 } else {
-                    // 通常マス
+                    // 通常マス（または退避後の空きマス）
                     if (currentMode === 'step') {
                         remainingSteps--;
                         if (remainingSteps <= 0) {

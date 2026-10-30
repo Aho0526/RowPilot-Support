@@ -354,11 +354,117 @@
         .line-num {
             height: 20px;
             display: block;
+            transition: background 0.15s ease, color 0.15s ease;
         }
         .line-num.highlighted {
             color: #fbbf24;
             font-weight: bold;
-            background: rgba(251, 191, 36, 0.18);
+            background: rgba(251, 191, 36, 0.22);
+        }
+        .line-num.error {
+            background: rgba(239, 68, 68, 0.28) !important;
+            color: #f87171 !important;
+            font-weight: bold;
+            position: relative;
+        }
+        .line-num.error::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #ef4444;
+        }
+        .line-num.warning {
+            background: rgba(245, 158, 11, 0.2) !important;
+            color: #fbbf24 !important;
+            font-weight: bold;
+            position: relative;
+        }
+        .line-num.warning::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #f59e0b;
+        }
+
+        /* リアルタイム診断バナー（エラー発生時にエディタ上部に表示） */
+        .editor-diagnostics-banner {
+            display: none;
+            background: #450a0a;
+            border-bottom: 1px solid #991b1b;
+            padding: 6px 12px;
+            font-size: 11.5px;
+            color: #fecaca;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            animation: fadeInDiag 0.2s ease-out;
+        }
+        .editor-diagnostics-banner.visible {
+            display: flex;
+        }
+        .editor-diagnostics-banner.is-warning {
+            background: #451a03;
+            border-bottom: 1px solid #9a3412;
+            color: #fed7aa;
+        }
+        .diag-banner-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .diag-badge {
+            background: #ef4444;
+            color: #fff;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .diag-badge.warning {
+            background: #f59e0b;
+            color: #000;
+        }
+        .diag-banner-text {
+            font-weight: 600;
+            color: #fff;
+        }
+        .diag-banner-hint {
+            color: #fca5a5;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+        .editor-diagnostics-banner.is-warning .diag-banner-hint {
+            color: #fdba74;
+        }
+        .diag-jump-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 10.5px;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+        }
+        .diag-jump-btn:hover {
+            background: rgba(255, 255, 255, 0.28);
+        }
+        @keyframes fadeInDiag {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         /* テキストエリア本体 */
@@ -388,16 +494,19 @@
             overflow: auto;
         }
 
-        /* ミニマップ (VS Code 風コードマップ) */
+        /* ミニマップ (VS Code 風 高精細コードマップ) */
         .minimap-col {
-            width: 52px;
-            background: #070d17;
+            width: 64px;
+            background: #080e1a;
             border-left: 1px solid #1e293b;
             position: relative;
             flex-shrink: 0;
             overflow: hidden;
             cursor: pointer;
             user-select: none;
+        }
+        .minimap-col:hover .minimap-slider {
+            background: rgba(255, 255, 255, 0.18);
         }
 
         .minimap-canvas {
@@ -406,16 +515,17 @@
             display: block;
         }
 
-        /* ミニマップ上の現在位置スライダー（表示範囲） */
+        /* ミニマップ上の現在位置スライダー（表示範囲矩形） */
         .minimap-slider {
             position: absolute;
             left: 0;
             width: 100%;
-            background: rgba(255, 255, 255, 0.14);
-            border-top: 1px solid rgba(255, 255, 255, 0.3);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.12);
+            border-top: 1px solid rgba(255, 255, 255, 0.28);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.28);
             pointer-events: none;
-            transition: top 0.05s ease;
+            box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+            transition: top 0.04s ease;
         }
 
         .editor-status-bar {
@@ -428,6 +538,35 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+        .diag-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+        }
+        .diag-status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .diag-status-dot.ok {
+            background: #22c55e;
+            box-shadow: 0 0 5px rgba(34, 197, 94, 0.6);
+        }
+        .diag-status-dot.error {
+            background: #ef4444;
+            box-shadow: 0 0 5px rgba(239, 68, 68, 0.8);
+            animation: pulseError 1.2s infinite;
+        }
+        .diag-status-dot.warning {
+            background: #f59e0b;
+            box-shadow: 0 0 5px rgba(245, 158, 11, 0.8);
+        }
+        @keyframes pulseError {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
 
         /* ----------------------------------------------------
@@ -633,11 +772,245 @@
             border-left: 4px solid #f59e0b;
         }
 
+        .info-card.success {
+            background: #f0fdf4;
+            border-left: 4px solid #16a34a;
+        }
+
         .card-title {
             font-weight: 800;
             margin-bottom: 6px;
             color: #0f172a;
         }
+
+        /* ----------------------------------------------------
+           入門編・教育向け専用スタイル
+           ---------------------------------------------------- */
+        .beginner-welcome {
+            background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 18px 20px;
+            margin-bottom: 22px;
+        }
+
+        .beginner-welcome h3 {
+            margin: 0 0 8px;
+            color: #1e3a8a;
+            font-size: 17px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .beginner-welcome p {
+            margin: 0;
+            font-size: 13.5px;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .triad-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .triad-card {
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 14px 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .triad-card.html { border-top: 4px solid #f97316; }
+        .triad-card.css  { border-top: 4px solid #3b82f6; }
+        .triad-card.js   { border-top: 4px solid #eab308; }
+        .triad-card.data { border-top: 4px solid #10b981; }
+
+        .triad-title {
+            font-weight: 800;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .triad-desc {
+            font-size: 12.5px;
+            color: #475569;
+            line-height: 1.5;
+        }
+
+        .triad-analogy {
+            background: #f8fafc;
+            border-left: 3px solid #64748b;
+            padding: 4px 8px;
+            font-size: 11.5px;
+            color: #0f172a;
+            font-weight: 600;
+            border-radius: 0 4px 4px 0;
+            margin-top: auto;
+        }
+
+        .symbol-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .symbol-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px 14px;
+        }
+
+        .symbol-icon {
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: 800;
+            color: #2563eb;
+            background: #dbeafe;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+
+        .symbol-name {
+            font-weight: 700;
+            font-size: 13px;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .symbol-desc {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .step-tutorial {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .step-card {
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-left: 5px solid #2563eb;
+            border-radius: 6px;
+            padding: 14px 16px;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .step-number {
+            background: #2563eb;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+
+        .step-title {
+            font-weight: 700;
+            font-size: 14px;
+            color: #0f172a;
+        }
+
+        .param-table-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin: 12px 0;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .param-header {
+            background: #f1f5f9;
+            padding: 8px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .param-name {
+            font-family: monospace;
+            font-weight: 800;
+            font-size: 14px;
+            color: #0369a1;
+        }
+
+        .param-type {
+            font-size: 11px;
+            color: #64748b;
+            font-family: monospace;
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .param-body {
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .param-example {
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: monospace;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+
+        /* 辞書タブ（初心者向け） */
+        .dict-toc { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+        .dict-toc a { background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; padding:4px 10px; font-size:12px; color:#0369a1; text-decoration:none; font-weight:600; }
+        .dict-toc a:hover { background:#e0f2fe; }
+        .dict-sub { font-size:14px; margin:18px 0 6px; color:#0f172a; border-left:4px solid #38bdf8; padding-left:8px; }
+        .dict-table { width:100%; border-collapse:collapse; font-size:12.5px; margin:8px 0; background:#fff; }
+        .dict-table th, .dict-table td { border:1px solid #e2e8f0; padding:6px 10px; text-align:left; vertical-align:top; line-height:1.55; }
+        .dict-table th { background:#f1f5f9; color:#334155; }
+        .dict-rules { font-size:13px; line-height:1.8; padding-left:22px; }
+        .dict-note { background:#fffbeb; border:1px solid #fcd34d; border-radius:4px; padding:8px 12px; font-size:12.5px; color:#78350f; margin:10px 0; line-height:1.6; }
+        .dict-badge { display:inline-block; font-size:10px; font-weight:700; padding:1px 6px; border-radius:3px; margin-left:6px; vertical-align:middle; font-family:sans-serif; }
+        .dict-badge.req { background:#fee2e2; color:#b91c1c; }
+        .dict-badge.opt { background:#e0f2fe; color:#0369a1; }
+        .dict-try { margin-top:8px; }
+        .dict-try-btn { background:#0f172a; color:#e2e8f0; border:1px solid #334155; border-radius:4px; font-size:11px; padding:3px 10px; cursor:pointer; }
+        .dict-try-btn:hover { background:#1e293b; color:#38bdf8; }
+        .dict-fig-row { display:flex; align-items:center; gap:14px; margin:10px 0; flex-wrap:wrap; }
+        .dict-fig-cap { font-size:12px; color:#475569; line-height:1.6; max-width:280px; }
+        .mini-grid { display:inline-grid; grid-template-columns:repeat(5,30px); grid-template-rows:repeat(5,30px); gap:2px; background:#0f172a; padding:6px; border-radius:6px; }
+        .mini-cell { background:#1e293b; border-radius:2px; font-size:8px; color:#64748b; display:flex; align-items:center; justify-content:center; position:relative; }
+        .mini-cell.mark { background:#0ea5e9; color:#fff; font-weight:700; }
+        .mini-cell.forb { background:repeating-linear-gradient(135deg,#7f1d1d,#7f1d1d 4px,#dc2626 4px,#dc2626 6px); }
+        .mini-cell.dash { background:#0e7490; color:#e0f2fe; font-size:15px; }
+        .mini-cell.step { background:#15803d; color:#dcfce7; font-size:15px; }
+        .mini-cell.purple { background:#3b0764; outline:2px solid #a855f7; outline-offset:-2px; }
 
         /* コードブロック */
         .code-container {
@@ -726,36 +1099,41 @@
         /* 座標系図解 */
         .grid-visualizer {
             display: inline-grid;
-            grid-template-columns: repeat(5, 48px);
-            grid-template-rows: repeat(5, 48px);
-            gap: 3px;
+            grid-template-columns: repeat(5, 52px);
+            grid-template-rows: repeat(5, 52px);
+            gap: 4px;
             background: #0f172a;
-            padding: 8px;
-            border-radius: 6px;
+            padding: 10px;
+            border-radius: 8px;
             margin: 10px 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .grid-cell {
             background: #1e293b;
-            color: #94a3b8;
+            color: #38bdf8;
             border: 1px solid #334155;
-            border-radius: 3px;
+            border-radius: 4px;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 9.5px;
-            font-family: monospace;
+            font-size: 12.5px;
+            font-weight: 700;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            transition: all 0.15s ease;
+        }
+
+        .grid-cell:hover {
+            background: #334155;
+            border-color: #38bdf8;
+            transform: scale(1.05);
         }
 
         .grid-cell .cell-coord {
             color: #38bdf8;
-            font-weight: bold;
-        }
-
-        .grid-cell .cell-key {
-            color: #fbbf24;
-            font-size: 8.5px;
+            font-weight: 700;
+            line-height: 1.2;
+            text-align: center;
         }
 
         .footer-note {
@@ -776,27 +1154,710 @@
         <!-- ======================================================== -->
         <div class="doc-container" id="docContainer">
             <header class="doc-header">
-                <div class="doc-badge">TECHNICAL SPECIFICATION</div>
-                <h1 class="doc-title">ハコゲーム 技術解説書</h1>
-                <p class="doc-subtitle">ファイル構成・エンジン構造・ステージ作成・既存コード完全解説</p>
+                <div class="doc-badge">EDUCATION & TECHNICAL SPECIFICATION</div>
+                <h1 class="doc-title">ハコゲーム 学習ガイド & 技術解説書</h1>
+                <p class="doc-subtitle">ゼロからわかるWebの仕組み・ステージ改造チュートリアル・全コード完全解説</p>
                 <div class="header-nav">
                     <button class="header-link-btn try-btn" id="openPlaygroundBtn" onclick="togglePlayground(true)">ライブエディタを開く</button>
-                    <a href="index.html" class="header-link-btn primary">ゲーム本編を開く</a>
+                    <a href="index.html" class="header-link-btn primary">ゲーム本編を遊ぶ</a>
                     <a href="how-to-play.html" target="_blank" class="header-link-btn">操作ガイド</a>
                 </div>
             </header>
 
             <!-- タブナビゲーション -->
             <nav class="tab-bar">
-                <button class="tab-btn active" onclick="switchTab('architecture')">1. アーキテクチャ概要</button>
-                <button class="tab-btn" onclick="switchTab('code-walkthrough')">2. ソースコード解説</button>
-                <button class="tab-btn" onclick="switchTab('engine')">3. コアアルゴリズム</button>
-                <button class="tab-btn" onclick="switchTab('stages')">4. ステージ作成ガイド</button>
-                <button class="tab-btn" onclick="switchTab('tips')">5. デバッグ・発展課題</button>
+                <button class="tab-btn active" onclick="switchTab('beginner')">入門: ゼロからわかるWebの仕組み</button>
+                <button class="tab-btn" onclick="switchTab('stages')">実践: ステージ改造チュートリアル</button>
+                <button class="tab-btn" onclick="switchTab('dictionary')">リファレンス: パラメータ辞書</button>
+                <button class="tab-btn" onclick="switchTab('architecture')">設計: 全体構成と連携</button>
+                <button class="tab-btn" onclick="switchTab('engine')">詳細: コアエンジンと判定</button>
+                <button class="tab-btn" onclick="switchTab('tips')">応用: デバッグと発展課題</button>
             </nav>
 
-            <!-- TAB 1: アーキテクチャ概要 -->
-            <div id="tab-architecture" class="tab-content active">
+            <!-- ======================================================== -->
+            <!-- TAB: ゼロからわかる超入門 (初心者向け) -->
+            <!-- ======================================================== -->
+            <div id="tab-beginner" class="tab-content active">
+                <div class="beginner-welcome">
+                    <h3>プログラミングが初めての方へ</h3>
+                    <p>
+                        このページは、プログラミングの経験がなくても読めるように作っています。専門用語は、出てくるたびに説明します。<br>
+                        最後には、ゲームの数字を1か所書き換えて、動きが変わるのを確かめる体験があります。
+                    </p>
+                    <p style="margin-top:8px;">
+                        <b>進め方（約15分）</b><br>
+                        1. Webゲームを作る4つの役割 → 2. コードの記号 → 3. マスの座標 → 4. 実物のコードを読む → 5. solution → 6. エディタの見方 → 7. 改造チャレンジ
+                    </p>
+                </div>
+
+                <!-- 1. Web制作の3大要素 -->
+                <div class="section">
+                    <h2 class="section-heading">1. Webゲームを作る4つの役割（HTML / CSS / JavaScript）</h2>
+                    <p>
+                        普段私たちが見ているWebサイトやブラウザゲームは、役割の違う3つの言語がチームを組んで動いています。
+                        人間に例えると、とてもわかりやすいです！
+                    </p>
+
+                    <div class="triad-grid">
+                        <div class="triad-card html">
+                            <div class="triad-title"><span class="triad-badge" style="background: #fff7ed; color: #c2410c;">HTML</span> index.html</div>
+                            <div class="triad-desc">
+                                ゲームの<b>「骨組み・部屋」</b>を作る言語。<br>
+                                「ここにゲームの四角い枠（Canvas）を置く」「ここにスタートボタンを置く」とパーツを配置します。
+                            </div>
+                            <div class="triad-analogy">人間でいうと: 「骨や体」</div>
+                        </div>
+
+                        <div class="triad-card css">
+                            <div class="triad-title"><span class="triad-badge" style="background: #eff6ff; color: #1d4ed8;">CSS</span> style.css</div>
+                            <div class="triad-desc">
+                                ゲームの<b>「洋服・お化粧・デザイン」</b>を決める言語。<br>
+                                「ボタンをレトロな赤や緑にする」「影をつけて立体的にする」「画面の真ん中に置く」と見た目を整えます。
+                            </div>
+                            <div class="triad-analogy">人間でいうと: 「服や髪型」</div>
+                        </div>
+
+                        <div class="triad-card js">
+                            <div class="triad-title"><span class="triad-badge" style="background: #fefce8; color: #a16207;">JS (エンジン)</span> main.js</div>
+                            <div class="triad-desc">
+                                ゲームの<b>「頭脳・筋肉・ルール」</b>を動かす言語。<br>
+                                「スタートが押されたらキャラクターを走らせる」「ブロックにぶつかったら止まる」「重力で落ちる」というゲームの物理法則を計算します。
+                            </div>
+                            <div class="triad-analogy">人間でいうと: 「頭脳や運動神経」</div>
+                        </div>
+
+                        <div class="triad-card data">
+                            <div class="triad-title"><span class="triad-badge" style="background: #ecfdf5; color: #047857;">JS (データ)</span> stages.js</div>
+                            <div class="triad-desc">
+                                全ステージの<b>「設計図・ノート」</b>。<br>
+                                「ステージ1はブロック最大7個」「土管の高さは3段目」とメモしてあります。<br>
+                                <b>※改造するときに一番いじるファイルです。</b>
+                            </div>
+                            <div class="triad-analogy">人間でいうと: 「記憶や手帳」</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. プログラミングの記号 -->
+                <div class="section">
+                    <h2 class="section-heading">2. コードに出てくる「変な記号」の意味をスッキリ解剖！</h2>
+                    <p>
+                        プログラムのファイルを開くと、<code>{ }</code> や <code>[ ]</code>、<code>:</code> や <code>,</code> など普段あまり使わない記号がたくさん出てきます。
+                        でも実は、意味はたったこれだけです！
+                    </p>
+
+                    <div class="symbol-grid">
+                        <div class="symbol-card">
+                            <span class="symbol-icon">{ }</span>
+                            <div class="symbol-name">波かっこ（中かっこ）＝「1枚の情報カード」</div>
+                            <div class="symbol-desc">
+                                1つのモノの情報をひとまとめにする袋です。<br>
+                                例: <code>{ col: 1, row: 3 }</code> は「横が1番目、縦が3番目のマスだよ」という<b>1枚のマスカード</b>です。
+                            </div>
+                        </div>
+
+                        <div class="symbol-card">
+                            <span class="symbol-icon">[ ]</span>
+                            <div class="symbol-name">角かっこ（大かっこ）＝「リスト・一覧表」</div>
+                            <div class="symbol-desc">
+                                複数のカードを順番に並べた箱（配列）です。<br>
+                                例: <code>[ { col: 1 }, { col: 2 } ]</code> は「カードが2枚入ったリスト」です。
+                            </div>
+                        </div>
+
+                        <div class="symbol-card">
+                            <span class="symbol-icon">:</span>
+                            <div class="symbol-name">コロン ＝「〜は」</div>
+                            <div class="symbol-desc">
+                                項目名と中身を繋ぎます。<br>
+                                例: <code>maxBlocks: 5</code> は「最大ブロック数は 5 だよ」という意味です。
+                            </div>
+                        </div>
+
+                        <div class="symbol-card">
+                            <span class="symbol-icon">,</span>
+                            <div class="symbol-name">カンマ ＝「〜と（区切り）」</div>
+                            <div class="symbol-desc">
+                                情報と情報を区切る句読点です。<br>
+                                例: 「リンゴ, みかん, バナナ」と同じ！ 最後の1個以外には必ずつけます。忘れるとコンピュータが「どこで区切ればいいの？」と迷子になってエラーになります。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. マスの数え方 (0オリジン) -->
+                <div class="section">
+                    <h2 class="section-heading">3. マスの座標：なぜ「0」から数え始めるの？</h2>
+                    <p>
+                        ハコゲームのステージは、縦5マス × 横5マスのマス目でできています。<br>
+                        日常生活では「1番目、2番目、3番目…」と数えますが、<b>プログラミングの世界では「0番目」から数える</b>のが大昔からの世界共通ルール（0オリジン）です！
+                    </p>
+
+                    <div class="info-card tip">
+                        <div class="card-title">ポイント: 距離で考えるとわかりやすい</div>
+                        「スタート地点からの距離（ズレ）」と考えるとわかりやすいです！<br>
+                        一番左端は「左から0マス離れた場所」、1つ右に行くと「左から1マス離れた場所」になります。
+                    </div>
+
+                    <div style="text-align: center; margin: 16px 0;">
+                        <div class="grid-visualizer">
+                            <div class="grid-cell"><span class="cell-coord">0,0<br><span style="font-size: 9px; opacity: 0.7;">(左上)</span></span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,0</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,0</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,0</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,0<br><span style="font-size: 9px; opacity: 0.7;">(右上)</span></span></div>
+
+                            <div class="grid-cell"><span class="cell-coord">0,1</span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,1</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,1</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,1</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,1</span></div>
+
+                            <div class="grid-cell"><span class="cell-coord">0,2</span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,2</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,2</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,2</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,2</span></div>
+
+                            <div class="grid-cell"><span class="cell-coord">0,3</span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,3</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,3</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,3</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,3</span></div>
+
+                            <div class="grid-cell"><span class="cell-coord">0,4<br><span style="font-size: 9px; opacity: 0.7;">(左下)</span></span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,4</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,4</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,4</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,4<br><span style="font-size: 9px; opacity: 0.7;">(右下)</span></span></div>
+                        </div>
+                        <p style="font-size: 12px; color: #64748b; margin-top: 6px;">
+                            ※ <code>col</code> ＝ 列（横の番号: 0〜4）、<code>row</code> ＝ 行（縦の番号: 0〜4）
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 4. 実物のコードを読む -->
+                <div class="section">
+                    <h2 class="section-heading">4. 実物のコードを1行ずつ読んでみよう</h2>
+                    <p>
+                        記号の意味が分かったら、実際の <code>stages.js</code>（ステージ1）を読んでみます。<br>
+                        左が実際のコード、右が日本語での意味です。「何を書いているか」が読めれば、書き換えもできます。
+                    </p>
+                    <table class="dict-table">
+                        <tr><th>コード</th><th>意味</th></tr>
+                        <tr><td><code>{</code></td><td>ステージ1枚分の情報カードを開く</td></tr>
+                        <tr><td><code>id: 1,</code></td><td>ステージ番号は 1</td></tr>
+                        <tr><td><code>title: 'ステージ 1',</code></td><td>タイトルは「ステージ 1」（文字は <code>' '</code> で囲む）</td></tr>
+                        <tr><td><code>maxBlocks: 7,</code></td><td>置けるブロックは最大 7 個</td></tr>
+                        <tr><td><code>startRow: 3,</code></td><td>スタートの土管は、上から数えて 3 の高さ（0 が一番上）</td></tr>
+                        <tr><td><code>goalRow: 1,</code></td><td>ゴールは、上から数えて 1 の高さ</td></tr>
+                        <tr><td><code>forbidden: [</code> … <code>],</code></td><td>置けないマスのリスト。中に <code>{ col: 3, row: 0 }</code> のようなマスカードを並べる</td></tr>
+                        <tr><td><code>gimmicks: [</code> … <code>],</code></td><td>矢印マスのリスト</td></tr>
+                        <tr><td><code>solution: [</code> … <code>],</code></td><td>正解の置き方のリスト（次の節で説明）</td></tr>
+                        <tr><td><code>legends: [</code> … <code>]</code></td><td>画面右の「マスの見方」の説明文</td></tr>
+                        <tr><td><code>}</code></td><td>情報カードを閉じる</td></tr>
+                    </table>
+                    <div class="info-card tip">
+                        <div class="card-title">コメント（<code>//</code>）について</div>
+                        行の途中から <code>//</code> と書くと、その右側は「メモ」として無視されます。ゲームの動きには影響しません。自分用の覚え書きに使えます。
+                    </div>
+                    <div style="margin-top:8px;">
+                        <button class="code-jump-btn" onclick="jumpToCode('stages.js', 9)">エディタでステージ1の実物を見る →</button>
+                    </div>
+                    <p style="font-size:12.5px; color:#64748b; margin-top:8px;">
+                        各項目の詳しい書き方は「リファレンス: パラメータ辞書」にあります。今は全部覚えなくて大丈夫です。
+                    </p>
+                </div>
+
+                <!-- 5. solution の意味 -->
+                <div class="section">
+                    <h2 class="section-heading">5. 「solution」とは？</h2>
+                    <div class="info-card tip">
+                        <div class="card-title">solution ＝「正解の置き方」</div>
+                        <p>
+                            英語の <b>solution</b> は「解答・答え」という意味です。<br>
+                            パズルなのに、なぜコードに答えが書いてあるのか、疑問に思うかもしれません。理由は2つあります。
+                        </p>
+                        <ol style="margin: 8px 0 0; padding-left: 20px; line-height: 1.7;">
+                            <li>
+                                <b>答え合わせ機能のため</b><br>
+                                ゲーム画面右上の電球ボタン（または <code>.</code> キー）を押すと、<code>solution</code> に書かれたマスが<b>オレンジ色の枠</b>で表示されます。
+                            </li>
+                            <li>
+                                <b>今の置き方が合っているか判定するため</b><br>
+                                答え合わせ中は、置いたブロックが <code>solution</code> とどれだけ一致しているかを「3/5 正解」のように表示し、全部合えば「正解の配置と一致しています」と表示します。
+                            </li>
+                        </ol>
+                    </div>
+                    <div class="info-card warning">
+                        <div class="card-title">自分でステージを作るとき</div>
+                        <code>solution</code> は、<b>作者が先に自分で解いて</b>、クリアできたときのブロック位置を書き写して作ります。<br>
+                        空の <code>solution: []</code> でもゲーム自体は遊べますが、答え合わせは何も表示されません。
+                    </div>
+                </div>
+
+                <!-- 6. ライブエディタの見方 -->
+                <div class="section">
+                    <h2 class="section-heading">6. ライブエディタの見方</h2>
+                    <p>「ライブエディタを開く」を押すと、画面が左右に分かれます。右側の構成は次のとおりです。</p>
+                    <table class="dict-table">
+                        <tr><th>場所</th><th>役割</th></tr>
+                        <tr><td>右上</td><td>本物のゲーム画面。そのまま遊べます。</td></tr>
+                        <tr><td>右下のタブ（stages.js など）</td><td>見たいファイルを切り替えます。最初は <code>stages.js</code> だけ触れば十分です。</td></tr>
+                        <tr><td>赤いバー</td><td>書き間違いがあると、原因と直し方が表示されます。「該当行へ移動」で、その行に飛べます。</td></tr>
+                        <tr><td>行番号の赤色</td><td>エラーのある行です。</td></tr>
+                        <tr><td>右端の縦長の図（コードマップ）</td><td>ファイル全体の縮小図です。赤い部分がエラーの位置で、クリックするとそこへ移動します。</td></tr>
+                        <tr><td>「雛形コードを挿入」</td><td>新しいステージの見本を末尾に追加します。</td></tr>
+                        <tr><td>「変更をゲームに反映」</td><td>書いた内容を、右上のゲームに反映します。</td></tr>
+                    </table>
+                    <div class="info-card success">
+                        <div class="card-title">壊しても大丈夫です</div>
+                        エディタで書き換えた内容は、<b>ファイルには保存されません</b>。ゲームに反映されるのは今開いているページの中だけで、ページを再読み込みすれば元に戻ります。思い切って試してください。
+                    </div>
+                </div>
+
+                <!-- 7. 改造チャレンジ -->
+                <div class="section">
+                    <h2 class="section-heading">7. やってみよう: 3分でできる改造チャレンジ</h2>
+                    <p>
+                        実際に1か所だけ書き換えて、ゲームが変わるのを確認します。<br>
+                        ここで書き換えるのはステージ1の <code>maxBlocks</code>（置けるブロックの数）です。
+                    </p>
+
+                    <div class="step-tutorial">
+                        <div class="step-card">
+                            <div class="step-header">
+                                <span class="step-number">STEP 1</span>
+                                <div class="step-title">ライブエディタを開き、ステージ1の該当行へ移動する</div>
+                            </div>
+                            <p style="font-size: 13px; margin: 0 0 8px; color: #334155;">
+                                下のボタンを押すと、画面が分かれ、<code>maxBlocks: 7,</code> の行にジャンプします。
+                            </p>
+                            <button class="code-jump-btn" onclick="jumpToCode('stages.js', 13)">ライブエディタを開いて該当行へ移動 →</button>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-header">
+                                <span class="step-number">STEP 2</span>
+                                <div class="step-title">数字の「7」を「10」に書き換える</div>
+                            </div>
+                            <p style="font-size: 13px; margin: 0 0 8px; color: #334155;">
+                                ハイライトされた行の <code>7</code> を、半角の <code>10</code> に書き換えます。<b>数字・カンマは半角</b>で入力してください。
+                            </p>
+                            <div class="param-example">
+                                // 変更前<br>
+                                maxBlocks: 7,<br><br>
+                                // 変更後<br>
+                                maxBlocks: 10,
+                            </div>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-header">
+                                <span class="step-number">STEP 3</span>
+                                <div class="step-title">「変更をゲームに反映」を押す</div>
+                            </div>
+                            <p style="font-size: 13px; margin: 0; color: #334155;">
+                                書き換えた行にカーソルがある状態で、緑の「変更をゲームに反映」を押します。<br>
+                                右上のゲームがステージ1になり、画面右の「BLOCKS」が <b>0 / 10</b> に変わっていれば成功です。<br>
+                                赤いバーが出た場合は、書き方に間違いがあります。内容を読んで直してください。
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="info-card tip" style="margin-top:14px;">
+                        <div class="card-title">もう少し試したい人へ</div>
+                        <ul style="margin:6px 0 0; padding-left:20px; line-height:1.7;">
+                            <li><code>maxBlocks</code> を <code>3</code> にして、クリアできるか試す</li>
+                            <li><code>forbidden</code> の中の数字を変えて、赤い斜線のマスを動かす</li>
+                            <li><code>startRow</code> を 0〜4 の別の数字にして、土管の高さを変える</li>
+                        </ul>
+                    </div>
+
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button class="header-link-btn primary" onclick="switchTab('stages')" style="font-size: 14px; padding: 10px 18px;">
+                            次へ進む: 実践 ステージ改造チュートリアル →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- TAB: パラメータ徹底辞書 (新設) -->
+            <!-- ======================================================== -->
+            <div id="tab-dictionary" class="tab-content">
+                <div class="section">
+                    <h2 class="section-heading">stages.js 辞書</h2>
+                    <p>
+                        ステージの設計図（<code>stages.js</code>）に書く項目を、1つずつ説明する辞書です。<br>
+                        初めての方は、まず「1. 辞書の読み方」を読んでから、「2. 最低限必要な項目」の順に進んでください。
+                    </p>
+                    <div class="dict-toc">
+                        <a href="#dict-read">1. 辞書の読み方</a>
+                        <a href="#dict-basic">2. 最低限必要な項目</a>
+                        <a href="#dict-board">3. 盤面を作る項目</a>
+                        <a href="#dict-gimmick">4. ギミック（矢印）</a>
+                        <a href="#dict-finish">5. 仕上げの項目</a>
+                        <a href="#dict-errors">6. よくあるエラー</a>
+                    </div>
+                </div>
+
+                <!-- 1. 辞書の読み方 -->
+                <div class="section" id="dict-read">
+                    <h2 class="section-heading">1. 辞書の読み方</h2>
+
+                    <h3 class="dict-sub">用語</h3>
+                    <table class="dict-table">
+                        <tr><th>用語</th><th>意味</th><th>stages.js での例</th></tr>
+                        <tr><td>プロパティ</td><td>「名前: 値」の1組。設定項目のこと。</td><td><code>maxBlocks: 7</code></td></tr>
+                        <tr><td>数値</td><td>数字。引用符で囲みません。</td><td><code>startRow: 3</code></td></tr>
+                        <tr><td>文字列</td><td>文字。必ず <code>'</code> か <code>"</code> で囲みます。</td><td><code>title: 'ステージ 1'</code></td></tr>
+                        <tr><td>真偽値</td><td><code>true</code>（はい）か <code>false</code>（いいえ）。囲みません。</td><td><code>purpleBorder: true</code></td></tr>
+                        <tr><td>オブジェクト</td><td><code>{ }</code> で囲んだプロパティのまとまり。カード1枚のイメージ。</td><td><code>{ col: 3, row: 0 }</code></td></tr>
+                        <tr><td>配列</td><td><code>[ ]</code> で囲んだ、複数のものを並べたリスト。要素は <code>,</code> で区切ります。</td><td><code>forbidden: [ {…}, {…} ]</code></td></tr>
+                    </table>
+
+                    <h3 class="dict-sub">書き方の5つのルール</h3>
+                    <ol class="dict-rules">
+                        <li>名前と値の間は半角の <code>:</code>（コロン）。例: <code>id: 1</code></li>
+                        <li>項目と項目の間は半角の <code>,</code>（カンマ）。<b>最後の1つだけは付けなくてOK</b>（付けてもエラーにはなりません）。</li>
+                        <li><code>{ }</code> と <code>[ ]</code> は、開いたら必ず閉じる。</li>
+                        <li>文字列は <code>' '</code> で囲む。閉じ忘れに注意。</li>
+                        <li>記号とスペースはすべて<b>半角</b>。全角のコロンやスペースが混ざると動きません。ただし <code>' '</code> の中の日本語はそのままで大丈夫です。</li>
+                    </ol>
+
+                    <h3 class="dict-sub">バッジの意味</h3>
+                    <p>
+                        <span class="dict-badge req">必須</span> 書かないとゲームが動かない、またはエラーになる項目<br>
+                        <span class="dict-badge opt">任意</span> 書かなくても動く項目（省略時の動きを各項目に書いています）
+                    </p>
+
+                    <h3 class="dict-sub">マスの位置（col と row）</h3>
+                    <p>
+                        <code>col</code> は左から数えた列、<code>row</code> は上から数えた行です。どちらも 0 から始まり、0〜4 を使います。<br>
+                        下の図は <code>{ col: 3, row: 1 }</code> の位置です（青いマス）。
+                    </p>
+                    <div style="text-align:center;">
+                        <div class="mini-grid" data-mark="3,1"></div>
+                    </div>
+                </div>
+
+                <!-- 2. 最低限必要な項目 -->
+                <div class="section" id="dict-basic">
+                    <h2 class="section-heading">2. 最低限必要な項目</h2>
+                    <p>ステージ1つ分は、次の7項目で動きます。まずはこれだけ覚えれば大丈夫です。</p>
+                    <div class="code-container">
+                        <div class="code-header"><span>最小のステージ（コピーして使えます）</span></div>
+                        <pre><code>{
+    id: 20,
+    title: 'ステージ 20',
+    subtitle: 'はじめての自作',
+    maxBlocks: 3,
+    startRow: 3,
+    goalRow: 1,
+    forbidden: [],
+    gimmicks: [],
+    solution: [],
+    legends: []
+}</code></pre>
+                    </div>
+                    <div class="dict-note">
+                        配列の項目は、使わないときも <code>[]</code>（空の配列）と書いてください。項目ごと消すとゲームが止まることがあります。
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">id <span class="dict-badge req">必須</span></span>
+                            <span class="param-type">数値</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> ステージの番号です。<br>
+                            <b>値:</b> 1 から順番に、他と重複しない整数。20番目なら <code>id: 20</code>。<br>
+                            <b>よくある間違い:</b> 他のステージと同じ番号にすると、どちらか分からなくなります。
+                            <div class="dict-try"><button class="dict-try-btn" onclick="jumpToCode('stages.js', 10)">エディタで実物を見る</button></div>
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">title <span class="dict-badge req">必須</span></span>
+                            <span class="param-type">文字列</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> 画面上のステージ名です。<br>
+                            <b>値:</b> <code>'</code> で囲んだ好きな文字。例: <code>title: 'ステージ 20'</code><br>
+                            <b>よくある間違い:</b> 引用符を閉じ忘れると、その先のコードが全部文字列扱いになります。
+                            <div class="dict-try"><button class="dict-try-btn" onclick="jumpToCode('stages.js', 11)">エディタで実物を見る</button></div>
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">subtitle <span class="dict-badge req">必須</span></span>
+                            <span class="param-type">文字列</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> ステージ名の下に出る一言メモです。<br>
+                            <b>値:</b> 文字列。ステージのコンセプトを書くのがおすすめです。
+                            <div class="dict-try"><button class="dict-try-btn" onclick="jumpToCode('stages.js', 12)">エディタで実物を見る</button></div>
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">maxBlocks <span class="dict-badge req">必須</span></span>
+                            <span class="param-type">数値</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> プレイヤーが置けるブロックの数です。難易度を決める一番大事な数字です。<br>
+                            <b>値:</b> 整数。既存の19ステージでは 5〜7 です。目安もこの範囲です。<br>
+                            <b>ポイント:</b> 正解（<code>solution</code>）の数より小さくするとクリアできません。同じか、少し多くします。
+                            <div class="dict-try"><button class="dict-try-btn" onclick="jumpToCode('stages.js', 13)">エディタで実物を見る</button></div>
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">startRow <span class="dict-badge req">必須</span></span>
+                            <span class="param-type">数値 0〜4</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> スタート（緑の土管）の高さです。<br>
+                            <b>値:</b> 0 が一番上、4 が一番下。<code>startRow: 3</code> なら下から2段目です。
+                            <div class="dict-try"><button class="dict-try-btn" onclick="jumpToCode('stages.js', 14)">エディタで実物を見る</button></div>
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">goalRow <span class="dict-badge req">必須</span></span>
+                            <span class="param-type">数値 0〜4</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> ゴールの高さです。右端にあります。<br>
+                            <b>値:</b> 0〜4。<code>startRow</code> と同じ数え方です。
+                            <div class="dict-try"><button class="dict-try-btn" onclick="jumpToCode('stages.js', 15)">エディタで実物を見る</button></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 盤面 -->
+                <div class="section" id="dict-board">
+                    <h2 class="section-heading">3. 盤面を作る項目</h2>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">forbidden <span class="dict-badge req">必須</span></span>
+                            <span class="param-type">配列（マスの位置のリスト）</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> ブロックを置けないマスのリストです。画面では赤い斜線で表示されます。<br>
+                            <b>値:</b> <code>{ col: 列, row: 行 }</code> を並べます。ない場合は <code>forbidden: []</code>。
+                            <div class="param-example">forbidden: [<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;{ col: 1, row: 0 },<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;{ col: 3, row: 2 }<br>
+                                ]</div>
+                            <div class="dict-fig-row">
+                                <div class="mini-grid" data-forbidden="1,0;3,2"></div>
+                                <div class="dict-fig-cap">上のコードの見え方。赤いマスが置けない場所です。</div>
+                            </div>
+                            <b>よくある間違い:</b> 最後の要素以外にカンマがないと <code>Unexpected token</code> のエラーになります。
+                            <div class="dict-try"><button class="dict-try-btn" onclick="jumpToCode('stages.js', 16)">エディタで実物を見る</button></div>
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">hasCeiling <span class="dict-badge opt">任意</span></span>
+                            <span class="param-type">真偽値 true / false</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> 画面の一番上に天井を付けるかどうかです。<br>
+                            <b>値:</b> <code>true</code> で天井あり。書かなければ <code>false</code>（天井なし）です。<br>
+                            天井があると、ジャンプで上にはみ出したときに頭をぶつけて失敗になります。
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. ギミック -->
+                <div class="section" id="dict-gimmick">
+                    <h2 class="section-heading">4. ギミック（矢印マス）</h2>
+                    <p>
+                        <code>gimmicks</code> は、矢印などの特別なマスのリストです。1つのマスは <code>{ }</code> 1個で表し、使える項目は次の6つです。
+                    </p>
+                    <table class="dict-table">
+                        <tr><th>項目</th><th>必要？</th><th>意味</th></tr>
+                        <tr><td><code>col</code>, <code>row</code></td><td>必須</td><td>マスの位置</td></tr>
+                        <tr><td><code>type</code></td><td>矢印を付けるなら必須</td><td><code>'dash'</code> か <code>'step'</code></td></tr>
+                        <tr><td><code>dir</code></td><td>矢印を付けるなら必須</td><td>矢印の向き</td></tr>
+                        <tr><td><code>steps</code></td><td>任意</td><td>step で動くマスの数</td></tr>
+                        <tr><td><code>purpleBorder</code></td><td>任意</td><td>必ずブロックを置くマスにする</td></tr>
+                    </table>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">gimmicks <span class="dict-badge req">必須</span></span>
+                            <span class="param-type">配列（マスのリスト）</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> 矢印マスや、必ず置くマスのリストです。使わない場合は <code>gimmicks: []</code>。
+                            <div class="param-example">gimmicks: [<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;{ col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: true },<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;{ col: 3, row: 1, type: 'step', dir: 'left', steps: 1 }<br>
+                                ]</div>
+                            <div class="dict-try"><button class="dict-try-btn" onclick="jumpToCode('stages.js', 22)">エディタで実物を見る</button></div>
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">type: 'dash'</span>
+                            <span class="param-type">文字列</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> 水色の矢印。ここに置いたブロックが、矢印の向きに<b>端まで滑ります</b>。<br>
+                            途中に別の矢印マスがあると、そこで動き方が変わることがあります。
+                            <div class="dict-fig-row">
+                                <div class="mini-grid" data-dash="0,2,right"></div>
+                                <div class="dict-fig-cap"><code>{ col: 0, row: 2, type: 'dash', dir: 'right' }</code><br>左端のマスに置くと、右へ滑ります。</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">type: 'step'</span>
+                            <span class="param-type">文字列</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> 緑の矢印。ここに置いたブロックが、矢印の向きに<b>決まったマス数だけ</b>動きます。<br>
+                            マス数は <code>steps</code> で決め、書かなければ 1 マスです。
+                            <div class="dict-fig-row">
+                                <div class="mini-grid" data-step="2,2,up"></div>
+                                <div class="dict-fig-cap"><code>{ col: 2, row: 2, type: 'step', dir: 'up' }</code><br>置いたブロックが上に1マス動きます。</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">dir</span>
+                            <span class="param-type">文字列</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> 矢印の向きです。<br>
+                            <b>値:</b> <code>'up'</code>（上）、<code>'down'</code>（下）、<code>'left'</code>（左）、<code>'right'</code>（右）の4つだけ。<br>
+                            <b>よくある間違い:</b> <code>'rigth'</code> のような綴りミスや、大文字の <code>'Right'</code> は認識されません。
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">steps <span class="dict-badge opt">任意</span></span>
+                            <span class="param-type">数値</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> <code>type: 'step'</code> のときに動くマスの数です。<br>
+                            <b>省略時:</b> 1 マスとして扱われます。既存のステージはすべて <code>steps: 1</code> です。<br>
+                            <code>'dash'</code> では使われません。
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">purpleBorder <span class="dict-badge opt">任意</span></span>
+                            <span class="param-type">真偽値</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> 紫の枠が付き、「このマスに必ずブロックを置かないとスタートできない」マスになります。<br>
+                            <b>矢印を付けない紫枠:</b> <code>type</code> と <code>dir</code> を省略して <code>{ col: 1, row: 2, purpleBorder: true }</code> と書くと、矢印のない「必ず置くマス」になります。実際にステージ3・6・8・11・12で使われています。
+                            <div class="dict-fig-row">
+                                <div class="mini-grid" data-purple="1,2"></div>
+                                <div class="dict-fig-cap">紫の枠のマス。ここにブロックを置かないとスタートできません。</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. 仕上げ -->
+                <div class="section" id="dict-finish">
+                    <h2 class="section-heading">5. 仕上げの項目</h2>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">solution <span class="dict-badge req">必須</span></span>
+                            <span class="param-type">配列（マスの位置のリスト）</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> そのステージの「正解の置き方」です。<br>
+                            <b>何に使われる？</b> ゲーム画面の電球ボタン（答え合わせ）を押したときに、正解のマスをオレンジ色の枠で表示するために使われます。置いたブロックとの一致数も、これをもとに数えます。<br>
+                            <b>作り方:</b> 先にステージを作り、ゲーム画面で自分で解きます。クリアできたときのブロックの位置を、そのまま書き写します。<br>
+                            <b>確認のポイント:</b> 書いた数が <code>maxBlocks</code> 以下になっているか確認してください。
+                            <div class="param-example">solution: [<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;{ col: 3, row: 1 },<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;{ col: 1, row: 2 }<br>
+                                ]</div>
+                            <div class="dict-try"><button class="dict-try-btn" onclick="jumpToCode('stages.js', 26)">エディタで実物を見る</button></div>
+                        </div>
+                    </div>
+
+                    <div class="param-table-card">
+                        <div class="param-header">
+                            <span class="param-name">legends <span class="dict-badge req">必須</span></span>
+                            <span class="param-type">配列（説明書きのリスト）</span>
+                        </div>
+                        <div class="param-body">
+                            <b>一言で:</b> 画面の右側に出る「マスの見方」の説明（凡例）です。<br>
+                            <b>1行分の書き方:</b>
+                            <div class="param-example">{ icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }</div>
+                            <ul>
+                                <li><code>icon</code>: 先頭に出す記号（文字列）</li>
+                                <li><code>type</code>: 記号の色づけ。<code>'forbidden'</code>（赤）、<code>'dash'</code>（水色）、<code>'step'</code>（緑）、<code>'purple'</code>（紫）のどれか</li>
+                                <li><code>text</code>: 説明の文章（文字列）</li>
+                            </ul>
+                            <b>ポイント:</b> そのステージで使う種類だけ書けば十分です。<code>text</code> の中の日本語や全角の「：」は、文字列の中なので書いて大丈夫です。<br>
+                            <b>注意:</b> 項目ごと消すとステージ表示でエラーになるため、使わないときも <code>legends: []</code> と書いてください。
+                            <div class="dict-try"><button class="dict-try-btn" onclick="jumpToCode('stages.js', 31)">エディタで実物を見る</button></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. エラー集 -->
+                <div class="section" id="dict-errors">
+                    <h2 class="section-heading">6. よくあるエラーと直し方</h2>
+                    <p>ライブエディタ上部の赤いバーに出るメッセージと、その直し方です。バーの「該当行へ移動」を押すと、その行に飛べます。</p>
+                    <table class="dict-table">
+                        <tr><th>エディタの表示</th><th>原因</th><th>直し方</th></tr>
+                        <tr>
+                            <td>波括弧「 { 」の位置が不正か、直前の行末尾にカンマ「 , 」が抜けています</td>
+                            <td>ステージ同士や項目の間のカンマ忘れ</td>
+                            <td>直前の <code>}</code> や <code>]</code> の後ろに <code>,</code> を付ける</td>
+                        </tr>
+                        <tr>
+                            <td>カンマ「 , 」が抜けているか、文字列が「 " " 」で囲まれていません</td>
+                            <td>項目の間のカンマ忘れ、または引用符の付け忘れ</td>
+                            <td>前の行末にカンマを付ける。文字列は <code>'</code> で囲む</td>
+                        </tr>
+                        <tr>
+                            <td>全角コロン／全角カンマ／全角スペースが含まれています</td>
+                            <td>文字列の外に全角の記号が混ざった</td>
+                            <td>半角に直す。日本語入力をオフにして入力する</td>
+                        </tr>
+                        <tr>
+                            <td>コードが途中で終わっています</td>
+                            <td><code>{ }</code> や <code>[ ]</code> の閉じ忘れ</td>
+                            <td>開いた数と閉じた数が同じか確認する</td>
+                        </tr>
+                    </table>
+                    <div class="dict-note">
+                        エディタが「エラーなし」でも、<code>dir</code> の綴りミスや <code>type</code> の書き間違いは検出されません。矢印が動かないときは、この辞書の綴りと見比べてください。
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 1: アーキテクチャ概要 (旧 TAB 1) -->
+            <div id="tab-architecture" class="tab-content">
                 <div class="section">
                     <h2 class="section-heading">設計思想と技術スタック</h2>
                     <p>
@@ -1043,37 +2104,103 @@ function checkConnected() {
                     <h2 class="section-heading">5×5 グリッド座標系</h2>
                     <p>横方向（列 col: 0〜4）、縦方向（行 row: 0〜4）の0オリジンで定義します。</p>
 
-                    <div style="text-align: center; margin: 12px 0;">
+                    <div style="text-align: center; margin: 16px 0;">
                         <div class="grid-visualizer">
-                            <div class="grid-cell"><span class="cell-coord">0,0</span><span class="cell-key">Q</span></div>
-                            <div class="grid-cell"><span class="cell-coord">1,0</span><span class="cell-key">W</span></div>
-                            <div class="grid-cell"><span class="cell-coord">2,0</span><span class="cell-key">E</span></div>
-                            <div class="grid-cell"><span class="cell-coord">3,0</span><span class="cell-key">R</span></div>
-                            <div class="grid-cell"><span class="cell-coord">4,0</span><span class="cell-key">T</span></div>
+                            <div class="grid-cell"><span class="cell-coord">0,0<br><span style="font-size: 9px; opacity: 0.7;">(左上)</span></span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,0</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,0</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,0</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,0<br><span style="font-size: 9px; opacity: 0.7;">(右上)</span></span></div>
 
-                            <div class="grid-cell"><span class="cell-coord">0,1</span><span class="cell-key">A</span></div>
-                            <div class="grid-cell"><span class="cell-coord">1,1</span><span class="cell-key">S</span></div>
-                            <div class="grid-cell"><span class="cell-coord">2,1</span><span class="cell-key">D</span></div>
-                            <div class="grid-cell"><span class="cell-coord">3,1</span><span class="cell-key">F</span></div>
-                            <div class="grid-cell"><span class="cell-coord">4,1</span><span class="cell-key">G</span></div>
+                            <div class="grid-cell"><span class="cell-coord">0,1</span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,1</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,1</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,1</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,1</span></div>
 
-                            <div class="grid-cell"><span class="cell-coord">0,2</span><span class="cell-key">Z</span></div>
-                            <div class="grid-cell"><span class="cell-coord">1,2</span><span class="cell-key">X</span></div>
-                            <div class="grid-cell"><span class="cell-coord">2,2</span><span class="cell-key">C</span></div>
-                            <div class="grid-cell"><span class="cell-coord">3,2</span><span class="cell-key">V</span></div>
-                            <div class="grid-cell"><span class="cell-coord">4,2</span><span class="cell-key">B</span></div>
+                            <div class="grid-cell"><span class="cell-coord">0,2</span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,2</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,2</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,2</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,2</span></div>
 
-                            <div class="grid-cell"><span class="cell-coord">0,3</span><span class="cell-key">Y</span></div>
-                            <div class="grid-cell"><span class="cell-coord">1,3</span><span class="cell-key">U</span></div>
-                            <div class="grid-cell"><span class="cell-coord">2,3</span><span class="cell-key">I</span></div>
-                            <div class="grid-cell"><span class="cell-coord">3,3</span><span class="cell-key">O</span></div>
-                            <div class="grid-cell"><span class="cell-coord">4,3</span><span class="cell-key">P</span></div>
+                            <div class="grid-cell"><span class="cell-coord">0,3</span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,3</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,3</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,3</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,3</span></div>
 
-                            <div class="grid-cell"><span class="cell-coord">0,4</span><span class="cell-key">H</span></div>
-                            <div class="grid-cell"><span class="cell-coord">1,4</span><span class="cell-key">J</span></div>
-                            <div class="grid-cell"><span class="cell-coord">2,4</span><span class="cell-key">K</span></div>
-                            <div class="grid-cell"><span class="cell-coord">3,4</span><span class="cell-key">L</span></div>
-                            <div class="grid-cell"><span class="cell-coord">4,4</span><span class="cell-key">N</span></div>
+                            <div class="grid-cell"><span class="cell-coord">0,4<br><span style="font-size: 9px; opacity: 0.7;">(左下)</span></span></div>
+                            <div class="grid-cell"><span class="cell-coord">1,4</span></div>
+                            <div class="grid-cell"><span class="cell-coord">2,4</span></div>
+                            <div class="grid-cell"><span class="cell-coord">3,4</span></div>
+                            <div class="grid-cell"><span class="cell-coord">4,4<br><span style="font-size: 9px; opacity: 0.7;">(右下)</span></span></div>
+                        </div>
+                        <p style="font-size: 12px; color: #64748b; margin-top: 6px;">
+                            ※ <code>col</code> ＝ 列（横の番号: 0〜4）、<code>row</code> ＝ 行（縦の番号: 0〜4）
+                        </p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-heading">オリジナルステージ作成のステップ</h2>
+                    <p>
+                        ステージの作成は、パズル作家（レベルデザイナー）のお仕事です！<br>
+                        以下の5つのステップに従うだけで、誰でも面白いオリジナルステージが完成します。
+                    </p>
+
+                    <div class="step-tutorial">
+                        <div class="step-card">
+                            <div class="step-header">
+                                <span class="step-number">STEP 1</span>
+                                <div class="step-title">スタートとゴールの高さを決める</div>
+                            </div>
+                            <p style="font-size: 13px; margin: 0; color: #334155;">
+                                <code>startRow</code>（出発土管の高さ）と <code>goalRow</code>（ゴールの高さ）を 0〜4 の数字で決めます。<br>
+                                例: 下から出発して上を目指すなら <code>startRow: 4, goalRow: 0</code>
+                            </p>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-header">
+                                <span class="step-number">STEP 2</span>
+                                <div class="step-title">ブロック上限（maxBlocks）を決める</div>
+                            </div>
+                            <p style="font-size: 13px; margin: 0; color: #334155;">
+                                プレイヤーに何個のブロックを渡すか決めます（5〜7個が標準的）。<br>
+                                少なすぎるとゴールに届かず、多すぎると適当に置くだけでクリアできてしまうので、正解ルートに必要な最小個数ぴったりにするのがコツです。
+                            </p>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-header">
+                                <span class="step-number">STEP 3</span>
+                                <div class="step-title">赤の斜線（forbidden）で邪魔な壁を置く</div>
+                            </div>
+                            <p style="font-size: 13px; margin: 0; color: #334155;">
+                                まっすぐ歩くだけでクリアできないように、<code>forbidden: [ { col: 2, row: 1 }, ... ]</code> でブロックを置けない邪魔なマスを配置します。
+                            </p>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-header">
+                                <span class="step-number">STEP 4</span>
+                                <div class="step-title">矢印ギミック（gimmicks）で動く仕掛けを作る</div>
+                            </div>
+                            <p style="font-size: 13px; margin: 0; color: #334155;">
+                                水色矢印（<code>type: 'dash'</code>: 端まで滑る）や緑色矢印（<code>type: 'step'</code>: 1マス動く）を配置します。<br>
+                                <code>purpleBorder: true</code> をつければ、必ずブロックを置かないと出発できない必須マスにできます。
+                            </p>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-header">
+                                <span class="step-number">STEP 5</span>
+                                <div class="step-title">正解配置（solution）を登録する</div>
+                            </div>
+                            <p style="font-size: 13px; margin: 0; color: #334155;">
+                                ヒントボタンを押したときに光る「お手本の置き方」を <code>solution: [ { col: 1, row: 3 }, ... ]</code> に登録します。
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -1082,35 +2209,43 @@ function checkConnected() {
                     <h2 class="section-heading">新ステージ定義のテンプレート</h2>
                     <p><code>stages.js</code> の配列末尾に追加して作成します。右側のエディタで直接編集・テストが可能です。</p>
 
-                    <button class="code-jump-btn" onclick="openPlaygroundWithTemplate()">エディタでテンプレートを挿入して試す →</button>
+                    <button class="code-jump-btn" onclick="openPlaygroundWithTemplate()">エディタを開いて新規ステージテンプレートを挿入する →</button>
 
                     <div class="code-container">
                         <div class="code-header">
-                            <span>新規ステージ用テンプレート</span>
+                            <span>新規ステージ用テンプレート (コピペ用)</span>
                             <div class="code-header-right">
                                 <button class="copy-btn" onclick="copyCode(this)">COPY</button>
                             </div>
                         </div>
                         <pre><code>    {
-        id: 20,                          // ステージ番号
-        title: 'ステージ 20',             // タイトル
-        subtitle: '連鎖移動の応用',        // サブタイトル
+        id: 20,                          // ステージ番号 (前の番号の続き)
+        title: 'ステージ 20',             // ステージ名
+        subtitle: '連鎖移動の応用',        // サブタイトル（ヒント）
         maxBlocks: 6,                    // 最大ブロック数
         startRow: 3,                     // スタート土管の行 (0〜4)
         goalRow: 1,                      // ゴールブロックの行 (0〜4)
-        hasCeiling: false,               // 最上部の天井バー有無
+        hasCeiling: false,               // 最上部の天井バー有無 (true/false)
 
-        forbidden: [                     // 配置不可マス
+        forbidden: [                     // 置いてはいけない赤斜線マス
             { col: 1, row: 0 }, { col: 3, row: 2 }
         ],
-        gimmicks: [                      // ギミック
+        gimmicks: [                      // 矢印ギミックマス
             { col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: true },
             { col: 3, row: 1, type: 'step', dir: 'left', steps: 1 }
         ],
-        solution: [                      // 正解配置
+        solution: [                      // 正解配置（ヒント用のお手本）
             { col: 1, row: 3 }, { col: 2, row: 2 }, { col: 3, row: 1 }
         ]
     },</code></pre>
+                    </div>
+
+                    <div class="info-card warning">
+                        <div class="card-title">注意: 初心者がよくハマる2大ミス</div>
+                        <ol style="margin: 6px 0 0; padding-left: 20px; line-height: 1.6;">
+                            <li><b>カンマ忘れ:</b> 各行の末尾に <code>,</code>（カンマ）を付け忘れると、エディタが赤くエラー表示になり反映できません。</li>
+                            <li><b>ブロックの孤立:</b> ハコゲームには「置いたブロックは必ず縦横斜めで繋がっていなければならない」という連結ルールがあります。離れ小島のようなブロックを置くパズルはスタートできないので注意しましょう！</li>
+                        </ol>
                     </div>
                 </div>
             </div>
@@ -1193,6 +2328,16 @@ console.log(solveRoute());</code></pre>
                     </div>
                 </div>
 
+                <!-- リアルタイム構文エラー・診断バナー（エラー行・ヒント・ジャンプ） -->
+                <div class="editor-diagnostics-banner" id="editorDiagBanner">
+                    <div class="diag-banner-left">
+                        <span class="diag-badge" id="diagBadge">エラー</span>
+                        <span class="diag-banner-text" id="diagBannerMsg">構文エラー</span>
+                        <span class="diag-banner-hint" id="diagBannerHint">ヒント</span>
+                    </div>
+                    <button class="diag-jump-btn" id="diagJumpBtn" onclick="jumpToDiagnosticLine()">該当行へ移動</button>
+                </div>
+
                 <!-- エディタメインエリア（行番号 + テキストエリア + ミニマップ） -->
                 <div class="editor-main-body">
                     <!-- 行番号カラム -->
@@ -1211,7 +2356,10 @@ console.log(solveRoute());</code></pre>
                 </div>
 
                 <div class="editor-status-bar" id="editorStatusBar">
-                    <span id="editorStatusText">ファイルタブを切り替えて各コードを確認・編集できます。</span>
+                    <div class="diag-status-pill" id="diagStatusPill">
+                        <span class="diag-status-dot ok" id="diagStatusDot"></span>
+                        <span id="editorStatusText">構文エラーはありません</span>
+                    </div>
                     <span id="cursorPosText">Line: 1, Col: 1</span>
                 </div>
             </div>
@@ -1303,10 +2451,331 @@ console.log(solveRoute());</code></pre>
         }
 
         // ========================================================
-        // 行番号 ＆ ミニマップ レンダリング
+        // リアルタイム構文診断エンジン (Linter) & 高精細コードマップ
         // ========================================================
         const LINE_HEIGHT = 20;
+        const MINIMAP_LINE_PITCH = 3.6;
 
+        // 全角記号マップ（初心者が最もつまずきやすい記号を網羅）
+        const FULLWIDTH_CHARS = {
+            '\u3000': { name: '全角スペース', fix: '半角スペース' },
+            '：': { name: '全角コロン', fix: '半角コロン「 : 」' },
+            '，': { name: '全角カンマ', fix: '半角カンマ「 , 」' },
+            '、': { name: '読点（、）', fix: '半角カンマ「 , 」' },
+            '。': { name: '句点（。）', fix: '半角ピリオド「 . 」またはカンマ「 , 」' },
+            '；': { name: '全角セミコロン', fix: '半角セミコロン「 ; 」' },
+            '”': { name: '全角ダブルクォート', fix: '半角「 " 」' },
+            '“': { name: '全角ダブルクォート', fix: '半角「 " 」' },
+            '’': { name: '全角シングルクォート', fix: '半角「 \' 」' },
+            '‘': { name: '全角シングルクォート', fix: '半角「 \' 」' },
+            '｛': { name: '全角の波括弧', fix: '半角の「 { 」' },
+            '｝': { name: '全角の波括弧', fix: '半角の「 } 」' },
+            '［': { name: '全角の角括弧', fix: '半角の「 [ 」' },
+            '］': { name: '全角の角括弧', fix: '半角の「 ] 」' },
+            '（': { name: '全角の丸括弧', fix: '半角の「 ( 」' },
+            '）': { name: '全角の丸括弧', fix: '半角の「 ) 」' },
+            '＝': { name: '全角イコール', fix: '半角「 = 」' },
+            '＋': { name: '全角プラス', fix: '半角「 + 」' },
+            '－': { name: '全角マイナス', fix: '半角「 - 」' },
+            '＊': { name: '全角アスタリスク', fix: '半角「 * 」' },
+            '／': { name: '全角スラッシュ', fix: '半角「 / 」' }
+        };
+
+        let currentIssues = [];
+        let lintDebounceTimer = null;
+        let lastDiagnosticLine = 1;
+
+        // 一行コメントの除去
+        function stripLineComment(line) {
+            let inStr = null;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (inStr) {
+                    if (ch === '\\') { i++; }
+                    else if (ch === inStr) { inStr = null; }
+                } else {
+                    if (ch === '"' || ch === "'" || ch === '`') {
+                        inStr = ch;
+                    } else if (ch === '/' && line[i + 1] === '/') {
+                        return line.slice(0, i);
+                    }
+                }
+            }
+            return line;
+        }
+
+        // 未閉じの括弧を補完する列を生成
+        function getAutoCloseBrackets(code) {
+            const stack = [];
+            let inBlockComment = false;
+            let inString = null;
+
+            for (let i = 0; i < code.length; i++) {
+                const ch = code[i];
+                const next = code[i + 1];
+
+                if (inBlockComment) {
+                    if (ch === '*' && next === '/') {
+                        inBlockComment = false;
+                        i++;
+                    }
+                    continue;
+                }
+                if (inString) {
+                    if (ch === '\\') { i++; }
+                    else if (ch === inString) { inString = null; }
+                    continue;
+                }
+                if (ch === '/' && next === '/') {
+                    while (i < code.length && code[i] !== '\n') i++;
+                    continue;
+                }
+                if (ch === '/' && next === '*') {
+                    inBlockComment = true;
+                    i++;
+                    continue;
+                }
+                if (ch === '"' || ch === "'" || ch === '`') {
+                    inString = ch;
+                    continue;
+                }
+                if (ch === '{') stack.push('}');
+                else if (ch === '[') stack.push(']');
+                else if (ch === '(') stack.push(')');
+                else if (ch === '}' || ch === ']' || ch === ')') {
+                    if (stack.length > 0 && stack[stack.length - 1] === ch) {
+                        stack.pop();
+                    }
+                }
+            }
+            return stack.reverse().join('');
+        }
+
+        // 構文エラーの発生行を特定
+        function findSyntaxErrorLine(lines) {
+            for (let i = 1; i <= lines.length; i++) {
+                const rawLine = lines[i - 1];
+                const trimmed = stripLineComment(rawLine).trim();
+                if (!trimmed || /[+\-*/&|=?:,(.$]$/.test(trimmed)) continue;
+
+                const subCode = lines.slice(0, i).join('\n');
+                const autoClose = getAutoCloseBrackets(subCode);
+                try {
+                    new Function(subCode + '\n' + autoClose);
+                } catch (e) {
+                    const msg = e.message || '';
+                    if (!msg.includes('Unexpected end of input')) {
+                        // カンマ抜け等で「次の行の先頭」でエラーが出た場合、直前行に原因がある
+                        if (i > 1 && (msg.includes('Unexpected identifier') || msg.includes('Unexpected string') || msg.includes('Unexpected number') || msg.includes("Unexpected token '{'"))) {
+                            const prevClean = stripLineComment(lines[i - 2]).trim();
+                            if (prevClean && !prevClean.endsWith(',') && !prevClean.endsWith('{') && !prevClean.endsWith('[') && !prevClean.endsWith(';') && !prevClean.endsWith('(')) {
+                                return i - 1;
+                            }
+                        }
+                        return i;
+                    }
+                }
+            }
+            return lines.length;
+        }
+
+        // リアルタイム構文診断本体
+        function runLinter() {
+            const editor = document.getElementById('stageCodeEditor');
+            if (!editor) return [];
+
+            const code = editor.value;
+            const lines = code.split('\n');
+            const issues = [];
+
+            // 1. 全角記号チェック（※文字列リテラル内・コメント内の日本語は完全に除外）
+            let inBlockComment = false;
+            for (let r = 0; r < lines.length; r++) {
+                const rawLine = lines[r];
+                let inString = null; // '"', "'", or '`'
+
+                for (let c = 0; c < rawLine.length; c++) {
+                    const ch = rawLine[c];
+                    const next = rawLine[c + 1];
+
+                    // ブロックコメントの判定 (/* ... */)
+                    if (inBlockComment) {
+                        if (ch === '*' && next === '/') {
+                            inBlockComment = false;
+                            c++;
+                        }
+                        continue;
+                    }
+                    if (!inString && ch === '/' && next === '*') {
+                        inBlockComment = true;
+                        c++;
+                        continue;
+                    }
+
+                    // 一行コメントの判定 (// ...)
+                    if (!inString && ch === '/' && next === '/') {
+                        break; // この行の以降はすべてコメントなので除外
+                    }
+
+                    // 文字列リテラルの判定 (', ", `)
+                    if (inString) {
+                        if (ch === '\\') {
+                            c++; // エスケープ文字
+                        } else if (ch === inString) {
+                            inString = null; // 文字列終了
+                        }
+                        // 文字列リテラル内の日本語テキストや全角記号（例: icon: '／', text: '説明：...'）は完全に許容
+                        continue;
+                    } else if (ch === '"' || ch === "'" || ch === '`') {
+                        inString = ch;
+                        continue;
+                    }
+
+                    // 文字列の外側（コード構文部分）に混入した全角記号のみを検出
+                    if (FULLWIDTH_CHARS[ch]) {
+                        const info = FULLWIDTH_CHARS[ch];
+                        issues.push({
+                            line: r + 1,
+                            col: c + 1,
+                            severity: 'error',
+                            message: `${info.name}「${ch}」が含まれています`,
+                            hint: `${info.fix} に置き換えてください`
+                        });
+                        break; // 1行に1つ報告すれば十分
+                    }
+                }
+            }
+
+            // 2. JavaScript構文チェック (stages.js, main.js)
+            if (currentFile.endsWith('.js') && issues.length === 0) {
+                let codeToTest = code;
+                if (currentFile === 'stages.js') {
+                    codeToTest = code.replace(/const\s+STAGES\s*=/, 'var STAGES =')
+                                     .replace(/let\s+STAGES\s*=/, 'var STAGES =');
+                }
+
+                try {
+                    new Function(codeToTest);
+                } catch (err) {
+                    const rawMsg = err.message || '';
+                    let userMsg = '構文エラーがあります';
+                    let userHint = '直前の行のカンマ（,）や括弧の閉じ忘れを確認してください';
+
+                    if (rawMsg.includes('Unexpected token')) {
+                        if (rawMsg.includes("'{'")) {
+                            userMsg = '波括弧「 { 」の位置が不正か、直前の行末尾にカンマ「 , 」が抜けています';
+                            userHint = '前の行の末尾にカンマ「 , 」があるか確認してください';
+                        } else if (rawMsg.includes("'}'")) {
+                            userMsg = '波括弧「 } 」の位置が不正です';
+                            userHint = '余分な閉じ括弧がないか、コロン「 : 」の後に値が抜けていないか確認してください';
+                        } else if (rawMsg.includes("']'")) {
+                            userMsg = '角括弧「 ] 」の位置が不正です';
+                            userHint = '配列内のカンマ「 , 」や閉じ括弧の位置を確認してください';
+                        } else if (rawMsg.includes("','")) {
+                            userMsg = '不要なカンマ「 , 」があるか、記号の使い方が不正です';
+                            userHint = '余分なカンマを消すか、カンマの前の値を確認してください';
+                        } else if (rawMsg.includes("':'")) {
+                            userMsg = 'コロン「 : 」の位置が不正です';
+                            userHint = '前の行のカンマ抜けや、プロパティ名が正しいか確認してください';
+                        } else {
+                            userMsg = `記号または単語の使い方が不正です（${rawMsg}）`;
+                            userHint = '綴りミスや記号の位置を確認してください';
+                        }
+                    } else if (rawMsg.includes('Unexpected identifier')) {
+                        userMsg = 'カンマ「 , 」が抜けているか、文字列が「 " " 」で囲まれていません';
+                        userHint = '直前の行の末尾にカンマ「 , 」があるか、文字を「 " " 」で囲んでいるか確認してください';
+                    } else if (rawMsg.includes('Unexpected string')) {
+                        userMsg = '文字列の位置が不正です（前の行のカンマ抜けの可能性があります）';
+                        userHint = '直前の行の末尾にカンマ「 , 」が抜けていないか確認してください';
+                    } else if (rawMsg.includes('Unexpected number')) {
+                        userMsg = '数値の位置が不正です';
+                        userHint = '直前の行の末尾にカンマ「 , 」があるか確認してください';
+                    } else if (rawMsg.includes('Unexpected end of input')) {
+                        userMsg = 'コードが途中で終わっています（括弧やクォートが閉じられていません）';
+                        userHint = '「 { } 」や「 [ ] 」のペアがすべて閉じているか確認してください';
+                    }
+
+                    const errLine = findSyntaxErrorLine(lines);
+                    issues.push({
+                        line: errLine,
+                        col: 1,
+                        severity: 'error',
+                        message: userMsg,
+                        hint: userHint
+                    });
+                }
+            }
+
+            currentIssues = issues;
+            updateDiagnosticsUI();
+            return issues;
+        }
+
+        // 診断UI（バナー・ステータスバー・行番号）の反映
+        function updateDiagnosticsUI() {
+            const banner = document.getElementById('editorDiagBanner');
+            const badge = document.getElementById('diagBadge');
+            const msgEl = document.getElementById('diagBannerMsg');
+            const hintEl = document.getElementById('diagBannerHint');
+            const statusDot = document.getElementById('diagStatusDot');
+            const statusText = document.getElementById('editorStatusText');
+
+            // 行番号の既存エラー・警告スタイルを全消去
+            document.querySelectorAll('.line-num').forEach(el => {
+                el.classList.remove('error', 'warning');
+            });
+
+            if (currentIssues.length > 0) {
+                const firstIssue = currentIssues[0];
+                lastDiagnosticLine = firstIssue.line;
+
+                // 診断バナーの表示
+                if (banner) {
+                    banner.classList.add('visible');
+                    banner.classList.toggle('is-warning', firstIssue.severity === 'warning');
+                    if (badge) {
+                        badge.className = 'diag-badge' + (firstIssue.severity === 'warning' ? ' warning' : '');
+                        badge.textContent = firstIssue.severity === 'warning' ? '警告' : '構文エラー';
+                    }
+                    if (msgEl) msgEl.textContent = `行 ${firstIssue.line}: ${firstIssue.message}`;
+                    if (hintEl) hintEl.textContent = `（ヒント: ${firstIssue.hint}）`;
+                }
+
+                // ステータスバー更新
+                if (statusDot) statusDot.className = 'diag-status-dot ' + firstIssue.severity;
+                if (statusText) {
+                    statusText.textContent = `[${currentFile}] エラーが ${currentIssues.length} 件あります（行 ${firstIssue.line}）`;
+                    statusText.style.color = firstIssue.severity === 'warning' ? '#f59e0b' : '#ef4444';
+                }
+
+                // 該当行の行番号を赤・橙ハイライト
+                currentIssues.forEach(issue => {
+                    const lineEl = document.getElementById(`ln-${issue.line}`);
+                    if (lineEl) {
+                        lineEl.classList.add(issue.severity === 'warning' ? 'warning' : 'error');
+                    }
+                });
+            } else {
+                // エラーなし
+                if (banner) banner.classList.remove('visible');
+                if (statusDot) statusDot.className = 'diag-status-dot ok';
+                if (statusText) {
+                    statusText.textContent = `[${currentFile}] 構文エラーはありません（正常）`;
+                    statusText.style.color = '#22c55e';
+                }
+            }
+        }
+
+        // 診断バナーから該当エラー行へジャンプ
+        function jumpToDiagnosticLine() {
+            if (lastDiagnosticLine > 0) {
+                scrollToLine(lastDiagnosticLine);
+            }
+        }
+
+        // ========================================================
+        // 行番号 ＆ 高精細コードマップ（ミニマップ）レンダリング
+        // ========================================================
         function updateLineNumbersAndMinimap() {
             const editor = document.getElementById('stageCodeEditor');
             const lineCol = document.getElementById('lineNumbersCol');
@@ -1322,46 +2791,132 @@ console.log(solveRoute());</code></pre>
             }
             lineCol.innerHTML = numsHtml;
 
-            // ミニマップ描画
-            drawMinimap(lines);
+            // リアルタイム診断実行
+            runLinter();
+
+            // 高精細ミニマップ描画
+            renderMinimap(lines);
             syncScroll();
         }
 
-        function drawMinimap(lines) {
+        // 高精細ミニマップ（シンタックスカラー & エラーハイライト & ガターマーカー描画）
+        function renderMinimap(lines) {
             const canvas = document.getElementById('minimapCanvas');
-            if (!canvas) return;
+            if (!canvas || !canvas.parentElement) return;
+
+            const container = canvas.parentElement;
+            const w = container.clientWidth || 64;
+            const h = container.clientHeight || 200;
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
 
             const ctx = canvas.getContext('2d');
-            const w = canvas.parentElement.clientWidth;
-            const h = canvas.parentElement.clientHeight;
-            canvas.width = w;
-            canvas.height = h;
-
+            ctx.save();
+            ctx.scale(dpr, dpr);
             ctx.clearRect(0, 0, w, h);
 
-            if (!lines || lines.length === 0) return;
+            if (!lines || lines.length === 0) {
+                ctx.restore();
+                return;
+            }
 
             const totalLines = lines.length;
-            const rowH = Math.max(1, Math.min(2.5, h / totalLines));
+            const totalMinimapHeight = totalLines * MINIMAP_LINE_PITCH + 16;
+            const editor = document.getElementById('stageCodeEditor');
+            const maxScroll = Math.max(1, editor ? (editor.scrollHeight - editor.clientHeight) : 1);
+            const scrollRatio = Math.max(0, Math.min(1, editor ? (editor.scrollTop / maxScroll) : 0));
+            const maxMinimapScroll = Math.max(0, totalMinimapHeight - h);
+            const minimapOffsetY = totalMinimapHeight > h ? scrollRatio * maxMinimapScroll : 0;
 
+            // エラー行マップ
+            const errorLineSet = new Set();
+            const warningLineSet = new Set();
+            currentIssues.forEach(i => {
+                if (i.severity === 'warning') warningLineSet.add(i.line);
+                else errorLineSet.add(i.line);
+            });
+
+            // 1. 各行のコード描画（シンタックスカラー）
             for (let i = 0; i < totalLines; i++) {
-                const line = lines[i];
-                const y = (i / totalLines) * h;
-                const len = Math.min(w - 6, Math.max(2, line.trim().length * 1.5));
+                const lineNum = i + 1;
+                const y = (i * MINIMAP_LINE_PITCH) - minimapOffsetY + 6;
 
-                if (line.trim().startsWith('//')) {
-                    ctx.fillStyle = '#475569';
-                } else if (line.includes('function') || line.includes('const') || line.includes('let')) {
-                    ctx.fillStyle = '#38bdf8';
-                } else {
-                    ctx.fillStyle = '#64748b';
+                // 画面外カリング
+                if (y < -MINIMAP_LINE_PITCH || y > h + MINIMAP_LINE_PITCH) continue;
+
+                // エラー行・警告行の赤・橙ハイライト帯
+                if (errorLineSet.has(lineNum)) {
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.45)';
+                    ctx.fillRect(0, y - 0.5, w, MINIMAP_LINE_PITCH);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(w - 4, y - 0.5, 4, MINIMAP_LINE_PITCH);
+                } else if (warningLineSet.has(lineNum)) {
+                    ctx.fillStyle = 'rgba(245, 158, 11, 0.35)';
+                    ctx.fillRect(0, y - 0.5, w, MINIMAP_LINE_PITCH);
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(w - 4, y - 0.5, 4, MINIMAP_LINE_PITCH);
                 }
 
-                ctx.fillRect(4, y, len, Math.max(1, rowH - 0.5));
+                const rawLine = lines[i];
+                if (!rawLine.trim()) continue;
+
+                // インデント計算
+                const leadingSpaces = (rawLine.match(/^\s*/)[0].replace(/\t/g, '  ').length);
+                const startX = Math.min(w - 10, 4 + leadingSpaces * 0.9);
+                const trimmed = rawLine.trim();
+
+                // トークン化してカラー描画
+                drawMinimapTokens(ctx, trimmed, startX, y, w - 8);
+            }
+
+            // 2. 右端ガターの全体俯瞰エラーマーカー（画面スクロール位置に関係なくファイル全体のエラー位置を表示）
+            if (currentIssues.length > 0) {
+                currentIssues.forEach(issue => {
+                    const markerY = Math.max(2, Math.min(h - 4, (issue.line / totalLines) * h));
+                    ctx.fillStyle = issue.severity === 'warning' ? '#f59e0b' : '#ef4444';
+                    ctx.fillRect(w - 5, markerY - 1.5, 5, 3);
+                });
+            }
+
+            ctx.restore();
+            syncMinimapSlider();
+        }
+
+        // ミニマップトークン描画（VS Code 風配色）
+        function drawMinimapTokens(ctx, text, startX, y, maxW) {
+            let currX = startX;
+            const regex = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:const|let|var|function|return|if|else|for|while|class|new|true|false|null|undefined)\b)|(-?\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z0-9_$]+(?=\s*:))/g;
+            let lastIdx = 0;
+            let match;
+
+            const tokens = [];
+            while ((match = regex.exec(text)) !== null) {
+                if (match.index > lastIdx) {
+                    tokens.push({ text: text.slice(lastIdx, match.index), color: '#94a3b8' });
+                }
+                if (match[1]) tokens.push({ text: match[1], color: '#64748b' }); // コメント
+                else if (match[2]) tokens.push({ text: match[2], color: '#f59e0b' }); // 文字列
+                else if (match[3]) tokens.push({ text: match[3], color: '#c084fc' }); // 予約語
+                else if (match[4]) tokens.push({ text: match[4], color: '#4ade80' }); // 数値
+                else if (match[5]) tokens.push({ text: match[5], color: '#38bdf8' }); // プロパティ名
+                lastIdx = regex.lastIndex;
+            }
+            if (lastIdx < text.length) {
+                tokens.push({ text: text.slice(lastIdx), color: '#94a3b8' });
+            }
+
+            for (const t of tokens) {
+                if (currX >= maxW) break;
+                ctx.fillStyle = t.color;
+                const tokenW = Math.max(1, Math.min(maxW - currX, t.text.length * 1.3));
+                ctx.fillRect(currX, y + 0.8, tokenW, Math.max(1, MINIMAP_LINE_PITCH - 1.6));
+                currX += tokenW + 0.8;
             }
         }
 
-        // スクロール同期（テキストエリア ➔ 行番号 ＆ ミニマップスライダー）
+        // スクロール同期（エディタ -> 行番号 & ミニマップスライダー）
         function syncScroll() {
             const editor = document.getElementById('stageCodeEditor');
             const lineCol = document.getElementById('lineNumbersCol');
@@ -1370,15 +2925,13 @@ console.log(solveRoute());</code></pre>
 
             if (!editor || !lineCol || !slider || !minimap) return;
 
-            // 行番号のスクロール同期
             lineCol.scrollTop = editor.scrollTop;
 
-            // ミニマップスライダーの位置・高さ計算
             const totalH = editor.scrollHeight;
             const visibleH = editor.clientHeight;
             const mapH = minimap.clientHeight;
 
-            if (totalH > 0) {
+            if (totalH > 0 && mapH > 0) {
                 const sliderH = Math.max(16, (visibleH / totalH) * mapH);
                 const sliderTop = (editor.scrollTop / totalH) * mapH;
                 slider.style.height = `${sliderH}px`;
@@ -1386,42 +2939,51 @@ console.log(solveRoute());</code></pre>
             }
         }
 
-        // 指定行へジャンプスクロール & 一時ハイライト
+        // 指定行へスクロールジャンプ & 一時ハイライト
         function scrollToLine(lineNum) {
             const editor = document.getElementById('stageCodeEditor');
             if (!editor) return;
 
+            // カーソルも該当行の先頭へ移動（反映時に編集中のステージを判定するため）
+            const ls = editor.value.split('\n');
+            let off = 0;
+            for (let i = 0; i < Math.min(lineNum - 1, ls.length); i++) off += ls[i].length + 1;
+            editor.setSelectionRange(off, off);
+
             const targetScrollTop = Math.max(0, (lineNum - 1) * LINE_HEIGHT - 60);
             editor.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
 
-            // 行番号ハイライト
             document.querySelectorAll('.line-num').forEach(el => el.classList.remove('highlighted'));
             const targetEl = document.getElementById(`ln-${lineNum}`);
             if (targetEl) {
                 targetEl.classList.add('highlighted');
-                setTimeout(() => targetEl.classList.remove('highlighted'), 2000);
+                setTimeout(() => targetEl.classList.remove('highlighted'), 2200);
             }
         }
 
         // 解説文からのコードジャンプ
-        function jumpToCode(filename, lineNum) {
+        async function jumpToCode(filename, lineNum) {
             togglePlayground(true);
+            if (!FILES[filename]) await fetchProjectFiles();
             setTimeout(() => {
                 switchEditorFile(filename, lineNum);
             }, 100);
         }
 
-        // ミニマップクリックによるスクロール移動
+        // ミニマップクリック & ドラッグによるスクロール移動
         const minimapCol = document.getElementById('minimapCol');
         if (minimapCol) {
             let isMapDragging = false;
+            let grabOffsetY = 0;
 
             const handleMapSeek = (e) => {
                 const rect = minimapCol.getBoundingClientRect();
-                const ratio = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+                const clickY = e.clientY - rect.top;
+                const ratio = Math.max(0, Math.min(1, clickY / rect.height));
                 const editor = document.getElementById('stageCodeEditor');
                 if (editor) {
                     editor.scrollTop = ratio * editor.scrollHeight - (editor.clientHeight / 2);
+                    syncScroll();
                 }
             };
 
@@ -1516,12 +3078,21 @@ console.log(solveRoute());</code></pre>
                 return;
             }
 
+            // 構文エラーがある場合は反映を中止して親切に通知
+            runLinter();
+            if (currentIssues.length > 0 && currentIssues[0].severity === 'error') {
+                const issue = currentIssues[0];
+                setStatus(`構文エラーがあるため反映できません（行 ${issue.line}: ${issue.message}）`, '#ef4444');
+                jumpToDiagnosticLine();
+                return;
+            }
+
             FILES[currentFile] = code;
 
             if (currentFile === 'stages.js') {
                 try {
-                    let cleanedCode = code.replace(/const\s+STAGES\s*=/, 'var STAGES =');
-                    cleanedCode = cleanedCode.replace(/let\s+STAGES\s*=/, 'var STAGES =');
+                    let cleanedCode = code.replace(/const\s+STAGES\s*=/, 'var STAGES =')
+                                          .replace(/let\s+STAGES\s*=/, 'var STAGES =');
                     const fn = new Function(cleanedCode + '; return (typeof STAGES !== "undefined") ? STAGES : null;');
                     const extractedStages = fn();
 
@@ -1531,15 +3102,16 @@ console.log(solveRoute());</code></pre>
 
                     const win = iframe.contentWindow;
                     if (win && typeof win.applyCustomStages === 'function') {
-                        const targetIdx = extractedStages.length - 1;
+                        const targetIdx = findEditedStageIndex(extractedStages, editor);
                         win.applyCustomStages(extractedStages, targetIdx);
                         onApplySuccess(extractedStages[targetIdx].title || 'ステージ更新');
                     } else {
-                        win.postMessage({ type: 'UPDATE_STAGES', stages: extractedStages, targetIndex: extractedStages.length - 1 }, '*');
+                        win.postMessage({ type: 'UPDATE_STAGES', stages: extractedStages, targetIndex: findEditedStageIndex(extractedStages, editor) }, '*');
                         onApplySuccess('ステージ更新');
                     }
                 } catch (err) {
                     setStatus('stages.js 構文エラー: ' + err.message, '#ef4444');
+                    runLinter();
                 }
             } else if (currentFile === 'style.css') {
                 try {
@@ -1559,6 +3131,18 @@ console.log(solveRoute());</code></pre>
                 setStatus(`${currentFile} を保存しました。プレビューを更新します...`, '#38bdf8');
                 reloadPreview();
             }
+        }
+
+        // カーソルがあるステージ（直前の id: N）を特定。見つからなければ最後のステージ
+        function findEditedStageIndex(stages, editor) {
+            const before = editor.value.slice(0, editor.selectionStart || 0);
+            let id = null;
+            for (const m of before.matchAll(/\bid\s*:\s*(\d+)/g)) id = parseInt(m[1], 10);
+            if (id !== null) {
+                const idx = stages.findIndex(s => s && s.id === id);
+                if (idx >= 0) return idx;
+            }
+            return stages.length - 1;
         }
 
         function onApplySuccess(title) {
@@ -1582,48 +3166,95 @@ console.log(solveRoute());</code></pre>
             }
         }
 
+        // ========================================================
+        // 安全な雛形コード挿入（カンマ自動補完 ＆ 自動ID採番）
+        // ========================================================
         function insertStageTemplate() {
             if (currentFile !== 'stages.js') {
                 switchEditorFile('stages.js');
             }
             const editor = document.getElementById('stageCodeEditor');
-            const templateCode = `
-    // ------------------------------------------
-    // 新規作成ステージ
-    // ------------------------------------------
-    {
-        id: 99,
-        title: 'カスタムステージ',
-        subtitle: '自作ステージのテストプレイ',
-        maxBlocks: 6,
-        startRow: 3,
-        goalRow: 1,
-        hasCeiling: false,
-        forbidden: [
-            { col: 1, row: 0 },
-            { col: 3, row: 2 }
-        ],
-        gimmicks: [
-            { col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: true },
-            { col: 3, row: 1, type: 'step', dir: 'left', steps: 1 }
-        ],
-        solution: [
-            { col: 1, row: 3 },
-            { col: 2, row: 2 },
-            { col: 3, row: 1 }
-        ]
-    },`;
+            let val = editor.value;
 
-            const val = editor.value;
+            // 1. 既存ステージの最大 ID を自動検出
+            let maxId = 0;
+            const idMatches = val.matchAll(/\bid\s*:\s*(\d+)/g);
+            for (const m of idMatches) {
+                const idNum = parseInt(m[1], 10);
+                if (idNum > maxId) maxId = idNum;
+            }
+            const newId = maxId > 0 ? maxId + 1 : 20;
+
+            // 2. テンプレートコードの生成
+            const templateBody = `    // ------------------------------------------\n` +
+`    // ステージ ${newId} (新規作成ステージ)\n` +
+`    // ------------------------------------------\n` +
+`    {\n` +
+`        id: ${newId},\n` +
+`        title: 'ステージ ${newId}',\n` +
+`        subtitle: '自作オリジナルステージ',\n` +
+`        maxBlocks: 5,\n` +
+`        startRow: 3,\n` +
+`        goalRow: 1,\n` +
+`        hasCeiling: false,\n` +
+`        forbidden: [\n` +
+`            { col: 1, row: 0 },\n` +
+`            { col: 3, row: 2 }\n` +
+`        ],\n` +
+`        gimmicks: [\n` +
+`            { col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: true },\n` +
+`            { col: 3, row: 1, type: 'step', dir: 'left', steps: 1 }\n` +
+`        ],\n` +
+`        solution: [\n` +
+`            { col: 1, row: 3 },\n` +
+`            { col: 2, row: 2 },\n` +
+`            { col: 3, row: 1 }\n` +
+`        ],\n` +
+`        legends: [\n` +
+`            { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },\n` +
+`            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印方向に移動' },\n` +
+`            { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }\n` +
+`        ]\n` +
+`    }`;
+
+            // 3. STAGES 配列の末尾 ']' を探し、直前のカンマ補完を確実に行う
             const lastBracket = val.lastIndexOf(']');
             if (lastBracket !== -1) {
-                editor.value = val.substring(0, lastBracket) + templateCode + '\n' + val.substring(lastBracket);
+                const prefix = val.substring(0, lastBracket);
+                const suffix = val.substring(lastBracket);
+
+                // prefix 末尾の非空白文字を探す
+                const trimmedPrefix = prefix.trimEnd();
+                const lastChar = trimmedPrefix.slice(-1);
+
+                // 末尾の要素の後ろにカンマがなければカンマを自動補完！
+                let separator = '\n';
+                if (lastChar !== ',') {
+                    separator = ',\n\n';
+                } else {
+                    separator = '\n\n';
+                }
+
+                editor.value = trimmedPrefix + separator + templateBody + '\n' + suffix;
             } else {
-                editor.value += templateCode;
+                editor.value += '\n' + templateBody;
             }
+
+            // 行番号・診断・ミニマップの即時更新
             updateLineNumbersAndMinimap();
-            scrollToLine(val.split('\n').length);
-            setStatus('新規ステージの雛形を挿入しました。「変更をゲームに反映」を押してください。', '#fbbf24');
+
+            // 挿入した新規ステージの行へスムーズにスクロール
+            const newLines = editor.value.split('\n');
+            let insertLineNum = 1;
+            for (let idx = 0; idx < newLines.length; idx++) {
+                if (newLines[idx].includes(`id: ${newId},`)) {
+                    insertLineNum = idx + 1;
+                    break;
+                }
+            }
+            scrollToLine(insertLineNum);
+
+            setStatus(`ステージ ${newId} の雛形コードを挿入しました（エラーなし）。「変更をゲームに反映」を押してください！`, '#22c55e');
         }
 
         // ========================================================
@@ -1678,7 +3309,12 @@ console.log(solveRoute());</code></pre>
                 vResizer.classList.remove('dragging');
                 document.body.style.cursor = '';
                 if (iframeWrapper) iframeWrapper.style.pointerEvents = '';
+                updateLineNumbersAndMinimap();
             }
+        });
+
+        window.addEventListener('resize', () => {
+            updateLineNumbersAndMinimap();
         });
 
         // エディタスクロール & キーイベント連動
@@ -1689,8 +3325,24 @@ console.log(solveRoute());</code></pre>
             if (editor) {
                 editor.addEventListener('scroll', syncScroll);
 
+                let inputDebounceTimer = null;
                 editor.addEventListener('input', () => {
-                    updateLineNumbersAndMinimap();
+                    // 行番号の即座更新
+                    const lines = editor.value.split('\n');
+                    const lineCol = document.getElementById('lineNumbersCol');
+                    if (lineCol && lineCol.children.length !== lines.length) {
+                        let numsHtml = '';
+                        for (let i = 1; i <= lines.length; i++) {
+                            numsHtml += `<span class="line-num" id="ln-${i}">${i}</span>`;
+                        }
+                        lineCol.innerHTML = numsHtml;
+                    }
+
+                    // 診断・ミニマップはデバウンスして滑らかに更新
+                    clearTimeout(inputDebounceTimer);
+                    inputDebounceTimer = setTimeout(() => {
+                        updateLineNumbersAndMinimap();
+                    }, 80);
                 });
 
                 editor.addEventListener('keydown', (e) => {
@@ -1719,10 +3371,35 @@ console.log(solveRoute());</code></pre>
             }
 
             const hash = window.location.hash.replace('#', '');
-            if (hash && ['architecture', 'code-walkthrough', 'engine', 'stages', 'tips'].includes(hash)) {
+            if (hash && ['beginner', 'dictionary', 'architecture', 'code-walkthrough', 'engine', 'stages', 'tips'].includes(hash)) {
                 switchTab(hash);
             }
         });
+
+
+        // 辞書タブの図（ミニ盤面）描画
+        function renderMiniGrids() {
+            const arrows = { up: '↑', down: '↓', left: '←', right: '→' };
+            document.querySelectorAll('.mini-grid').forEach(grid => {
+                if (grid.children.length) return;
+                const cells = [];
+                for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+                    const d = document.createElement('div');
+                    d.className = 'mini-cell';
+                    d.textContent = c + ',' + r;
+                    grid.appendChild(d);
+                    cells.push(d);
+                }
+                const at = (c, r) => cells[Number(r) * 5 + Number(c)];
+                const each = (key, fn) => (grid.dataset[key] || '').split(';').filter(Boolean).forEach(s => fn(s.split(',')));
+                each('mark', ([c, r]) => at(c, r).classList.add('mark'));
+                each('forbidden', ([c, r]) => { const x = at(c, r); x.classList.add('forb'); x.textContent = ''; });
+                each('purple', ([c, r]) => { const x = at(c, r); x.classList.add('purple'); x.textContent = ''; });
+                each('dash', ([c, r, d]) => { const x = at(c, r); x.classList.add('dash'); x.textContent = arrows[d]; });
+                each('step', ([c, r, d]) => { const x = at(c, r); x.classList.add('step'); x.textContent = arrows[d]; });
+            });
+        }
+        document.addEventListener('DOMContentLoaded', renderMiniGrids);
 
         // コードコピー機能
         function copyCode(btn) {
