@@ -1,278 +1,68 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>スペースインベーダー</title>
-    <link rel="icon" href="assets/octopus.png" type="image/png">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=3.2">
+  <meta charset="utf-8">
+  <title>移動中 - 体験入学生徒用ゲーム (教育版ポータルへ移動)</title>
+  <meta http-equiv="refresh" content="0;url=../edu/trial-admission/">
+  <script>
+    // 既存サイトから教育版ポータル配下へ自動遷移 (replace を使用して履歴を残さない)
+    (function() {
+      var target = '../edu/trial-admission/' + window.location.search + window.location.hash;
+      window.location.replace(target);
+    })();
+  </script>
+  <style>
+    body {
+      background: #0b0f19;
+      color: #94a3b8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      text-align: center;
+      padding: 20px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 480px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+    h1 {
+      font-size: 20px;
+      color: #f8fafc;
+      margin: 0 0 12px;
+    }
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0 0 20px;
+    }
+    a {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    a:hover {
+      background: #1d4ed8;
+    }
+  </style>
 </head>
-
 <body>
-    <!-- 上部バー（エディタへ移動ボタン） -->
-    <header class="game-top-bar" id="game-top-bar">
-        <div class="top-bar-left">
-            <span class="game-brand-title">Space Invaders</span>
-        </div>
-        <div class="top-bar-right">
-            <a href="editor/" id="btn-goto-editor" class="goto-editor-btn" title="コードエディタを開く">
-                <svg class="editor-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="16 18 22 12 16 6"></polyline>
-                    <polyline points="8 6 2 12 8 18"></polyline>
-                </svg>
-                <span>エディタへ移動</span>
-                <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-            </a>
-        </div>
-    </header>
-
-    <!-- メインゲーム画面 -->
-    <div id="game-container">
-        <div class="canvas-wrapper">
-            <canvas id="gameCanvas" width="480" height="560" tabindex="0"></canvas>
-
-            <!-- ホーム画面 (本格アーケード・タイトルスクリーン) -->
-            <div id="start-overlay" class="game-overlay">
-                <div class="arcade-home-container is-standby" id="arcade-home-container">
-                    <!-- タイトルヘッダー -->
-                    <div class="arcade-title-box">
-                        <div class="arcade-coin-tag">PUSH START</div>
-                        <h1 class="arcade-main-title">SPACE INVADERS</h1>
-                        <div class="arcade-hiscore">HI-SCORE <span id="home-hiscore">00000</span></div>
-                    </div>
-
-                    <!-- スコアアドバンステーブル -->
-                    <div class="arcade-score-table">
-                        <div class="score-table-header">*SCORE ADVANCE TABLE*</div>
-                        <div class="score-row">
-                            <canvas class="sprite-preview-cell" id="preview-ufo" width="32" height="14"></canvas>
-                            <span class="score-desc text-ufo">= ?? PT</span>
-                        </div>
-                        <div class="score-row">
-                            <canvas class="sprite-preview-cell" id="preview-squid" width="20" height="18"></canvas>
-                            <span class="score-desc text-squid">= 30 PT</span>
-                        </div>
-                        <div class="score-row">
-                            <canvas class="sprite-preview-cell" id="preview-crab" width="24" height="18"></canvas>
-                            <span class="score-desc text-crab">= 20 PT</span>
-                        </div>
-                        <div class="score-row">
-                            <canvas class="sprite-preview-cell" id="preview-octopus" width="26" height="18"></canvas>
-                            <span class="score-desc text-octopus">= 10 PT</span>
-                        </div>
-                    </div>
-
-                    <!-- セレクターパネル (難易度・トーチカ・クリア条件) -->
-                    <div class="arcade-options-panel">
-                        <div class="option-row">
-                            <span class="option-caption">DIFFICULTY:</span>
-                            <div class="option-pill-group" id="diff-options">
-                                <button type="button" class="arcade-pill" data-diff="easy">
-                                    <span class="pill-name">EASY</span>
-                                </button>
-                                <button type="button" class="arcade-pill active" data-diff="normal">
-                                    <span class="pill-name">NORMAL</span>
-                                </button>
-                                <button type="button" class="arcade-pill" data-diff="hard">
-                                    <span class="pill-name">HARD</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="option-row" style="display: none;">
-                            <span class="option-caption">BUNKER:</span>
-                            <div class="option-pill-group" id="bunker-options">
-                                <button type="button" class="arcade-pill" data-bunker="penetrate">
-                                    <span class="pill-name">PENETRATE</span>
-                                </button>
-                                <button type="button" class="arcade-pill active" data-bunker="block">
-                                    <span class="pill-name">BLOCK</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 難易度案内・トーチカ貫通等のガイド表示 -->
-                        <div class="diff-guide-row" id="diff-guide-text" style="display: none;">
-                            <span class="diff-guide-icon">ℹ</span>
-                            <span class="diff-guide-msg">NORMAL: 標準バランス（原作仕様）</span>
-                        </div>
-
-                        <div class="option-row">
-                            <span class="option-caption">CLEAR GOAL:</span>
-                            <div class="option-pill-group" id="wave-options">
-                                <button type="button" class="arcade-pill active" data-waves="3">
-                                    <span class="pill-name">3 WAVES</span>
-                                </button>
-                                <button type="button" class="arcade-pill" data-waves="5">
-                                    <span class="pill-name">5 WAVES</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- アーケード特大スタートボタン (dev/game風の押し込みボタン) -->
-                    <div class="arcade-action-wrap">
-                        <button type="button" id="btn-game-start" class="arcade-play-btn">
-                            <div class="btn-player-icon-box">
-                                <canvas id="preview-player" width="26" height="16"></canvas>
-                            </div>
-                            <div class="btn-label-group">
-                                <span class="btn-label-main">ゲーム開始</span>
-                                <span class="btn-label-sub" id="start-btn-sub">1 PLAYER START</span>
-                            </div>
-                            <span class="btn-blink-arrow">▶</span>
-                        </button>
-                        <div class="arcade-start-hint" id="arcade-start-hint">[ENTER] KEY TO START</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- クイックポーズボタン (ゲームプレイ中に右上表示) -->
-            <button type="button" id="btn-quick-pause" class="quick-pause-btn" title="ゲームを一時停止 (Esc)"
-                style="display: none;">
-                ⏸ PAUSE
-            </button>
-
-            <!-- 一時停止・中止メニュー (Escキーまたはポーズボタンで表示) -->
-            <div id="pause-overlay" class="game-overlay pause-overlay" style="display: none;">
-                <!-- 1. メインの中止選択メニュー -->
-                <div class="pause-menu-box" id="pause-menu-box">
-                    <div class="pause-title">GAME PAUSED</div>
-                    <div class="pause-subtitle">ゲームを一時中断しています</div>
-                    <div class="pause-actions">
-                        <button type="button" class="pause-btn btn-edit-code" id="btn-pause-edit">
-                            <span class="pause-btn-main">コードを編集する</span>
-                            <span class="pause-btn-sub">一時停止のまま敵や自機の変更を確認</span>
-                        </button>
-                        <button type="button" class="pause-btn btn-quit-game" id="btn-pause-quit">
-                            <span class="pause-btn-main">ゲームを終了する</span>
-                            <span class="pause-btn-sub">ホーム画面に戻る</span>
-                        </button>
-                    </div>
-                    <div class="pause-footer-hint">[Esc] ゲーム再開　/　[Space] 決定</div>
-                </div>
-
-                <!-- 2. コード編集中の控えめなHUD（敵や自機が見える） -->
-                <div class="pause-hud-box" id="pause-hud-box" style="display: none;">
-                    <div class="pause-hud-badge">一時停止中</div>
-                    <div class="pause-hud-desc">エディタでコードやドット絵を変更すると即座に反映されます</div>
-                    <div class="pause-hud-actions">
-                        <button type="button" class="pause-hud-btn btn-resume" id="btn-hud-resume">
-                            ▶ ゲームを再開する [Space]
-                        </button>
-                        <button type="button" class="pause-hud-btn btn-quit" id="btn-hud-quit">
-                            ✕ ゲームを終了
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="controls-hint">
-            <span class="hint-group"><span class="key-tag">←</span> <span class="key-tag">→</span> 移動</span><span class="hint-sep">/</span><span class="hint-group"><span class="key-tag">Enter</span> 開始</span><span class="hint-sep">/</span><span class="hint-group"><span class="key-tag">Space</span> 攻撃・終了</span><span class="hint-sep">/</span><span class="hint-group"><span class="key-tag">Esc</span> 一時停止</span>
-        </div>
-    </div>
-
-    <!-- シームレス遷移用モックエディタ（左側からふわっと出現） -->
-    <div class="editor-transition-mock" id="editor-mock" aria-hidden="true">
-        <div class="mock-header">
-            <div class="mock-brand">
-                スペースインベーダー <span>/ エディタ</span>
-            </div>
-        </div>
-        <div class="mock-body">
-            <div class="mock-sidebar">
-                <div class="mock-item active">
-                    <span class="mock-dot"></span>
-                    <span>config.js</span>
-                </div>
-                <div class="mock-item">
-                    <span class="mock-dot"></span>
-                    <span>style.css</span>
-                </div>
-                <div class="mock-item">
-                    <span class="mock-dot"></span>
-                    <span>core.js</span>
-                </div>
-                <div class="mock-item">
-                    <span class="mock-dot"></span>
-                    <span>index.html</span>
-                </div>
-            </div>
-            <div class="mock-editor">
-                <div class="mock-tabs">
-                    <div class="mock-tab active">config.js</div>
-                    <div class="mock-tab">style.css</div>
-                    <div class="mock-tab">core.js</div>
-                    <div class="mock-tab">index.html</div>
-                </div>
-                <div class="mock-code">
-                    <div class="mock-line-nums">
-                        <div>1</div>
-                        <div>2</div>
-                        <div>3</div>
-                        <div>4</div>
-                        <div>5</div>
-                        <div>6</div>
-                        <div>7</div>
-                        <div>8</div>
-                        <div>9</div>
-                        <div>10</div>
-                        <div>11</div>
-                        <div>12</div>
-                        <div>13</div>
-                        <div>14</div>
-                        <div>15</div>
-                        <div>16</div>
-                        <div>17</div>
-                    </div>
-                    <div class="mock-code-lines">
-                        <div class="mock-code-bar" style="width: 55%;"></div>
-                        <div class="mock-code-bar" style="width: 70%;"></div>
-                        <div class="mock-code-bar" style="width: 40%;"></div>
-                        <div class="mock-code-bar" style="width: 85%;"></div>
-                        <div class="mock-code-bar" style="width: 60%;"></div>
-                        <div class="mock-code-bar" style="width: 30%;"></div>
-                        <div class="mock-code-bar" style="width: 75%;"></div>
-                        <div class="mock-code-bar" style="width: 50%;"></div>
-                        <div class="mock-code-bar" style="width: 65%;"></div>
-                        <div class="mock-code-bar" style="width: 45%;"></div>
-                        <div class="mock-code-bar" style="width: 80%;"></div>
-                        <div class="mock-code-bar" style="width: 35%;"></div>
-                        <div class="mock-code-bar" style="width: 70%;"></div>
-                        <div class="mock-code-bar" style="width: 55%;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 設定ファイル -->
-    <script src="config.js"></script>
-    <script src="core.js"></script>
-
-    <!-- シームレス画面遷移スクリプト -->
-    <script>
-        if (window.self !== window.top) {
-            document.body.classList.add('in-iframe');
-        }
-
-        document.getElementById('btn-goto-editor')?.addEventListener('click', function (e) {
-            e.preventDefault();
-            document.body.classList.add('transitioning-to-editor');
-            setTimeout(function () {
-                window.location.href = 'editor/?from=game';
-            }, 420);
-        });
-    </script>
+  <div class="card">
+    <h1>教育版サイトへ移動中...</h1>
+    <p>体験入学生徒用ゲームは <code>/dev/edu/trial-admission/</code> に統合されました。<br>自動的に移動しない場合は下のボタンをクリックしてください。</p>
+    <a href="../edu/trial-admission/">教育版 体験入学ゲームを開く</a>
+  </div>
 </body>
-
 </html>

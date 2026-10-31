@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ハコゲーム - Webエディタ</title>
+    <link rel="icon" href="../../../../pictures/hako_man_icon.png?v=1" type="image/png">
+    <link rel="stylesheet" href="ide.css?v=2.0">
+    <link rel="stylesheet" href="sticky-scroll.css?v=2.0">
+    <link rel="stylesheet" href="docs.css?v=2.0">
+    <script src="docs-content.js?v=2.0" defer></script>
+    <script src="linter.js?v=2.0" defer></script>
+    <script src="sticky-scroll.js?v=2.0" defer></script>
+    <script src="ide.js?v=2.0" defer></script>
+</head>
+
+<body>
+    <!-- ヘッダーツールバー -->
+    <header class="studio-header">
+        <div class="header-brand-group">
+            <a href="../../index.html" class="back-game-btn" title="教育ポータルに戻る" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35);">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>教育ポータル</span>
+            </a>
+            <a href="../index.html" id="btn-back-to-game" class="back-game-btn" title="ゲーム画面に戻る">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <span>ゲームへ</span>
+            </a>
+            <div class="header-brand">
+                <span class="brand-title">ハコゲーム</span>
+                <span class="brand-divider">/</span>
+                <span class="brand-sub">本格Webエディタ</span>
+            </div>
+
+            <!-- 戻る / 進む (Undo / Redo) ボタン -->
+            <div class="header-history-controls" id="header-history-controls">
+                <button type="button" id="btn-top-undo" class="history-action-btn" title="直前の変更を元に戻す (Ctrl+Z / ⌘Z)"
+                    aria-label="元に戻す" disabled>
+                    <svg viewBox="0 0 24 24" class="history-icon" fill="currentColor">
+                        <path
+                            d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.2 3.16-1.98 5.12-1.98 3.77 0 6.96 2.62 7.78 6.18l2.42-.76C21.46 11.23 17.38 8 12.5 8z" />
+                    </svg>
+                </button>
+                <button type="button" id="btn-top-redo" class="history-action-btn"
+                    title="元に戻した変更をやり直す (Ctrl+Y / ⌘Shift+Z)" aria-label="やり直す" disabled>
+                    <svg viewBox="0 0 24 24" class="history-icon" fill="currentColor">
+                        <path
+                            d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.88 0-8.96 3.23-10.2 7.62l2.42.76c.82-3.56 4.01-6.18 7.78-6.18 1.96 0 3.73.78 5.12 1.98L13 16h9V7l-3.6 3.6z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <!-- Monaca風 分割エディタトグルボタン -->
+            <button type="button" id="btn-header-split-toggle" class="action-btn secondary-btn" title="資料を横に並べて2分割表示 (Monacaスタイル)">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                    <line x1="12" y1="3" x2="12" y2="21"></line>
+                </svg>
+                <span id="btn-split-text">資料を並べて表示</span>
+            </button>
+
+            <!-- 保存して反映ボタン -->
+            <button type="button" id="btn-save" class="action-btn save-btn" title="コードを保存してゲームに反映 (⌘S / Ctrl+S)">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span id="btn-save-text">保存して反映</span>
+                <kbd class="key-shortcut">⌘S</kbd>
+            </button>
+
+            <!-- コードコピー -->
+            <button type="button" id="btn-copy-code" class="action-btn secondary-btn" title="開いているファイルのコードをコピー">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>コピー</span>
+            </button>
+
+            <!-- 初期設定に戻す -->
+            <button type="button" id="btn-reset" class="action-btn secondary-btn" title="ファイルを初期状態にリセット">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                <span>リセット</span>
+            </button>
+
+            <!-- 環境設定ボタン -->
+            <button type="button" id="btn-open-settings-top" class="action-btn secondary-btn icon-only" title="環境設定を開く">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
+                    </path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- メインワークスペース -->
+    <main class="studio-workspace">
+        <!-- 左サイドバー: ファイルツリー -->
+        <aside class="studio-sidebar">
+            <nav class="file-list" id="file-list">
+                <!-- 1. ゲーム本体フォルダ: game -->
+                <div class="tree-folder-group is-open" id="folder-group-root" data-folder="root">
+                    <button type="button" class="tree-item-row tree-item-root is-open" id="folder-toggle-root"
+                        data-folder="root" aria-expanded="true">
+                        <span class="tree-chevron"><svg viewBox="0 0 16 16">
+                                <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.3"
+                                    stroke-linecap="round" />
+                            </svg></span>
+                        <span class="tree-icon icon-folder-svg"><svg viewBox="0 0 16 16">
+                                <path
+                                    d="M1.5 3A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H7.414l-1.707-1.707A1 1 0 0 0 5 2.5H1.5A1.5 1.5 0 0 0 0 4v.5"
+                                    fill="none" stroke="currentColor" stroke-width="1.2" />
+                            </svg></span>
+                        <span class="tree-label">game</span>
+                    </button>
+
+                    <div class="tree-folder-children">
+                        <!-- stages.js (初期アクティブ) -->
+                        <button type="button" class="tree-item-row file-item active" data-path="stages.js">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-js-sym">JS</span>
+                            <span class="tree-label">stages.js</span>
+                            <span class="tree-tag-badge" style="background:#2563eb;color:#fff;font-size:9px;padding:1px 4px;border-radius:3px;margin-left:auto;">ステージ</span>
+                        </button>
+                        <!-- main.js -->
+                        <button type="button" class="tree-item-row file-item" data-path="main.js">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-js-sym">JS</span>
+                            <span class="tree-label">main.js</span>
+                        </button>
+                        <!-- index.html -->
+                        <button type="button" class="tree-item-row file-item" data-path="index.html">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-html-sym">&lt;/&gt;</span>
+                            <span class="tree-label">index.html</span>
+                        </button>
+                        <!-- style.css -->
+                        <button type="button" class="tree-item-row file-item" data-path="style.css">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-css-sym"><svg viewBox="0 0 16 16"><text x="8" y="11.5"
+                                        text-anchor="middle"
+                                        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+                                        font-size="10.5" font-weight="700" fill="currentColor" letter-spacing="-0.5">{
+                                        }</text></svg></span>
+                            <span class="tree-label">style.css</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. editor フォルダ (内部システムファイル群・閲覧専用) -->
+                <div class="tree-folder-group is-open" id="folder-group-editor" data-folder="editor">
+                    <button type="button" class="tree-item-row is-open" id="folder-toggle-editor"
+                        data-folder="editor" aria-expanded="true">
+                        <span class="tree-chevron"><svg viewBox="0 0 16 16">
+                                <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.3"
+                                    stroke-linecap="round" />
+                            </svg></span>
+                        <span class="tree-icon icon-folder-svg"><svg viewBox="0 0 16 16">
+                                <path
+                                    d="M1.5 3A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H7.414l-1.707-1.707A1 1 0 0 0 5 2.5H1.5A1.5 1.5 0 0 0 0 4v.5"
+                                    fill="none" stroke="currentColor" stroke-width="1.2" />
+                            </svg></span>
+                        <span class="tree-label">editor</span>
+                        <span class="tree-tag-badge" style="background:#475569;color:#94a3b8;font-size:9px;padding:1px 4px;border-radius:3px;margin-left:auto;">閲覧のみ</span>
+                    </button>
+                    <div class="tree-folder-children">
+                        <button type="button" class="tree-item-row file-item is-system" data-path="editor/index.html">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-html-sym">&lt;/&gt;</span>
+                            <span class="tree-label">index.html</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item is-system" data-path="editor/ide.js">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-js-sym">JS</span>
+                            <span class="tree-label">ide.js</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item is-system" data-path="editor/linter.js">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-js-sym">JS</span>
+                            <span class="tree-label">linter.js</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item is-system" data-path="editor/sticky-scroll.js">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-js-sym">JS</span>
+                            <span class="tree-label">sticky-scroll.js</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item is-system" data-path="editor/ide.css">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-css-sym">{ }</span>
+                            <span class="tree-label">ide.css</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item is-system" data-path="editor/docs.css">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-css-sym">{ }</span>
+                            <span class="tree-label">docs.css</span>
+                        </button>
+                        <button type="button" class="tree-item-row file-item is-system" data-path="editor/sticky-scroll.css">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon icon-css-sym">{ }</span>
+                            <span class="tree-label">sticky-scroll.css</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2.5. ビジュアル作成ツール & ステージ操作 -->
+                <div class="tree-folder-group is-open" id="folder-group-tools" data-folder="tools">
+                    <button type="button" class="tree-item-row is-open" id="folder-toggle-tools"
+                        data-folder="tools" aria-expanded="true">
+                        <span class="tree-chevron"><svg viewBox="0 0 16 16">
+                                <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.3"
+                                    stroke-linecap="round" />
+                            </svg></span>
+                        <span class="tree-icon icon-folder-svg"><svg viewBox="0 0 16 16">
+                                <path
+                                    d="M1.5 3A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H7.414l-1.707-1.707A1 1 0 0 0 5 2.5H1.5A1.5 1.5 0 0 0 0 4v.5"
+                                    fill="none" stroke="currentColor" stroke-width="1.2" />
+                            </svg></span>
+                        <span class="tree-label">ステージ作成ツール</span>
+                        <span class="tree-tag-badge" style="background:#7c3aed;color:#fff;font-size:9px;padding:1px 4px;border-radius:3px;margin-left:auto;">直感操作</span>
+                    </button>
+                    <div class="tree-folder-children">
+                        <button type="button" class="tree-item-row tool-action-item" id="btn-sidebar-visual-builder">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon">🎨</span>
+                            <span class="tree-label">5×5 盤面エディタ</span>
+                        </button>
+                        <button type="button" class="tree-item-row tool-action-item" id="btn-sidebar-add-stage">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon">➕</span>
+                            <span class="tree-label">新規ステージを追加</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. ドキュメントフォルダ (Monacaスプリットで右に開く！) -->
+                <div class="tree-folder-group is-open" id="folder-group-docs" data-folder="docs">
+                    <button type="button" class="tree-item-row is-open" id="folder-toggle-docs"
+                        data-folder="docs" aria-expanded="true">
+                        <span class="tree-chevron"><svg viewBox="0 0 16 16">
+                                <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.3"
+                                    stroke-linecap="round" />
+                            </svg></span>
+                        <span class="tree-icon icon-folder-svg"><svg viewBox="0 0 16 16">
+                                <path
+                                    d="M1.5 3A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H7.414l-1.707-1.707A1 1 0 0 0 5 2.5H1.5A1.5 1.5 0 0 0 0 4v.5"
+                                    fill="none" stroke="currentColor" stroke-width="1.2" />
+                            </svg></span>
+                        <span class="tree-label">技術資料・辞書</span>
+                        <span class="tree-tag-badge" style="background:#0f766e;color:#fff;font-size:9px;padding:1px 4px;border-radius:3px;margin-left:auto;">並べて開く</span>
+                    </button>
+                    <div class="tree-folder-children">
+                        <button type="button" class="tree-item-row doc-jump-item" data-tab-target="dictionary">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon">📖</span>
+                            <span class="tree-label">辞書: stages.js</span>
+                        </button>
+                        <button type="button" class="tree-item-row doc-jump-item" data-tab-target="beginner">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon">🌱</span>
+                            <span class="tree-label">入門: Webの仕組み</span>
+                        </button>
+                        <button type="button" class="tree-item-row doc-jump-item" data-tab-target="stages">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon">🛠️</span>
+                            <span class="tree-label">実践: ステージ改造</span>
+                        </button>
+                        <button type="button" class="tree-item-row doc-jump-item" data-tab-target="architecture">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon">📐</span>
+                            <span class="tree-label">設計: 全体連携</span>
+                        </button>
+                        <button type="button" class="tree-item-row doc-jump-item" data-tab-target="engine">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon">⚙️</span>
+                            <span class="tree-label">詳細: コア判定</span>
+                        </button>
+                        <button type="button" class="tree-item-row doc-jump-item" data-tab-target="tips">
+                            <span class="tree-indent-guide"></span>
+                            <span class="tree-chevron-spacer"></span>
+                            <span class="tree-icon">💡</span>
+                            <span class="tree-label">応用: デバッグ</span>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- サイドバーフッター -->
+            <div class="sidebar-system-footer">
+                <button type="button" class="sidebar-system-btn" id="btn-open-settings" title="環境設定を開く">
+                    <span class="sidebar-btn-main">
+                        <svg class="sidebar-system-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3.2"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83-2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
+                            </path>
+                        </svg>
+                        <span class="sidebar-system-label">設定</span>
+                    </span>
+                </button>
+                <div class="sidebar-build-meta" id="sidebar-build-meta" title="システムバージョン">
+                    <span class="build-badge">v2.0</span>
+                    <span class="build-time">Monaca-Split</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 中央: コードエディタ領域 (Monaca風 左右2分割スプリットコンテナ) -->
+        <section class="studio-editor-pane" id="editor-pane">
+            <div class="editor-split-container" id="editor-split-container">
+                <!-- 左ペイン: Primary Editor (主コード編集) -->
+                <div class="editor-pane-half editor-pane-primary" id="editor-pane-primary">
+                    <div class="editor-tabs-bar" id="editor-tabs-bar-primary">
+                        <div class="editor-tabs" id="editor-tabs">
+                            <!-- 動的生成: stages.js, main.js など -->
+                        </div>
+                        <div class="editor-tabs-actions">
+                            <div class="stage-quick-toolbar" id="stage-quick-toolbar">
+                                <select class="stage-jump-select" id="editor-stage-jump-select" title="ステージ定義へジャンプ＆プレビュー切替">
+                                    <option value="">ステージへ移動...</option>
+                                </select>
+                                <button type="button" class="stage-quick-btn visual-btn" id="btn-open-stage-builder" title="クリック操作で5×5盤面を編集できるビジュアルステージ作成ツールを開く">
+                                    <span>🎨 盤面作成</span>
+                                </button>
+                                <button type="button" class="stage-quick-btn add-btn" id="btn-add-stage-template" title="新しいステージの雛形コードを末尾に追加する">
+                                    <span>＋ 追加</span>
+                                </button>
+                            </div>
+                            <div class="unsaved-status-pill" id="unsaved-status-pill" style="display: none;">
+                                <span class="unsaved-dot"></span>
+                                <span class="unsaved-status-text">未保存</span>
+                            </div>
+                            <!-- Monaca風 分割トグルボタン -->
+                            <button type="button" class="tab-action-btn" id="btn-toggle-split" title="資料を横に並べて2分割表示 (Monaca風)">
+                                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3">
+                                    <rect x="1.5" y="2.5" width="13" height="11" rx="1.5"></rect>
+                                    <line x1="8" y1="2.5" x2="8" y2="13.5"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- システムファイル注意バナー (editor/ 配下のファイルを開いた時のみ表示) -->
+                    <div class="system-file-banner-container" id="system-file-banner-container" style="display: none;">
+                        <div class="system-file-banner" id="system-file-banner">
+                            <div class="system-banner-inner" id="system-banner-inner">
+                                <span class="system-banner-text" id="system-banner-text">エディタ本体の内部設定ファイルです（閲覧専用）。ゲーム自体のコードは <button
+                                        type="button" class="banner-link-btn" id="banner-btn-goto-game-stages">stages.js</button>
+                                    を編集してください。</span>
+                                <button type="button" class="banner-minimize-btn" id="banner-btn-minimize" title="説明を最小化">最小化</button>
+                            </div>
+                            <button type="button" class="system-banner-minimized-icon" id="system-banner-minimized-icon" title="説明を展開">
+                                <span class="banner-min-i">i</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- コード編集エリア -->
+                    <div class="editor-body" id="editor-body-container">
+                        <!-- スティッキースクロール -->
+                        <div class="editor-sticky-scroll-container" id="editor-sticky-scroll-container" style="display: none;">
+                            <div class="sticky-scroll-lines" id="sticky-scroll-lines"></div>
+                        </div>
+
+                        <div class="line-numbers" id="line-numbers">
+                            <div class="line-numbers-inner" id="line-numbers-inner"></div>
+                        </div>
+                        <div class="editor-code-container">
+                            <pre class="code-highlight" id="code-highlight" aria-hidden="true"></pre>
+                            <textarea class="code-textarea" id="code-textarea" spellcheck="false" autocomplete="off"
+                                autocapitalize="off"></textarea>
+                        </div>
+                        <!-- ミニマップ -->
+                        <div class="editor-minimap-wrap" id="editor-minimap-wrap" title="コードマップ（クリックまたはドラッグで移動）">
+                            <canvas class="editor-minimap-canvas" id="editor-minimap-canvas"></canvas>
+                            <div class="editor-minimap-slider" id="editor-minimap-slider"></div>
+                            <div class="editor-minimap-gutter" id="editor-minimap-gutter"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 左右エディタの分割境界リサイザー (Monacaスタイル) -->
+                <div class="editor-split-divider" id="editor-split-divider" title="ドラッグして左右の幅を調整">
+                    <div class="split-divider-line"></div>
+                </div>
+
+                <!-- 右ペイン: Secondary Pane (Monaca風: 技術資料ビュー) -->
+                <div class="editor-pane-half editor-pane-secondary" id="editor-pane-secondary">
+                    <div class="editor-tabs-bar" id="editor-tabs-bar-secondary">
+                        <div class="editor-tabs" id="editor-tabs-secondary">
+                            <div class="editor-tab active" id="tab-secondary-doc">
+                                <span>📖 技術資料・辞書</span>
+                            </div>
+                        </div>
+                        <div class="editor-tabs-actions">
+                            <button type="button" class="tab-action-btn" id="btn-close-secondary" title="分割を閉じる">
+                                <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4">
+                                    <line x1="3" y1="3" x2="13" y2="13"></line>
+                                    <line x1="13" y1="3" x2="3" y2="13"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 技術資料ビュー本体 -->
+                    <div class="secondary-content-pane docs-view-mode" id="secondary-docs-pane">
+                        <div class="docs-viewer-toolbar">
+                            <div class="docs-category-tabs" id="docs-category-tabs">
+                                <!-- docs-content.js から動的生成 -->
+                            </div>
+                        </div>
+                        <div class="docs-body-scroll" id="docs-body-scroll">
+                            <!-- docs-content.js から動的注入 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 診断パネルリサイザー -->
+            <div class="diagnostics-panel-resizer" id="diagnostics-panel-resizer" title="ドラッグしてエラーパネルの高さを調整">
+                <div class="resizer-handle-grip"></div>
+            </div>
+
+            <!-- 構文チェック・診断バー -->
+            <div class="editor-diagnostics-bar" id="editor-diagnostics-bar">
+                <div class="diagnostics-summary" id="diagnostics-summary">
+                    <span class="diagnostics-status-dot ok" id="diagnostics-status-dot">●</span>
+                    <span class="diagnostics-status-text" id="diagnostics-status-text">構文エラーはありません</span>
+                </div>
+                <div class="diagnostics-actions">
+                    <button type="button" class="diagnostics-toggle-btn" id="btn-toggle-diagnostics">詳細を表示</button>
+                </div>
+            </div>
+
+            <!-- 診断パネル -->
+            <div class="editor-diagnostics-panel" id="editor-diagnostics-panel" style="display: none;">
+                <div class="diagnostics-panel-header">
+                    <span class="diagnostics-panel-title" id="diagnostics-panel-title">構文チェック結果</span>
+                    <span class="diagnostics-panel-subtitle">項目をクリックすると、該当行へジャンプします</span>
+                </div>
+                <div class="diagnostics-list" id="diagnostics-list">
+                    <!-- 動的生成 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 左右リサイザー (エディタとゲームプレビューの間) -->
+        <div class="pane-resizer" id="pane-resizer" title="ドラッグしてプレビュー画面の幅を調整"></div>
+
+        <!-- 右ペイン: ゲームプレビュー画面 (縦100%フルハイトで美しい！) -->
+        <section class="studio-preview-pane" id="preview-pane">
+            <div class="preview-top-toolbar">
+                <div class="preview-brand-tag">
+                    <span class="preview-live-dot"></span>
+                    <span>GAME PREVIEW</span>
+                </div>
+                <div class="preview-quick-controls">
+                    <button type="button" class="preview-ctrl-btn" id="btn-preview-start" title="ゲーム開始 (Space / Enter)">▶ 開始</button>
+                    <button type="button" class="preview-ctrl-btn" id="btn-preview-reset" title="ブロック配置をリセット (M)">↺ リセット</button>
+                    <button type="button" class="preview-ctrl-btn" id="btn-preview-solution" title="答え合わせガイド切替 (.)">💡 答え</button>
+                </div>
+                <div class="multiview-actions">
+                    <button type="button" class="multiview-action-btn" id="btn-reload-game" title="ゲームをリロード">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                        </svg>
+                    </button>
+                    <a href="../index.html" target="_blank" class="multiview-action-btn" title="別タブで全画面ゲームを開く">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                    </a>
+                    <button type="button" class="multiview-action-btn" id="btn-toggle-preview-collapse" title="プレビューを折りたたむ / 表示">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ゲームプレビュー (縦100%) -->
+            <div class="preview-stage-container" id="preview-stage">
+                <iframe class="preview-iframe" id="preview-iframe" title="ゲームプレビュー" src="../index.html"></iframe>
+            </div>
+
+            <!-- プレビュー下部クイックヒントバー -->
+            <div class="preview-shortcut-bar" id="preview-shortcut-bar">
+                <span><kbd>Click</kbd> ブロック配置</span>
+                <span><kbd>Space</kbd> 開始</span>
+                <span><kbd>M</kbd> リセット</span>
+                <span><kbd>.</kbd> 答え表示</span>
+                <span><kbd>◀</kbd><kbd>▶</kbd> ステージ切替</span>
+            </div>
+        </section>
+    </main>
+
+    <!-- トースト通知 -->
+    <div class="toast-notice" id="ide-toast">
+        <span id="ide-toast-msg">保存しました</span>
+    </div>
+
+    <!-- エディタ環境設定モーダル -->
+    <div class="settings-modal-overlay" id="settings-modal-overlay" style="display: none;" aria-hidden="true">
+        <div class="settings-modal" id="settings-modal" role="dialog" aria-modal="true"
+            aria-labelledby="settings-modal-title">
+            <div class="settings-modal-header">
+                <div class="settings-header-info">
+                    <div class="settings-header-icon-box">
+                        <svg class="settings-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3.2"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="settings-modal-title" id="settings-modal-title">環境設定</h2>
+                        <p class="settings-modal-subtitle">エディタの表示・ワークスペースの挙動をカスタマイズします</p>
+                    </div>
+                </div>
+                <button type="button" class="settings-close-btn" id="btn-close-settings" title="閉じる (Esc)">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round">
+                        <line x1="3" y1="3" x2="13" y2="13"></line>
+                        <line x1="13" y1="3" x2="3" y2="13"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="settings-modal-body">
+                <div class="settings-section">
+                    <div class="settings-section-title">外観</div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-label">カラーテーマ</span>
+                            <span class="settings-row-desc">エディタ全体のコントラストと配色を切り替えます</span>
+                        </div>
+                        <div class="settings-theme-selector">
+                            <button type="button" class="theme-choice-btn is-active" data-theme-value="dark"
+                                id="theme-choice-dark">
+                                <span>ダーク</span>
+                            </button>
+                            <button type="button" class="theme-choice-btn" data-theme-value="light"
+                                id="theme-choice-light">
+                                <span>ライト</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-section-title">エディタ表示</div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-label">コードマップ (ミニマップ)</span>
+                            <span class="settings-row-desc">右端にコード全体の鳥瞰図を表示します</span>
+                        </div>
+                        <label class="settings-toggle" for="setting-toggle-minimap">
+                            <input type="checkbox" id="setting-toggle-minimap" checked>
+                            <span class="settings-toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-label">スティッキースクロール</span>
+                            <span class="settings-row-desc">関数やオブジェクトのスコープを見出しとして上部に固定表示します</span>
+                        </div>
+                        <label class="settings-toggle" for="setting-toggle-sticky">
+                            <input type="checkbox" id="setting-toggle-sticky" checked>
+                            <span class="settings-toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-label">インデントガイド</span>
+                            <span class="settings-row-desc">階層構造を見やすくする縦のガイドラインを表示します</span>
+                        </div>
+                        <label class="settings-toggle" for="setting-indent-guides">
+                            <input type="checkbox" id="setting-indent-guides" checked>
+                            <span class="settings-toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <span class="settings-row-label">構文診断ステータスバー</span>
+                            <span class="settings-row-desc">エディタ下部にリアルタイムの構文チェック結果バーを表示します</span>
+                        </div>
+                        <label class="settings-toggle" for="setting-diagnostics-bar">
+                            <input type="checkbox" id="setting-diagnostics-bar" checked>
+                            <span class="settings-toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-modal-footer">
+                <button type="button" class="settings-footer-btn" id="btn-save-settings">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🎨 ビジュアル 5×5 ステージ作成・盤面エディタモーダル -->
+    <div class="stage-builder-overlay" id="stage-builder-overlay" aria-hidden="true">
+        <div class="stage-builder-modal" id="stage-builder-modal" role="dialog" aria-modal="true" aria-labelledby="stage-builder-title">
+            <div class="stage-builder-header">
+                <div class="stage-builder-title-wrap">
+                    <span class="stage-builder-badge">VISUAL STAGE BUILDER</span>
+                    <h2 class="stage-builder-title" id="stage-builder-title">🎨 5×5 ビジュアル盤面エディタ</h2>
+                </div>
+                <div class="stage-builder-header-controls">
+                    <label class="builder-select-label" for="builder-stage-select">編集ステージ:</label>
+                    <select class="builder-stage-select" id="builder-stage-select"></select>
+                    <button type="button" class="builder-btn builder-btn-new" id="btn-builder-new-stage" title="新しいステージを作成">+ 新規作成</button>
+                    <button type="button" class="builder-close-btn" id="btn-close-stage-builder" title="閉じる (Esc)">✕</button>
+                </div>
+            </div>
+
+            <div class="stage-builder-body">
+                <!-- 左カラム: ツールパレット + 5×5 インタラクティブ盤面 -->
+                <div class="stage-builder-left">
+                    <div class="builder-palette-section">
+                        <div class="builder-section-label">1. 配置するパーツを選択してマスをクリック</div>
+                        <div class="builder-palette-grid" id="builder-palette-grid">
+                            <button type="button" class="palette-tool-btn active" data-tool="solution">
+                                <span class="palette-icon sol">💡</span>
+                                <span>正解ブロック</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="forbidden">
+                                <span class="palette-icon forb">🚫</span>
+                                <span>赤斜線 (置けない)</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="dash-up">
+                                <span class="palette-icon dash">↑</span>
+                                <span>水色ダッシュ ↑</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="dash-down">
+                                <span class="palette-icon dash">↓</span>
+                                <span>水色ダッシュ ↓</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="dash-left">
+                                <span class="palette-icon dash">←</span>
+                                <span>水色ダッシュ ←</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="dash-right">
+                                <span class="palette-icon dash">→</span>
+                                <span>水色ダッシュ →</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="step-up">
+                                <span class="palette-icon step">↑</span>
+                                <span>緑1マス移動 ↑</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="step-down">
+                                <span class="palette-icon step">↓</span>
+                                <span>緑1マス移動 ↓</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="step-left">
+                                <span class="palette-icon step">←</span>
+                                <span>緑1マス移動 ←</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="step-right">
+                                <span class="palette-icon step">→</span>
+                                <span>緑1マス移動 →</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="purple">
+                                <span class="palette-icon purple">🟪</span>
+                                <span>紫枠 (必須マス)</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="erase">
+                                <span class="palette-icon erase">🧹</span>
+                                <span>消しゴム</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 5×5 盤面 + 左右のスタート/ゴール高さクリック列 -->
+                    <div class="builder-board-section">
+                        <div class="builder-section-label">2. 5×5 盤面プレビュー（左右のSTART/GOALをクリックで高さ変更）</div>
+                        <div class="builder-ceiling-bar" id="builder-ceiling-bar" title="クリックで天井バー (hasCeiling) のON/OFF切替">
+                            <span>天井バー (hasCeiling): <strong id="builder-ceiling-status">OFF</strong>（クリックで切替）</span>
+                        </div>
+                        <div class="builder-board-wrap">
+                            <!-- 左: スタート土管の行選択 (0〜4) -->
+                            <div class="builder-side-col" id="builder-start-col">
+                                <!-- JSで0〜4のボタン生成 -->
+                            </div>
+                            <!-- 中央: 5×5 グリッド -->
+                            <div class="builder-grid-5x5" id="builder-grid-5x5">
+                                <!-- JSで25マス生成 -->
+                            </div>
+                            <!-- 右: ゴールの行選択 (0〜4) -->
+                            <div class="builder-side-col" id="builder-goal-col">
+                                <!-- JSで0〜4のボタン生成 -->
+                            </div>
+                        </div>
+                        <div class="builder-board-actions">
+                            <button type="button" class="builder-mini-btn" id="btn-builder-clear-board">盤面をすべてクリア</button>
+                            <span class="builder-board-stats" id="builder-board-stats">正解配置: 0個 / 上限: 6個</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右カラム: ステージ基本設定 + 自動生成コードプレビュー -->
+                <div class="stage-builder-right">
+                    <div class="builder-section-label">3. ステージ情報の設定</div>
+                    <div class="builder-form-grid">
+                        <div class="builder-field">
+                            <label for="builder-input-id">ステージ番号 (id)</label>
+                            <input type="number" id="builder-input-id" min="1" max="999" value="1">
+                        </div>
+                        <div class="builder-field">
+                            <label for="builder-input-maxblocks">最大ブロック数 (maxBlocks)</label>
+                            <input type="number" id="builder-input-maxblocks" min="1" max="25" value="6">
+                        </div>
+                        <div class="builder-field full">
+                            <label for="builder-input-title">タイトル (title)</label>
+                            <input type="text" id="builder-input-title" value="ステージ 1">
+                        </div>
+                        <div class="builder-field full">
+                            <label for="builder-input-subtitle">サブタイトル・ヒント (subtitle)</label>
+                            <input type="text" id="builder-input-subtitle" value="ブロックを配置してゴールへ導こう">
+                        </div>
+                    </div>
+
+                    <div class="builder-section-label" style="margin-top: 12px;">4. 自動生成される stages.js コード</div>
+                    <pre class="builder-code-preview" id="builder-code-preview"></pre>
+                </div>
+            </div>
+
+            <div class="stage-builder-footer">
+                <button type="button" class="builder-btn builder-btn-cancel" id="btn-builder-cancel">キャンセル</button>
+                <button type="button" class="builder-btn builder-btn-copy" id="btn-builder-copy-code">📋 コードをコピー</button>
+                <button type="button" class="builder-btn builder-btn-apply" id="btn-builder-apply">⚡ stages.js に書き込んでゲームに即時反映</button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>移動中 - ハコゲーム本格Webエディタ (教育版ポータルへ移動)</title>
+  <meta http-equiv="refresh" content="0;url=../../edu/game/editor/">
+  <script>
+    (function() {
+      var target = '../../edu/game/editor/' + window.location.search + window.location.hash;
+      window.location.replace(target);
+    })();
+  </script>
+  <style>
+    body {
+      background: #0b0f19;
+      color: #94a3b8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      text-align: center;
+      padding: 20px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 480px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+    h1 {
+      font-size: 20px;
+      color: #f8fafc;
+      margin: 0 0 12px;
+    }
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0 0 20px;
+    }
+    a {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    a:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Webエディタへ移動中...</h1>
+    <p>ハコゲームWebエディタは <code>/dev/edu/game/editor/</code> に統合されました。<br>自動的に移動しない場合は下のボタンをクリックしてください。</p>
+    <a href="../../edu/game/editor/">教育版 Webエディタを開く</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1254 @@
+/* ===============================================================
+   スタイルシート (style.css)
+   ゲーム画面の見た目やレイアウトを設定します
+   =============================================================== */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #0d1117;
+    color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+/* iframe内（エディタプレビュー）表示時の制御 */
+body.in-iframe .game-top-bar {
+    display: none !important;
+}
+
+body.in-iframe #game-container {
+    padding: 10px 4px 8px 4px;
+}
+
+/* ── 上部トップバー ── */
+.game-top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    background: linear-gradient(180deg, rgba(13, 17, 23, 0.85) 0%, rgba(13, 17, 23, 0) 100%);
+    z-index: 20;
+    user-select: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.game-brand-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: #8b949e;
+    text-transform: uppercase;
+}
+
+.goto-editor-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 14px;
+    background-color: rgba(33, 38, 45, 0.8);
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #f0f6fc;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.goto-editor-btn:hover {
+    background-color: #30363d;
+    border-color: #58a6ff;
+    color: #58a6ff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(88, 166, 255, 0.2);
+}
+
+.goto-editor-btn .editor-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.goto-editor-btn .arrow-icon {
+    width: 13px;
+    height: 13px;
+    transition: transform 0.2s ease;
+}
+
+.goto-editor-btn:hover .arrow-icon {
+    transform: translateX(2px);
+}
+
+/* ── ゲームメインコンテナ ── */
+#game-container {
+    width: 100%;
+    height: 100%;
+    max-width: 100vw;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 48px 12px 12px 12px;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s ease;
+    will-change: transform, opacity;
+}
+
+/* キャンバスラッパー */
+.canvas-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 100%;
+    max-height: calc(100% - 32px);
+    flex: 1;
+    min-height: 0;
+}
+
+/* ゲームキャンバス */
+canvas {
+    background-color: #000000;
+    display: block;
+    aspect-ratio: 480 / 560;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+canvas:focus {
+    border-color: rgba(56, 189, 248, 0.5);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 2px rgba(56, 189, 248, 0.25);
+}
+
+/* ===============================================================
+   ホーム画面 (本格アーケード・タイトルスクリーン)
+   =============================================================== */
+.game-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 8px;
+    background: rgba(5, 7, 12, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+    z-index: 10;
+    padding: 16px 12px;
+    overflow-y: auto;
+}
+
+.game-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.arcade-home-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 380px;
+    gap: 12px;
+    transition: filter 0.4s ease, opacity 0.4s ease;
+}
+
+/* タイトルボックス */
+.arcade-title-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.arcade-coin-tag {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #ffcc00;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    animation: arcadeBlink 1.4s steps(2, start) infinite;
+}
+
+.arcade-main-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 19px;
+    letter-spacing: 2px;
+    color: #ffffff;
+    margin: 0;
+    text-shadow: 2px 2px 0 #000000;
+}
+
+.arcade-hiscore {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #94a3b8;
+    letter-spacing: 1px;
+    margin-top: 10px;
+}
+
+.arcade-hiscore span {
+    color: #ffffff;
+}
+
+/* スコアアドバンステーブル */
+.arcade-score-table {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    width: 100%;
+    max-width: 270px;
+    background: #0d121c;
+    border: 2px solid #202b3c;
+    border-radius: 4px;
+    padding: 10px 14px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.score-table-header {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #ffffff;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.score-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    height: 20px;
+    padding: 0 10px;
+}
+
+.sprite-preview-cell {
+    width: 28px;
+    height: 18px;
+    image-rendering: pixelated;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.score-desc {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    letter-spacing: 1px;
+}
+
+.text-ufo {
+    color: #ff3344;
+}
+
+.text-squid {
+    color: #ffff00;
+}
+
+.text-crab {
+    color: #00ffff;
+}
+
+.text-octopus {
+    color: #ff3399;
+}
+
+/* セレクターパネル */
+.arcade-options-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 320px;
+}
+
+.option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.diff-guide-row {
+    display: none !important;
+}
+
+.diff-guide-icon {
+    font-size: 9px;
+    color: #38bdf8;
+    line-height: 1;
+}
+
+.diff-guide-msg {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font-size: 10px;
+    color: #94a3b8;
+    letter-spacing: 0.2px;
+    line-height: 1.3;
+}
+
+.option-caption {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7.5px;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.option-pill-group {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+
+.arcade-pill:hover {
+    background-color: #202d3d;
+    border-color: #38bdf8;
+    color: #f1f5f9;
+}
+
+.arcade-pill:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #0e1620;
+}
+
+.arcade-pill.active {
+    background-color: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 3px 0 #082f49;
+}
+
+/* 特大アーケードスタートボタン */
+.arcade-play-btn {
+    width: 100%;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background: #080d1a; /*ボタン本体の色*/
+    border: 2px solid #00ff66; /*ボタンの枠線の色*/
+    border-radius: 4px; /*ボタンの影の色*/
+    cursor: pointer;
+    box-shadow: 0 4px 0 #047857;
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.1s ease;
+}
+
+.arcade-action-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 340px;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.arcade-play-btn:hover {
+    background: #00ff66;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #047857;
+}
+
+.arcade-play-btn:hover .btn-label-main {
+    color: #000000;
+    text-shadow: none;
+}
+
+.arcade-play-btn:hover .btn-label-sub {
+    color: #064e3b;
+}
+
+.arcade-play-btn:hover .btn-player-icon-box {
+    border-color: #000000;
+    background: #00ff66;
+}
+
+.arcade-play-btn:hover .btn-blink-arrow {
+    color: #000000;
+    text-shadow: none;
+}
+
+.arcade-play-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #047857;
+}
+
+.btn-player-icon-box {
+    width: 34px;
+    height: 34px;
+    background: #000000;
+    border: 2px solid #00ff66;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.btn-player-icon-box canvas {
+    image-rendering: pixelated;
+    width: 26px;
+    height: 16px;
+}
+
+.btn-label-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-grow: 1;
+    margin-left: 12px;
+}
+
+.btn-label-main {
+    font-family: 'Press Start 2P', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    color: #00ff66;
+    letter-spacing: 1px;
+}
+
+.btn-label-sub {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: #86efac;
+    letter-spacing: 1.5px;
+    margin-top: 3px;
+}
+
+.btn-blink-arrow {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    color: #00ff66;
+    animation: arcadeBlink 1.4s steps(2, start) infinite;
+    flex-shrink: 0;
+}
+
+.arcade-start-hint {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7.5px;
+    color: #38bdf8;
+    letter-spacing: 1px;
+    animation: arcadeBlink 1.4s steps(2, start) infinite;
+}
+
+.arcade-pill {
+    background-color: #16202c;
+    border: 2px solid #243447;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 0 #0e1620;
+    transition: all 0.1s ease;
+}
+
+.pill-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    letter-spacing: 0.5px;
+}
+
+@keyframes arcadeBlink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.25; }
+}
+
+/* ── core.js 未読み込み時の待機（スタンバイ・休眠）状態 ── */
+.arcade-home-container.is-standby {
+    filter: brightness(0.65) saturate(0.6);
+}
+
+.arcade-home-container.is-standby .arcade-coin-tag {
+    color: #64748b;
+    animation: none;
+}
+
+.arcade-home-container.is-standby .arcade-main-title {
+    color: #94a3b8;
+    text-shadow: none;
+}
+
+.arcade-home-container.is-standby #btn-game-start {
+    border-color: #334155;
+    background: #0b1120;
+    box-shadow: 0 4px 0 #1e293b;
+    cursor: pointer;
+}
+
+.arcade-home-container.is-standby .btn-label-main {
+    color: #94a3b8;
+    text-shadow: none;
+}
+
+.arcade-home-container.is-standby .btn-label-sub {
+    color: #64748b;
+}
+
+.arcade-home-container.is-standby .btn-player-icon-box {
+    border-color: #334155;
+    background: #0b1120;
+}
+
+.arcade-home-container.is-standby .btn-blink-arrow {
+    color: #64748b;
+    animation: none;
+}
+
+.arcade-home-container.is-standby .arcade-start-hint {
+    color: #64748b;
+    animation: none;
+}
+
+/* 操作説明タグ */
+.controls-hint {
+    font-size: 10px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 3px 6px;
+    user-select: none;
+    letter-spacing: 0.15px;
+    flex-shrink: 0;
+    max-width: 100%;
+    line-height: 1.35;
+}
+
+.hint-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+
+.hint-sep {
+    color: #475569;
+    font-size: 10px;
+    margin: 0 1px;
+    user-select: none;
+}
+
+.key-tag {
+    display: inline-block;
+    padding: 1.5px 5px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    font-family: 'SF Mono', Monaco, Consolas, monospace;
+    font-size: 9.5px;
+    color: #f1f5f9;
+    line-height: 1.25;
+}
+
+@media (max-width: 360px) {
+    .controls-hint {
+        font-size: 9px;
+        gap: 2px 4px;
+    }
+    .key-tag {
+        padding: 1px 4px;
+        font-size: 9px;
+    }
+    .hint-sep {
+        font-size: 9px;
+    }
+}
+
+/* ── エディタ遷移時のシームレス・アニメーション ── */
+.editor-transition-mock {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: calc(100vw - 520px);
+    height: 100vh;
+    background-color: #0d1117;
+    border-right: 1px solid #30363d;
+    opacity: 0;
+    transform: translateX(-40px);
+    pointer-events: none;
+    transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+}
+
+.mock-header {
+    height: 48px;
+    background-color: #161b22;
+    border-bottom: 1px solid #30363d;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+}
+
+.mock-brand {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f0f6fc;
+}
+
+.mock-brand span {
+    font-weight: 400;
+    color: #8b949e;
+    font-size: 12px;
+    margin-left: 6px;
+}
+
+.mock-body {
+    flex: 1;
+    display: flex;
+}
+
+.mock-sidebar {
+    width: 180px;
+    background-color: #0d1117;
+    border-right: 1px solid #30363d;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mock-item {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    color: #8b949e;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.mock-item.active {
+    background-color: #21262d;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.mock-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #3fb950;
+}
+
+.mock-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.mock-tabs {
+    height: 36px;
+    background-color: #161b22;
+    border-bottom: 1px solid #30363d;
+    display: flex;
+    align-items: center;
+}
+
+.mock-tab {
+    height: 100%;
+    padding: 0 16px;
+    font-size: 12px;
+    color: #8b949e;
+    display: flex;
+    align-items: center;
+    font-family: 'SF Mono', Monaco, monospace;
+    border-right: 1px solid #21262d;
+}
+
+.mock-tab.active {
+    color: #ffffff;
+    background-color: #0d1117;
+    border-top: 2px solid #58a6ff;
+    font-weight: 600;
+}
+
+.mock-code {
+    flex: 1;
+    display: flex;
+    padding: 12px 0;
+}
+
+.mock-line-nums {
+    width: 48px;
+    border-right: 1px solid #21262d;
+    padding-right: 8px;
+    text-align: right;
+    color: #484f58;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 13px;
+    line-height: 22px;
+}
+
+.mock-code-lines {
+    flex: 1;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.mock-code-bar {
+    height: 12px;
+    background: #21262d;
+    border-radius: 3px;
+    opacity: 0.6;
+}
+
+/* 遷移アクティブ状態 */
+body.transitioning-to-editor .game-top-bar {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+body.transitioning-to-editor #game-container {
+    transform: translateX(calc(50vw - 260px)) scale(0.92);
+    opacity: 0.95;
+}
+
+body.transitioning-to-editor .editor-transition-mock {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* ─────────────────────────────────────────────
+   一時停止（PAUSE）& コード編集モード HUD
+   ───────────────────────────────────────────── */
+.quick-pause-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid #334155;
+    border-radius: 3px;
+    color: #94a3b8;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.quick-pause-btn:hover {
+    background: #000000;
+    border-color: #00ff66;
+    color: #00ff66;
+    transform: translateY(-1px);
+}
+
+.pause-overlay {
+    background: rgba(5, 10, 20, 0.45);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+}
+
+.pause-overlay.edit-mode {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    justify-content: flex-start;
+    padding-top: 18px;
+    pointer-events: none;
+}
+
+.pause-overlay.edit-mode .pause-hud-box {
+    pointer-events: auto;
+}
+
+/* メインの中止メニューダイアログ */
+.pause-menu-box {
+    width: 340px;
+    max-width: 90%;
+    background: #080d1a;
+    border: 2px solid #00ff66;
+    border-radius: 4px;
+    padding: 24px 20px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 16px rgba(0, 255, 102, 0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    animation: pausePop 0.15s ease-out;
+}
+
+@keyframes pausePop {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.pause-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 15px;
+    color: #00ff66;
+    letter-spacing: 2px;
+    text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+}
+
+.pause-subtitle {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: -6px;
+}
+
+.pause-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pause-btn {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    transition: all 0.1s ease;
+    text-align: left;
+}
+
+.pause-btn.btn-edit-code {
+    background: #064e3b;
+    border: 2px solid #10b981;
+    color: #ffffff;
+}
+
+.pause-btn.btn-edit-code:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.pause-btn.btn-quit-game {
+    background: #111827;
+    border: 2px solid #374151;
+    color: #e5e7eb;
+}
+
+.pause-btn.btn-quit-game:hover {
+    background: #1f2937;
+    border-color: #ef4444;
+    color: #fca5a5;
+    transform: translateY(-2px);
+}
+
+.pause-btn-main {
+    font-family: 'Press Start 2P', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.pause-btn-sub {
+    font-size: 10.5px;
+    opacity: 0.85;
+}
+
+.pause-footer-hint {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7.5px;
+    color: #64748b;
+    letter-spacing: 1px;
+}
+
+/* コード編集中の控えめなHUD（敵や自機が見える） */
+.pause-hud-box {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 360px;
+    max-width: 92%;
+    background: rgba(8, 13, 26, 0.94);
+    border: 2px solid #38bdf8;
+    border-radius: 6px;
+    padding: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 20;
+    backdrop-filter: blur(3px);
+}
+
+.pause-hud-badge {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9.5px;
+    color: #38bdf8;
+    letter-spacing: 1px;
+}
+
+.pause-hud-desc {
+    font-size: 10.5px;
+    color: #cbd5e1;
+    text-align: center;
+    line-height: 1.5;
+}
+
+.pause-hud-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
+}
+
+.pause-hud-btn {
+    flex: 1;
+    padding: 9px 8px;
+    border-radius: 4px;
+    font-family: 'Press Start 2P', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+    font-size: 9.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    text-align: center;
+}
+
+.pause-hud-btn.btn-resume {
+    background: #00ff66;
+    border: 2px solid #000000;
+    color: #00ff66;
+    background-color: #080d1a;
+    border-color: #00ff66;
+}
+
+.pause-hud-btn.btn-resume:hover {
+    background: #00ff66;
+    color: #000000;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 255, 102, 0.4);
+}
+
+.pause-hud-btn.btn-quit {
+    background: #1e293b;
+    border: 2px solid #475569;
+    color: #e2e8f0;
+    flex: 0 0 110px;
+}
+
+.pause-hud-btn.btn-quit:hover {
+    background: #334155;
+    border-color: #ef4444;
+    color: #fca5a5;
+}
+
+/* ── Monaca / ゲーム内 エラーHUD ── */
+.monaca-error-hud {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 92%;
+    max-width: 440px;
+    background: #0f172a;
+    border: 2px solid #ef4444;
+    border-radius: 6px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85), 0 0 16px rgba(239, 68, 68, 0.25);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Meiryo, sans-serif;
+    color: #f1f5f9;
+    animation: hudSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes hudSlideDown {
+    from { transform: translate(-50%, -15px); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.monaca-hud-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fca5a5;
+}
+
+.hud-badge-dot {
+    color: #ef4444;
+    font-size: 14px;
+    animation: arcadeBlink 1s infinite steps(2, start);
+}
+
+.hud-badge-line {
+    margin-left: auto;
+    background: #7f1d1d;
+    color: #fee2e2;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: monospace;
+}
+
+.monaca-hud-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.monaca-hud-msg {
+    font-size: 12px;
+    color: #cbd5e1;
+    line-height: 1.45;
+}
+
+.monaca-hud-hint {
+    background: rgba(30, 41, 59, 0.9);
+    border-left: 3px solid #38bdf8;
+    padding: 8px 10px;
+    border-radius: 0 4px 4px 0;
+    font-size: 11.5px;
+    color: #e2e8f0;
+    line-height: 1.4;
+}
+
+.monaca-hud-footer {
+    font-size: 10px;
+    color: #94a3b8;
+    text-align: right;
+    margin-top: 2px;
+}
+
+/* ── ゲーム内ドット絵モーダル ── */
+.dot-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(5, 10, 20, 0.88);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dot-modal-box {
+    width: 440px;
+    max-width: 95%;
+    max-height: 92vh;
+    background: #0d1117;
+    border: 2px solid #38bdf8;
+    border-radius: 6px;
+    padding: 16px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+}
+
+.dot-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.dot-modal-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    color: #38bdf8;
+}
+
+.dot-modal-close {
+    background: #1e293b;
+    border: 1px solid #475569;
+    color: #cbd5e1;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.dot-modal-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #cbd5e1;
+}
+
+.dot-modal-toolbar select {
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #ffffff;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.modal-btn {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    cursor: pointer;
+}
+
+.modal-btn:hover {
+    background: #30363d;
+    color: #ffffff;
+}
+
+.dot-modal-body {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.modal-grid-wrap {
+    overflow: auto;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+.modal-sprite-grid {
+    display: grid;
+    gap: 2px;
+}
+
+.modal-sprite-cell {
+    width: 20px;
+    height: 20px;
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.modal-sprite-cell.active {
+    background: #00ff66;
+}
+
+.modal-preview-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 10px 14px;
+}
+
+.modal-preview-title {
+    font-size: 10px;
+    color: #8b949e;
+}
+
+.modal-size-info {
+    font-size: 9.5px;
+    color: #64748b;
+    font-family: monospace;
+}
+
+.dot-modal-footer {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.modal-btn-apply {
+    flex: 1;
+    background: #00ff66;
+    border: none;
+    color: #000000;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.modal-btn-apply:hover {
+    background: #22c55e;
+}
+
+.modal-btn-copy {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+}

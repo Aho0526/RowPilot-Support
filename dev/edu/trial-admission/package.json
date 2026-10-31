@@ -1,0 +1,19 @@
+{
+  "name": "space-invaders-studio",
+  "version": "1.0.0",
+  "description": "Space Invaders Game & Interactive Code Studio for Trial Admission",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8088",
+    "test": "node editor/linter.js || node dev/trial-admission/editor/linter.js"
+  },
+  "keywords": [
+    "game",
+    "space-invaders",
+    "canvas",
+    "education",
+    "trial-admission"
+  ],
+  "author": "Kaito Nakahira",
+  "license": "MIT"
+}

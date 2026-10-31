@@ -97,6 +97,65 @@
         </div>
       </article>
 
+      <!-- Education Portal Card (Featured: 1x3) -->
+      <article class="project-card card-edu--featured">
+        <div class="card-glow"></div>
+        <div class="card-content">
+          <div class="card-featured-inner">
+            <div class="card-featured-main">
+              <div class="card-header-compact">
+                <div class="icon-wrap edu-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                  </svg>
+                </div>
+                <div class="project-meta">
+                  <span class="path-badge">/dev/edu</span>
+                  <span class="type-badge">Education &amp; Workshop Hub</span>
+                </div>
+                <div class="status-indicator live">
+                  <span class="pulse-dot"></span>
+                  <span>2 Projects &amp; Docs Live</span>
+                </div>
+              </div>
+
+              <div class="card-body">
+                <h2 class="project-title">教育版ポータル</h2>
+                <p class="project-subtitle">INTERACTIVE LEARNING &amp; WORKSHOPS</p>
+                <p class="project-description">
+                  体験入学用インベーダー改造ゲームとハコゲーム盤面設計を統合した教育向けポータル。<br>
+                  直感的なWebエディタ、全20ステージ、公式技術仕様書（<code>/dev/edu/game/tech-doc</code>）を完備。
+                </p>
+
+                <div class="doc-tags">
+                  <a href="/dev/edu/trial-admission/" class="edu-tag">体験入学生徒用ゲーム</a>
+                  <a href="/dev/edu/game/" class="edu-tag">ハコゲーム (教育版)</a>
+                  <a href="/dev/edu/game/tech-doc.html" class="edu-tag">技術仕様書 (tech-doc)</a>
+                  <span class="doc-tag">Webエディタ完備</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-featured-action card-edu-actions">
+              <a href="/dev/edu/" class="btn btn-primary btn-featured" id="btn-open-edu-portal">
+                <span>教育版ポータルを開く</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </a>
+              <div class="card-edu-quick-links">
+                <a href="/dev/edu/trial-admission/" class="btn-edu-quick" title="体験入学ゲームへ直接移動">体験入学 ↗</a>
+                <a href="/dev/edu/game/" class="btn-edu-quick" title="ハコゲームへ直接移動">ハコゲーム ↗</a>
+                <a href="/dev/edu/game/tech-doc.html" class="btn-edu-quick" title="技術仕様書へ直接移動">技術仕様 ↗</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
       <!-- Section: Games & Interactive -->
       <div class="section-header-block section-games">
         <div class="section-meta-top">
@@ -186,18 +245,18 @@
 
           <div class="card-body">
             <div class="project-meta">
-              <span class="path-badge">/game</span>
-              <span class="type-badge">Puzzle Game</span>
+              <span class="path-badge">/dev/edu/game</span>
+              <span class="type-badge">Puzzle &amp; Stage Design</span>
             </div>
             <h2 class="project-title">ハコゲーム</h2>
             <p class="project-subtitle">BLOCK PLACEMENT PUZZLE</p>
             <p class="project-description">
-              ブロックをグリッド上に適切に配置してクリアを目指すWebキャンバスパズルゲーム（全20ステージ搭載）。
+              ブロックをグリッド上に適切に配置してクリアを目指すパズル（全20ステージ）。教育版ポータルおよび技術仕様（<code>/dev/edu/game/tech-doc</code>）と連動。
             </p>
           </div>
 
           <div class="card-footer">
-            <a href="/dev/game/" class="btn btn-primary" id="btn-open-game">
+            <a href="/dev/edu/game/" class="btn btn-primary" id="btn-open-game">
               <span>ゲームを起動</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
@@ -231,18 +290,18 @@
 
           <div class="card-body">
             <div class="project-meta">
-              <span class="path-badge">/trial-admission</span>
+              <span class="path-badge">/dev/edu/trial-admission</span>
               <span class="type-badge">Workshop Game</span>
             </div>
             <h2 class="project-title">体験入学生徒用ゲーム</h2>
             <p class="project-subtitle">SPACE INVADERS WORKSHOP</p>
             <p class="project-description">
-              体験入学生が config.js や style.css を編集して、色や速度・敵の配置を改造しながらゲーム制作を実感できる教材。
+              体験入学生が config.js や style.css を編集して、色や速度・敵の配置を改造しながらゲーム制作を実感できる教材（教育版ポータル配下）。
             </p>
           </div>
 
           <div class="card-footer">
-            <a href="/dev/trial-admission/" class="btn btn-primary" id="btn-open-trial-game">
+            <a href="/dev/edu/trial-admission/" class="btn btn-primary" id="btn-open-trial-game">
               <span>ゲームを起動</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RowPilot Education Portal - 教育・ワークショップ</title>
+  <meta name="description" content="RowPilot 教育版ポータル：体験入学・ワークショップ向けゲーム教材（インベーダー改造・ハコゲーム盤面設計）へのアクセスハブ">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- Background Decorations -->
+  <div class="background-decorations" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="grid-pattern"></div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="edu-header">
+      <div class="brand-row">
+        <a href="../index.html" class="back-link" title="Dev Portal（開発者ハブ）へ戻る">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          <span>Dev Portal に戻る</span>
+        </a>
+        <div class="badge-group">
+          <div class="badge-edu">Education Hub</div>
+          <div class="badge-live">
+            <span class="pulse-dot"></span>
+            <span>2 Curricula Active</span>
+          </div>
+        </div>
+      </div>
+
+      <h1 class="page-title">Education Portal &amp; Interactive Learning</h1>
+      <p class="page-desc">
+        プログラミング教育・体験学習・ワークショップ向けのゲームおよび教材開発環境ハブです。<br>
+        ソースコードの改変・盤面設計・アルゴリズム検証を通じて、直感的にコンピュータサイエンスの基礎を学べます。
+      </p>
+    </header>
+
+    <!-- Highlights Banner -->
+    <section class="edu-intro-banner">
+      <div class="banner-content">
+        <div class="banner-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+            <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="banner-text-title">体験型プログラミング学習カリキュラム</div>
+          <div class="banner-text-desc">ブラウザ単体で即座に動作。インストール不要でゲームプレイとコード改造を往復学習できます。</div>
+        </div>
+      </div>
+      <div class="banner-stats">
+        <div class="stat-item">
+          <div class="stat-num">2</div>
+          <div class="stat-label">教材環境</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">20+</div>
+          <div class="stat-label">ステージ収録</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">100%</div>
+          <div class="stat-label">Webエディタ完備</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Grid: 2 Educational Projects -->
+    <main class="projects-grid">
+      <!-- Project 1: Trial Admission (Space Invaders) -->
+      <article class="edu-card card-trial">
+        <div class="card-top">
+          <div class="card-icon-wrap icon-trial">
+            <img src="trial-admission/assets/octopus.png" alt="体験入学生徒用ゲーム" />
+          </div>
+          <div class="card-meta">
+            <span class="path-tag">/dev/edu/trial-admission/</span>
+            <span class="type-tag">体験入学・初級</span>
+          </div>
+        </div>
+
+        <div class="card-main">
+          <h2 class="card-title">体験入学生徒用ゲーム</h2>
+          <div class="card-subtitle">SPACE INVADERS WORKSHOP</div>
+          <p class="card-description">
+            体験入学生が JavaScript の設定値（<code>config.js</code>）やスタイル（<code>style.css</code>）を編集し、
+            自機・敵キャラのパラメータや動き、カラーパレットをリアルタイムに変更しながらゲームプログラミングの面白さを体感できる入門ワークショップ教材です。
+          </p>
+
+          <div class="feature-list">
+            <span class="feature-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              config.js リアルタイム編集
+            </span>
+            <span class="feature-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              敵・弾速・得点カスタマイズ
+            </span>
+            <span class="feature-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              生徒用Webエディタ連動
+            </span>
+            <span class="feature-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              構文安全・安心設計
+            </span>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <div class="btn-row">
+            <a href="trial-admission/index.html" class="btn btn-primary" id="btn-play-trial">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <span>ゲームをプレイ</span>
+            </a>
+            <a href="trial-admission/editor/index.html" class="btn btn-secondary" id="btn-edit-trial">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+              </svg>
+              <span>生徒用Webエディタ</span>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Project 2: Hako Game (Educational / Workshop Edition) -->
+      <article class="edu-card card-hako">
+        <div class="card-top">
+          <div class="card-icon-wrap icon-game">
+            <img src="../../pictures/hako_man_icon.png" alt="ハコゲーム" />
+          </div>
+          <div class="card-meta">
+            <span class="path-tag">/dev/edu/game/</span>
+            <span class="type-tag">パズル・中級思考</span>
+          </div>
+        </div>
+
+        <div class="card-main">
+          <h2 class="card-title">ハコゲーム (教育・ワークショップ版)</h2>
+          <div class="card-subtitle">GRID PUZZLE &amp; STAGE DESIGN</div>
+          <p class="card-description">
+            グリッド座標とブロック配置アルゴリズムを学ぶ全20ステージ搭載パズルゲーム。
+            5×5ビジュアル盤面エディタ、VS Codeライクな構文チェック付きIDE、詳細な内部仕様ドキュメント（<code>/dev/edu/game/tech-doc</code>）を備え、段階的な思考力を育成します。
+          </p>
+
+          <div class="feature-list">
+            <span class="feature-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              5×5 ビジュアル盤面エディタ
+            </span>
+            <span class="feature-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              全20ステージ収録
+            </span>
+            <span class="feature-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              リアルタイム構文Linter
+            </span>
+            <span class="feature-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              技術仕様書 (20項目辞書)
+            </span>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <div class="btn-row">
+            <a href="game/index.html" class="btn btn-primary" id="btn-play-game">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <span>ゲームをプレイ</span>
+            </a>
+            <a href="game/editor/index.html" class="btn btn-secondary" id="btn-edit-game">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+              </svg>
+              <span>ステージエディタ</span>
+            </a>
+          </div>
+          <div class="btn-row">
+            <a href="game/tech-doc.html" class="btn btn-doc" id="btn-tech-doc">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+              <span>技術仕様書を見る (tech-doc)</span>
+            </a>
+          </div>
+        </div>
+      </article>
+    </main>
+
+    <!-- Technical Specification Spotlight -->
+    <section class="edu-doc-spotlight">
+      <div class="spotlight-left">
+        <div class="spotlight-badge">Featured Specification</div>
+        <h2 class="spotlight-title">ハコゲーム 技術仕様書</h2>
+        <p class="spotlight-desc">
+          ステージ作成に必要な全20項目のプロパティ辞書（プレイヤー初期座標・ブロック配置・矢印ギミック・ゴール条件など）と、
+          よくある構文エラーの対処法を完全網羅した指導者・学習者向けの公式技術ドキュメントです。
+        </p>
+        <div class="spotlight-url-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
+          <span>URL: /dev/edu/game/tech-doc</span>
+        </div>
+      </div>
+      <div class="spotlight-right">
+        <a href="game/tech-doc.html" class="btn btn-spotlight" id="btn-open-tech-doc-spotlight">
+          <span>仕様書を開く</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"></path>
+          </svg>
+        </a>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="edu-footer">
+      <div class="footer-info">
+        <span>RowPilot Education Portal</span>
+        <span style="margin: 0 8px;">•</span>
+        <span>教育・体験学習・ワークショップ専用ハブ</span>
+      </div>
+      <nav class="footer-nav">
+        <a href="../index.html" class="footer-link">Dev Portal</a>
+        <a href="trial-admission/index.html" class="footer-link">体験入学ゲーム</a>
+        <a href="game/index.html" class="footer-link">ハコゲーム</a>
+        <a href="game/tech-doc.html" class="footer-link">技術仕様書</a>
+      </nav>
+    </footer>
+  </div>
+</body>
+
+</html>
+

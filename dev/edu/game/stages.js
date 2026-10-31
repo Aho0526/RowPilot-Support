@@ -11,6 +11,7 @@ const STAGES = [
         title: 'ステージ 1',
         subtitle: 'ブロックが滑る新ギミック！',
         maxBlocks: 7,
+        targetBlocks: 7,
         startRow: 3,
         goalRow: 1,
         forbidden: [
@@ -44,6 +45,7 @@ const STAGES = [
         title: 'ステージ 2',
         subtitle: '下と右へのギミック活用',
         maxBlocks: 5,
+        targetBlocks: 5,
         startRow: 1,
         goalRow: 1,
         forbidden: [
@@ -76,6 +78,7 @@ const STAGES = [
         title: 'ステージ 3',
         subtitle: '紫枠は必ず設置！',
         maxBlocks: 6,
+        targetBlocks: 6,
         startRow: 0,
         goalRow: 3,
         forbidden: [
@@ -109,6 +112,7 @@ const STAGES = [
         title: 'ステージ 4',
         subtitle: '下へスライドさせて足場を組め',
         maxBlocks: 5,
+        targetBlocks: 5,
         startRow: 4,
         goalRow: 0,
         forbidden: [],
@@ -138,6 +142,7 @@ const STAGES = [
         title: 'ステージ 5',
         subtitle: '矢印の連鎖',
         maxBlocks: 6,
+        targetBlocks: 6,
         startRow: 1,
         goalRow: 3,
         forbidden: [
@@ -175,6 +180,7 @@ const STAGES = [
         title: 'ステージ 6',
         subtitle: '上向きステップの使い道',
         maxBlocks: 6,
+        targetBlocks: 6,
         startRow: 1,
         goalRow: 3,
         forbidden: [
@@ -209,6 +215,7 @@ const STAGES = [
         title: 'ステージ 7',
         subtitle: '縦横スライドで道を作れ',
         maxBlocks: 6,
+        targetBlocks: 6,
         startRow: 1,
         goalRow: 3,
         hasCeiling: true,
@@ -243,6 +250,7 @@ const STAGES = [
         title: 'ステージ 8',
         subtitle: 'ステップとダッシュのコンビネーション',
         maxBlocks: 6,
+        targetBlocks: 6,
         startRow: 3,
         goalRow: 3,
         forbidden: [
@@ -277,6 +285,7 @@ const STAGES = [
         title: 'ステージ 9',
         subtitle: '上へ持ち上げられるブロック',
         maxBlocks: 6,
+        targetBlocks: 6,
         startRow: 2,
         goalRow: 0,
         forbidden: [
@@ -310,6 +319,7 @@ const STAGES = [
         title: 'ステージ 10',
         subtitle: '十字のギミック交差点',
         maxBlocks: 6,
+        targetBlocks: 6,
         startRow: 0,
         goalRow: 0,
         forbidden: [
@@ -346,6 +356,7 @@ const STAGES = [
         title: 'ステージ 11',
         subtitle: '谷底からの脱出',
         maxBlocks: 7,
+        targetBlocks: 7,
         startRow: 0,
         goalRow: 1,
         forbidden: [],
@@ -374,6 +385,7 @@ const STAGES = [
         title: 'ステージ 12',
         subtitle: '角の紫枠を活かせ',
         maxBlocks: 7,
+        targetBlocks: 7,
         startRow: 1,
         goalRow: 3,
         forbidden: [
@@ -411,6 +423,7 @@ const STAGES = [
         title: 'ステージ 13',
         subtitle: '右向きダッシュと上向きダッシュ',
         maxBlocks: 6,
+        targetBlocks: 6,
         startRow: 2,
         goalRow: 2,
         forbidden: [
@@ -447,6 +460,7 @@ const STAGES = [
         title: 'ステージ 14',
         subtitle: '外周ギミックを回せ',
         maxBlocks: 5,
+        targetBlocks: 5,
         startRow: 1,
         goalRow: 3,
         forbidden: [
@@ -481,6 +495,7 @@ const STAGES = [
         title: 'ステージ 15',
         subtitle: '左右の壁に挟まれた回廊',
         maxBlocks: 5,
+        targetBlocks: 5,
         startRow: 1,
         goalRow: 1,
         hasCeiling: true,
@@ -516,6 +531,7 @@ const STAGES = [
         title: 'ステージ 16',
         subtitle: '高低差を乗り越えろ',
         maxBlocks: 5,
+        targetBlocks: 5,
         startRow: 3,
         goalRow: 1,
         hasCeiling: true,
@@ -547,6 +563,7 @@ const STAGES = [
         title: 'ステージ 17',
         subtitle: '斜め障害物を縫う道',
         maxBlocks: 5,
+        targetBlocks: 5,
         startRow: 1,
         goalRow: 1,
         hasCeiling: true,
@@ -580,6 +597,7 @@ const STAGES = [
         title: 'ステージ 18',
         subtitle: '最終関門・中央の壁',
         maxBlocks: 6,
+        targetBlocks: 6,
         startRow: 2,
         goalRow: 2,
         hasCeiling: true,
@@ -616,6 +634,7 @@ const STAGES = [
         title: 'ステージ 19',
         subtitle: 'ジグザグの狭路',
         maxBlocks: 5,
+        targetBlocks: 5,
         startRow: 1,
         goalRow: 3,
         forbidden: [

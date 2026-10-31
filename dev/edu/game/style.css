@@ -549,36 +549,62 @@ body {
     background: #ecfdf5;
 }
 
-.stage-card.cleared::after {
-    content: '★';
-    position: absolute;
-    top: 4px;
-    right: 6px;
-    color: #f59e0b;
-    font-size: 14px;
-    text-shadow: 1px 1px 0 #000;
+.stage-card.cleared.all-stars {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    box-shadow: 4px 4px 0 #b45309;
 }
 
 .stage-card-num {
-    font-size: 0.75rem;
+    font-size: 0.76rem;
     color: #1e293b;
     font-weight: bold;
-    margin-bottom: 6px;
+    margin-bottom: 3px;
+}
+
+.stage-card-stars {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    font-size: 15px;
+    line-height: 1;
+    margin: 2px 0 5px;
+}
+
+.stage-card-stars .star-slot {
+    color: #cbd5e1;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.stage-card-stars .star-slot.active {
+    color: #f59e0b;
+    text-shadow: 1px 1px 0 #78350f;
+    transform: scale(1.05);
+}
+
+.stage-card-target {
+    font-size: 0.52rem;
+    color: #0284c7;
+    background: #e0f2fe;
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-bottom: 3px;
+    font-weight: 600;
 }
 
 .stage-card-blocks {
     font-size: 0.52rem;
     color: #64748b;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
 }
 
 .stage-card-badge {
-    background: #e0f2fe;
-    color: #0284c7;
+    background: #f1f5f9;
+    color: #475569;
     border-radius: 4px;
     font-size: 0.48rem;
     padding: 2px 6px;
-    margin-top: 4px;
+    margin-top: 2px;
 }
 
 /* ==========================================
@@ -958,16 +984,7 @@ body {
 }
 
 .hint {
-    font-size: 0.74rem;
-    color: #e2e8f0;
-    text-align: center;
-    line-height: 1.5;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-sizing: border-box;
-    width: 100%;
+    display: none !important;
 }
 
 /* Status Bar (右パネル上部に大きく表示) */
@@ -1056,12 +1073,7 @@ body {
 .legend-purple { border: 2px solid #a855f7; color: #c084fc; }
 
 .hint {
-    font-size: 0.52rem;
-    color: #fff;
-    text-shadow: 1px 1px 0 #000;
-    margin-top: 6px;
-    text-align: center;
-    opacity: 0.9;
+    display: none !important;
 }
 
 /* ==========================================
@@ -1597,13 +1609,6 @@ body {
         font-size: 0.7rem;
     }
 }
-        padding: 7px 14px;
-    }
-
-    .status-bar {
-        font-size: 0.7rem;
-    }
-}
 
 /* ==========================================
    iframe 埋め込み時 / プレイグラウンド専用最適化
@@ -1997,4 +2002,101 @@ body.in-iframe .legend-wrap, body.in-iframe .hint,
     .in-iframe .status-wrap-large {
         display: none !important;
     }
+}
+
+/* ==========================================
+   5. 3スター評価システム & UI拡張
+   ========================================== */
+/* 目標ブロック数ラベル (非表示化) */
+.badge-target {
+    display: none !important;
+}
+
+/* クリアモーダルのスター評価リザルト */
+.clear-stars-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 0 0 16px;
+}
+
+.clear-star-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 8px;
+    background: #f8fafc;
+    border: 2.5px solid #cbd5e1;
+    border-radius: 10px;
+    min-width: 90px;
+    transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    opacity: 0.55;
+}
+
+.clear-star-item.achieved {
+    border-color: #f59e0b;
+    background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.28);
+    opacity: 1;
+    transform: translateY(-2px);
+    animation: starBadgeBounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.clear-star-item .star-icon {
+    font-size: 30px;
+    line-height: 1;
+    color: #cbd5e1;
+    transition: transform 0.2s, color 0.2s;
+}
+
+.clear-star-item.achieved .star-icon {
+    color: #f59e0b;
+    text-shadow: 2px 2px 0 #b45309;
+    animation: starPulse 1.4s infinite alternate ease-in-out;
+}
+
+.clear-star-item .star-title {
+    font-size: 0.58rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: bold;
+    color: #334155;
+    white-space: nowrap;
+}
+
+.clear-stats-summary {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.stat-tag {
+    font-size: 0.68rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+
+.stat-tag.highlight {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #6ee7b7;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.15);
+}
+
+@keyframes starBadgeBounce {
+    0% { transform: scale(0.6) translateY(10px); opacity: 0; }
+    70% { transform: scale(1.12) translateY(-4px); }
+    100% { transform: scale(1) translateY(-2px); opacity: 1; }
+}
+
+@keyframes starPulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.14) rotate(3deg); }
 }

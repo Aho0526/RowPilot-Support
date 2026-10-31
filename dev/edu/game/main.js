@@ -56,6 +56,14 @@ let phase = 'place';
 let actionHistory = [];
 let showSolution = false;
 
+// 3スター評価 & スコア用
+let usedHintInStage = false;
+let placedBlocksAtStart = 0;
+
+// ビジュアルエフェクト用 (Juiciness: パーティクル)
+const gameParticles = []; // { type: 'dust'|'spark', x, y, vx, vy, ... }
+let lastKfIndex = -1;
+
 // Sliding block animations queue & Multi-round gimmick animation state
 let slidingBlocks = [];
 let blockAnimationRounds = [];
@@ -76,6 +84,7 @@ let man = makeMan();
 let animId = null;
 let currentRoute = [];
 let routeStartTime = null;
+let prevTime = null;
 
 // MARK: - Helper Functions
 function isForbidden(col, row) {
@@ -148,7 +157,9 @@ function areBlocksConnected() {
 function updateBlockBadge() {
     if (!blockCountVal) return;
     const placed = countPlacedBlocks();
-    const max = getStage().maxBlocks;
+    const st = getStage();
+    const max = st.maxBlocks;
+
     blockCountVal.textContent = `${placed} / ${max}`;
     if (placed >= max) {
         blockCountVal.classList.add('limit');
@@ -157,9 +168,7 @@ function updateBlockBadge() {
     }
 
     if (phase === 'place' && statusBar) {
-        if (placed >= 2 && !areBlocksConnected()) {
-            statusBar.innerHTML = '<span class="status-place" style="color: #fbbf24;">⚠️ ブロック同士をくっつけて配置してください</span>';
-        } else if (!showSolution) {
+        if (!showSolution) {
             statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
         }
     }
@@ -715,9 +724,11 @@ function drawGimmickTile(gimmick) {
 
     // ブロックが置かれているマスでは紫枠を描画しない（ブロックの周りが紫色になるバグを防止）
     if (gimmick.purpleBorder && !isBlockPlacedHere) {
+        ctx.save();
         ctx.strokeStyle = '#a855f7';
         ctx.lineWidth = 4;
         ctx.strokeRect(x + 2, y + 2, CELL - 4, CELL - 4);
+        ctx.restore();
     }
 }
 
@@ -764,15 +775,17 @@ function drawKeyGuide(col, row) {
     return;
 }
 
-// Mario-style brick block
+// Mario-style brick block (ポンと即座に配置されるシンプルなレンダリング)
 function drawMarioBlock(col, row) {
     const x = GX + col * CELL, y = GY + row * CELL;
     const p = 2;
+    ctx.save();
     ctx.fillStyle = '#e8a020';
     ctx.fillRect(x + p, y + p, CELL - p * 2, CELL - p * 2);
     ctx.fillStyle = '#f8c860';
     ctx.fillRect(x + p, y + p, CELL - p * 2, 5);
     ctx.fillRect(x + p, y + p, 5, CELL - p * 2, 5);
+    ctx.strokeStyle = '#c06010';
     ctx.fillStyle = '#c06010';
     ctx.lineWidth = p;
     ctx.strokeRect(x + p, y + p, CELL - p * 2, CELL - p * 2);
@@ -783,6 +796,7 @@ function drawMarioBlock(col, row) {
     ctx.moveTo(x + CELL / 2, y + p); ctx.lineTo(x + CELL / 2, y + CELL / 2);
     ctx.moveTo(x + p, y + CELL / 2); ctx.lineTo(x + CELL - p, y + CELL / 2);
     ctx.stroke();
+    ctx.restore();
 }
 
 // Warp-pipe / Start platform on left
@@ -833,6 +847,84 @@ function drawGoal() {
     ctx.textAlign = 'center';
     ctx.fillText('GOAL', bx + bw / 2, by + bh / 2 + 2);
     ctx.textAlign = 'left';
+}
+
+// MARK: - Visual Particles Engine (Juiciness: 土煙 & ゴールスパークル)
+function spawnDust(gridX, gridY) {
+    const px = GX + gridX * CELL + CELL / 2;
+    const py = GY + (gridY + 1) * CELL;
+    for (let i = 0; i < 7; i++) {
+        gameParticles.push({
+            type: 'dust',
+            x: px + (Math.random() - 0.5) * 16,
+            y: py - 2 + (Math.random() - 0.5) * 4,
+            vx: (Math.random() - 0.5) * 1.6,
+            vy: -0.4 - Math.random() * 0.8,
+            size: 3.2 + Math.random() * 3.2,
+            alpha: 1.0,
+            maxLife: 20 + Math.random() * 10,
+            life: 0
+        });
+    }
+}
+
+function spawnGoalSparkles(gridX, gridY) {
+    const px = GX + gridX * CELL + CELL / 2;
+    const py = GY + gridY * CELL + CELL / 2;
+    const colors = ['#fde047', '#fbbf24', '#ffffff', '#60a5fa', '#f43f5e', '#a855f7', '#34d399'];
+    for (let i = 0; i < 45; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1.5 + Math.random() * 6.0;
+        gameParticles.push({
+            type: 'spark',
+            x: px,
+            y: py,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 1.8,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            size: 3.0 + Math.random() * 4.5,
+            alpha: 1.0,
+            maxLife: 45 + Math.random() * 25,
+            life: 0
+        });
+    }
+}
+
+function updateAndDrawParticles(ctx) {
+    if (gameParticles.length === 0) return;
+    for (let i = gameParticles.length - 1; i >= 0; i--) {
+        const p = gameParticles[i];
+        p.life++;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha = Math.max(0, 1 - (p.life / p.maxLife));
+
+        if (p.type === 'dust') {
+            p.size *= 0.96;
+            ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha * 0.65})`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, Math.max(0.5, p.size), 0, Math.PI * 2);
+            ctx.fill();
+        } else if (p.type === 'spark') {
+            p.vy += 0.08; // gravity
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+            // 白い芯
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * 0.45, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        if (p.life >= p.maxLife) {
+            gameParticles.splice(i, 1);
+        }
+    }
 }
 
 // Stickman render to any canvas context
@@ -1008,16 +1100,17 @@ function toggleSolution() {
     updateAnswerBtnUI();
 
     if (showSolution) {
+        usedHintInStage = true;
         const check = checkSolutionMatch();
         if (check.isMatch) {
-            statusBar.innerHTML = '<span class="status-clear">【答え合わせ】正解の配置と一致しています！</span>';
+            statusBar.innerHTML = '<span class="status-clear">【答え合わせ】正解の配置と一致しています！（※ヒント使用）</span>';
         } else {
-            statusBar.innerHTML = `<span class="status-place">【答え合わせ】オレンジ枠を表示中 (${check.matchCount}/${check.totalSolution} 正解)</span>`;
-            hintText.textContent = 'オレンジ枠に合わせてブロックを配置してみよう';
+            statusBar.innerHTML = `<span class="status-place">【答え合わせ】オレンジ枠を表示中 (${check.matchCount}/${check.totalSolution} 正解) ※自力クリア対象外</span>`;
+            if (hintText) hintText.textContent = 'オレンジ枠に合わせてブロックを配置してみよう';
         }
     } else {
         statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
-        hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
+        if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
     }
     render();
 }
@@ -1026,6 +1119,7 @@ function applySolutionToGrid() {
     const st = getStage();
     if (!st.solution) return;
 
+    usedHintInStage = true;
     grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
     actionHistory = [];
     st.solution.forEach(sol => {
@@ -1123,6 +1217,9 @@ function render() {
     } else {
         drawStickman(man.x, man.y);
     }
+
+    // Draw particles (土煙・スターバースト等)
+    updateAndDrawParticles(ctx);
 }
 
 // MARK: - Route Solver & Simulation (Character moves rightward)
@@ -1263,6 +1360,7 @@ function startRun() {
     currentRoute = solveRoute();
     routeStartTime = null;
     prevTime = null;
+    lastKfIndex = -1;
     animate();
 }
 
@@ -1283,6 +1381,17 @@ function step(ts) {
     let prevKf = currentRoute[idx];
     let nextKf = (idx < currentRoute.length - 1) ? currentRoute[idx + 1] : null;
 
+    // キーフレーム切り替わり時の土煙エフェクト
+    if (lastKfIndex !== idx) {
+        if (lastKfIndex >= 0 && currentRoute[lastKfIndex].type === 'fall' && prevKf.type === 'walk') {
+            spawnDust(prevKf.x, prevKf.y);
+        }
+        if (prevKf.type === 'jump') {
+            spawnDust(prevKf.x, prevKf.y);
+        }
+        lastKfIndex = idx;
+    }
+
     if (nextKf === null) {
         man.x = prevKf.x;
         man.y = prevKf.y;
@@ -1290,6 +1399,7 @@ function step(ts) {
 
         if (prevKf.type === 'done' || prevKf.type === 'clear') {
             phase = 'clear';
+            spawnGoalSparkles(man.x, man.y);
             render();
             showClear();
         } else {
@@ -1425,7 +1535,7 @@ function completeRespawn() {
     startBtn.disabled = false;
 
     statusBar.innerHTML = '<span class="status-place">ブロックを再配置 (Space: 開始 / m: 全クリア)</span>';
-    hintText.textContent = 'Spaceキーで即座に再スタートできます！';
+    if (hintText) hintText.textContent = 'Spaceキーで即座に再スタートできます！';
     updateBlockBadge();
     render();
 }
@@ -1523,6 +1633,110 @@ function markStageCleared(idx) {
     }
 }
 
+// MARK: - Cleared Stages & Stars Storage (3スター評価システム)
+const STAGE_RECORDS_KEY = 'hako_stage_records_v2';
+
+function getStageRecords() {
+    try {
+        let records = {};
+        const raw = localStorage.getItem(STAGE_RECORDS_KEY);
+        if (raw) {
+            records = JSON.parse(raw);
+        }
+        // 旧バージョンのクリアデータとの統合・マイグレーション
+        const oldCleared = getClearedStages();
+        oldCleared.forEach(idx => {
+            if (!records[idx]) {
+                records[idx] = {
+                    cleared: true,
+                    star1: true,
+                    star2: false,
+                    star3: false,
+                    starsCount: 1,
+                    bestBlocks: null
+                };
+            }
+        });
+        return records;
+    } catch (e) {
+        return {};
+    }
+}
+
+function getStageRecord(idx) {
+    const records = getStageRecords();
+    return records[idx] || null;
+}
+
+function saveStageResult(idx, { cleared, blocksPlaced, usedHint }) {
+    const records = getStageRecords();
+    const st = STAGES[idx] || getStage();
+    const targetBlocks = st.targetBlocks || (st.solution ? st.solution.length : st.maxBlocks);
+
+    const prev = records[idx] || {
+        cleared: false,
+        star1: false,
+        star2: false,
+        star3: false,
+        starsCount: 0,
+        bestBlocks: null
+    };
+
+    const isStar1 = cleared || prev.star1;
+    const isStar2 = (cleared && blocksPlaced <= targetBlocks) || prev.star2;
+    const isStar3 = (cleared && !usedHint) || prev.star3;
+
+    let bestBlocks = prev.bestBlocks;
+    if (cleared) {
+        if (bestBlocks === null || blocksPlaced < bestBlocks) {
+            bestBlocks = blocksPlaced;
+        }
+    }
+
+    const starsCount = (isStar1 ? 1 : 0) + (isStar2 ? 1 : 0) + (isStar3 ? 1 : 0);
+
+    const updated = {
+        cleared: isStar1,
+        star1: isStar1,
+        star2: isStar2,
+        star3: isStar3,
+        starsCount,
+        bestBlocks,
+        lastUpdated: Date.now()
+    };
+
+    records[idx] = updated;
+    try {
+        localStorage.setItem(STAGE_RECORDS_KEY, JSON.stringify(records));
+    } catch (e) {}
+
+    // 旧キーも同期して後方互換性を完全維持
+    markStageCleared(idx);
+
+    return {
+        record: updated,
+        currentStars: {
+            star1: isStar1,
+            star2: (cleared && blocksPlaced <= targetBlocks),
+            star3: (cleared && !usedHint)
+        },
+        targetBlocks,
+        blocksPlaced,
+        usedHint
+    };
+}
+
+function getTotalStars() {
+    const records = getStageRecords();
+    let total = 0;
+    Object.values(records).forEach(rec => {
+        if (rec && typeof rec.starsCount === 'number') {
+            total += rec.starsCount;
+        }
+    });
+    return total;
+}
+
 // MARK: - Stage Select Grid
 function updateSelectScreenUI() {
     const selectGrid = document.getElementById('selectScreenGrid');
@@ -1531,18 +1745,38 @@ function updateSelectScreenUI() {
 
     selectGrid.innerHTML = '';
     const cleared = getClearedStages();
+    const records = getStageRecords();
+    const totalStars = getTotalStars();
+    const maxStars = STAGES.length * 3;
 
     if (progressBadge) {
-        progressBadge.textContent = `クリア: ${cleared.length} / ${STAGES.length}`;
+        progressBadge.innerHTML = `クリア: ${cleared.length}/${STAGES.length} <span style="margin-left:6px; color:#f59e0b; font-weight:bold;">★ ${totalStars}/${maxStars}</span>`;
     }
 
     STAGES.forEach((st, idx) => {
         const card = document.createElement('div');
         const isCleared = cleared.includes(idx);
-        card.className = `stage-card ${isCleared ? 'cleared' : ''}`;
+        const rec = records[idx];
+        const starsCount = rec ? rec.starsCount : 0;
+        const targetBlocks = st.targetBlocks || (st.solution ? st.solution.length : st.maxBlocks);
+
+        let starSlotsHtml = '';
+        for (let s = 1; s <= 3; s++) {
+            const active = rec && (
+                (s === 1 && rec.star1) ||
+                (s === 2 && rec.star2) ||
+                (s === 3 && rec.star3)
+            );
+            starSlotsHtml += `<span class="star-slot ${active ? 'active' : ''}">${active ? '★' : '☆'}</span>`;
+        }
+
+        const isAllStars = (starsCount === 3);
+        card.className = `stage-card ${isCleared ? 'cleared' : ''} ${isAllStars ? 'all-stars' : ''}`;
         card.innerHTML = `
             <div class="stage-card-num">${st.title}</div>
-            <div class="stage-card-blocks">ブロック: 最大${st.maxBlocks}個</div>
+            <div class="stage-card-stars">${starSlotsHtml}</div>
+            <div class="stage-card-target">目標: ${targetBlocks}個</div>
+            <div class="stage-card-blocks">${rec && rec.bestBlocks !== null ? `ベスト: ${rec.bestBlocks}個` : `最大: ${st.maxBlocks}個`}</div>
             <div class="stage-card-badge">${st.gimmicks.length > 0 ? 'ギミック有' : '基本'}</div>
         `;
         card.addEventListener('click', () => {
@@ -1563,7 +1797,7 @@ function triggerStageAnnounce() {
 
     const st = getStage();
     if (titleEl) titleEl.textContent = st.title;
-    if (subEl) subEl.textContent = `${st.subtitle} (ブロック最大 ${st.maxBlocks}個)`;
+    if (subEl) subEl.textContent = `${st.subtitle} (目標 ${st.targetBlocks || st.maxBlocks}個 / 最大 ${st.maxBlocks}個)`;
 
     banner.style.display = 'block';
     banner.style.animation = 'none';
@@ -1576,13 +1810,19 @@ function triggerStageAnnounce() {
     }, 1800);
 }
 
-// MARK: - UI & Clear Modal with Auto-Transition
+// MARK: - UI & Clear Modal with Auto-Transition & Star Celebration
 let clearCountdownTimer = null;
 
 function showClear() {
-    markStageCleared(currentStageIndex);
+    const blocksPlaced = placedBlocksAtStart || countPlacedBlocks();
+    const res = saveStageResult(currentStageIndex, {
+        cleared: true,
+        blocksPlaced,
+        usedHint: usedHintInStage
+    });
+
     statusBar.innerHTML = '<span class="status-clear">★ クリア！ おめでとう！ ★</span>';
-    hintText.textContent = '次のステージへ進みます！';
+    if (hintText) hintText.textContent = '次のステージへ進みます！';
     startBtn.disabled = true;
 
     const clearModal = document.getElementById('clearModalOverlay');
@@ -1600,11 +1840,53 @@ function showClear() {
             ? 'おめでとうございます！全19ステージを完全制覇しました！'
             : `お見事！ステージ ${currentStageIndex + 1} をクリア！次のステージを解放しました！`;
     }
+
+    // スターアイテムの表示更新
+    const starItem1 = document.getElementById('starItem1');
+    const starItem2 = document.getElementById('starItem2');
+    const starItem3 = document.getElementById('starItem3');
+    const starText2 = document.getElementById('starText2');
+    const statBlocksTag = document.getElementById('statBlocksTag');
+    const statHintTag = document.getElementById('statHintTag');
+
+    if (starText2) {
+        starText2.textContent = `${res.targetBlocks}個以内でクリア`;
+    }
+
+    // アニメーション用クラスを一旦リセット
+    [starItem1, starItem2, starItem3].forEach(item => {
+        if (item) item.classList.remove('achieved', 'missed');
+    });
+
+    // 順次点灯演出 (60ms, 280ms, 500ms)
+    setTimeout(() => {
+        if (starItem1) starItem1.classList.add(res.record.star1 ? 'achieved' : 'missed');
+    }, 60);
+
+    setTimeout(() => {
+        if (starItem2) starItem2.classList.add(res.record.star2 ? 'achieved' : 'missed');
+    }, 280);
+
+    setTimeout(() => {
+        if (starItem3) starItem3.classList.add(res.record.star3 ? 'achieved' : 'missed');
+    }, 500);
+
+    // 統計タグの更新
+    if (statBlocksTag) {
+        const isOpt = blocksPlaced <= res.targetBlocks;
+        statBlocksTag.textContent = `配置数: ${blocksPlaced} / ${res.targetBlocks}個 ${isOpt ? '(達成!)' : ''}`;
+        statBlocksTag.className = `stat-tag ${isOpt ? 'highlight' : ''}`;
+    }
+    if (statHintTag) {
+        statHintTag.textContent = usedHintInStage ? '答え合わせ: 使用' : 'ノーヒント達成!';
+        statHintTag.className = `stat-tag ${!usedHintInStage ? 'highlight' : ''}`;
+    }
+
     if (nextBtn) {
         if (isLastStage) {
             nextBtn.innerHTML = '<span>ステージ一覧を見る ▶</span>';
         } else {
-            nextBtn.innerHTML = `<span>次のステージへ 進む ▶</span><span class="countdown-tag">(<span id="clearCountdown">3</span>秒後に自動移動)</span>`;
+            nextBtn.innerHTML = `<span>次のステージへ 進む ▶</span><span class="countdown-tag">(<span id="clearCountdown">4</span>秒後に自動移動)</span>`;
         }
     }
 
@@ -1612,7 +1894,7 @@ function showClear() {
         clearModal.classList.add('open');
     }
 
-    let count = 3;
+    let count = 4;
     const cdEl = document.getElementById('clearCountdown');
     if (cdEl) cdEl.textContent = count;
 
@@ -1655,7 +1937,7 @@ function closeClearModal() {
 
 function showFail() {
     statusBar.innerHTML = '<span class="status-fail">ミス！もう一度挑戦！</span>';
-    hintText.textContent = 'リセットでブロックを配置し直そう';
+    if (hintText) hintText.textContent = 'リセットでブロックを配置し直そう';
     startBtn.disabled = true;
 }
 
@@ -1697,12 +1979,16 @@ function selectStage(idx) {
     currentRoundIndex = 0;
     originalGrid = null;
     showSolution = false;
+    usedHintInStage = false;
+    placedBlocksAtStart = 0;
+    gameParticles.length = 0;
+    lastKfIndex = -1;
     updateAnswerBtnUI();
     phase = 'place';
     man = makeMan();
     startBtn.disabled = false;
     statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
-    hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
+    if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
 
     updateStageNavUI();
     updateBlockBadge();
@@ -1714,7 +2000,11 @@ function selectStage(idx) {
 }
 
 function bgLoop() {
-    if (phase === 'place' && currentView === 'game') render();
+    if (currentView === 'game') {
+        if (phase === 'place' || gameParticles.length > 0) {
+            render();
+        }
+    }
     requestAnimationFrame(bgLoop);
 }
 
@@ -1934,7 +2224,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
         startBtn.disabled = true;
 
-        // スタート前のブロック配置をバックアップ
+        // スタート前のブロック配置と個数をバックアップ
+        placedBlocksAtStart = countPlacedBlocks();
         originalGrid = grid.map(r => [...r]);
 
         // スタート直後にブロック連鎖移動ギミックをシミュレーション
@@ -1946,11 +2237,11 @@ window.addEventListener('DOMContentLoaded', () => {
             currentRoundIndex = 0;
             roundStartTime = performance.now();
             statusBar.innerHTML = '<span class="status-run">ブロック移動中...</span>';
-            hintText.textContent = '';
+            if (hintText) hintText.textContent = '';
             animId = requestAnimationFrame(animateBlockMove);
         } else {
             statusBar.innerHTML = '<span class="status-run"> GO GO GO!!</span>';
-            hintText.textContent = '';
+            if (hintText) hintText.textContent = '';
             startRun();
         }
     }
@@ -1970,13 +2261,17 @@ window.addEventListener('DOMContentLoaded', () => {
             grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
             actionHistory = [];
             originalGrid = null;
+            usedHintInStage = false;
         }
+
+        placedBlocksAtStart = 0;
+        gameParticles.length = 0;
 
         phase = 'place';
         man = makeMan();
         startBtn.disabled = false;
         statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
-        hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
+        if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
         updateBlockBadge();
         render();
     }
@@ -2128,14 +2423,23 @@ window.addEventListener('DOMContentLoaded', () => {
     window.__game = {
         selectStage,
         applySolutionToGrid,
+         toggleSolution,
         triggerStart,
         triggerReset,
         switchView,
-        getStage
+        getStage,
+        getCurrentStageIndex: () => currentStageIndex,
+        getStages: () => STAGES
     };
 
-    // 初期画面はホーム
-    switchView('home');
+    // 初期画面はホーム（ただしWebエディタのプレビューiframe内では即座にステージ画面を表示）
+    let inEditorPreview = false;
+    try {
+        inEditorPreview = (window.self !== window.top || Boolean(window.frameElement));
+    } catch (e) {
+        inEditorPreview = true;
+    }
+    switchView(inEditorPreview ? 'game' : 'home');
 
     render();
     requestAnimationFrame(bgLoop);
@@ -2158,3 +2462,18 @@ window.addEventListener('message', (event) => {
         window.applyCustomStages(event.data.stages, event.data.targetIndex || 0);
     }
 });
+
+// 本格Webエディタからのコード直接ホットリロード
+window.reloadStagesFromCode = function(code, targetIndex = 0) {
+    try {
+        const runner = new Function(code + '; return (typeof STAGES !== "undefined" ? STAGES : (typeof stages !== "undefined" ? stages : null));');
+        const parsedStages = runner();
+        if (Array.isArray(parsedStages) && parsedStages.length > 0) {
+            return window.applyCustomStages(parsedStages, targetIndex);
+        }
+    } catch (e) {
+        console.warn('Failed to hot-reload stages:', e);
+    }
+    return false;
+};
+
