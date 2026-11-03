@@ -3394,14 +3394,16 @@ console.log(solveRoute());</code></pre>
             const editor = document.getElementById('stageCodeEditor');
             let val = editor.value;
 
-            // 1. 既存ステージの最大 ID を自動検出
+            // 1. 新規作成ステージは番号を 99 に設定（既に99が存在する場合は連番）
+            let hasId99 = false;
             let maxId = 0;
             const idMatches = val.matchAll(/\bid\s*:\s*(\d+)/g);
             for (const m of idMatches) {
                 const idNum = parseInt(m[1], 10);
+                if (idNum === 99) hasId99 = true;
                 if (idNum > maxId) maxId = idNum;
             }
-            const newId = maxId > 0 ? maxId + 1 : 20;
+            const newId = hasId99 ? Math.max(99, maxId + 1) : 99;
 
             // 2. テンプレートコードの生成
             const templateBody = `    // ------------------------------------------\n` +

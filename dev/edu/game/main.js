@@ -1614,7 +1614,13 @@ function switchView(viewName) {
 }
 
 // MARK: - Cleared Stages Storage
+// 共有URLから開いたステージは localStorage に記録せず、このセッション内のメモリにのみ保持する
+let sharedMode = false;
+let sharedClearedMemory = [];
+let sharedRecordsMemory = {};
+
 function getClearedStages() {
+    if (sharedMode) return sharedClearedMemory;
     try {
         const val = localStorage.getItem('hako_cleared_stages');
         return val ? JSON.parse(val) : [];
@@ -1627,6 +1633,7 @@ function markStageCleared(idx) {
     const cleared = getClearedStages();
     if (!cleared.includes(idx)) {
         cleared.push(idx);
+        if (sharedMode) return;
         try {
             localStorage.setItem('hako_cleared_stages', JSON.stringify(cleared));
         } catch (e) {}
@@ -1637,6 +1644,7 @@ function markStageCleared(idx) {
 const STAGE_RECORDS_KEY = 'hako_stage_records_v2';
 
 function getStageRecords() {
+    if (sharedMode) return sharedRecordsMemory;
     try {
         let records = {};
         const raw = localStorage.getItem(STAGE_RECORDS_KEY);
@@ -1706,9 +1714,11 @@ function saveStageResult(idx, { cleared, blocksPlaced, usedHint }) {
     };
 
     records[idx] = updated;
-    try {
-        localStorage.setItem(STAGE_RECORDS_KEY, JSON.stringify(records));
-    } catch (e) {}
+    if (!sharedMode) {
+        try {
+            localStorage.setItem(STAGE_RECORDS_KEY, JSON.stringify(records));
+        } catch (e) {}
+    }
 
     // 旧キーも同期して後方互換性を完全維持
     markStageCleared(idx);
@@ -1747,13 +1757,15 @@ function updateSelectScreenUI() {
     const cleared = getClearedStages();
     const records = getStageRecords();
     const totalStars = getTotalStars();
-    const maxStars = STAGES.length * 3;
+    const validStagesCount = STAGES.filter(s => s && typeof s === 'object').length;
+    const maxStars = validStagesCount * 3;
 
     if (progressBadge) {
-        progressBadge.innerHTML = `クリア: ${cleared.length}/${STAGES.length} <span style="margin-left:6px; color:#f59e0b; font-weight:bold;">★ ${totalStars}/${maxStars}</span>`;
+        progressBadge.innerHTML = `クリア: ${cleared.length}/${validStagesCount} <span style="margin-left:6px; color:#f59e0b; font-weight:bold;">★ ${totalStars}/${maxStars}</span>`;
     }
 
     STAGES.forEach((st, idx) => {
+        if (!st || typeof st !== 'object') return; // 欠番や未定義ステージの安全なスキップ
         const card = document.createElement('div');
         const isCleared = cleared.includes(idx);
         const rec = records[idx];
@@ -1772,12 +1784,14 @@ function updateSelectScreenUI() {
 
         const isAllStars = (starsCount === 3);
         card.className = `stage-card ${isCleared ? 'cleared' : ''} ${isAllStars ? 'all-stars' : ''}`;
+        const stageTitleText = st.title || `ステージ ${st.id}`;
+        const hasGimmicks = Array.isArray(st.gimmicks) && st.gimmicks.length > 0;
         card.innerHTML = `
-            <div class="stage-card-num">${st.title}</div>
+            <div class="stage-card-num">${stageTitleText}</div>
             <div class="stage-card-stars">${starSlotsHtml}</div>
             <div class="stage-card-target">目標: ${targetBlocks}個</div>
             <div class="stage-card-blocks">${rec && rec.bestBlocks !== null ? `ベスト: ${rec.bestBlocks}個` : `最大: ${st.maxBlocks}個`}</div>
-            <div class="stage-card-badge">${st.gimmicks.length > 0 ? 'ギミック有' : '基本'}</div>
+            <div class="stage-card-badge">${hasGimmicks ? 'ギミック有' : '基本'}</div>
         `;
         card.addEventListener('click', () => {
             selectStage(idx);
@@ -1836,9 +1850,11 @@ function showClear() {
         modalTitle.textContent = isLastStage ? '★ ALL STAGES CLEAR! ★' : 'STAGE CLEAR!';
     }
     if (modalSub) {
+        const currentStageObj = getStage();
+        const stageDisplayName = currentStageObj ? (currentStageObj.title || `ステージ ${currentStageObj.id}`) : `ステージ ${currentStageIndex + 1}`;
         modalSub.textContent = isLastStage
-            ? 'おめでとうございます！全19ステージを完全制覇しました！'
-            : `お見事！ステージ ${currentStageIndex + 1} をクリア！次のステージを解放しました！`;
+            ? 'おめでとうございます！全ステージを完全制覇しました！'
+            : `お見事！${stageDisplayName} をクリア！次のステージを解放しました！`;
     }
 
     // スターアイテムの表示更新
@@ -1911,6 +1927,35 @@ function showClear() {
     }, 1000);
 }
 
+// MARK: - Stage Navigation & Skip Helpers (飛んだステージ番号や欠番のスキップ対応)
+function findValidStageIndex(fromIdx, direction = 1) {
+    if (!Array.isArray(STAGES) || STAGES.length === 0) return -1;
+    let target = fromIdx + direction;
+    while (target >= 0 && target < STAGES.length) {
+        if (STAGES[target] && typeof STAGES[target] === 'object' && STAGES[target].id !== undefined) {
+            return target;
+        }
+        target += direction;
+    }
+    return -1;
+}
+
+function selectStageById(stageId) {
+    if (!Array.isArray(STAGES) || STAGES.length === 0) return;
+    const foundIdx = STAGES.findIndex(s => s && s.id === stageId);
+    if (foundIdx !== -1) {
+        selectStage(foundIdx);
+        return;
+    }
+    // 飛んだ番号の場合、指定ID以上の最初の有効ステージ、または直前の有効ステージを探す
+    const nextIdx = STAGES.findIndex(s => s && s.id > stageId);
+    if (nextIdx !== -1) {
+        selectStage(nextIdx);
+        return;
+    }
+    selectStage(Math.max(0, STAGES.length - 1));
+}
+
 function proceedToNextStage() {
     if (clearCountdownTimer) {
         clearInterval(clearCountdownTimer);
@@ -1919,8 +1964,9 @@ function proceedToNextStage() {
     const clearModal = document.getElementById('clearModalOverlay');
     if (clearModal) clearModal.classList.remove('open');
 
-    if (currentStageIndex < STAGES.length - 1) {
-        selectStage(currentStageIndex + 1);
+    const nextIdx = findValidStageIndex(currentStageIndex, 1);
+    if (nextIdx !== -1) {
+        selectStage(nextIdx);
     } else {
         switchView('select');
     }
@@ -1945,26 +1991,29 @@ function updateLegendUI() {
     if (!legendWrap) return;
     const st = getStage();
     legendWrap.innerHTML = '';
-    st.legends.forEach(l => {
-        const item = document.createElement('div');
-        item.className = 'legend-item';
-        item.innerHTML = `
-            <span class="legend-icon legend-${l.type}">${l.icon}</span>
-            <span>${l.text}</span>
-        `;
-        legendWrap.appendChild(item);
-    });
+    if (st && Array.isArray(st.legends)) {
+        st.legends.forEach(l => {
+            const item = document.createElement('div');
+            item.className = 'legend-item';
+            item.innerHTML = `
+                <span class="legend-icon legend-${l.type}">${l.icon}</span>
+                <span>${l.text}</span>
+            `;
+            legendWrap.appendChild(item);
+        });
+    }
 }
 
 function updateStageNavUI() {
-    if (stageCurrentTitle) {
-        stageCurrentTitle.textContent = getStage().title;
+    const curStage = getStage();
+    if (stageCurrentTitle && curStage) {
+        stageCurrentTitle.textContent = curStage.title || `ステージ ${curStage.id}`;
     }
     if (prevStageBtn) {
-        prevStageBtn.disabled = (currentStageIndex === 0);
+        prevStageBtn.disabled = (findValidStageIndex(currentStageIndex, -1) === -1);
     }
     if (nextStageBtn) {
-        nextStageBtn.disabled = (currentStageIndex === STAGES.length - 1);
+        nextStageBtn.disabled = (findValidStageIndex(currentStageIndex, 1) === -1);
     }
 }
 
@@ -2101,12 +2150,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
     if (prevStageBtn) {
         prevStageBtn.addEventListener('click', () => {
-            selectStage(currentStageIndex - 1);
+            const prevIdx = findValidStageIndex(currentStageIndex, -1);
+            if (prevIdx !== -1) selectStage(prevIdx);
         });
     }
     if (nextStageBtn) {
         nextStageBtn.addEventListener('click', () => {
-            selectStage(currentStageIndex + 1);
+            const nextIdx = findValidStageIndex(currentStageIndex, 1);
+            if (nextIdx !== -1) selectStage(nextIdx);
         });
     }
 
@@ -2145,18 +2196,50 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Mouse input for block placement
-    canvas.addEventListener('click', e => {
-        if (phase !== 'place') return;
+    // Canvas内の表示領域（アスペクト比維持に伴う上下左右の余白）を正確に逆算してグリッド座標を取得する
+    function getCanvasGridCoord(e) {
+        if (!canvas) return null;
         const rect = canvas.getBoundingClientRect();
-        const scale = canvas.width / rect.width;
-        const mx = (e.clientX - rect.left) * scale;
-        const my = (e.clientY - rect.top) * scale;
+        if (rect.width <= 0 || rect.height <= 0) return null;
+
+        const canvasRatio = canvas.width / canvas.height;
+        const rectRatio = rect.width / rect.height;
+        let drawW = rect.width;
+        let drawH = rect.height;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        if (rectRatio > canvasRatio) {
+            drawW = rect.height * canvasRatio;
+            offsetX = (rect.width - drawW) / 2;
+        } else {
+            drawH = rect.width / canvasRatio;
+            offsetY = (rect.height - drawH) / 2;
+        }
+
+        const clientX = e.clientX - rect.left - offsetX;
+        const clientY = e.clientY - rect.top - offsetY;
+
+        if (clientX < 0 || clientX > drawW || clientY < 0 || clientY > drawH) return null;
+
+        const scale = canvas.width / drawW;
+        const mx = clientX * scale;
+        const my = clientY * scale;
+
         const col = Math.floor((mx - GX) / CELL);
         const row = Math.floor((my - GY) / CELL);
 
-        if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
-            placeBlock(col, row);
+        return { col, row, mx, my };
+    }
+
+    // Mouse input for block placement
+    canvas.addEventListener('click', e => {
+        if (phase !== 'place') return;
+        const coord = getCanvasGridCoord(e);
+        if (!coord) return;
+
+        if (coord.col >= 0 && coord.col < COLS && coord.row >= 0 && coord.row < ROWS) {
+            placeBlock(coord.col, coord.row);
             if (showSolution) {
                 const check = checkSolutionMatch();
                 if (check.isMatch) {
@@ -2170,13 +2253,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
     canvas.addEventListener('mousemove', e => {
         if (phase !== 'place') return;
-        const rect = canvas.getBoundingClientRect();
-        const scale = canvas.width / rect.width;
-        const mx = (e.clientX - rect.left) * scale;
-        const my = (e.clientY - rect.top) * scale;
-        const col = Math.floor((mx - GX) / CELL);
-        const row = Math.floor((my - GY) / CELL);
         render();
+
+        const coord = getCanvasGridCoord(e);
+        if (!coord) return;
+
+        const col = coord.col;
+        const row = coord.row;
 
         if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
             if (isForbidden(col, row)) {
@@ -2403,6 +2486,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (phase !== 'place') return;
 
+        // エディタ内または外部制御でキー配置が無効化されている場合は無視（トースト等は表示しない）
+        if (window.__game ? window.__game.disableKeyPlacement : isInsideEditorPreview()) {
+            return;
+        }
+
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
                 if (KEY_MAP[r][c] === key) {
@@ -2419,27 +2507,70 @@ window.addEventListener('DOMContentLoaded', () => {
     updateLegendUI();
     updateSelectScreenUI();
 
+    function isInsideEditorPreview() {
+        try {
+            return (window.self !== window.top || Boolean(window.frameElement));
+        } catch (e) {
+            return true;
+        }
+    }
+
+    const inEditorPreview = isInsideEditorPreview();
+
     // 外部/テスト用露出
     window.__game = {
         selectStage,
         applySolutionToGrid,
-         toggleSolution,
+        toggleSolution,
         triggerStart,
         triggerReset,
         switchView,
         getStage,
         getCurrentStageIndex: () => currentStageIndex,
-        getStages: () => STAGES
+        getStages: () => STAGES,
+        // エディタ内でのキー配置有効/無効フラグ (ide.jsから制御可能)
+        disableKeyPlacement: inEditorPreview,
+        setDisableKeyPlacement: function(disabled) {
+            this.disableKeyPlacement = Boolean(disabled);
+        }
     };
 
     // 初期画面はホーム（ただしWebエディタのプレビューiframe内では即座にステージ画面を表示）
-    let inEditorPreview = false;
-    try {
-        inEditorPreview = (window.self !== window.top || Boolean(window.frameElement));
-    } catch (e) {
-        inEditorPreview = true;
-    }
     switchView(inEditorPreview ? 'game' : 'home');
+
+    // 共有URL (#トークン) で開かれた場合は、ホームを飛ばして共有ステージを直接開始する
+    if (!inEditorPreview) {
+        bootSharedStagesFromHash();
+        window.addEventListener('hashchange', bootSharedStagesFromHash);
+    }
+
+    // プレビュー内でのサイズ監視と動的レイアウト切替（ボタン大型化＆サイズに応じた自動レイアウト調整）
+    function updatePreviewLayout() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        let layout = 'normal';
+        // プレビューが十分に横長（幅560px以上かつアスペクト比1.25以上）のときに元の横2カラム配置に切り替え
+        if (w >= 560 && (w / h) >= 1.25) {
+            layout = 'wide';
+        } else if (h < 360) {
+            layout = 'compact';
+        }
+        document.body.dataset.previewLayout = layout;
+        if (typeof resizeCanvas === 'function') {
+            resizeCanvas();
+        }
+    }
+
+    if (inEditorPreview) {
+        window.addEventListener('resize', updatePreviewLayout);
+        if (window.ResizeObserver) {
+            const ro = new ResizeObserver(() => {
+                updatePreviewLayout();
+            });
+            ro.observe(document.body);
+        }
+        updatePreviewLayout();
+    }
 
     render();
     requestAnimationFrame(bgLoop);
@@ -2477,3 +2608,37 @@ window.reloadStagesFromCode = function(code, targetIndex = 0) {
     return false;
 };
 
+
+// MARK: - 共有ステージ
+// URLフラグメントのトークンを復号し、共有ステージだけをプレイ可能にする
+function showSharedNotice(message) {
+    let el = document.getElementById('sharedNotice');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'sharedNotice';
+        el.className = 'shared-notice';
+        document.body.appendChild(el);
+    }
+    el.textContent = message;
+    el.classList.add('show');
+    clearTimeout(showSharedNotice._timer);
+    showSharedNotice._timer = setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+function bootSharedStagesFromHash() {
+    if (!window.ShareCodec) return false;
+    const token = window.ShareCodec.tokenFromHash(location.hash);
+    if (!token) return false;
+    const result = window.ShareCodec.decode(token);
+    if (!result.ok) {
+        showSharedNotice('共有されたステージを開けませんでした: ' + result.error);
+        return false;
+    }
+    sharedMode = true;
+    sharedClearedMemory = [];
+    sharedRecordsMemory = {};
+    document.body.classList.add('shared-mode');
+    window.applyCustomStages(result.stages, 0);
+    showSharedNotice('共有されたステージです。記録は保存されません。');
+    return true;
+}

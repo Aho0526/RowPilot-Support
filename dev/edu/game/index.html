@@ -5,9 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="../../../pictures/hako_man_icon.png?v=1" type="image/png">
-    <link rel="stylesheet" href="style.css?v=23">
-    <script src="stages.js?v=5" defer></script>
-    <script src="main.js?v=25" defer></script>
+    <link rel="stylesheet" href="style.css?v=28">
+    <script src="stages.js?v=28" defer></script>
+    <script src="share-codec.js?v=1" defer></script>
+    <script src="main.js?v=28" defer></script>
     <script>
         (function () {
             try {
@@ -97,17 +98,13 @@
                     </div>
                     <span class="home-btn-arrow">▶</span>
                 </a>
-                <a href="../index.html" class="home-menu-btn" id="homeEduPortalBtn" title="教育ポータルに戻る" style="border-color: #38bdf8; background: #0f172a;">
-                    <div class="home-btn-block-icon" style="background: #0284c7; border-color: #38bdf8;">
-                        <span class="btn-block-inner">PORTAL</span>
-                    </div>
-                    <div class="home-btn-text-group">
-                        <span class="home-btn-main" style="color: #38bdf8;">教育ポータル</span>
-                        <span class="home-btn-sub">EDU PORTAL</span>
-                    </div>
-                    <span class="home-btn-arrow" style="color: #38bdf8;">◀</span>
-                </a>
             </div>
+
+            <!-- 画面左下に小さく配置される教育ポータルへの移動ボタン -->
+            <a href="../index.html" class="home-edu-portal-corner-btn" id="homeEduPortalBtn" title="教育ポータルに戻る">
+                <span class="home-edu-portal-icon">◀</span>
+                <span class="home-edu-portal-text">教育ポータル</span>
+            </a>
         </div>
     </div>
 

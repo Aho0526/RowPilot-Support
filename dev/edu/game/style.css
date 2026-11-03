@@ -445,6 +445,64 @@ body {
 }
 
 /* ==========================================
+   Home Screen Corner Edu Portal Button (Small / Bottom Left)
+   ========================================== */
+.home-edu-portal-corner-btn {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 60;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    font-family: inherit;
+    color: #e0f2fe;
+    background: rgba(15, 23, 42, 0.92);
+    border: 2px solid #38bdf8;
+    border-radius: 6px;
+    box-shadow: 0 3px 0 #0369a1, 0 4px 10px rgba(0, 0, 0, 0.35);
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.home-edu-portal-corner-btn:hover {
+    background: #0284c7;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 #0369a1, 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+.home-edu-portal-corner-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #0369a1, 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.home-edu-portal-icon {
+    font-size: 0.75rem;
+    color: #38bdf8;
+    transition: transform 0.15s ease;
+}
+
+.home-edu-portal-corner-btn:hover .home-edu-portal-icon {
+    transform: translateX(-2px);
+    color: #ffffff;
+}
+
+@media (max-width: 580px) {
+    .home-edu-portal-corner-btn {
+        left: 10px;
+        bottom: 10px;
+        padding: 5px 9px;
+        font-size: 0.65rem;
+    }
+}
+
+/* ==========================================
    2. Stage Select Screen
    ========================================== */
 .select-container {
@@ -1673,66 +1731,135 @@ body.in-iframe .game-top-bar,
     justify-content: center !important;
 }
 
+html.in-iframe .game-top-bar,
+body.in-iframe .game-top-bar,
+.in-iframe .game-top-bar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 3px 6px !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    box-sizing: border-box !important;
+    z-index: 20 !important;
+}
+
 html.in-iframe .top-nav-btn,
 body.in-iframe .top-nav-btn,
 .in-iframe .top-nav-btn {
-    font-size: 0.62rem !important;
-    padding: 4px 8px !important;
-    border-width: 2px !important;
-    box-shadow: 2px 2px 0 #000 !important;
-    border-radius: 4px !important;
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    padding: 3px 8px !important;
+    height: 26px !important;
+    border: 2px solid #000000 !important;
+    border-radius: 5px !important;
+    box-shadow: 2px 2px 0 #000000 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    flex: 0 0 auto !important;
+    transition: transform 0.08s ease !important;
+}
+
+html.in-iframe .top-nav-btn:hover,
+body.in-iframe .top-nav-btn:hover,
+.in-iframe .top-nav-btn:hover {
+    background: #f1f5f9 !important;
+    transform: translateY(-1px) !important;
 }
 
 html.in-iframe .stage-nav-pill,
 body.in-iframe .stage-nav-pill,
 .in-iframe .stage-nav-pill {
-    padding: 2px 6px !important;
-    border-width: 2px !important;
-    gap: 4px !important;
-    box-shadow: 2px 2px 0 #000 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 26px !important;
+    padding: 0 4px !important;
+    border: 2px solid #000000 !important;
     border-radius: 6px !important;
+    background: #000000 !important;
+    box-shadow: 2px 2px 0 #000000 !important;
+    gap: 3px !important;
+    flex: 0 0 auto !important;
 }
 
 html.in-iframe .stage-pill-title,
 body.in-iframe .stage-pill-title,
 .in-iframe .stage-pill-title {
-    font-size: 0.62rem !important;
+    font-size: 9.5px !important;
+    font-weight: 800 !important;
+    color: #ffe060 !important;
     padding: 0 4px !important;
+    white-space: nowrap !important;
 }
 
 html.in-iframe .stage-nav-arrow,
 body.in-iframe .stage-nav-arrow,
 .in-iframe .stage-nav-arrow {
-    width: 20px !important;
-    height: 20px !important;
-    font-size: 9px !important;
-    border-radius: 4px !important;
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 8px !important;
+    padding: 0 !important;
+    border-radius: 3px !important;
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: background 0.1s ease !important;
+}
+
+html.in-iframe .stage-nav-arrow:hover:not(:disabled),
+body.in-iframe .stage-nav-arrow:hover:not(:disabled),
+.in-iframe .stage-nav-arrow:hover:not(:disabled) {
+    background: #3b82f6 !important;
 }
 
 html.in-iframe .help-btn,
 body.in-iframe .help-btn,
 .in-iframe .help-btn {
-    width: 24px !important;
-    height: 24px !important;
-    font-size: 0.75rem !important;
-    border-width: 2px !important;
-    box-shadow: 2px 2px 0 #000 !important;
-    border-radius: 4px !important;
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 11px !important;
+    font-weight: bold !important;
+    padding: 0 !important;
+    border: 2px solid #000000 !important;
+    border-radius: 5px !important;
+    box-shadow: 2px 2px 0 #000000 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    flex: 0 0 auto !important;
 }
 
 html.in-iframe .answer-top-btn,
 body.in-iframe .answer-top-btn,
 .in-iframe .answer-top-btn {
-    font-size: 13px !important;
+    background: #2563eb !important;
+    color: #ffffff !important;
+    font-size: 12px !important;
 }
 
-/* メインエリア: 上下がCanvas、最下部が横1列コントロール */
+/* メインエリア: 上下がCanvas、最下部にコントロール */
 html.in-iframe .game-main-area,
 body.in-iframe .game-main-area,
 .in-iframe .game-main-area {
     flex: 1 1 0 !important;
     width: 100% !important;
-    height: calc(100% - 36px) !important;
+    height: calc(100% - 34px) !important;
     min-height: 0 !important;
     display: flex !important;
     flex-direction: column !important;
@@ -1741,6 +1868,7 @@ body.in-iframe .game-main-area,
     gap: 4px !important;
     overflow: hidden !important;
     margin: 0 !important;
+    box-sizing: border-box !important;
 }
 
 /* 左カラム (Canvas親領域): 利用可能スペースを最大限活用 */
@@ -1760,14 +1888,17 @@ body.in-iframe .game-left-col,
 html.in-iframe .game-wrapper,
 body.in-iframe .game-wrapper,
 .in-iframe .game-wrapper {
-    width: 100% !important;
-    height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: 100% !important;
     max-height: 100% !important;
+    aspect-ratio: 496 / 324 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35) !important;
     background: transparent !important;
+    overflow: hidden !important;
 }
 
 html.in-iframe #gameCanvas,
@@ -1775,66 +1906,49 @@ body.in-iframe #gameCanvas,
 .in-iframe #gameCanvas {
     max-height: 100% !important;
     max-width: 100% !important;
-    width: auto !important;
+    width: 100% !important;
     height: 100% !important;
     aspect-ratio: 496 / 324 !important;
     object-fit: contain !important;
     display: block !important;
     border-radius: 6px !important;
+    cursor: pointer !important;
 }
 
-/* 右カラム (操作パネル): 最下部に横1列でスマートに配置 */
+/* ──────────────────────────────────────────
+   デフォルトの縦長画面 (プレビュー画面)
+   下部コントロール: 1段目 BLOCKS、2段目 スタート、3段目 リセット
+   ────────────────────────────────────────── */
 html.in-iframe .game-right-col,
 body.in-iframe .game-right-col,
 .in-iframe .game-right-col {
-    flex: 0 0 32px !important;
-    height: 32px !important;
-    min-height: 32px !important;
+    flex: 0 0 auto !important;
     width: 100% !important;
     max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
     display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    justify-content: space-between !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-end !important;
     gap: 6px !important;
-    padding: 0 4px !important;
+    padding: 4px 10px 8px !important;
     margin: 0 !important;
     box-sizing: border-box !important;
-    overflow: hidden !important;
+    overflow: visible !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
 }
 
-/* ステータスバー */
+/* 縦長画面ではスッカスカの原因だった不要なステータスバーを非表示 */
 html.in-iframe .status-wrap-large,
 body.in-iframe .status-wrap-large,
 .in-iframe .status-wrap-large {
-    flex: 1 1 auto !important;
-    width: auto !important;
-    min-width: 70px !important;
-    max-width: 240px !important;
-    margin: 0 !important;
-    padding: 3px 8px !important;
-    border-radius: 5px !important;
-    border-width: 2px !important;
-    background: #000000 !important;
-    box-shadow: 0 2px 0 rgba(0,0,0,0.3) !important;
-    box-sizing: border-box !important;
+    display: none !important;
 }
 
-html.in-iframe .status-bar,
-body.in-iframe .status-bar,
-.in-iframe .status-bar {
-    font-size: 10px !important;
-    line-height: 1.2 !important;
-    min-height: 0 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    text-align: center !important;
-    padding: 0 !important;
-}
-
-/* ブロック数バッジ */
+/* 1段目: 残り配置可能数 (BLOCKS バッジ) を横長フル幅で配置 */
 html.in-iframe .block-count-badge,
 body.in-iframe .block-count-badge,
 .in-iframe .block-count-badge,
@@ -1842,17 +1956,20 @@ html.in-iframe .block-count-large,
 body.in-iframe .block-count-large,
 .in-iframe .block-count-large {
     flex: 0 0 auto !important;
-    width: auto !important;
+    width: 100% !important;
     max-width: none !important;
+    height: 36px !important;
     margin: 0 !important;
-    padding: 3px 8px !important;
-    border-width: 2px !important;
-    border-radius: 5px !important;
-    display: inline-flex !important;
+    padding: 0 14px !important;
+    background: #000000 !important;
+    border: 2.5px solid #facc15 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45) !important;
+    display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 4px !important;
-    box-shadow: 0 2px 0 rgba(0,0,0,0.3) !important;
+    justify-content: center !important;
+    gap: 10px !important;
     box-sizing: border-box !important;
 }
 
@@ -1862,7 +1979,10 @@ body.in-iframe .block-count-badge .badge-label,
 html.in-iframe .block-count-large .badge-label,
 body.in-iframe .block-count-large .badge-label,
 .in-iframe .block-count-large .badge-label {
-    font-size: 8px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.08em !important;
+    color: #cbd5e1 !important;
 }
 
 html.in-iframe .block-count-badge .badge-val,
@@ -1871,137 +1991,221 @@ body.in-iframe .block-count-badge .badge-val,
 html.in-iframe .block-count-large .badge-val,
 body.in-iframe .block-count-large .badge-val,
 .in-iframe .block-count-large .badge-val {
-    font-size: 11px !important;
+    font-size: 16px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.05em !important;
+    color: #facc15 !important;
+    text-shadow: 1px 1px 0 #854d0e !important;
 }
 
-/* 操作ボタン群 (スタート・リセット・答え合わせ) */
+/* 操作ボタン群: 縦並び1列に横長ボタンを確実に縦配置 (横並び・見切れ防止) */
 html.in-iframe .controls-panel,
 body.in-iframe .controls-panel,
 .in-iframe .controls-panel {
-    flex: 0 0 auto !important;
-    width: auto !important;
-    max-width: none !important;
     display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 4px !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 6px !important;
     margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
 }
 
+/* 2段目: スタートボタン（横長ボタン 1つ） */
 html.in-iframe .controls-panel .btn-start,
 body.in-iframe .controls-panel .btn-start,
 .in-iframe .controls-panel .btn-start {
-    width: auto !important;
-    max-width: none !important;
-    flex: 0 0 auto !important;
-    padding: 3px 8px !important;
-    font-size: 9.5px !important;
-    height: 26px !important;
-    background: #16a34a !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 16px !important;
+    margin: 0 !important;
+    font-size: 13.5px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.08em !important;
     color: #ffffff !important;
+    background: linear-gradient(180deg, #22c55e 0%, #16a34a 60%, #15803d 100%) !important;
+    border: 2.5px solid #000000 !important;
+    border-radius: 6px !important;
+    box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.45), inset -2px -2px 0 rgba(0, 0, 0, 0.3), 0 3px 0 #000000, 0 4px 8px rgba(0, 0, 0, 0.35) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    transition: transform 0.08s ease, filter 0.08s ease !important;
 }
 
-html.in-iframe .controls-panel .btn-start:hover,
-body.in-iframe .controls-panel .btn-start:hover,
-.in-iframe .controls-panel .btn-start:hover {
-    background: #22c55e !important;
+html.in-iframe .controls-panel .btn-start:hover:not(:disabled),
+body.in-iframe .controls-panel .btn-start:hover:not(:disabled),
+.in-iframe .controls-panel .btn-start:hover:not(:disabled) {
+    transform: translateY(-1px) !important;
+    filter: brightness(1.1) !important;
+    box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.5), 0 4px 0 #000000, 0 6px 12px rgba(0, 0, 0, 0.4) !important;
 }
 
+html.in-iframe .controls-panel .btn-start:active:not(:disabled),
+body.in-iframe .controls-panel .btn-start:active:not(:disabled),
+.in-iframe .controls-panel .btn-start:active:not(:disabled) {
+    transform: translateY(2px) !important;
+    box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.4), 0 1px 0 #000000 !important;
+}
+
+/* 3段目: リセットボタン（横長ボタン 1つ・スタートボタンの真下に確実に配置） */
 html.in-iframe .controls-panel .btn-reset,
 body.in-iframe .controls-panel .btn-reset,
 .in-iframe .controls-panel .btn-reset {
-    width: auto !important;
-    max-width: none !important;
-    flex: 0 0 auto !important;
-    padding: 3px 8px !important;
-    font-size: 9.5px !important;
-    height: 26px !important;
-    background: #dc2626 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 16px !important;
+    margin: 0 !important;
+    font-size: 13.5px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.08em !important;
     color: #ffffff !important;
+    background: linear-gradient(180deg, #ef4444 0%, #dc2626 60%, #b91c1c 100%) !important;
+    border: 2.5px solid #000000 !important;
+    border-radius: 6px !important;
+    box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.45), inset -2px -2px 0 rgba(0, 0, 0, 0.3), 0 3px 0 #000000, 0 4px 8px rgba(0, 0, 0, 0.35) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    transition: transform 0.08s ease, filter 0.08s ease !important;
 }
 
 html.in-iframe .controls-panel .btn-reset:hover,
 body.in-iframe .controls-panel .btn-reset:hover,
 .in-iframe .controls-panel .btn-reset:hover {
-    background: #ef4444 !important;
+    transform: translateY(-1px) !important;
+    filter: brightness(1.1) !important;
+    box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.5), 0 4px 0 #000000, 0 6px 12px rgba(0, 0, 0, 0.4) !important;
 }
 
+html.in-iframe .controls-panel .btn-reset:active,
+body.in-iframe .controls-panel .btn-reset:active,
+.in-iframe .controls-panel .btn-reset:active {
+    transform: translateY(2px) !important;
+    box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.4), 0 1px 0 #000000 !important;
+}
+
+/* 答え合わせなどサブコントロール */
 html.in-iframe .controls-sub-row,
 body.in-iframe .controls-sub-row,
 .in-iframe .controls-sub-row {
-    display: flex !important;
+    display: none !important;
+}
+
+html.in-iframe .legend-wrap,
+body.in-iframe .legend-wrap,
+.in-iframe .legend-wrap {
+    display: none !important;
+}
+
+/* ──────────────────────────────────────────
+   画面サイズ変更時: ワイド画面 (元の配置と同じレイアウト)
+   左側に Canvas、右側に元の画面と同じ操作カラム（ステータス＋BLOCKS＋スタート＋リセット）
+   ────────────────────────────────────────── */
+body.in-iframe[data-preview-layout="wide"] .game-main-area,
+html.in-iframe[data-preview-layout="wide"] .game-main-area {
     flex-direction: row !important;
-    width: auto !important;
-    max-width: none !important;
-    grid-template-columns: none !important;
-    gap: 4px !important;
-    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 16px !important;
+    padding: 6px 14px !important;
 }
 
-html.in-iframe .controls-sub-row .btn-large,
-body.in-iframe .controls-sub-row .btn-large,
-.in-iframe .controls-sub-row .btn-large {
-    width: auto !important;
-    max-width: none !important;
-    flex: 0 0 auto !important;
-    padding: 3px 7px !important;
-    font-size: 9.5px !important;
-    height: 26px !important;
-}
-
-html.in-iframe .btn-main-label,
-body.in-iframe .btn-main-label,
-.in-iframe .btn-main-label {
-    width: auto !important;
-    display: inline !important;
-    font-size: 9.5px !important;
-    white-space: nowrap !important;
-}
-
-html.in-iframe .btn-large,
-body.in-iframe .btn-large,
-.in-iframe .btn-large {
-    padding: 3px 7px !important;
-    font-size: 9.5px !important;
-    font-weight: 700 !important;
-    box-shadow: 0 2px 0 #000 !important;
-    border-width: 2px !important;
-    border-radius: 5px !important;
-    white-space: nowrap !important;
-    min-width: 0 !important;
-    height: 26px !important;
-    display: inline-flex !important;
+body.in-iframe[data-preview-layout="wide"] .game-left-col,
+html.in-iframe[data-preview-layout="wide"] .game-left-col {
+    flex: 1 1 0 !important;
+    height: 100% !important;
+    display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 }
 
-html.in-iframe .btn-reset,
-body.in-iframe .btn-reset,
-.in-iframe .btn-reset {
-    background: #475569 !important;
-    color: #ffffff !important;
+body.in-iframe[data-preview-layout="wide"] .game-right-col,
+html.in-iframe[data-preview-layout="wide"] .game-right-col {
+    flex: 0 0 210px !important;
+    width: 210px !important;
+    height: auto !important;
+    align-self: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
 }
 
-html.in-iframe .btn-answer,
-body.in-iframe .btn-answer,
-.in-iframe .btn-answer {
-    background: #2563eb !important;
-    color: #ffffff !important;
+/* ワイド画面では元の画面と同様にステータスバーを表示 */
+body.in-iframe[data-preview-layout="wide"] .status-wrap-large,
+html.in-iframe[data-preview-layout="wide"] .status-wrap-large {
+    display: block !important;
+    width: 100% !important;
+    background: #000000 !important;
+    border: 2px solid #334155 !important;
+    border-radius: 5px !important;
+    padding: 6px 8px !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3) !important;
 }
 
-html.in-iframe .legend-wrap, html.in-iframe .hint,
-body.in-iframe .legend-wrap, body.in-iframe .hint,
-.in-iframe .legend-wrap, .in-iframe .hint {
-    display: none !important;
+body.in-iframe[data-preview-layout="wide"] .status-bar,
+html.in-iframe[data-preview-layout="wide"] .status-bar {
+    font-size: 10.5px !important;
+    color: #f8fafc !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 
-@media (max-width: 580px) {
-    html.in-iframe .status-wrap-large,
-    body.in-iframe .status-wrap-large,
-    .in-iframe .status-wrap-large {
-        display: none !important;
-    }
+body.in-iframe[data-preview-layout="wide"] .block-count-badge,
+html.in-iframe[data-preview-layout="wide"] .block-count-badge {
+    height: 36px !important;
+}
+
+body.in-iframe[data-preview-layout="wide"] .controls-panel .btn-start,
+html.in-iframe[data-preview-layout="wide"] .controls-panel .btn-start,
+body.in-iframe[data-preview-layout="wide"] .controls-panel .btn-reset,
+html.in-iframe[data-preview-layout="wide"] .controls-panel .btn-reset {
+    height: 42px !important;
+    font-size: 14px !important;
+}
+
+/* ギミック凡例（もし存在すればワイド画面ではコンパクトに表示） */
+body.in-iframe[data-preview-layout="wide"] .legend-wrap,
+html.in-iframe[data-preview-layout="wide"] .legend-wrap {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    background: rgba(0, 0, 0, 0.35) !important;
+    border-radius: 6px !important;
+    padding: 6px 8px !important;
+    font-size: 9px !important;
+}
+
+/* コンパクト高さ時の調整 */
+body.in-iframe[data-preview-layout="compact"] .controls-panel .btn-start,
+html.in-iframe[data-preview-layout="compact"] .controls-panel .btn-start,
+body.in-iframe[data-preview-layout="compact"] .controls-panel .btn-reset,
+html.in-iframe[data-preview-layout="compact"] .controls-panel .btn-reset {
+    height: 36px !important;
+    font-size: 12.5px !important;
+}
+
+body.in-iframe[data-preview-layout="compact"] .block-count-badge,
+html.in-iframe[data-preview-layout="compact"] .block-count-badge {
+    height: 30px !important;
 }
 
 /* ==========================================
@@ -2099,4 +2303,25 @@ body.in-iframe .legend-wrap, body.in-iframe .hint,
 @keyframes starPulse {
     0% { transform: scale(1); }
     100% { transform: scale(1.14) rotate(3deg); }
+}
+/* 共有ステージ通知 */
+.shared-notice {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translate(-50%, 20px);
+    max-width: 90vw;
+    padding: 10px 18px;
+    border-radius: 10px;
+    background: rgba(30, 41, 59, 0.92);
+    color: #fff;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 10000;
+}
+.shared-notice.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
 }
