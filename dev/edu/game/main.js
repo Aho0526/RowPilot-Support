@@ -2556,9 +2556,6 @@ window.addEventListener('DOMContentLoaded', () => {
             layout = 'compact';
         }
         document.body.dataset.previewLayout = layout;
-        if (typeof resizeCanvas === 'function') {
-            resizeCanvas();
-        }
     }
 
     if (inEditorPreview) {
