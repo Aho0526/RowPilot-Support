@@ -4546,14 +4546,26 @@
         // ── C. main.js の横断チェック (index.html のDOM ID参照整合性) ──
         if ((filename === 'main.js' || filename === 'core.js') && allFiles['index.html']) {
             const htmlText = stripHtmlCommentsPreservingLines(getFileContent('index.html'));
+            const defaultHtmlText = typeof allFiles['index.html'] === 'object' && allFiles['index.html'].defaultContent
+                ? stripHtmlCommentsPreservingLines(allFiles['index.html'].defaultContent)
+                : '';
             const htmlIds = new Set([
-                'stageCurrentBtn', 'stageMenuPopup', 'stageMenuGrid', 'hintText'
+                'stageCurrentBtn', 'stageMenuPopup', 'stageMenuGrid', 'hintText',
+                'customStagesBanner', 'customBannerText', 'btnRestoreOfficial',
+                'homeCustomIndicator', 'homeRestoreOfficialBtn', 'gameToEditorBtn'
             ]);
 
             let m;
             const idRegex = /\bid\s*=\s*["']([^"']+)["']/gi;
             while ((m = idRegex.exec(htmlText)) !== null) {
                 htmlIds.add(m[1].trim());
+            }
+            if (defaultHtmlText) {
+                let dm;
+                const defRegex = /\bid\s*=\s*["']([^"']+)["']/gi;
+                while ((dm = defRegex.exec(defaultHtmlText)) !== null) {
+                    htmlIds.add(dm[1].trim());
+                }
             }
 
             for (let i = 0; i < lines.length; i++) {

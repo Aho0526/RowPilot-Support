@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="../../../pictures/hako_man_icon.png?v=1" type="image/png">
-    <link rel="stylesheet" href="style.css?v=28">
-    <script src="stages.js?v=28" defer></script>
+    <link rel="stylesheet" href="style.css?v=39">
+    <script src="stages.js?v=39" defer></script>
     <script src="share-codec.js?v=1" defer></script>
-    <script src="main.js?v=28" defer></script>
+    <script src="main.js?v=39" defer></script>
     <script>
         (function () {
             try {
@@ -40,6 +40,12 @@
         <div class="home-container">
             <h1 class="home-title">ハコゲーム</h1>
             <p class="home-subtitle">BLOCK PLACEMENT PUZZLE</p>
+
+            <!-- 自作ステージモード適用中インジケーター -->
+            <div class="home-custom-indicator" id="homeCustomIndicator" style="display: none;">
+                <span>🎨 自作ステージモード適用中</span>
+                <button type="button" class="home-restore-btn" id="homeRestoreOfficialBtn">公式に戻す</button>
+            </div>
 
             <!-- マリオ風キャラクターアニメーションアート -->
             <div class="home-hero-art">
@@ -118,6 +124,17 @@
                 <h2 class="select-title">ステージ選択</h2>
                 <div class="select-progress-badge" id="selectProgressBadge">クリア: 0 / 19</div>
             </div>
+            <!-- 自作ステージ適用中バナー -->
+            <div class="custom-stages-banner" id="customStagesBanner" style="display: none;">
+                <div class="custom-banner-left">
+                    <span class="custom-banner-badge">🎨 自作ステージ適用中</span>
+                    <span class="custom-banner-text" id="customBannerText">エディタで作成したステージをプレイできます</span>
+                </div>
+                <div class="custom-banner-actions">
+                    <a href="editor/index.html" class="custom-banner-btn edit-btn">エディタで編集</a>
+                    <button type="button" class="custom-banner-btn restore-btn" id="btnRestoreOfficial">公式ステージに戻す</button>
+                </div>
+            </div>
             <div class="select-grid-wrap" id="selectScreenGrid">
                 <!-- 1〜19のステージカードがJSで生成される -->
             </div>
@@ -132,6 +149,7 @@
         <div class="game-top-bar">
             <button class="top-nav-btn" id="gameBackToHomeBtn" title="タイトル画面へ">ホーム</button>
             <button class="top-nav-btn" id="gameToSelectBtn" title="ステージ選択一覧へ">ステージ</button>
+            <a href="editor/index.html" class="top-nav-btn editor-nav-btn" id="gameToEditorBtn" title="エディタに戻る" style="display: none;">エディタ</a>
 
             <div class="stage-nav-pill">
                 <button class="stage-nav-arrow" id="prevStageBtn" title="前のステージ (◀キー)">◀</button>

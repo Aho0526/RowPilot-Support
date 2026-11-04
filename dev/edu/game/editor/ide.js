@@ -492,15 +492,38 @@ const STAGES = [
     }
 
     // ── ローカルストレージと実ファイルのロード ──
+    function migrateStage12InStagesCode(code) {
+        if (!code || typeof code !== 'string') return code;
+        // 旧ステージ12の7ブロック定義が残っている場合は6ブロックの新定義へ自動マイグレーション
+        return code.replace(
+            /(id:\s*12,[\s\S]*?)maxBlocks:\s*7,\s*\n\s*targetBlocks:\s*7,([\s\S]*?solution:\s*\[\s*\n\s*\{\s*col:\s*2,\s*row:\s*1\s*\},\s*\{\s*col:\s*3,\s*row:\s*1\s*\},\s*\n\s*\{\s*col:\s*1,\s*row:\s*2\s*\},\s*\{\s*col:\s*3,\s*row:\s*2\s*\},\s*\n\s*)\{\s*col:\s*1,\s*row:\s*3\s*\},\s*(\{\s*col:\s*2,\s*row:\s*3\s*\},)/,
+            '$1maxBlocks: 6,\n        targetBlocks: 6,$2$3'
+        );
+    }
+
     function loadSavedFilesFromStorage() {
         Object.keys(files).forEach(key => {
             if (files[key].isSystemFile) return;
             try {
                 const saved = localStorage.getItem(STORAGE_KEY_PREFIX + key);
                 if (saved) {
-                    const clean = files[key].name.endsWith('.html')
+                    // 古い main.js キャッシュ（超新星爆発や土管高さ食い込み版、足場両端0.5マス未搭載）は破棄して最新ファイルを読ませる
+                    if (key === 'main.js' && (!saved.includes('startSupernova') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW'))) {
+                        localStorage.removeItem(STORAGE_KEY_PREFIX + key);
+                        return;
+                    }
+                    // 古い index.html キャッシュ（自作ステージ連携用バナーやボタン未搭載）は破棄して最新ファイルを読ませる
+                    if (key === 'index.html' && (!saved.includes('customStagesBanner') || !saved.includes('btnRestoreOfficial') || !saved.includes('gameToEditorBtn'))) {
+                        localStorage.removeItem(STORAGE_KEY_PREFIX + key);
+                        return;
+                    }
+                    let clean = files[key].name.endsWith('.html')
                         ? cleanInjectedPlatformScripts(saved)
                         : saved;
+                    if (key === 'stages.js') {
+                        clean = migrateStage12InStagesCode(clean);
+                        localStorage.setItem(STORAGE_KEY_PREFIX + key, clean);
+                    }
                     files[key].content = clean;
                     files[key].baselineContent = clean;
                 }
@@ -540,9 +563,21 @@ const STAGES = [
                     }
                     files[key].defaultContent = rawText;
 
-                    const saved = !files[key].isSystemFile ? localStorage.getItem(STORAGE_KEY_PREFIX + key) : null;
+                    let saved = !files[key].isSystemFile ? localStorage.getItem(STORAGE_KEY_PREFIX + key) : null;
+                    if (key === 'main.js' && saved && (!saved.includes('EMERGE_RISE_END') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW'))) {
+                        localStorage.removeItem(STORAGE_KEY_PREFIX + key);
+                        saved = null;
+                    }
+                    if (key === 'index.html' && saved && (!saved.includes('customStagesBanner') || !saved.includes('btnRestoreOfficial') || !saved.includes('gameToEditorBtn'))) {
+                        localStorage.removeItem(STORAGE_KEY_PREFIX + key);
+                        saved = null;
+                    }
                     if (saved && !files[key].isSystemFile) {
-                        const cleanSaved = key.endsWith('.html') ? cleanInjectedPlatformScripts(saved) : saved;
+                        let cleanSaved = key.endsWith('.html') ? cleanInjectedPlatformScripts(saved) : saved;
+                        if (key === 'stages.js') {
+                            cleanSaved = migrateStage12InStagesCode(cleanSaved);
+                            localStorage.setItem(STORAGE_KEY_PREFIX + key, cleanSaved);
+                        }
                         files[key].content = cleanSaved;
                         files[key].baselineContent = cleanSaved;
                     } else {
@@ -555,6 +590,10 @@ const STAGES = [
                     }
                     if (key === 'stages.js') {
                         populateStageJumpSelectors();
+                        const stageIdx = currentFile === 'stages.js' && codeTextarea
+                            ? findEditedStageIndex(files['stages.js'].content, codeTextarea.selectionStart)
+                            : 0;
+                        syncPreviewToStageIndex(stageIdx);
                     }
                 }
             } catch (e) {
@@ -1599,7 +1638,7 @@ const STAGES = [
         const lines = text.split('\n');
         const lineCount = lines.length;
 
-        const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 20;
+        const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 12;
         const maxScroll = Math.max(1, codeTextarea.scrollHeight - codeTextarea.clientHeight);
         const scrollRatio = Math.max(0, Math.min(1, codeTextarea.scrollTop / maxScroll));
         const maxMinimapScroll = Math.max(0, totalMinimapHeight - rect.height);
@@ -1759,23 +1798,29 @@ const STAGES = [
 
         const text = codeTextarea.value || '';
         const lineCount = Math.max(1, text.split('\n').length);
-        const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 20;
+        const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 12;
 
         const maxScroll = Math.max(1, codeTextarea.scrollHeight - codeTextarea.clientHeight);
         const scrollRatio = Math.max(0, Math.min(1, codeTextarea.scrollTop / maxScroll));
-        const maxMinimapScroll = Math.max(0, totalMinimapHeight - rect.height);
-        const minimapOffsetY = totalMinimapHeight > rect.height ? scrollRatio * maxMinimapScroll : 0;
 
-        const EDITOR_LINE_HEIGHT = 22.4;
-        const topLine = codeTextarea.scrollTop / EDITOR_LINE_HEIGHT;
-        const visibleLines = codeTextarea.clientHeight / EDITOR_LINE_HEIGHT;
+        const computed = window.getComputedStyle(codeTextarea);
+        const lh = parseFloat(computed.lineHeight) || 22;
+        const visibleLines = codeTextarea.clientHeight / lh;
 
-        const sliderHeight = Math.max(20, Math.min(rect.height, visibleLines * MINIMAP_LINE_PITCH));
-        let sliderTop = Math.max(0, (topLine * MINIMAP_LINE_PITCH) - minimapOffsetY + 6);
-        if (sliderTop + sliderHeight > rect.height) {
-            sliderTop = Math.max(0, rect.height - sliderHeight);
+        let sliderHeight;
+        let sliderTop;
+
+        if (totalMinimapHeight <= rect.height) {
+            sliderHeight = Math.max(20, Math.min(rect.height, visibleLines * MINIMAP_LINE_PITCH));
+            const trackHeight = Math.max(0, totalMinimapHeight - sliderHeight);
+            sliderTop = 6 + (scrollRatio * trackHeight);
+        } else {
+            sliderHeight = Math.max(24, Math.min(rect.height * 0.8, visibleLines * MINIMAP_LINE_PITCH));
+            const trackHeight = Math.max(1, rect.height - sliderHeight);
+            sliderTop = scrollRatio * trackHeight;
         }
 
+        sliderTop = Math.max(0, Math.min(rect.height - sliderHeight, sliderTop));
         minimapSlider.style.top = `${sliderTop}px`;
         minimapSlider.style.height = `${sliderHeight}px`;
     }
@@ -1795,8 +1840,8 @@ const STAGES = [
 
             const text = codeTextarea.value || '';
             const lineCount = Math.max(1, text.split('\n').length);
-            const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 20;
-            const sliderHeight = minimapSlider.offsetHeight || 20;
+            const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 12;
+            const sliderHeight = minimapSlider.offsetHeight || 24;
 
             if (e.target === minimapSlider) {
                 const sliderRect = minimapSlider.getBoundingClientRect();
@@ -1804,11 +1849,11 @@ const STAGES = [
             } else {
                 minimapDragGrabOffsetY = sliderHeight / 2;
                 const clickY = e.clientY - wrapRect.top;
-                const EDITOR_LINE_HEIGHT = 22.4;
                 let targetScrollTop = 0;
                 if (totalMinimapHeight <= wrapRect.height) {
-                    const targetLine = (clickY - 6) / MINIMAP_LINE_PITCH;
-                    targetScrollTop = (targetLine * EDITOR_LINE_HEIGHT) - (codeTextarea.clientHeight / 2);
+                    const trackHeight = Math.max(1, totalMinimapHeight - sliderHeight);
+                    const ratio = Math.max(0, Math.min(1, (clickY - minimapDragGrabOffsetY - 6) / trackHeight));
+                    targetScrollTop = ratio * maxScroll;
                 } else {
                     const trackHeight = Math.max(1, wrapRect.height - sliderHeight);
                     const ratio = Math.max(0, Math.min(1, (clickY - minimapDragGrabOffsetY) / trackHeight));
@@ -1831,16 +1876,17 @@ const STAGES = [
 
             const text = codeTextarea.value || '';
             const lineCount = Math.max(1, text.split('\n').length);
-            const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 20;
+            const totalMinimapHeight = lineCount * MINIMAP_LINE_PITCH + 12;
             const targetSliderTop = e.clientY - wrapRect.top - minimapDragGrabOffsetY;
-            const EDITOR_LINE_HEIGHT = 22.4;
 
             let targetScrollTop = 0;
             if (totalMinimapHeight <= wrapRect.height) {
-                const targetLine = (targetSliderTop - 6) / MINIMAP_LINE_PITCH;
-                targetScrollTop = targetLine * EDITOR_LINE_HEIGHT;
-            } else {
                 const sliderHeight = minimapSlider.offsetHeight || 20;
+                const trackHeight = Math.max(1, totalMinimapHeight - sliderHeight);
+                const ratio = Math.max(0, Math.min(1, (targetSliderTop - 6) / trackHeight));
+                targetScrollTop = ratio * maxScroll;
+            } else {
+                const sliderHeight = minimapSlider.offsetHeight || 24;
                 const trackHeight = Math.max(1, wrapRect.height - sliderHeight);
                 const ratio = Math.max(0, Math.min(1, targetSliderTop / trackHeight));
                 targetScrollTop = ratio * maxScroll;
@@ -2582,6 +2628,48 @@ const STAGES = [
                 navigator.clipboard.writeText(files[currentFile].content || '').then(() => {
                     showToast(`「${currentFile}」のコード全文をコピーしました`);
                 });
+            });
+        }
+
+        // 「ゲームをプレイ」ボタン (自作ステージを持ち込んで本番ゲームを開始)
+        const btnPlayGame = document.getElementById('btn-play-game');
+        if (btnPlayGame) {
+            btnPlayGame.addEventListener('click', () => {
+                // 未保存の変更があれば自動保存
+                if (hasAnyUnsavedChanges()) {
+                    saveAndRun(true);
+                }
+
+                // stages.js からステージ配列をパース
+                const parsedStages = parseStagesSafely();
+                if (!parsedStages || !Array.isArray(parsedStages) || parsedStages.length === 0) {
+                    showToast('stages.js の構文エラーを修正してからプレイしてください', 'error');
+                    return;
+                }
+
+                // メモリ（localStorage）に自作ステージを保存
+                try {
+                    localStorage.setItem('hako_custom_stages_data', JSON.stringify(parsedStages));
+                    localStorage.setItem('hako_custom_mode_active', 'true');
+                    localStorage.setItem('hako_custom_stages_timestamp', Date.now().toString());
+                } catch (e) {
+                    console.warn('Failed to save custom stages to localStorage:', e);
+                }
+
+                showToast('ステージを保存しました！ゲームへ移動します...', 'success');
+                setTimeout(() => {
+                    window.location.href = '../index.html?mode=custom';
+                }, 250);
+            });
+        }
+
+        // 左上「ゲームへ」ボタン (公式ゲームへ移動、自作ステージは持ち込まない)
+        const btnBackToGame = document.getElementById('btn-back-to-game');
+        if (btnBackToGame) {
+            btnBackToGame.addEventListener('click', () => {
+                try {
+                    localStorage.removeItem('hako_custom_mode_active');
+                } catch (e) {}
             });
         }
     }

@@ -384,8 +384,8 @@ const STAGES = [
         id: 12,
         title: 'ステージ 12',
         subtitle: '角の紫枠を活かせ',
-        maxBlocks: 7,
-        targetBlocks: 7,
+        maxBlocks: 6,
+        targetBlocks: 6,
         startRow: 1,
         goalRow: 3,
         forbidden: [
@@ -404,7 +404,7 @@ const STAGES = [
         solution: [
             { col: 2, row: 1 }, { col: 3, row: 1 },
             { col: 1, row: 2 }, { col: 3, row: 2 },
-            { col: 1, row: 3 }, { col: 2, row: 3 },
+            { col: 2, row: 3 },
             { col: 1, row: 4 }
         ],
         legends: [

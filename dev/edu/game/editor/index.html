@@ -6,14 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ハコゲーム - Webエディタ</title>
     <link rel="icon" href="../../../../pictures/hako_man_icon.png?v=1" type="image/png">
-    <link rel="stylesheet" href="ide.css?v=28">
-    <link rel="stylesheet" href="sticky-scroll.css?v=28">
-    <link rel="stylesheet" href="docs.css?v=28">
-    <script src="docs-content.js?v=28" defer></script>
-    <script src="linter.js?v=28" defer></script>
-    <script src="sticky-scroll.js?v=28" defer></script>
+    <link rel="stylesheet" href="ide.css?v=39">
+    <link rel="stylesheet" href="sticky-scroll.css?v=40">
+    <link rel="stylesheet" href="docs.css?v=40">
+    <script src="docs-content.js?v=40" defer></script>
+    <script src="linter.js?v=40" defer></script>
+    <script src="sticky-scroll.js?v=40" defer></script>
     <script src="../share-codec.js?v=1" defer></script>
-    <script src="ide.js?v=28" defer></script>
+    <script src="ide.js?v=40" defer></script>
     <script src="share-ui.js?v=1" defer></script>
 </head>
 
@@ -21,7 +21,7 @@
     <!-- ヘッダーツールバー -->
     <header class="studio-header">
         <div class="header-brand-group">
-            <a href="../index.html" id="btn-back-to-game" class="back-game-btn" title="ゲーム画面に戻る">
+            <a href="../index.html?mode=official" id="btn-back-to-game" class="back-game-btn" title="公式ゲーム画面に戻る（自作ステージは持ち込みません）">
                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="19" y1="12" x2="5" y2="12"></line>
                     <polyline points="12 19 5 12 12 5"></polyline>
@@ -54,6 +54,15 @@
         </div>
 
         <div class="header-actions">
+            <!-- ゲームをプレイボタン (自作ステージを持ち込んで本番ゲームを開始) -->
+            <button type="button" id="btn-play-game" class="action-btn play-game-btn" title="作成・変更したステージを本番ゲームに持ち込んでプレイする"
+                aria-label="ゲームをプレイ">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <polygon points="6 4 20 12 6 20 6 4"></polygon>
+                </svg>
+                <span>ゲームをプレイ</span>
+            </button>
+
             <!-- ステージ共有ボタン -->
             <button type="button" id="btn-open-share" class="action-btn secondary-btn" title="選んだステージ(最大3つ)を共有URLにする"
                 aria-label="ステージを共有">
@@ -352,8 +361,8 @@
                     </span>
                 </button>
                 <div class="sidebar-build-meta" id="sidebar-build-meta" title="システムバージョン">
-                    <span class="build-badge">v3.2</span>
-                    <span class="build-time">11.3 17:30</span>
+                    <span class="build-badge">v4.0</span>
+                    <span class="build-time">11.4 21:30</span>
                 </div>
             </div>
         </aside>
@@ -558,7 +567,7 @@
         <section class="studio-preview-pane" id="preview-pane">
             <!-- ゲームプレビュー (縦100%) -->
             <div class="preview-stage-container" id="preview-stage">
-                <iframe class="preview-iframe" id="preview-iframe" title="ゲームプレビュー" src="../index.html?v=28"></iframe>
+                <iframe class="preview-iframe" id="preview-iframe" title="ゲームプレビュー" src="../index.html?v=39"></iframe>
             </div>
 
             <!-- プレビュー下部クイックヒントバー -->

@@ -28,6 +28,10 @@ const KEY_MAP = [
 
 // MARK: - Stage State
 let currentStageIndex = 0; // デフォルトはステージ 1 (index 0)
+let OFFICIAL_STAGES = null;
+if (typeof STAGES !== 'undefined' && Array.isArray(STAGES)) {
+    OFFICIAL_STAGES = JSON.parse(JSON.stringify(STAGES));
+}
 
 function getStage() {
     return STAGES[currentStageIndex];
@@ -69,6 +73,9 @@ let slidingBlocks = [];
 let blockAnimationRounds = [];
 let currentRoundIndex = 0;
 let roundStartTime = null;
+let pendingSupernova = null;
+let supernovaState = null;
+let explosionMessageTimer = null;
 
 function makeMan() {
     const st = getStage();
@@ -154,7 +161,7 @@ function areBlocksConnected() {
     return visited.size === blocks.length;
 }
 
-function updateBlockBadge() {
+function updateBlockBadge(preserveStatus = false) {
     if (!blockCountVal) return;
     const placed = countPlacedBlocks();
     const st = getStage();
@@ -167,9 +174,14 @@ function updateBlockBadge() {
         blockCountVal.classList.remove('limit');
     }
 
-    if (phase === 'place' && statusBar) {
+    if (phase === 'place' && statusBar && !preserveStatus) {
         if (!showSolution) {
-            statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
+            const { supernova } = simulateGimmickBlockMoves();
+            if (supernova) {
+                statusBar.innerHTML = '<span class="status-place">このまま開始すると爆発します</span>';
+            } else {
+                statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
+            }
         }
     }
 }
@@ -179,6 +191,10 @@ let originalGrid = null;
 
 // MARK: - Normal Block Placement (Does not move until Start)
 function placeBlock(col, row) {
+    if (explosionMessageTimer) {
+        clearTimeout(explosionMessageTimer);
+        explosionMessageTimer = null;
+    }
     if (grid[row][col]) {
         grid[row][col] = false;
         actionHistory.push({ row, col, remove: true });
@@ -191,7 +207,7 @@ function placeBlock(col, row) {
         statusBar.innerHTML = '<span class="status-fail">赤の斜線のマスには配置できません！</span>';
         setTimeout(() => {
             if (phase === 'place') {
-                statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
+                updateBlockBadge();
             }
         }, 1200);
         return;
@@ -202,7 +218,7 @@ function placeBlock(col, row) {
         statusBar.innerHTML = `<span class="status-fail">ブロックは最大${max}個までです！</span>`;
         setTimeout(() => {
             if (phase === 'place') {
-                statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
+                updateBlockBadge();
             }
         }, 1200);
         return;
@@ -214,237 +230,229 @@ function placeBlock(col, row) {
     render();
 }
 
-// MARK: - Gimmick Block Movements at Start (連鎖・複数ステップ・トポロジカル依存解決対応シミュレーション)
+// MARK: - Gimmick Block Movements at Start (離散時間並行シミュレーション・玉突き停止・超新星爆発対応)
 function simulateGimmickBlockMoves() {
     const st = getStage();
-    const rounds = [];
     // シミュレーション作業用の一時グリッド
     const simGrid = grid.map(r => [...r]);
 
-    // 初期ブロックが去ったギミックマスの記録（後から通過するブロックが誤って乗っ取られないようにする）
-    const vacatedGimmickCells = new Set();
+    // 初期配置でブロックが置かれていた step ギミックを記録
+    // （ブロックが退避射出された後は通常床とし、後続ブロックを曲げずに直進させる安全弁）
+    const consumedStepGimmicks = new Set();
 
-    const maxRounds = 20;
-    let roundCount = 0;
+    const blocks = [];
+    let idCounter = 1;
 
-    while (roundCount < maxRounds) {
-        roundCount++;
-        // 矢印ギミック（step または dash）の上にブロックが乗っているか？
-        const candidateMoves = [];
-        for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c < COLS; c++) {
-                if (simGrid[r][c]) {
-                    const g = getGimmick(c, r);
-                    if (g && (g.type === 'step' || g.type === 'dash')) {
-                        candidateMoves.push({
-                            gimmick: g,
-                            fromCol: c,
-                            fromRow: r
-                        });
-                    }
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (simGrid[r][c]) {
+                const g = getGimmick(c, r);
+                const hasMove = g && (g.type === 'step' || g.type === 'dash');
+                if (hasMove && g.type === 'step') {
+                    consumedStepGimmicks.add(`${c},${r}`);
                 }
+                blocks.push({
+                    id: idCounter++,
+                    col: c,
+                    row: r,
+                    originCol: c,
+                    originRow: r,
+                    dir: hasMove ? g.dir : null,
+                    mode: hasMove ? g.type : null,
+                    remainingSteps: hasMove ? ((g.type === 'step') ? (g.steps || 1) : Infinity) : 0,
+                    isMoving: hasMove,
+                    path: [{ col: c, row: r }]
+                });
             }
         }
+    }
 
-        if (candidateMoves.length === 0) {
-            // 動くブロックがもうない -> シミュレーション完了
-            break;
-        }
+    const maxTicks = 40;
+    let tickCount = 0;
+    let supernova = null;
 
-        // 初期配置でブロックが置かれていたギミックマスを記録
-        candidateMoves.forEach(m => {
-            vacatedGimmickCells.add(`${m.fromCol},${m.fromRow}`);
+    while (tickCount < maxTicks) {
+        tickCount++;
+        const movingBlocks = blocks.filter(b => b.isMoving);
+        if (movingBlocks.length === 0) break;
+
+        // 次の希望マスを計算
+        const intentions = new Map();
+        movingBlocks.forEach(b => {
+            let nc = b.col;
+            let nr = b.row;
+            if (b.dir === 'right') nc++;
+            else if (b.dir === 'left') nc--;
+            else if (b.dir === 'up') nr--;
+            else if (b.dir === 'down') nr++;
+            intentions.set(b.id, { nc, nr });
         });
 
-        // 1. step（緑：1マス退避）を優先して動かし、その後 dash（水色：端まで滑る）を動かす
-        const stepMoves = candidateMoves.filter(m => m.gimmick.type === 'step');
-        const dashMoves = candidateMoves.filter(m => m.gimmick.type === 'dash');
-
-        // stepMoves 内での依存関係解決（トポロジカルソート）
-        const orderSteps = (group) => {
-            if (group.length <= 1) return group;
-            const inDegree = new Map();
-            const adj = new Map();
-            group.forEach(m => {
-                const key = `${m.fromCol},${m.fromRow}`;
-                inDegree.set(key, 0);
-                adj.set(key, []);
-            });
-
-            for (let i = 0; i < group.length; i++) {
-                const mA = group[i];
-                const keyA = `${mA.fromCol},${mA.fromRow}`;
-                for (let j = 0; j < group.length; j++) {
-                    if (i === j) continue;
-                    const mB = group[j];
-                    const keyB = `${mB.fromCol},${mB.fromRow}`;
-
-                    let inLine = false;
-                    if (mA.gimmick.dir === 'right' && mB.fromRow === mA.fromRow && mB.fromCol > mA.fromCol) inLine = true;
-                    if (mA.gimmick.dir === 'left' && mB.fromRow === mA.fromRow && mB.fromCol < mA.fromCol) inLine = true;
-                    if (mA.gimmick.dir === 'down' && mB.fromCol === mA.fromCol && mB.fromRow > mA.fromRow) inLine = true;
-                    if (mA.gimmick.dir === 'up' && mB.fromCol === mA.fromCol && mB.fromRow < mA.fromRow) inLine = true;
-
-                    if (inLine) {
-                        adj.get(keyB).push(keyA);
-                        inDegree.set(keyA, inDegree.get(keyA) + 1);
-                    }
-                }
+        // 1. 盤面外に出ようとするブロックは停止
+        movingBlocks.forEach(b => {
+            const dest = intentions.get(b.id);
+            if (dest.nc < 0 || dest.nc >= COLS || dest.nr < 0 || dest.nr >= ROWS) {
+                b.isMoving = false;
+                intentions.delete(b.id);
             }
+        });
 
-            const stepDirOrder = { up: 0, down: 1, right: 2, left: 3 };
-            const compareMoves = (a, b) => {
-                const d = stepDirOrder[a.gimmick.dir] - stepDirOrder[b.gimmick.dir];
-                if (d !== 0) return d;
-                if (a.gimmick.dir === 'right') return b.fromCol - a.fromCol;
-                if (a.gimmick.dir === 'left') return a.fromCol - b.fromCol;
-                if (a.gimmick.dir === 'up') return a.fromRow - b.fromRow;
-                return b.fromRow - a.fromRow;
-            };
-
-            const ready = group.filter(m => inDegree.get(`${m.fromCol},${m.fromRow}`) === 0);
-            ready.sort(compareMoves);
-
-            const ordered = [];
-            while (ready.length > 0) {
-                const u = ready.shift();
-                ordered.push(u);
-                const uKey = `${u.fromCol},${u.fromRow}`;
-                adj.get(uKey).forEach(vKey => {
-                    inDegree.set(vKey, inDegree.get(vKey) - 1);
-                    if (inDegree.get(vKey) === 0) {
-                        const mV = group.find(m => `${m.fromCol},${m.fromRow}` === vKey);
-                        ready.push(mV);
-                        ready.sort(compareMoves);
+        // 2-A. 静止ブロックとの衝突による玉突き停止を収束させる
+        const resolveStoppedQueue = () => {
+            let changed = true;
+            while (changed) {
+                changed = false;
+                const stoppedCells = new Set();
+                blocks.forEach(b => {
+                    if (!b.isMoving) {
+                        stoppedCells.add(`${b.col},${b.row}`);
+                    }
+                });
+                movingBlocks.forEach(b => {
+                    if (!b.isMoving) return;
+                    const dest = intentions.get(b.id);
+                    if (!dest) return;
+                    if (stoppedCells.has(`${dest.nc},${dest.nr}`)) {
+                        b.isMoving = false;
+                        intentions.delete(b.id);
+                        changed = true;
                     }
                 });
             }
-            group.forEach(m => {
-                if (!ordered.includes(m)) ordered.push(m);
-            });
-            return ordered;
         };
+        resolveStoppedQueue();
 
-        // dashMoves は端から外側へ障害物衝突を判定する自然なソート
-        const sortDashes = (arr) => {
-            const r = arr.filter(m => m.gimmick.dir === 'right').sort((a, b) => b.fromCol - a.fromCol);
-            const l = arr.filter(m => m.gimmick.dir === 'left').sort((a, b) => a.fromCol - b.fromCol);
-            const u = arr.filter(m => m.gimmick.dir === 'up').sort((a, b) => a.fromRow - b.fromRow);
-            const d = arr.filter(m => m.gimmick.dir === 'down').sort((a, b) => b.fromRow - a.fromRow);
-            return [...r, ...l, ...u, ...d];
-        };
+        // 2-B. 同一マスへの複数進入競合・正面すれ違い衝突（禁忌：超新星爆発の検知）
+        const targetGroups = new Map();
+        movingBlocks.forEach(b => {
+            if (b.isMoving && intentions.has(b.id)) {
+                const dest = intentions.get(b.id);
+                const k = `${dest.nc},${dest.nr}`;
+                if (!targetGroups.has(k)) targetGroups.set(k, []);
+                targetGroups.get(k).push(b);
+            }
+        });
 
-        const orderedMoves = [...orderSteps(stepMoves), ...sortDashes(dashMoves)];
-        const roundMoves = [];
+        let collisionOccurred = false;
 
-        orderedMoves.forEach(m => {
-            const g = m.gimmick;
-            const originCol = m.fromCol;
-            const originRow = m.fromRow;
-
-            // すでに他のブロックが移動してこのマスが変わっていないか確認
-            if (!simGrid[originRow][originCol]) return;
-
-            // 一旦自身を simGrid から外す
-            simGrid[originRow][originCol] = false;
-
-            let curC = originCol;
-            let curR = originRow;
-            let currentDir = g.dir;
-            let currentMode = g.type; // 'dash' または 'step'
-            let remainingSteps = (currentMode === 'step') ? (g.steps || 1) : Infinity;
-
-            const path = [{ col: curC, row: curR }];
-            const visited = new Set();
-            visited.add(`${curC},${curR},${currentDir},${currentMode}`);
-
-            const maxTotalSteps = COLS * ROWS * 2;
-            let totalStepsTaken = 0;
-
-            while (totalStepsTaken < maxTotalSteps) {
-                let nextC = curC;
-                let nextR = curR;
-                if (currentDir === 'right') nextC++;
-                else if (currentDir === 'left') nextC--;
-                else if (currentDir === 'up') nextR--;
-                else if (currentDir === 'down') nextR++;
-
-                // 壁（グリッド境界）に衝突
-                if (nextC < 0 || nextC >= COLS || nextR < 0 || nextR >= ROWS) {
-                    break;
+        // 同一マスで2個以上のブロックが交わる場合
+        for (const [destKey, group] of targetGroups.entries()) {
+            if (group.length > 1) {
+                const [nc, nr] = destKey.split(',').map(Number);
+                if (!supernova) {
+                    supernova = {
+                        col: nc,
+                        row: nr,
+                        tick: tickCount,
+                        colliders: group.map(b => ({
+                            id: b.id,
+                            originCol: b.originCol,
+                            originRow: b.originRow,
+                            fromCol: b.col,
+                            fromRow: b.row
+                        }))
+                    };
                 }
-                // 他のブロックに衝突（※赤斜線 isForbidden は通過・停止可能）
-                if (simGrid[nextR][nextC]) {
-                    break;
-                }
+                group.forEach(b => {
+                    b.isMoving = false;
+                    intentions.delete(b.id);
+                });
+                collisionOccurred = true;
+            }
+        }
 
-                // 1マス進む
-                curC = nextC;
-                curR = nextR;
-                path.push({ col: curC, row: curR });
-                totalStepsTaken++;
-
-                // 移動先のマスにギミックがあるかチェック
-                const tileKey = `${curC},${curR}`;
-                const tileGimmick = getGimmick(curC, curR);
-                const isVacated = vacatedGimmickCells.has(tileKey);
-
-                // 初期配置ブロックが去った後のマスは通過用とし、未消費の正規ギミックのみ連鎖発動
-                if (tileGimmick && tileGimmick.type && !isVacated) {
-                    if (tileGimmick.type === 'step') {
-                        currentDir = tileGimmick.dir;
-                        currentMode = 'step';
-                        remainingSteps = tileGimmick.steps || 1;
-                    } else if (tileGimmick.type === 'dash') {
-                        currentDir = tileGimmick.dir;
-                        currentMode = 'dash';
-                        remainingSteps = Infinity;
+        // 正面すれ違い衝突（AがBの位置へ、BがAの位置へ同時に進もうとした場合）
+        movingBlocks.forEach(b => {
+            if (!b.isMoving || !intentions.has(b.id)) return;
+            const dest = intentions.get(b.id);
+            const other = blocks.find(ob => ob.id !== b.id && ob.isMoving && ob.col === dest.nc && ob.row === dest.nr);
+            if (other && intentions.has(other.id)) {
+                const otherDest = intentions.get(other.id);
+                if (otherDest.nc === b.col && otherDest.nr === b.row) {
+                    if (!supernova) {
+                        supernova = {
+                            col: (b.col + other.col) / 2,
+                            row: (b.row + other.row) / 2,
+                            tick: tickCount,
+                            colliders: [
+                                { id: b.id, originCol: b.originCol, originRow: b.originRow, fromCol: b.col, fromRow: b.row },
+                                { id: other.id, originCol: other.originCol, originRow: other.originRow, fromCol: other.col, fromRow: other.row }
+                            ]
+                        };
                     }
+                    b.isMoving = false;
+                    other.isMoving = false;
+                    intentions.delete(b.id);
+                    intentions.delete(other.id);
+                    collisionOccurred = true;
+                }
+            }
+        });
+
+        // 交差停止が発生した場合、その後続ブロックも玉突き停止させる
+        if (collisionOccurred) {
+            resolveStoppedQueue();
+        }
+
+        // 動けるブロックを1マス進める
+        blocks.forEach(b => {
+            if (b.isMoving && intentions.has(b.id)) {
+                const dest = intentions.get(b.id);
+                b.col = dest.nc;
+                b.row = dest.nr;
+                b.path.push({ col: b.col, row: b.row });
+
+                // 移動先マスのギミック判定
+                const g = getGimmick(b.col, b.row);
+                const isConsumedStep = g && g.type === 'step' && consumedStepGimmicks.has(`${b.col},${b.row}`);
+
+                if (g && (g.type === 'step' || g.type === 'dash') && !isConsumedStep) {
+                    b.dir = g.dir;
+                    b.mode = g.type;
+                    b.remainingSteps = (g.type === 'step') ? (g.steps || 1) : Infinity;
                 } else {
-                    // 通常マス（または退避後の空きマス）
-                    if (currentMode === 'step') {
-                        remainingSteps--;
-                        if (remainingSteps <= 0) {
-                            break;
+                    if (b.mode === 'step') {
+                        b.remainingSteps--;
+                        if (b.remainingSteps <= 0) {
+                            b.isMoving = false;
                         }
                     }
                 }
-
-                // ループ検知
-                const stateKey = `${curC},${curR},${currentDir},${currentMode}`;
-                if (visited.has(stateKey)) {
-                    break;
-                }
-                visited.add(stateKey);
-            }
-
-            const destCol = curC;
-            const destRow = curR;
-
-            // 最終位置にブロックを配置
-            simGrid[destRow][destCol] = true;
-
-            if (destCol !== originCol || destRow !== originRow) {
-                roundMoves.push({
-                    fromCol: originCol,
-                    fromRow: originRow,
-                    toCol: destCol,
-                    toRow: destRow,
-                    path: path,
-                    duration: Math.max(220, (path.length - 1) * 90)
-                });
+            } else {
+                // 静止中または停止したブロックは現在位置をパスに追加（全ブロックのパス長を同期）
+                b.path.push({ col: b.col, row: b.row });
             }
         });
-
-        if (roundMoves.length === 0) {
-            // このラウンドで動けたブロックがない -> 終了
-            break;
-        }
-
-        rounds.push(roundMoves);
     }
 
-    return { rounds, finalGrid: simGrid };
+    // 最終盤面の作成
+    const finalGrid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    blocks.forEach(b => {
+        finalGrid[b.row][b.col] = true;
+    });
+
+    // 実際に1マス以上移動したブロックのみをアニメーション対象にする
+    const actualMoves = [];
+    const maxSteps = tickCount;
+    const stepDuration = 100;
+    const totalDuration = Math.max(260, maxSteps * stepDuration);
+
+    blocks.forEach(b => {
+        if (b.col !== b.originCol || b.row !== b.originRow) {
+            actualMoves.push({
+                fromCol: b.originCol,
+                fromRow: b.originRow,
+                toCol: b.col,
+                toRow: b.row,
+                path: b.path,
+                duration: totalDuration
+            });
+        }
+    });
+
+    const rounds = actualMoves.length > 0 ? [actualMoves] : [];
+
+    return { rounds, finalGrid, supernova };
 }
 
 function animateBlockMove(ts) {
@@ -464,9 +472,11 @@ function animateBlockMove(ts) {
     renderBlockMoveState(currentMoves, roundProgress);
 
     if (roundProgress >= 1) {
-        // このラウンドの移動を実際の grid に反映
+        // このラウンドの移動を実際の grid に反映（退避先と出発地が重なる玉突き事故防止のため2段階で反映）
         currentMoves.forEach(m => {
             grid[m.fromRow][m.fromCol] = false;
+        });
+        currentMoves.forEach(m => {
             grid[m.toRow][m.toCol] = true;
         });
 
@@ -535,8 +545,555 @@ function finishBlockMove() {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
     blockAnimationRounds = [];
     currentRoundIndex = 0;
+
+    // 2つのブロックが一点で交わる禁忌（超新星爆発）が発生している場合はキャラ移動直前に発動
+    if (pendingSupernova) {
+        const sn = pendingSupernova;
+        pendingSupernova = null;
+        startSupernova(sn);
+        return;
+    }
+
     statusBar.innerHTML = '<span class="status-run"> GO GO GO!!</span>';
     startRun();
+}
+
+// MARK: - Supernova Animation (禁忌：2つのブロックが一点で交わる際の超新星爆発演出)
+function startSupernova(supernovaData) {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    phase = 'supernova';
+    startBtn.disabled = true;
+
+    // 爆発によってステージ上のブロックをすべて消去するため、バックアップも破棄
+    originalGrid = null;
+
+    supernovaState = {
+        col: supernovaData.col,
+        row: supernovaData.row,
+        colliders: supernovaData.colliders,
+        startTime: performance.now(),
+        exploded: false,
+        particles: [],
+        debris: []
+    };
+
+    if (statusBar) {
+        statusBar.innerHTML = '<span class="status-fail">禁忌発生... 2つのブロックが一点で交わっています</span>';
+    }
+    if (hintText) {
+        hintText.textContent = '同じ点へ同時に向かうブロックが干渉を起こしています...';
+    }
+
+    animId = requestAnimationFrame(animateSupernova);
+}
+
+function spawnSupernovaExplosionParticles(cx, cy) {
+    if (!supernovaState) return;
+    const colors = ['#ffffff', '#ffffff', '#67e8f9', '#fde047', '#f0abfc', '#fb923c', '#38bdf8'];
+    for (let i = 0; i < 85; i++) {
+        const angle = (Math.PI * 2 * i) / 85 + (Math.random() - 0.5) * 0.25;
+        const speed = 2.2 + Math.random() * 11.5;
+        supernovaState.particles.push({
+            x: cx,
+            y: cy,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 2.5 + Math.random() * 6.5,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            alpha: 1.0,
+            decay: 0.012 + Math.random() * 0.018
+        });
+    }
+    for (let i = 0; i < 24; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 3.0 + Math.random() * 9.0;
+        supernovaState.debris.push({
+            x: cx,
+            y: cy,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 1.5,
+            size: 5 + Math.random() * 8,
+            rot: Math.random() * Math.PI * 2,
+            vRot: (Math.random() - 0.5) * 0.35,
+            alpha: 1.0
+        });
+    }
+}
+
+function drawSupernovaBlock(col, row, whiteRatio, offsetX, offsetY, scale) {
+    const cx = GX + (col + 0.5) * CELL + (offsetX || 0);
+    const cy = GY + (row + 0.5) * CELL + (offsetY || 0);
+    const sc = scale || 1.0;
+    const p = 2;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(sc, sc);
+
+    if (whiteRatio > 0.05) {
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 28 * whiteRatio;
+    }
+
+    const half = CELL / 2;
+    const x = -half;
+    const y = -half;
+
+    // 通常のレンガブロック描画
+    ctx.fillStyle = '#e8a020';
+    ctx.fillRect(x + p, y + p, CELL - p * 2, CELL - p * 2);
+    ctx.fillStyle = '#f8c860';
+    ctx.fillRect(x + p, y + p, CELL - p * 2, 5);
+    ctx.fillRect(x + p, y + p, 5, CELL - p * 2);
+    ctx.strokeStyle = '#c06010';
+    ctx.lineWidth = p;
+    ctx.strokeRect(x + p, y + p, CELL - p * 2, CELL - p * 2);
+
+    ctx.strokeStyle = '#c06010';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + CELL / 2, y + p);
+    ctx.lineTo(x + CELL / 2, y + CELL / 2);
+    ctx.moveTo(x + p, y + CELL / 2);
+    ctx.lineTo(x + CELL - p, y + CELL / 2);
+    ctx.stroke();
+
+    // 白熱化オーバーレイ（振動しながら白くなり融合していく演出）
+    if (whiteRatio > 0) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, whiteRatio)})`;
+        ctx.fillRect(x + p, y + p, CELL - p * 2, CELL - p * 2);
+        if (whiteRatio > 0.5) {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${Math.min(1, (whiteRatio - 0.5) * 2)})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x + 1, y + 1, CELL - 2, CELL - 2);
+        }
+    }
+
+    ctx.restore();
+}
+
+function animateSupernova(ts) {
+    if (phase !== 'supernova' || !supernovaState) return;
+
+    const now = ts || performance.now();
+    const elapsed = Math.max(0, now - supernovaState.startTime);
+
+    const APPROACH_END = 1200; // 0.0s〜1.2s: カメラが交点へ寄り、2つのブロックがゆっくり互いに近づく
+    const FUSION_END = 2350;   // 1.2s〜2.35s: 激しく振動しながら白くなり、互いに融合する
+    const TOTAL_END = 5050;    // 爆発＆吹っ飛び → 1秒後土管から生えて落下着地完了
+
+    const focusX = GX + (supernovaState.col + 0.5) * CELL;
+    const focusY = GY + (supernovaState.row + 0.5) * CELL;
+
+    if (elapsed >= FUSION_END && !supernovaState.exploded) {
+        supernovaState.exploded = true;
+        // ステージ上のブロックを全て消去
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                grid[r][c] = false;
+            }
+        }
+        updateBlockBadge(true);
+        spawnSupernovaExplosionParticles(focusX, focusY);
+        if (statusBar) {
+            statusBar.innerHTML = '<span class="status-fail">爆発が発生しました！！ステージ上のブロックが全て消滅しました。</span>';
+        }
+    }
+
+    renderSupernovaState(elapsed, APPROACH_END, FUSION_END, TOTAL_END, focusX, focusY);
+
+    if (elapsed >= TOTAL_END) {
+        finishSupernova();
+    } else {
+        animId = requestAnimationFrame(animateSupernova);
+    }
+}
+
+// 土管の奥側に配置し、土管の開口部からニュッとせり上がる演出
+function drawSupernovaStickmanBehind(elapsed, APPROACH_END, FUSION_END) {
+    const BLOW_START = FUSION_END + 200;    // 爆発0.2秒後に吹っ飛び開始 (2550ms)
+    const BLOW_END = BLOW_START + 470;      // 3020ms
+    const EMERGE_START = BLOW_END + 1000;   // 吹っ飛んでから1秒後 (4020ms) に復活開始
+    const EMERGE_RISE_END = EMERGE_START + 450; // 4470ms: 土管の開口部までせり上がり完了
+
+    if (elapsed >= EMERGE_START && elapsed < EMERGE_RISE_END) {
+        const st = getStage();
+        const px = GX - 78;
+        const pw = 60;
+        const pipeTopY = GY + st.startRow * CELL + 2;
+        const groundY = GY + (st.startRow + 1) * CELL;
+        const pipeCx = GX - 48; // 土管の中心X
+
+        const et = (elapsed - EMERGE_START) / (EMERGE_RISE_END - EMERGE_START);
+        // 滑らかなせり上がりイージング
+        const ease = et < 0.5 ? 2 * et * et : 1 - Math.pow(-2 * et + 2, 2) / 2;
+
+        // 身長約66px。最初(et=0)は足元が pipeTopY + 66 (頭のてっぺんだけが土管の穴にある)
+        // et=1 で足元が pipeTopY + 2 (足が土管の口のすぐ内側) までせり上がる
+        const curBot = pipeTopY + 66 - ease * 64;
+        const stretchY = 1 + 0.12 * Math.sin(et * Math.PI);
+        const stretchX = 1 - 0.08 * Math.sin(et * Math.PI);
+
+        ctx.save();
+        // 土管の開口部幅に合わせてクリップし、土管の奥から綺麗にせり出す
+        ctx.beginPath();
+        ctx.rect(px - 4, 0, pw + 8, groundY);
+        ctx.clip();
+        ctx.translate(pipeCx, curBot);
+        ctx.scale(stretchX, stretchY);
+        renderStickmanToContext(ctx, 0, 0, 0, false);
+        ctx.restore();
+    }
+}
+
+// 土管からポンと跳び出して地面へ着地する演出
+function drawSupernovaStickmanFront(elapsed, APPROACH_END, FUSION_END) {
+    const st = getStage();
+    const startCx = GX + (-1.5 + 0.5) * CELL; // 52
+    const startBot = GY + (st.startRow + 1) * CELL; // 地面の草の上面
+    const pipeTopY = GY + st.startRow * CELL + 2;
+    const pipeCx = GX - 48; // 60
+
+    const BLOW_START = FUSION_END + 200;    // 2550ms
+    const BLOW_END = BLOW_START + 470;      // 3020ms
+    const EMERGE_START = BLOW_END + 1000;   // 4020ms
+    const EMERGE_RISE_END = EMERGE_START + 450; // 4470ms
+    const FALL_LAND = EMERGE_RISE_END + 350;    // 4820ms: 地面へジャンプ着地
+    const SETTLE_END = FALL_LAND + 180;         // 5000ms: 着地後のスクワッシュ屈伸立ち直り
+
+    if (elapsed < BLOW_START) {
+        // 爆発前〜爆発直後の0.2秒間：その場で耐える（激しい振動や反動）
+        let trembleX = 0;
+        let trembleY = 0;
+        if (elapsed >= APPROACH_END && elapsed < FUSION_END) {
+            const t2 = (elapsed - APPROACH_END) / (FUSION_END - APPROACH_END);
+            trembleX = Math.sin(elapsed * 0.09) * t2 * 1.5;
+        } else if (elapsed >= FUSION_END && elapsed < BLOW_START) {
+            // 爆発後0.2秒間：爆風の衝撃波を受けてガタガタと大きく揺れる
+            const wt = (elapsed - FUSION_END) / (BLOW_START - FUSION_END);
+            trembleX = Math.sin(elapsed * 0.25) * (1 - wt * 0.2) * 3.5;
+            trembleY = Math.cos(elapsed * 0.3) * (1 - wt * 0.2) * 2.0;
+        }
+        renderStickmanToContext(ctx, startCx + trembleX, startBot + trembleY, 0, false);
+    } else if (elapsed < BLOW_END) {
+        // 爆発時：衝撃波で左上画面外へ回転しながら吹っ飛ばされる
+        const bt = (elapsed - BLOW_START) / (BLOW_END - BLOW_START);
+        const startCy = startBot - 33;
+        const curCx = startCx - bt * 165;
+        const curCy = startCy - bt * 125 + (bt * bt) * 28;
+        const rot = -bt * Math.PI * 4.5;
+
+        ctx.save();
+        ctx.translate(curCx, curCy);
+        ctx.rotate(rot);
+        renderStickmanToContext(ctx, 0, 33, 0, true);
+        ctx.restore();
+    } else if (elapsed < EMERGE_RISE_END) {
+        // 土管の奥側でせり上がり中なので手前側は非表示
+        return;
+    } else if (elapsed < FALL_LAND) {
+        // 土管の口からポンッと飛び出し、手前の地面へ放物線を描いて着地！
+        const jt = (elapsed - EMERGE_RISE_END) / (FALL_LAND - EMERGE_RISE_END);
+        // X座標は土管中心(pipeCx)から定位置(startCx)へ移動
+        const curCx = pipeCx + (startCx - pipeCx) * jt;
+        // Y座標は土管の口から上へ18pxポンと跳ね上がり、重力加速で地面(startBot)へ落ちる
+        const arc = -18 * Math.sin(jt * Math.PI);
+        const gravity = jt * jt;
+        const curBot = pipeTopY + (startBot - pipeTopY) * gravity + arc;
+
+        // 空中を跳んでいる間はジャンプポーズ
+        renderStickmanToContext(ctx, curCx, curBot, 0, true);
+    } else {
+        // 地面着地：1度だけ土煙パーティクルを発生
+        if (supernovaState && !supernovaState.landed) {
+            supernovaState.landed = true;
+            spawnDust(-1.5, st.startRow);
+        }
+
+        // 足裏（startBot）を地面の草の上に完全に接地させたまま、縦のスクワッシュ屈伸で着地衝撃を表現
+        let squash = 1;
+        if (elapsed < SETTLE_END) {
+            const stProgress = (elapsed - FALL_LAND) / (SETTLE_END - FALL_LAND);
+            squash = 1 - Math.sin(stProgress * Math.PI) * 0.10;
+        }
+
+        ctx.save();
+        ctx.translate(startCx, startBot);
+        ctx.scale(1 + (1 - squash) * 0.6, squash);
+        renderStickmanToContext(ctx, 0, 0, 0, false);
+        ctx.restore();
+    }
+}
+
+function renderSupernovaState(elapsed, APPROACH_END, FUSION_END, TOTAL_END, focusX, focusY) {
+    ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
+
+    const EXPLOSION_FX_DURATION = 1300;
+    const PULL_START = FUSION_END - 300; // 2050ms: 爆発の300ms前から先行してカメラを引き始める
+
+    // カメラズームとフォーカス位置の計算
+    let zoom = 1.0;
+    let camRatio = 0.0;
+    let camShakeX = 0;
+    let camShakeY = 0;
+
+    if (elapsed < APPROACH_END) {
+        const t1 = elapsed / APPROACH_END;
+        const ease1 = t1 < 0.5 ? 4 * t1 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 3) / 2;
+        zoom = 1.0 + 1.25 * ease1;
+        camRatio = ease1;
+    } else if (elapsed < PULL_START) {
+        const t2 = (elapsed - APPROACH_END) / (PULL_START - APPROACH_END);
+        zoom = 2.25 + 0.35 * (t2 * t2);
+        camRatio = 1.0;
+        camShakeX = Math.sin(elapsed * 0.08) * t2 * 2.5;
+        camShakeY = Math.cos(elapsed * 0.095) * t2 * 2.5;
+    } else if (elapsed < FUSION_END) {
+        // 爆発直前にカメラワークを先行して素早く広角へ引き戻す
+        const pt = (elapsed - PULL_START) / (FUSION_END - PULL_START);
+        const easePt = pt * pt;
+        zoom = 2.60 - 1.55 * easePt; // 2.60 から 1.05 まで先行して引く
+        camRatio = 1.0 - easePt * 0.95; // フォーカスも全体中央へ戻る
+        camShakeX = Math.sin(elapsed * 0.12) * 3.5;
+        camShakeY = Math.cos(elapsed * 0.14) * 3.5;
+    } else {
+        // 爆発後はほぼ標準倍率（1.0）へ収束
+        const zoomOutT = Math.min(1, (elapsed - FUSION_END) / 100);
+        const easeZoomOut = 1 - Math.pow(1 - zoomOutT, 3);
+        zoom = 1.05 - 0.05 * easeZoomOut;
+        camRatio = 0.05 * (1 - easeZoomOut);
+
+        const shakeT = Math.min(1, (elapsed - FUSION_END) / 950);
+        const shakeDecay = Math.pow(1 - shakeT, 2);
+        camShakeX = Math.sin(elapsed * 0.14) * 14 * shakeDecay;
+        camShakeY = Math.cos(elapsed * 0.17) * 14 * shakeDecay;
+    }
+
+    const baseCenterX = TOTAL_W / 2;
+    const baseCenterY = TOTAL_H / 2;
+    const camTargetX = baseCenterX + (focusX - baseCenterX) * camRatio;
+    const camTargetY = baseCenterY + (focusY - baseCenterY) * camRatio;
+
+    ctx.save();
+    ctx.translate(baseCenterX + camShakeX, baseCenterY + camShakeY);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-camTargetX, -camTargetY);
+
+    // 背景・ステージ要素の描画
+    drawBackground();
+    drawGround();
+    drawGridLines();
+    drawCeiling();
+
+    const st = getStage();
+    st.forbidden.forEach(f => drawForbiddenTile(f.col, f.row));
+    st.gimmicks.forEach(g => drawGimmickTile(g));
+
+    if (!supernovaState.exploded) {
+        // 交差ブロック以外の盤面ブロックを描画
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (grid[r][c]) {
+                    const isCollider = supernovaState.colliders.some(colObj => colObj.fromCol === c && colObj.fromRow === r);
+                    if (!isCollider) {
+                        drawMarioBlock(c, r);
+                    }
+                }
+            }
+        }
+
+        // 交差する2つのブロックの接近・振動・白熱・融合の計算
+        let moveRatio = 0;
+        let whiteRatio = 0;
+        let vibAmp = 0;
+        let blockScale = 1.0;
+
+        if (elapsed < APPROACH_END) {
+            const t1 = elapsed / APPROACH_END;
+            const ease1 = t1 < 0.5 ? 2 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 2) / 2;
+            moveRatio = ease1 * 0.72;
+            whiteRatio = ease1 * 0.12;
+        } else {
+            const t2 = (elapsed - APPROACH_END) / (FUSION_END - APPROACH_END);
+            const fusionT = Math.min(1, t2 / 0.75);
+            moveRatio = 0.72 + 0.28 * (fusionT * fusionT);
+            whiteRatio = Math.min(1, 0.12 + 0.88 * Math.pow(t2, 0.8));
+            vibAmp = (0.04 + 0.11 * Math.sin(t2 * Math.PI)) * CELL;
+            if (t2 > 0.82) {
+                // 爆発直前の重力収縮
+                const shrinkT = (t2 - 0.82) / 0.18;
+                blockScale = 1.0 - 0.22 * shrinkT;
+            }
+        }
+
+        // 融合時の中心エネルギー発光オーラ
+        if (whiteRatio > 0.2) {
+            ctx.save();
+            const auraRadius = CELL * (0.6 + whiteRatio * 0.9);
+            const grad = ctx.createRadialGradient(focusX, focusY, 2, focusX, focusY, auraRadius);
+            grad.addColorStop(0, `rgba(255, 255, 255, ${whiteRatio * 0.9})`);
+            grad.addColorStop(0.5, `rgba(165, 243, 252, ${whiteRatio * 0.5})`);
+            grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(focusX, focusY, auraRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // 2つのブロック（融合完了後は1つに重なる）を描画
+        supernovaState.colliders.forEach((c, idx) => {
+            const curCol = c.fromCol + (supernovaState.col - c.fromCol) * moveRatio;
+            const curRow = c.fromRow + (supernovaState.row - c.fromRow) * moveRatio;
+            const phaseShift = idx * 2.1;
+            const vx = vibAmp > 0 ? Math.sin(elapsed * 0.085 + phaseShift) * vibAmp : 0;
+            const vy = vibAmp > 0 ? Math.cos(elapsed * 0.105 + phaseShift) * vibAmp : 0;
+            drawSupernovaBlock(curCol, curRow, whiteRatio, vx, vy, blockScale);
+        });
+    } else {
+        // 超新星爆発エフェクトの描画
+        const t3 = Math.min(1, (elapsed - FUSION_END) / EXPLOSION_FX_DURATION);
+
+        // 1. 中心コアの巨大な爆発光球
+        if (t3 < 0.75) {
+            ctx.save();
+            const coreProgress = t3 / 0.75;
+            const coreRadius = CELL * (0.8 + coreProgress * 4.8);
+            const coreAlpha = Math.max(0, 1 - coreProgress);
+            const coreGrad = ctx.createRadialGradient(focusX, focusY, 0, focusX, focusY, coreRadius);
+            coreGrad.addColorStop(0, `rgba(255, 255, 255, ${coreAlpha})`);
+            coreGrad.addColorStop(0.35, `rgba(253, 224, 71, ${coreAlpha * 0.85})`);
+            coreGrad.addColorStop(0.7, `rgba(56, 189, 248, ${coreAlpha * 0.5})`);
+            coreGrad.addColorStop(1, 'rgba(168, 85, 247, 0)');
+            ctx.fillStyle = coreGrad;
+            ctx.beginPath();
+            ctx.arc(focusX, focusY, coreRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // 2. 多重衝撃波リング（Shockwave Rings）
+        const rings = [
+            { delay: 0.0, maxR: 380, width: 14, color: '255, 255, 255' },
+            { delay: 0.06, maxR: 310, width: 9, color: '103, 232, 249' },
+            { delay: 0.12, maxR: 240, width: 6, color: '240, 171, 252' }
+        ];
+        rings.forEach(ring => {
+            if (t3 > ring.delay) {
+                const rt = Math.min(1, (t3 - ring.delay) / (1 - ring.delay));
+                const easeR = 1 - Math.pow(1 - rt, 2.5);
+                const radius = easeR * ring.maxR;
+                const alpha = Math.max(0, 1 - rt);
+                ctx.save();
+                ctx.strokeStyle = `rgba(${ring.color}, ${alpha})`;
+                ctx.lineWidth = Math.max(1.5, ring.width * (1 - rt * 0.7));
+                ctx.beginPath();
+                ctx.arc(focusX, focusY, radius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+        });
+
+        // 3. 吹き飛ぶブロックの破片（デブリ）
+        supernovaState.debris.forEach(d => {
+            d.x += d.vx;
+            d.y += d.vy;
+            d.vy += 0.18;
+            d.rot += d.vRot;
+            d.alpha = Math.max(0, 1 - t3 * 1.15);
+            if (d.alpha > 0) {
+                ctx.save();
+                ctx.translate(d.x, d.y);
+                ctx.rotate(d.rot);
+                ctx.globalAlpha = d.alpha;
+                ctx.fillStyle = '#f8c860';
+                ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size);
+                ctx.strokeStyle = '#c06010';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(-d.size / 2, -d.size / 2, d.size, d.size);
+                ctx.restore();
+            }
+        });
+
+        // 4. 超新星エネルギー粒子
+        supernovaState.particles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.96;
+            p.vy *= 0.96;
+            p.alpha = Math.max(0, p.alpha - p.decay);
+            if (p.alpha > 0) {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        });
+    }
+
+    // 1. 土管の奥側にキャラクターを配置（土管の中からニュッと生えてくる）
+    drawSupernovaStickmanBehind(elapsed, APPROACH_END, FUSION_END);
+
+    // 2. 土管とゴールの描画（生えてくる途中のキャラの手前に土管が重なる）
+    drawPipe();
+    drawGoal();
+
+    // 3. 土管の手前側にキャラクターを描画（体が出切った瞬間にクローン生成 → 宙から落下着地）
+    drawSupernovaStickmanFront(elapsed, APPROACH_END, FUSION_END);
+
+    // 着地時の土煙などパーティクルの描画
+    updateAndDrawParticles(ctx);
+
+    ctx.restore();
+
+    // 爆発瞬間の画面全体ホワイトアウト閃光
+    if (supernovaState.exploded) {
+        const t3 = Math.min(1, (elapsed - FUSION_END) / EXPLOSION_FX_DURATION);
+        if (t3 < 0.45) {
+            const flashAlpha = Math.pow(1 - t3 / 0.45, 2) * 0.92;
+            ctx.save();
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+            ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
+            ctx.restore();
+        }
+    }
+}
+
+function finishSupernova() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    supernovaState = null;
+    pendingSupernova = null;
+    slidingBlocks = [];
+    blockAnimationRounds = [];
+    currentRoundIndex = 0;
+
+    // ステージ上のブロックを全て消去し、リセット状態にして再度ユーザーの配置ターンへ戻す
+    grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    actionHistory = [];
+    originalGrid = null;
+    placedBlocksAtStart = 0;
+    gameParticles.length = 0;
+
+    phase = 'place';
+    man = makeMan();
+    startBtn.disabled = false;
+    statusBar.innerHTML = '<span class="status-fail">爆発が発生しました！！ステージ上のブロックが全て消滅しました。</span>';
+    if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
+    updateBlockBadge(true);
+    render();
+
+    // プレイヤー復活から1秒後に元の「ブロックを配置してください」表記に戻す
+    if (explosionMessageTimer) clearTimeout(explosionMessageTimer);
+    explosionMessageTimer = setTimeout(() => {
+        if (phase === 'place' && !showSolution) {
+            updateBlockBadge();
+        }
+    }, 1000);
 }
 
 // MARK: - Drawing Helpers
@@ -578,16 +1135,32 @@ function drawGround() {
 
         // レンガ模様 (Brick lines)
         const bw = 26, bh = 13;
+        const halfW = bw / 2 - 2; // 0.5マスのレンガ幅（11px）
         ctx.fillStyle = '#a05820';
         for (let row = 0; row * bh < totalHeight - 10; row++) {
-            const off = (row % 2) ? bw / 2 : 0;
+            const isStaggered = (row % 2 === 1);
+            const off = isStaggered ? bw / 2 : 0;
             const by = topY + 10 + row * bh;
+            const blockH = Math.min(bh - 2, topY + totalHeight - by - 2);
+            if (blockH <= 0) continue;
+
+            // 通常のフルレンガ
             for (let bx = startX - bw + off; bx < startX + width + bw; bx += bw) {
                 if (bx + 1 >= startX && bx + bw - 1 <= startX + width) {
-                    const blockH = Math.min(bh - 2, topY + totalHeight - by - 2);
-                    if (blockH > 0) {
-                        ctx.fillRect(bx + 1, by + 1, bw - 2, blockH);
-                    }
+                    ctx.fillRect(bx + 1, by + 1, bw - 2, blockH);
+                }
+            }
+
+            // 下地が多く見える行（レンガが少ない行）の両端に0.5マスのレンガを追加
+            if (isStaggered) {
+                // 左端の0.5マスレンガ
+                ctx.fillRect(startX + 1, by + 1, halfW, blockH);
+
+                // 右端の0.5マスレンガ（フルレンガ列の直後に配置）
+                const numFull = Math.floor((width - off) / bw);
+                const rightHalfX = startX + off + numFull * bw + 1;
+                if (rightHalfX + halfW <= startX + width) {
+                    ctx.fillRect(rightHalfX, by + 1, halfW, blockH);
                 }
             }
         }
@@ -804,15 +1377,25 @@ function drawPipe() {
     const st = getStage();
     const px = GX - 78;
     const py = GY + st.startRow * CELL + 2;
-    const pw = 60, ph = CELL - 4;
+    const groundY = GY + (st.startRow + 1) * CELL;
+    const pw = 60;
+    // 地面の草の上面（groundY）にぴったり合わせて高さを決定
+    const ph = groundY - py;
 
+    // 土管の本体
     ctx.fillStyle = '#44aa00';
     ctx.fillRect(px, py, pw, ph);
+
+    // 土管の上リム
     ctx.fillStyle = '#66cc22';
     ctx.fillRect(px - 5, py, pw + 10, 14);
+
+    // 土管の右側の影
     ctx.fillStyle = '#226600';
     ctx.fillRect(px + pw - 10, py, 10, ph);
     ctx.fillRect(px + pw, py, 5, 14);
+
+    // STARTテキスト
     ctx.fillStyle = '#fff';
     ctx.font = '5px "Press Start 2P"';
     ctx.textAlign = 'center';
@@ -994,7 +1577,9 @@ function renderStickmanToContext(targetCtx, cx, bot, walkCycle = 0, isJump = fal
 // Stickman render on main game canvas
 function drawStickman(gx_pos, gy_pos) {
     const cx = GX + (gx_pos + 0.5) * CELL;
-    const bot = GY + (gy_pos + 1) * CELL - 2;
+    // 左側の地面の上は草の上面に、ブロック上はブロック上面に足裏を合わせる
+    const onLeftGround = gx_pos < -0.5 && gy_pos === getStage().startRow;
+    const bot = GY + (gy_pos + 1) * CELL - (onLeftGround ? 0 : 2);
     const isJump = man.state === 'jump';
     renderStickmanToContext(ctx, cx, bot, man.walkCycle, isJump);
 }
@@ -1109,7 +1694,7 @@ function toggleSolution() {
             if (hintText) hintText.textContent = 'オレンジ枠に合わせてブロックを配置してみよう';
         }
     } else {
-        statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
+        updateBlockBadge();
         if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
     }
     render();
@@ -1614,15 +2199,17 @@ function switchView(viewName) {
 }
 
 // MARK: - Cleared Stages Storage
-// 共有URLから開いたステージは localStorage に記録せず、このセッション内のメモリにのみ保持する
+// 共有URLから開いたステージはセッション内メモリに保持し、自作ステージは別キーに分離して記録する
 let sharedMode = false;
 let sharedClearedMemory = [];
 let sharedRecordsMemory = {};
+let customMode = false;
 
 function getClearedStages() {
     if (sharedMode) return sharedClearedMemory;
+    const key = customMode ? 'hako_custom_cleared_stages_v1' : 'hako_cleared_stages';
     try {
-        const val = localStorage.getItem('hako_cleared_stages');
+        const val = localStorage.getItem(key);
         return val ? JSON.parse(val) : [];
     } catch (e) {
         return [];
@@ -1634,8 +2221,9 @@ function markStageCleared(idx) {
     if (!cleared.includes(idx)) {
         cleared.push(idx);
         if (sharedMode) return;
+        const key = customMode ? 'hako_custom_cleared_stages_v1' : 'hako_cleared_stages';
         try {
-            localStorage.setItem('hako_cleared_stages', JSON.stringify(cleared));
+            localStorage.setItem(key, JSON.stringify(cleared));
         } catch (e) {}
     }
 }
@@ -1645,9 +2233,10 @@ const STAGE_RECORDS_KEY = 'hako_stage_records_v2';
 
 function getStageRecords() {
     if (sharedMode) return sharedRecordsMemory;
+    const recordsKey = customMode ? 'hako_custom_stage_records_v1' : STAGE_RECORDS_KEY;
     try {
         let records = {};
-        const raw = localStorage.getItem(STAGE_RECORDS_KEY);
+        const raw = localStorage.getItem(recordsKey);
         if (raw) {
             records = JSON.parse(raw);
         }
@@ -1715,8 +2304,9 @@ function saveStageResult(idx, { cleared, blocksPlaced, usedHint }) {
 
     records[idx] = updated;
     if (!sharedMode) {
+        const recordsKey = customMode ? 'hako_custom_stage_records_v1' : STAGE_RECORDS_KEY;
         try {
-            localStorage.setItem(STAGE_RECORDS_KEY, JSON.stringify(records));
+            localStorage.setItem(recordsKey, JSON.stringify(records));
         } catch (e) {}
     }
 
@@ -1783,15 +2373,22 @@ function updateSelectScreenUI() {
         }
 
         const isAllStars = (starsCount === 3);
-        card.className = `stage-card ${isCleared ? 'cleared' : ''} ${isAllStars ? 'all-stars' : ''}`;
+        const isCustomStage = customMode && (
+            Number(st.id) >= 20 ||
+            Boolean(st.isCustom) ||
+            (OFFICIAL_STAGES && OFFICIAL_STAGES[idx] && JSON.stringify(OFFICIAL_STAGES[idx]) !== JSON.stringify(st))
+        );
+        card.className = `stage-card ${isCleared ? 'cleared' : ''} ${isAllStars ? 'all-stars' : ''} ${isCustomStage ? 'custom-stage-card' : ''}`;
         const stageTitleText = st.title || `ステージ ${st.id}`;
         const hasGimmicks = Array.isArray(st.gimmicks) && st.gimmicks.length > 0;
+        const badgeText = isCustomStage ? '自作' : (hasGimmicks ? 'ギミック有' : '基本');
+        const badgeClass = isCustomStage ? 'stage-card-badge badge-custom' : 'stage-card-badge';
         card.innerHTML = `
             <div class="stage-card-num">${stageTitleText}</div>
             <div class="stage-card-stars">${starSlotsHtml}</div>
             <div class="stage-card-target">目標: ${targetBlocks}個</div>
             <div class="stage-card-blocks">${rec && rec.bestBlocks !== null ? `ベスト: ${rec.bestBlocks}個` : `最大: ${st.maxBlocks}個`}</div>
-            <div class="stage-card-badge">${hasGimmicks ? 'ギミック有' : '基本'}</div>
+            <div class="${badgeClass}">${badgeText}</div>
         `;
         card.addEventListener('click', () => {
             selectStage(idx);
@@ -2007,7 +2604,8 @@ function updateLegendUI() {
 function updateStageNavUI() {
     const curStage = getStage();
     if (stageCurrentTitle && curStage) {
-        stageCurrentTitle.textContent = curStage.title || `ステージ ${curStage.id}`;
+        const isCustom = customMode && (Number(curStage.id) >= 20 || curStage.isCustom);
+        stageCurrentTitle.textContent = (curStage.title || `ステージ ${curStage.id}`) + (isCustom ? ' [自作]' : '');
     }
     if (prevStageBtn) {
         prevStageBtn.disabled = (findValidStageIndex(currentStageIndex, -1) === -1);
@@ -2019,6 +2617,10 @@ function updateStageNavUI() {
 
 function selectStage(idx) {
     if (idx < 0 || idx >= STAGES.length) return;
+    if (explosionMessageTimer) {
+        clearTimeout(explosionMessageTimer);
+        explosionMessageTimer = null;
+    }
     currentStageIndex = idx;
     if (animId) { cancelAnimationFrame(animId); animId = null; }
     grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
@@ -2026,6 +2628,8 @@ function selectStage(idx) {
     slidingBlocks = [];
     blockAnimationRounds = [];
     currentRoundIndex = 0;
+    pendingSupernova = null;
+    supernovaState = null;
     originalGrid = null;
     showSolution = false;
     usedHintInStage = false;
@@ -2050,7 +2654,7 @@ function selectStage(idx) {
 
 function bgLoop() {
     if (currentView === 'game') {
-        if (phase === 'place' || gameParticles.length > 0) {
+        if (phase === 'place' || (phase !== 'supernova' && phase !== 'block_move' && gameParticles.length > 0)) {
             render();
         }
     }
@@ -2280,39 +2884,42 @@ window.addEventListener('DOMContentLoaded', () => {
     function triggerStart() {
         if (phase !== 'place') return;
 
-        // 紫枠（必須設置）のチェック
-        const st = getStage();
-        const requiredGimmicks = st.gimmicks.filter(g => g.purpleBorder);
-        const missingRequired = requiredGimmicks.filter(g => !grid[g.row][g.col]);
-        if (missingRequired.length > 0) {
-            statusBar.innerHTML = '<span class="status-fail">紫色の枠には必ずブロックを設置してください！</span>';
-            setTimeout(() => {
-                if (phase === 'place') {
-                    statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
-                }
-            }, 1800);
-            return;
-        }
+        // スタート直後のブロック移動と超新星爆発（2ブロック交差）の事前シミュレーション
+        const { rounds, supernova } = simulateGimmickBlockMoves();
 
-        // ブロック同士の連結チェック (2個以上の場合はひっついておく必要がある)
-        if (!areBlocksConnected()) {
-            statusBar.innerHTML = '<span class="status-fail">ブロック同士をすべてくっつけて配置してください！</span>';
-            setTimeout(() => {
-                if (phase === 'place') {
-                    updateBlockBadge();
-                }
-            }, 2000);
-            return;
+        // 超新星爆発が発生しない通常時は、紫枠（必須設置）とブロック連結ルールをチェック
+        if (!supernova) {
+            const st = getStage();
+            const requiredGimmicks = st.gimmicks.filter(g => g.purpleBorder);
+            const missingRequired = requiredGimmicks.filter(g => !grid[g.row][g.col]);
+            if (missingRequired.length > 0) {
+                statusBar.innerHTML = '<span class="status-fail">紫色の枠には必ずブロックを設置してください！</span>';
+                setTimeout(() => {
+                    if (phase === 'place') {
+                        updateBlockBadge();
+                    }
+                }, 1800);
+                return;
+            }
+
+            // ブロック同士の連結チェック (2個以上の場合はひっついておく必要がある)
+            if (!areBlocksConnected()) {
+                statusBar.innerHTML = '<span class="status-fail">ブロック同士をすべてくっつけて配置してください！</span>';
+                setTimeout(() => {
+                    if (phase === 'place') {
+                        updateBlockBadge();
+                    }
+                }, 2000);
+                return;
+            }
         }
 
         startBtn.disabled = true;
 
-        // スタート前のブロック配置と個数をバックアップ
+        // スタート前のブロック配置と個数をバックアップ（超新星爆発時は全消去となるため復元しない）
         placedBlocksAtStart = countPlacedBlocks();
-        originalGrid = grid.map(r => [...r]);
-
-        // スタート直後にブロック連鎖移動ギミックをシミュレーション
-        const { rounds } = simulateGimmickBlockMoves();
+        originalGrid = supernova ? null : grid.map(r => [...r]);
+        pendingSupernova = supernova || null;
 
         if (rounds.length > 0) {
             phase = 'block_move';
@@ -2322,6 +2929,10 @@ window.addEventListener('DOMContentLoaded', () => {
             statusBar.innerHTML = '<span class="status-run">ブロック移動中...</span>';
             if (hintText) hintText.textContent = '';
             animId = requestAnimationFrame(animateBlockMove);
+        } else if (pendingSupernova) {
+            const sn = pendingSupernova;
+            pendingSupernova = null;
+            startSupernova(sn);
         } else {
             statusBar.innerHTML = '<span class="status-run"> GO GO GO!!</span>';
             if (hintText) hintText.textContent = '';
@@ -2331,16 +2942,22 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function triggerReset() {
         if (animId) { cancelAnimationFrame(animId); animId = null; }
+        if (explosionMessageTimer) {
+            clearTimeout(explosionMessageTimer);
+            explosionMessageTimer = null;
+        }
         slidingBlocks = [];
         blockAnimationRounds = [];
         currentRoundIndex = 0;
+        pendingSupernova = null;
+        supernovaState = null;
 
         // スタート後（実行中や結果画面）なら、スタート前の配置に復元して再挑戦しやすくする
         if (phase !== 'place' && originalGrid) {
             grid = originalGrid.map(r => [...r]);
             originalGrid = null;
         } else {
-            // 配置中なら全ブロックをクリア
+            // 配置中または超新星爆発後は全ブロックをクリア
             grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
             actionHistory = [];
             originalGrid = null;
@@ -2535,13 +3152,26 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // 自作ステージ復帰ボタンのイベント登録
+    const btnRestoreOfficial = document.getElementById('btnRestoreOfficial');
+    if (btnRestoreOfficial) {
+        btnRestoreOfficial.addEventListener('click', restoreOfficialStages);
+    }
+    const homeRestoreOfficialBtn = document.getElementById('homeRestoreOfficialBtn');
+    if (homeRestoreOfficialBtn) {
+        homeRestoreOfficialBtn.addEventListener('click', restoreOfficialStages);
+    }
+
     // 初期画面はホーム（ただしWebエディタのプレビューiframe内では即座にステージ画面を表示）
     switchView(inEditorPreview ? 'game' : 'home');
 
-    // 共有URL (#トークン) で開かれた場合は、ホームを飛ばして共有ステージを直接開始する
+    // 共有URL (#トークン) または 自作ステージモードの起動判定
     if (!inEditorPreview) {
-        bootSharedStagesFromHash();
+        const isShared = bootSharedStagesFromHash();
         window.addEventListener('hashchange', bootSharedStagesFromHash);
+        if (!isShared) {
+            bootCustomStagesFromStorage();
+        }
     }
 
     // プレビュー内でのサイズ監視と動的レイアウト切替（ボタン大型化＆サイズに応じた自動レイアウト調整）
@@ -2575,15 +3205,97 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // MARK: - External Playground / Editor API
 // 教材ページや外部エディタからステージデータを即時注入してテストするためのAPI
-window.applyCustomStages = function(newStages, targetIndex = 0) {
+window.applyCustomStages = function(newStages, targetIndex = 0, targetView = 'game') {
     if (!Array.isArray(newStages) || newStages.length === 0) return false;
     STAGES.length = 0;
     newStages.forEach(st => STAGES.push(st));
     if (typeof updateSelectScreenUI === 'function') updateSelectScreenUI();
-    if (typeof switchView === 'function') switchView('game');
+    if (typeof switchView === 'function' && targetView) switchView(targetView);
     if (typeof selectStage === 'function') selectStage(Math.max(0, Math.min(targetIndex, STAGES.length - 1)));
     return true;
 };
+
+// MARK: - Custom Stages Management (エディタ連携・自作ステージ持ち込み)
+function updateCustomModeUI() {
+    const banner = document.getElementById('customStagesBanner');
+    const bannerText = document.getElementById('customBannerText');
+    const homeIndicator = document.getElementById('homeCustomIndicator');
+    const gameToEditorBtn = document.getElementById('gameToEditorBtn');
+
+    if (customMode) {
+        if (banner) {
+            banner.style.display = 'flex';
+            if (bannerText) {
+                bannerText.textContent = `エディタで作成・変更したステージを適用中（全 ${STAGES.length} ステージ）`;
+            }
+        }
+        if (homeIndicator) homeIndicator.style.display = 'flex';
+        if (gameToEditorBtn) gameToEditorBtn.style.display = 'inline-flex';
+        document.body.classList.add('custom-stages-active');
+    } else {
+        if (banner) banner.style.display = 'none';
+        if (homeIndicator) homeIndicator.style.display = 'none';
+        if (gameToEditorBtn) gameToEditorBtn.style.display = 'none';
+        document.body.classList.remove('custom-stages-active');
+    }
+}
+
+function restoreOfficialStages() {
+    customMode = false;
+    try {
+        localStorage.removeItem('hako_custom_mode_active');
+    } catch (e) {}
+
+    if (OFFICIAL_STAGES && OFFICIAL_STAGES.length > 0) {
+        window.applyCustomStages(JSON.parse(JSON.stringify(OFFICIAL_STAGES)), 0, null);
+    }
+    try {
+        history.replaceState(null, '', location.pathname);
+    } catch (e) {}
+    updateCustomModeUI();
+    if (typeof updateSelectScreenUI === 'function') updateSelectScreenUI();
+    showSharedNotice('公式ステージに戻しました');
+}
+
+function bootCustomStagesFromStorage() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+
+    // 明示的に公式ゲームが指定された場合（左上「ゲームへ」など）
+    if (mode === 'official') {
+        customMode = false;
+        try {
+            localStorage.removeItem('hako_custom_mode_active');
+        } catch (e) {}
+        updateCustomModeUI();
+        return false;
+    }
+
+    const isCustomActive = (mode === 'custom' || localStorage.getItem('hako_custom_mode_active') === 'true');
+    if (!isCustomActive) {
+        updateCustomModeUI();
+        return false;
+    }
+
+    try {
+        const raw = localStorage.getItem('hako_custom_stages_data');
+        if (!raw) return false;
+        const customStages = JSON.parse(raw);
+        if (!Array.isArray(customStages) || customStages.length === 0) return false;
+
+        customMode = true;
+        window.applyCustomStages(customStages, 0, null);
+
+        // 自作ステージを持ち込んだ場合は、ステージ一覧がすぐ見れるようにステージ選択画面を開く
+        switchView('select');
+        updateCustomModeUI();
+        showSharedNotice('エディタのステージを読み込みました！');
+        return true;
+    } catch (e) {
+        console.warn('Failed to load custom stages:', e);
+        return false;
+    }
+}
 
 window.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'UPDATE_STAGES') {

@@ -239,6 +239,27 @@ body.is-sprite-editor #btn-save {
     color: #ffffff;
 }
 
+/* 「ゲームをプレイ」ボタン (ヘッダーアクション: 鮮やかなインディゴグラデーション) */
+.action-btn.play-game-btn {
+    background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+    border: 1px solid #818cf8;
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.4);
+}
+
+.action-btn.play-game-btn:hover {
+    background: linear-gradient(180deg, #818cf8 0%, #6366f1 100%);
+    border-color: #a5b4fc;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.action-btn.play-game-btn .btn-icon {
+    width: 12px;
+    height: 12px;
+    margin-right: 1px;
+}
+
 /* ── メインワークスペース ── */
 .studio-workspace {
     flex: 1;
@@ -2844,6 +2865,18 @@ body.theme-light .action-btn.secondary-btn:hover {
     background-color: #f6f8fa;
     border-color: #1b1f2426;
     color: #1f2328;
+}
+
+body.theme-light .action-btn.play-game-btn {
+    background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
+    border: 1px solid #4338ca;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3);
+}
+
+body.theme-light .action-btn.play-game-btn:hover {
+    background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+    border-color: #3730a3;
 }
 
 body.theme-light .scale-indicator {
