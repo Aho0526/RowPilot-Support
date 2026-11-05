@@ -120,7 +120,7 @@
             </svg>
           </div>
           <h3>PM5 Connectivity (Practice Tab)</h3>
-          <p>Bluetooth connection to Concept2 rowing ergometers (PM5). Supports workout menu synchronization (send/receive) and multi-erg training. (Requires Manager plan or above)</p>
+          <p>Bluetooth connection to Concept2 rowing ergometers (PM5). Supports sending and receiving target workouts. Multi-erg synchronization requires Manager plan or above.</p>
         </div>
 
         <div class="feat-card" id="feat-rigging">
@@ -285,11 +285,11 @@
             </div>
             <ul class="plan-features">
               <li class="feat-yes">GPS tracking & real-time SPM display</li>
-              <li class="feat-yes">Tide forecasts & weather graphs</li>
+              <li class="feat-yes">Tide forecasts & weather graphs (auto-detect nearest)</li>
               <li class="feat-yes">Unlimited session history</li>
-              <li class="feat-yes">PM5 connection (1-on-1, record workouts)</li>
+              <li class="feat-yes">Two-way communication with 1 PM5</li>
               <li class="feat-yes">Emergency SOS transmission</li>
-              <li class="feat-no">ForceCurve & workout transmission</li>
+              <li class="feat-no">ForceCurve graph display</li>
               <li class="feat-no">Manager mode</li>
             </ul>
             <button class="plan-btn" data-plan="free">View Details</button>
@@ -305,9 +305,9 @@
             <ul class="plan-features">
               <li class="feat-yes">All Free features</li>
               <li class="feat-yes">ForceCurve graph display</li>
-              <li class="feat-yes">PM5 workout send & receive (two-way)</li>
+              <li class="feat-yes">Choose and preview tide observation points nationwide</li>
+              <li class="feat-yes">PM5 connection up to 4 machines (workout sync)</li>
               <li class="feat-yes">Crew management</li>
-              <li class="feat-soon">Strava synchronization (Coming Soon)</li>
               <li class="feat-no">Manager mode</li>
             </ul>
             <button class="plan-btn" data-plan="pro">View Details</button>
@@ -322,7 +322,8 @@
             </div>
             <ul class="plan-features">
               <li class="feat-yes">All Free features</li>
-              <li class="feat-yes">Manager Mode (batch send &amp; receive menus for up to 10 machines)</li>
+              <li class="feat-yes">Manager Mode (batch send & receive menus for up to 10 machines)</li>
+              <li class="feat-yes">Real-time progress monitoring</li>
               <li class="feat-yes">Share progress data with rowers</li>
               <li class="feat-no">Team management features</li>
               <li class="feat-no">Race View</li>
@@ -457,29 +458,57 @@
       // ─ Plan modal ────────────────────────────
       const plans = {
         free: {
-          name: 'RowPilot Free', price: '¥0 JPY (Free)',
+          name: 'RowPilot Free', price: '¥0 JPY / month',
           desc: 'A free plan to get you started. Download and begin training right away.',
-          feats: ['GPS tracking & real-time SPM display', 'Tide forecasts & weather graphs', 'Unlimited session history', 'PM5 connection (1-on-1, record workouts)', 'Emergency SOS transmission']
+          feats: [
+            'GPS tracking & real-time SPM display',
+            'Tide forecasts & weather graphs (auto-detect nearest)',
+            'Unlimited session history',
+            'Two-way communication with 1 PM5',
+            'Emergency SOS transmission'
+          ]
         },
         pro: {
-          name: 'RowPilot Pro', price: '¥600 JPY / month',
+          name: 'RowPilot Pro', price: '¥200 JPY / month',
           desc: 'For advanced individual rowers who want to analyze their records deeply.',
-          feats: ['All Free features', 'ForceCurve graph (visualize stroke force curve)', 'PM5 menu transmission (two-way)', 'Crew management', 'Strava synchronization (Coming Soon)']
+          feats: [
+            'All Free features',
+            'ForceCurve graph display',
+            'Choose and preview tide observation points nationwide',
+            'PM5 connection up to 4 machines (workout sync)',
+            'Crew management'
+          ]
         },
         manager: {
-          name: 'RowPilot Manager', price: '¥900 JPY / month',
+          name: 'RowPilot Manager', price: '¥500 JPY / month',
           desc: 'For managers and coaches who want to streamline erg practices. Connect to up to 10 PM5 ergs simultaneously via Bluetooth.',
-          feats: ['All Free features', 'Manager Mode (batch send & receive menus for up to 10 machines)', 'Real-time progress monitoring dashboard', 'Share progress data with rowers']
+          feats: [
+            'All Free features',
+            'Manager Mode (batch send & receive menus for up to 10 machines)',
+            'Real-time progress monitoring',
+            'Share progress data with rowers'
+          ]
         },
         team: {
-          name: 'RowPilot Team', price: '¥3,000 JPY / month',
+          name: 'RowPilot Team', price: '¥1,000 JPY / month',
           desc: 'For small clubs and school teams. Share manager mode access and manage your team data.',
-          feats: ['All Manager features', 'Grant manager access to up to 3 users', 'Team management up to 30 members', 'Cloud synchronization (Cloudflare D1)']
+          feats: [
+            'All Manager features',
+            'Grant manager access to up to 3 users',
+            'Team management up to 30 members',
+            'Cloud synchronization (Cloudflare D1)'
+          ]
         },
         max: {
-          name: 'RowPilot MAX', price: '¥5,000 JPY / month',
+          name: 'RowPilot MAX', price: '¥3,000 JPY / month',
           desc: 'For mid-sized school teams and clubs. Add competition to your practices with Race View.',
-          feats: ['All Team features', 'Grant manager access to up to 5 users', 'Grant admin access to up to 3 users', 'Team management up to 100 members', 'Race View unlocked']
+          feats: [
+            'All Team features',
+            'Grant manager access to up to 5 users',
+            'Grant admin access to up to 3 users',
+            'Team management up to 100 members',
+            'Race View unlocked'
+          ]
         }
       };
 
