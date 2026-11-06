@@ -6,14 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ハコゲーム - Webエディタ</title>
     <link rel="icon" href="../../../../pictures/hako_man_icon.png?v=1" type="image/png">
-    <link rel="stylesheet" href="ide.css?v=39">
+    <link rel="stylesheet" href="ide.css?v=44">
     <link rel="stylesheet" href="sticky-scroll.css?v=40">
     <link rel="stylesheet" href="docs.css?v=40">
     <script src="docs-content.js?v=40" defer></script>
-    <script src="linter.js?v=42" defer></script>
+    <script src="linter.js?v=44" defer></script>
     <script src="sticky-scroll.js?v=42" defer></script>
     <script src="../share-codec.js?v=1" defer></script>
-    <script src="ide.js?v=42" defer></script>
+    <script src="ide.js?v=52" defer></script>
     <script src="share-ui.js?v=1" defer></script>
 </head>
 
@@ -721,45 +721,21 @@
                                 <span class="palette-icon forb">🚫</span>
                                 <span>赤斜線 (置けない)</span>
                             </button>
-                            <button type="button" class="palette-tool-btn" data-tool="dash-up">
-                                <span class="palette-icon dash">↑</span>
-                                <span>水色ダッシュ ↑</span>
+                            <button type="button" class="palette-tool-btn" data-tool="erase">
+                                <span class="palette-icon erase">🧹</span>
+                                <span>消しゴム</span>
                             </button>
-                            <button type="button" class="palette-tool-btn" data-tool="dash-down">
-                                <span class="palette-icon dash">↓</span>
-                                <span>水色ダッシュ ↓</span>
-                            </button>
-                            <button type="button" class="palette-tool-btn" data-tool="dash-left">
-                                <span class="palette-icon dash">←</span>
-                                <span>水色ダッシュ ←</span>
-                            </button>
-                            <button type="button" class="palette-tool-btn" data-tool="dash-right">
-                                <span class="palette-icon dash">→</span>
-                                <span>水色ダッシュ →</span>
-                            </button>
-                            <button type="button" class="palette-tool-btn" data-tool="step-up">
+                            <button type="button" class="palette-tool-btn" data-tool="step">
                                 <span class="palette-icon step">↑</span>
-                                <span>緑1マス移動 ↑</span>
+                                <span>緑矢印 (1マス移動)</span>
                             </button>
-                            <button type="button" class="palette-tool-btn" data-tool="step-down">
-                                <span class="palette-icon step">↓</span>
-                                <span>緑1マス移動 ↓</span>
-                            </button>
-                            <button type="button" class="palette-tool-btn" data-tool="step-left">
-                                <span class="palette-icon step">←</span>
-                                <span>緑1マス移動 ←</span>
-                            </button>
-                            <button type="button" class="palette-tool-btn" data-tool="step-right">
-                                <span class="palette-icon step">→</span>
-                                <span>緑1マス移動 →</span>
+                            <button type="button" class="palette-tool-btn" data-tool="dash">
+                                <span class="palette-icon dash">↑</span>
+                                <span>青矢印 (端まで移動)</span>
                             </button>
                             <button type="button" class="palette-tool-btn" data-tool="purple">
                                 <span class="palette-icon purple">🟪</span>
                                 <span>紫枠 (必須マス)</span>
-                            </button>
-                            <button type="button" class="palette-tool-btn" data-tool="erase">
-                                <span class="palette-icon erase">🧹</span>
-                                <span>消しゴム</span>
                             </button>
                         </div>
                     </div>

@@ -273,8 +273,8 @@
         var hasPurple = stage.gimmicks.some(function (g) { return g.purpleBorder; });
         var legends = [];
         if (hasForbidden) legends.push({ icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' });
-        if (dash.length) legends.push({ icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' });
-        if (step.length) legends.push({ icon: DIR_ICON[step[0].dir], type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' });
+        if (dash.length) legends.push({ icon: '→', type: 'dash', text: '青矢印：矢印方向に端まで移動' });
+        if (step.length) legends.push({ icon: '→', type: 'step', text: '緑矢印：矢印方向に1マス移動' });
         if (hasPurple) legends.push({ icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' });
         return legends;
     }

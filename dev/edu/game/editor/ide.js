@@ -53,7 +53,7 @@ const STAGES = [
         ],
         legends: [
             { icon: '▨', type: 'forbidden', text: '赤の斜線：ブロックを置けません' },
-            { icon: '←', type: 'dash', text: '水色矢印：左の端まで移動' }
+            { icon: '→', type: 'dash', text: '青矢印：矢印方向に端まで移動' }
         ]
     }
 ];`;
@@ -507,8 +507,8 @@ const STAGES = [
             try {
                 const saved = localStorage.getItem(STORAGE_KEY_PREFIX + key);
                 if (saved) {
-                    // 古い main.js キャッシュ（超新星爆発や土管高さ食い込み版、足場両端0.5マス未搭載、ブラックホール演出未搭載、initDir未搭載）は破棄して最新ファイルを読ませる
-                    if (key === 'main.js' && (!saved.includes('startSupernova') || !saved.includes('startBlackHole') || !saved.includes('initDir') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW'))) {
+                    // 古い main.js キャッシュ（超新星爆発や土管高さ食い込み版、足場両端0.5マス未搭載、ブラックホール演出未搭載、レンガ個別吸引未搭載、矢印くり抜き未搭載）は破棄して最新ファイルを読ませる
+                    if (key === 'main.js' && (!saved.includes('startSupernova') || !saved.includes('startBlackHole') || !saved.includes('drawGroundSuckPieces') || saved.includes('drawGimmickArrowOverlay') || !saved.includes('evenodd') || !saved.includes('LOOP_FREEZE_TIME') || !saved.includes('initDir') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         return;
                     }
@@ -2665,7 +2665,7 @@ const STAGES = [
             btnBackToGame.addEventListener('click', () => {
                 try {
                     localStorage.removeItem('hako_custom_mode_active');
-                } catch (e) {}
+                } catch (e) { }
             });
         }
     }
@@ -3200,6 +3200,7 @@ const STAGES = [
     function applyToolToBuilderCell(row, col) {
         const cell = builderState.cells[row][col];
         const tool = builderState.activeTool;
+        const nextArrowDir = { up: 'right', right: 'down', down: 'left', left: 'up' };
 
         if (tool === 'erase') {
             cell.forbidden = false;
@@ -3213,24 +3214,18 @@ const STAGES = [
         } else if (tool === 'forbidden') {
             cell.forbidden = !cell.forbidden;
             if (cell.forbidden) {
-                cell.dashDir = null;
-                cell.stepDir = null;
                 cell.purpleBorder = false;
                 cell.solution = false;
             }
         } else if (tool === 'purple') {
             cell.purpleBorder = !cell.purpleBorder;
             if (cell.purpleBorder) cell.forbidden = false;
-        } else if (tool.startsWith('dash-')) {
-            const dir = tool.split('-')[1];
-            cell.dashDir = (cell.dashDir === dir) ? null : dir;
+        } else if (tool === 'dash' || tool.startsWith('dash-')) {
+            cell.dashDir = cell.dashDir ? (nextArrowDir[cell.dashDir] || 'up') : 'up';
             cell.stepDir = null;
-            cell.forbidden = false;
-        } else if (tool.startsWith('step-')) {
-            const dir = tool.split('-')[1];
-            cell.stepDir = (cell.stepDir === dir) ? null : dir;
+        } else if (tool === 'step' || tool.startsWith('step-')) {
+            cell.stepDir = cell.stepDir ? (nextArrowDir[cell.stepDir] || 'up') : 'up';
             cell.dashDir = null;
-            cell.forbidden = false;
         }
 
         renderBuilderBoard();
@@ -3358,22 +3353,14 @@ const STAGES = [
         if (usedLegendTypes.has('forbidden')) {
             legendsList.push(`{ icon: '▨', type: 'forbidden', text: '赤の斜線：ブロックを置けません' }`);
         }
-        const dirJP = {
-            up: { icon: '↑', label: '上' },
-            down: { icon: '↓', label: '下' },
-            left: { icon: '←', label: '左' },
-            right: { icon: '→', label: '右' }
-        };
-        ['up', 'down', 'left', 'right'].forEach(d => {
-            if (usedLegendTypes.has('dash:' + d)) {
-                legendsList.push(`{ icon: '${dirJP[d].icon}', type: 'dash', text: '水色矢印：${dirJP[d].label}の端まで移動' }`);
-            }
-        });
-        ['up', 'down', 'left', 'right'].forEach(d => {
-            if (usedLegendTypes.has('step:' + d)) {
-                legendsList.push(`{ icon: '${dirJP[d].icon}', type: 'step', text: '緑色矢印：${dirJP[d].label}に1マス移動' }`);
-            }
-        });
+        const hasDash = ['up', 'down', 'left', 'right'].some(d => usedLegendTypes.has('dash:' + d));
+        if (hasDash) {
+            legendsList.push(`{ icon: '→', type: 'dash', text: '青矢印：矢印方向に端まで移動' }`);
+        }
+        const hasStep = ['up', 'down', 'left', 'right'].some(d => usedLegendTypes.has('step:' + d));
+        if (hasStep) {
+            legendsList.push(`{ icon: '→', type: 'step', text: '緑矢印：矢印方向に1マス移動' }`);
+        }
         if (usedLegendTypes.has('purple')) {
             legendsList.push(`{ icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }`);
         }

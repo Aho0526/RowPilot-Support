@@ -79,6 +79,7 @@ let explosionMessageTimer = null;
 let pendingBlackHole = null;
 let blackHoleState = null;
 let blackHoleParticles = [];
+let dualEventState = null;
 
 function makeMan() {
     const st = getStage();
@@ -142,8 +143,8 @@ function areBlocksConnected() {
     // 8方向（上下左右＋斜め4方向）
     const dirs = [
         [-1, -1], [-1, 0], [-1, 1],
-        [ 0, -1],          [ 0, 1],
-        [ 1, -1], [ 1, 0], [ 1, 1]
+        [0, -1], [0, 1],
+        [1, -1], [1, 0], [1, 1]
     ];
 
     while (queue.length > 0) {
@@ -416,8 +417,8 @@ function simulateGimmickBlockMoves() {
             }
         });
 
-        // ループ（周回）の検出（超新星爆発が発生していない場合）
-        if (!supernova && !blackHoleLoop) {
+        // ループ（周回）の検出（超新星爆発との同時発生も許容）
+        if (!blackHoleLoop) {
             for (const b of blocks) {
                 if (!b.isMoving) continue;
                 const prev = b.history.find(h => h.col === b.col && h.row === b.row && h.dir === b.dir);
@@ -604,22 +605,23 @@ function startSupernova(supernovaData) {
     };
 
     if (statusBar) {
-        statusBar.innerHTML = '<span class="status-fail">禁忌発生... 2つのブロックが一点で交わっています</span>';
+        statusBar.innerHTML = '<span class="status-place">•••••</span>';
     }
     if (hintText) {
-        hintText.textContent = '同じ点へ同時に向かうブロックが干渉を起こしています...';
+        hintText.textContent = '';
     }
 
     animId = requestAnimationFrame(animateSupernova);
 }
 
-function spawnSupernovaExplosionParticles(cx, cy) {
-    if (!supernovaState) return;
+function spawnSupernovaExplosionParticles(cx, cy, targetState) {
+    const stObj = targetState || supernovaState;
+    if (!stObj) return;
     const colors = ['#ffffff', '#ffffff', '#67e8f9', '#fde047', '#f0abfc', '#fb923c', '#38bdf8'];
     for (let i = 0; i < 85; i++) {
         const angle = (Math.PI * 2 * i) / 85 + (Math.random() - 0.5) * 0.25;
         const speed = 2.2 + Math.random() * 11.5;
-        supernovaState.particles.push({
+        stObj.particles.push({
             x: cx,
             y: cy,
             vx: Math.cos(angle) * speed,
@@ -633,7 +635,7 @@ function spawnSupernovaExplosionParticles(cx, cy) {
     for (let i = 0; i < 24; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 3.0 + Math.random() * 9.0;
-        supernovaState.debris.push({
+        stObj.debris.push({
             x: cx,
             y: cy,
             vx: Math.cos(angle) * speed,
@@ -721,9 +723,6 @@ function animateSupernova(ts) {
         }
         updateBlockBadge(true);
         spawnSupernovaExplosionParticles(focusX, focusY);
-        if (statusBar) {
-            statusBar.innerHTML = '<span class="status-fail">爆発が発生しました！！ステージ上のブロックが全て消滅しました。</span>';
-        }
     }
 
     renderSupernovaState(elapsed, APPROACH_END, FUSION_END, TOTAL_END, focusX, focusY);
@@ -1108,18 +1107,10 @@ function finishSupernova() {
     phase = 'place';
     man = makeMan();
     startBtn.disabled = false;
-    statusBar.innerHTML = '<span class="status-fail">爆発が発生しました！！ステージ上のブロックが全て消滅しました。</span>';
+    statusBar.innerHTML = '<span class="status-place">ブロックを配置してください。</span>';
     if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
     updateBlockBadge(true);
     render();
-
-    // プレイヤー復活から1秒後に元の「ブロックを配置してください」表記に戻す
-    if (explosionMessageTimer) clearTimeout(explosionMessageTimer);
-    explosionMessageTimer = setTimeout(() => {
-        if (phase === 'place' && !showSolution) {
-            updateBlockBadge();
-        }
-    }, 1000);
 }
 
 // MARK: - Black Hole & Infinite Loop Sequence
@@ -1245,7 +1236,7 @@ function startBlackHole(loopData) {
     initBlackHoleParticles(loopData.centerX, loopData.centerY);
 
     if (statusBar) {
-        statusBar.innerHTML = '<span class="status-run">無限ループを検知しました...</span>';
+        statusBar.innerHTML = '<span class="status-place">•••••</span>';
     }
     if (hintText) {
         hintText.textContent = '';
@@ -1272,7 +1263,7 @@ function finishBlackHole() {
     phase = 'place';
     man = makeMan();
     startBtn.disabled = false;
-    statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
+    statusBar.innerHTML = '<span class="status-place">ブロックを配置してください。</span>';
     if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
     updateBlockBadge(true);
     render();
@@ -1303,34 +1294,20 @@ function renderBlackHoleState(elapsed) {
 
     // --- タイムライン定義 ---
     // 吸引順: ブロック → 矢印 → キャラクター → 土管 → ゴール → 地面
+    // 地面（レンガ・芝片）はプレイヤー吸引（3650ms）〜 ゴール吸引終了+0.3秒後（4650ms）に流れるように吸引
     const SUCK_BLOCKS_START = 2500, SUCK_BLOCKS_END = 2950;
     const SUCK_ARROWS_START = 2850, SUCK_ARROWS_END = 3300;
-    const SUCK_MAN_START    = 3200, SUCK_MAN_END    = 3650;
-    const SUCK_PIPE_START   = 3550, SUCK_PIPE_END   = 4000;
-    const SUCK_GOAL_START   = 3900, SUCK_GOAL_END   = 4350;
-    const SUCK_GROUND_START = 4250, SUCK_GROUND_END = 4950;
+    const SUCK_MAN_START = 3200, SUCK_MAN_END = 3650;
+    const SUCK_PIPE_START = 3550, SUCK_PIPE_END = 4000;
+    const SUCK_GOAL_START = 3900, SUCK_GOAL_END = 4350;
+    const SUCK_GROUND_START = 3650, SUCK_GROUND_END = 4650;
 
     // 落下出現順 (反対の順): 地面 → ゴール → 土管 → キャラクター → 矢印（ステージリセットのためブロックは再出現しない）
     const DROP_GROUND_START = 5750, DROP_GROUND_END = 6200;
-    const DROP_GOAL_START   = 6150, DROP_GOAL_END   = 6550;
-    const DROP_PIPE_START   = 6500, DROP_PIPE_END   = 6900;
-    const DROP_MAN_START    = 6850, DROP_MAN_END    = 7350;
+    const DROP_GOAL_START = 6150, DROP_GOAL_END = 6550;
+    const DROP_PIPE_START = 6500, DROP_PIPE_END = 6900;
+    const DROP_MAN_START = 6850, DROP_MAN_END = 7350;
     const DROP_ARROWS_START = 7300, DROP_ARROWS_END = 7700;
-
-    // --- ステータスバー文言更新 ---
-    if (statusBar) {
-        if (elapsed < 500) {
-            statusBar.innerHTML = '<span class="status-run">無限ループ検知... 回転開始</span>';
-        } else if (elapsed < 2500) {
-            statusBar.innerHTML = '<span class="status-run">速度が指数関数的に増加中...！！</span>';
-        } else if (elapsed < 5000) {
-            statusBar.innerHTML = '<span class="status-fail">ブラックホールにすべて吸い込まれています！！</span>';
-        } else if (elapsed < 5750) {
-            statusBar.innerHTML = '<span class="status-place">......</span>';
-        } else {
-            statusBar.innerHTML = '<span class="status-run">上空から復帰中...！</span>';
-        }
-    }
 
     // --- カメラ揺れ（Screen Shake）---
     let shakeAmp = 0;
@@ -1432,33 +1409,43 @@ function renderBlackHoleState(elapsed) {
     const rightGroundOrigX = (GX + COLS * CELL + TOTAL_W) / 2;
     const rightGroundOrigY = (goalGroundY + TOTAL_H) / 2;
 
-    const leftGrState = getObjectState(elapsed, SUCK_GROUND_START, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, leftGroundOrigX, leftGroundOrigY, cx, cy);
-    const rightGrState = getObjectState(elapsed, SUCK_GROUND_START + 80, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, rightGroundOrigX, rightGroundOrigY, cx, cy);
-
-    if (leftGrState.active) {
-        ctx.save();
-        ctx.translate(leftGrState.x, leftGrState.y);
-        if (leftGrState.rotation) ctx.rotate(leftGrState.rotation);
-        if (leftGrState.scale !== 1) ctx.scale(leftGrState.scale, leftGrState.scale);
-        if (leftGrState.alpha < 1) ctx.globalAlpha *= leftGrState.alpha;
-        ctx.translate(-leftGroundOrigX, -leftGroundOrigY);
+    if (elapsed < SUCK_GROUND_START) {
         drawGroundLeft();
-        ctx.restore();
-    }
-
-    if (rightGrState.active) {
-        ctx.save();
-        ctx.translate(rightGrState.x, rightGrState.y);
-        if (rightGrState.rotation) ctx.rotate(rightGrState.rotation);
-        if (rightGrState.scale !== 1) ctx.scale(rightGrState.scale, rightGrState.scale);
-        if (rightGrState.alpha < 1) ctx.globalAlpha *= rightGrState.alpha;
-        ctx.translate(-rightGroundOrigX, -rightGroundOrigY);
         drawGroundRight();
-        ctx.restore();
-    }
-
-    if (leftGrState.active && rightGrState.active && leftGrState.scale === 1 && rightGrState.scale === 1) {
         drawGroundPit();
+    } else if (elapsed < SUCK_GROUND_END) {
+        // レンガ・芝が1個ずつ独立して吸い込まれる
+        drawGroundSuckPieces(elapsed, SUCK_GROUND_START, SUCK_GROUND_END, cx, cy);
+    } else if (elapsed >= DROP_GROUND_START) {
+        // 落下復帰
+        const leftGrState = getObjectState(elapsed, SUCK_GROUND_START, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, leftGroundOrigX, leftGroundOrigY, cx, cy);
+        const rightGrState = getObjectState(elapsed, SUCK_GROUND_START + 80, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, rightGroundOrigX, rightGroundOrigY, cx, cy);
+
+        if (leftGrState.active) {
+            ctx.save();
+            ctx.translate(leftGrState.x, leftGrState.y);
+            if (leftGrState.rotation) ctx.rotate(leftGrState.rotation);
+            if (leftGrState.scale !== 1) ctx.scale(leftGrState.scale, leftGrState.scale);
+            if (leftGrState.alpha < 1) ctx.globalAlpha *= leftGrState.alpha;
+            ctx.translate(-leftGroundOrigX, -leftGroundOrigY);
+            drawGroundLeft();
+            ctx.restore();
+        }
+
+        if (rightGrState.active) {
+            ctx.save();
+            ctx.translate(rightGrState.x, rightGrState.y);
+            if (rightGrState.rotation) ctx.rotate(rightGrState.rotation);
+            if (rightGrState.scale !== 1) ctx.scale(rightGrState.scale, rightGrState.scale);
+            if (rightGrState.alpha < 1) ctx.globalAlpha *= rightGrState.alpha;
+            ctx.translate(-rightGroundOrigX, -rightGroundOrigY);
+            drawGroundRight();
+            ctx.restore();
+        }
+
+        if (leftGrState.active && rightGrState.active && leftGrState.scale === 1 && rightGrState.scale === 1) {
+            drawGroundPit();
+        }
     }
 
     // 2. グリッド線・天井
@@ -1677,6 +1664,772 @@ function renderBlackHoleState(elapsed) {
     ctx.restore();
 }
 
+// MARK: - Dual Event: Supernova + Black Hole Simultaneous Sequence
+function startDualSupernovaBlackHole(snData, bhData) {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    phase = 'dual_event';
+    startBtn.disabled = true;
+    originalGrid = null;
+
+    const initialPlacedBlocks = [];
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (grid[r][c]) {
+                const pathIdx = bhData.loopPath.findIndex(p => p.col === c && p.row === r);
+                const isCollider = snData.colliders.some(colObj => colObj.originCol === c && colObj.originRow === r);
+                initialPlacedBlocks.push({
+                    col: c,
+                    row: r,
+                    isLoopBlock: (pathIdx !== -1),
+                    loopOffset: (pathIdx !== -1) ? pathIdx : 0,
+                    isCollider
+                });
+            }
+        }
+    }
+
+    const st = getStage();
+    dualEventState = {
+        sn: {
+            col: snData.col,
+            row: snData.row,
+            colliders: snData.colliders,
+            exploded: false,
+            particles: [],
+            debris: []
+        },
+        bh: {
+            loopPath: bhData.loopPath,
+            centerCol: bhData.centerCol,
+            centerRow: bhData.centerRow,
+            centerX: bhData.centerX,
+            centerY: bhData.centerY
+        },
+        startTime: performance.now(),
+        placedBlocks: initialPlacedBlocks,
+        gimmicks: [...st.gimmicks],
+        landedImpacts: new Set()
+    };
+
+    initBlackHoleParticles(bhData.centerX, bhData.centerY);
+
+    if (statusBar) {
+        statusBar.innerHTML = '<span class="status-place">•••••</span>';
+    }
+    if (hintText) {
+        hintText.textContent = '';
+    }
+
+    animId = requestAnimationFrame(animateDualEvent);
+}
+
+function finishDualEvent() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    dualEventState = null;
+    pendingSupernova = null;
+    pendingBlackHole = null;
+    slidingBlocks = [];
+    blockAnimationRounds = [];
+    currentRoundIndex = 0;
+
+    // ステージリセット（ブロックを全消去して更地で再配置へ復帰）
+    grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    actionHistory = [];
+    originalGrid = null;
+    placedBlocksAtStart = 0;
+    gameParticles.length = 0;
+
+    phase = 'place';
+    man = makeMan();
+    startBtn.disabled = false;
+    statusBar.innerHTML = '<span class="status-place">ブロックを配置してください。</span>';
+    if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
+    updateBlockBadge(true);
+    render();
+}
+
+function animateDualEvent(ts) {
+    if (phase !== 'dual_event' || !dualEventState) return;
+
+    const now = ts || performance.now();
+    const elapsed = Math.max(0, now - dualEventState.startTime);
+
+    renderDualEventState(elapsed);
+
+    if (elapsed >= 8350) {
+        finishDualEvent();
+    } else {
+        animId = requestAnimationFrame(animateDualEvent);
+    }
+}
+
+function renderDualEventState(elapsed) {
+    const st = getStage();
+    const deState = dualEventState;
+    if (!deState) return;
+
+    const sn = deState.sn;
+    const bh = deState.bh;
+    const focusX = GX + (sn.col + 0.5) * CELL;
+    const focusY = GY + (sn.row + 0.5) * CELL;
+    const bhX = bh.centerX;
+    const bhY = bh.centerY;
+
+    // --- タイムライン定義 ---
+    // 1. 開始 -> 爆発にカメラが寄る (と同時期に回転開始・終端速度まで加速)
+    // 2. 終端速度到達でブラックホールがブロックに重なるように出現 (1750〜2350ms)
+    // 3. 爆発の少し前にカメラが等倍になる (1850〜2350ms) & 爆発する2つのブロックが吸われ始める (1900〜2450ms)
+    // 4. 2つのブロックが吸われながら融合爆発 (2450ms)
+    // 5. プレイヤーが吹き飛ばされる (2550〜3100ms) -> 進路を変えて吸われる (3100〜3550ms)
+    // 6. 他のブロック達も吸われる (3450〜3900ms) -> 矢印・土管・ゴール・地面が吸われ、逆順で落下復帰
+    const T_HALF = 450;             // 0〜0.45s: ループブロック半周通常回転
+    const BH_APPEAR_START = 1750;   // 1.75s: ループブロックが終端速度に到達し、ブラックホール出現開始
+    const BH_APPEAR_END = 2350;     // 2.35s: ブラックホール最大半径到達
+    const LOOP_FREEZE_TIME = 2150;  // 2.15s: ブラックホールがブロックに重なり、外周回転から吸引フェーズへ移行
+
+    const APPROACH_END = 1350;      // 0〜1.35s: カメラが超新星交点へズーム
+    const PULL_START = 1850;        // 1.85s〜2.35s: 爆発の少し前にカメラが等倍へ戻る
+    const PULL_END = 2350;
+    const SN_SUCK_START = 1900;     // 1.90s〜2.45s: ブラックホール生成後、爆発する2つのブロックが吸われながら融合
+    const EXPLODE_TIME = 2450;      // 2.45s: 吸われながら超新星爆発！
+
+    const BLOW_START = 2550;        // 2.55s: 爆風でプレイヤー吹っ飛び開始
+    const ESCAPE_POINT = 3100;      // 3.10s: プレイヤーが画面右上端寸前に到達
+    const SUCK_MAN_START = 3100;    // 3.10s〜3.55s: 進路を急変させてブラックホールへスパイラル吸引
+    const SUCK_MAN_END = 3550;
+
+    // 他のブロック達・ステージ要素の吸引タイムライン
+    const SUCK_BLOCKS_START = 3450, SUCK_BLOCKS_END = 3900;
+    const SUCK_ARROWS_START = 3800, SUCK_ARROWS_END = 4250;
+    // 芝生が剥離され始めると同時にゴールも吸い込まれる（芝生だけ消えてゴールが浮くのを防止）
+    const SUCK_GOAL_START = 3550, SUCK_GOAL_END = 4050;
+    const SUCK_PIPE_START = 4150, SUCK_PIPE_END = 4600;
+    // 地面（レンガ・芝片）はプレイヤー吸引終了（3550ms）〜 5250ms に流れるように吸引
+    const SUCK_GROUND_START = 3550, SUCK_GROUND_END = 5250;
+
+    // 落下出現タイムライン（反対の順: 地面 → ゴール → 土管 → キャラクター → 矢印）
+    const DROP_GROUND_START = 6250, DROP_GROUND_END = 6700;
+    const DROP_GOAL_START = 6650, DROP_GOAL_END = 7050;
+    const DROP_PIPE_START = 7000, DROP_PIPE_END = 7400;
+    const DROP_MAN_START = 7350, DROP_MAN_END = 7850;
+    const DROP_ARROWS_START = 7800, DROP_ARROWS_END = 8200;
+
+    // --- ステータスバー文言 ---
+    if (statusBar) {
+        statusBar.innerHTML = '<span class="status-place">•••••</span>';
+    }
+
+    // 爆発する2つのブロックの吸引オフセット計算（ブラックホール生成後、吸われながら爆発）
+    let snSuckRatio = 0;
+    if (elapsed >= SN_SUCK_START) {
+        const stNorm = Math.min(1, (elapsed - SN_SUCK_START) / (EXPLODE_TIME - SN_SUCK_START));
+        snSuckRatio = Math.pow(stNorm, 1.85) * 0.58;
+    }
+    const curExplosionX = focusX + (bhX - focusX) * snSuckRatio;
+    const curExplosionY = focusY + (bhY - focusY) * snSuckRatio;
+
+    // --- 爆発発火処理 ---
+    if (elapsed >= EXPLODE_TIME && !sn.exploded) {
+        sn.exploded = true;
+        sn.explodeX = curExplosionX;
+        sn.explodeY = curExplosionY;
+        spawnSupernovaExplosionParticles(curExplosionX, curExplosionY, sn);
+    }
+
+    // --- カメラズーム & オフセット計算 ---
+    let zoom = 1.0;
+    let camRatio = 0.0;
+    let camShakeX = 0;
+    let camShakeY = 0;
+
+    if (elapsed < APPROACH_END) {
+        const t1 = elapsed / APPROACH_END;
+        const ease1 = t1 < 0.5 ? 2 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 2) / 2;
+        zoom = 1.0 + 1.35 * ease1; // 1.0 -> 2.35
+        camRatio = ease1;
+    } else if (elapsed < PULL_START) {
+        zoom = 2.35;
+        camRatio = 1.0;
+        camShakeX = Math.sin(elapsed * 0.1) * 2.2;
+        camShakeY = Math.cos(elapsed * 0.12) * 2.2;
+    } else if (elapsed < PULL_END) {
+        // 爆発の少し前にカメラが等倍に戻る
+        const pt = (elapsed - PULL_START) / (PULL_END - PULL_START);
+        const easePt = pt < 0.5 ? 2 * pt * pt : 1 - Math.pow(-2 * pt + 2, 2) / 2;
+        zoom = 2.35 - 1.35 * easePt; // 2.35 -> 1.0
+        camRatio = 1.0 - easePt;     // 1.0 -> 0.0
+        camShakeX = Math.sin(elapsed * 0.15) * 3.2;
+        camShakeY = Math.cos(elapsed * 0.18) * 3.2;
+    } else {
+        zoom = 1.0;
+        camRatio = 0.0;
+
+        // 画面全体の揺れ（爆風 & ブラックホール重力波）
+        let shakeAmp = 0;
+        if (elapsed < EXPLODE_TIME) {
+            shakeAmp = 3.5;
+        } else if (elapsed < 3250) {
+            shakeAmp = 12 * (1 - (elapsed - EXPLODE_TIME) / 800);
+        } else if (elapsed < 4850) {
+            shakeAmp = ((elapsed - 3250) / 1600) * 6.5;
+        } else if (elapsed < 5550) {
+            shakeAmp = 6.5 + ((elapsed - 4850) / 700) * 3.0;
+        } else if (elapsed < 5950) {
+            shakeAmp = 9.5 * (1 - (elapsed - 5550) / 400);
+        } else if (elapsed >= DROP_GROUND_END - 50 && elapsed < DROP_GROUND_END + 200) {
+            const pt = (elapsed - (DROP_GROUND_END - 50)) / 250;
+            shakeAmp = 5.5 * (1 - pt);
+        }
+
+        if (shakeAmp > 0) {
+            camShakeX = (Math.sin(elapsed * 0.11) * 0.7 + Math.sin(elapsed * 0.23) * 0.3) * shakeAmp;
+            camShakeY = (Math.cos(elapsed * 0.13) * 0.7 + Math.cos(elapsed * 0.19) * 0.3) * shakeAmp;
+        }
+    }
+
+    const baseCenterX = TOTAL_W / 2;
+    const baseCenterY = TOTAL_H / 2;
+    const camTargetX = baseCenterX + (focusX - baseCenterX) * camRatio;
+    const camTargetY = baseCenterY + (focusY - baseCenterY) * camRatio;
+
+    // --- 着地衝撃土煙トリガー ---
+    const triggerImpact = (key, callback) => {
+        if (!deState.landedImpacts.has(key)) {
+            deState.landedImpacts.add(key);
+            callback();
+        }
+    };
+    if (elapsed >= DROP_GROUND_END) {
+        triggerImpact('ground', () => {
+            spawnDust(0, st.startRow);
+            spawnDust(COLS - 1, st.goalRow);
+        });
+    }
+    if (elapsed >= DROP_GOAL_END) {
+        triggerImpact('goal', () => { spawnDust(COLS, st.goalRow); });
+    }
+    if (elapsed >= DROP_PIPE_END) {
+        triggerImpact('pipe', () => { spawnDust(-1.5, st.startRow); });
+    }
+    if (elapsed >= DROP_MAN_END) {
+        triggerImpact('man', () => { spawnDust(-1.5, st.startRow); });
+    }
+
+    // --- ブラックホールのサイズ（終端速度到達後の 1750ms からブロックに重なるように出現）---
+    let bhRadius = 0;
+    if (elapsed >= BH_APPEAR_START && elapsed < BH_APPEAR_END) {
+        const t = (elapsed - BH_APPEAR_START) / (BH_APPEAR_END - BH_APPEAR_START);
+        bhRadius = 62 * Math.pow(t, 1.6);
+    } else if (elapsed >= BH_APPEAR_END && elapsed < 5550) {
+        bhRadius = 62 + Math.sin(elapsed * 0.01) * 2.5;
+    } else if (elapsed >= 5550 && elapsed < 5950) {
+        const t = (elapsed - 5550) / 400;
+        bhRadius = Math.max(0, 62 * Math.pow(1 - t, 2));
+    }
+
+    // --- ループ回転の進行マス数 (s) の計算（0msから開始し、1750msで終端速度に到達）---
+    const loopPath = bh.loopPath;
+    const N = loopPath.length;
+    const halfN = N / 2;
+    const v0 = halfN / (T_HALF / 1000);
+    const k = 2.25;
+    let loopS = 0;
+    let loopSpeed = 1;
+
+    if (elapsed < T_HALF) {
+        loopS = (halfN / T_HALF) * elapsed;
+        loopSpeed = 1;
+    } else {
+        const effectiveElapsed = Math.min(elapsed, LOOP_FREEZE_TIME);
+        const dtSec = (effectiveElapsed - T_HALF) / 1000;
+        loopS = halfN + (v0 / k) * (Math.exp(k * dtSec) - 1);
+        loopSpeed = Math.exp(k * dtSec);
+    }
+
+    const getLoopCoord = (sVal) => {
+        const modS = ((sVal % N) + N) % N;
+        const idx = Math.floor(modS);
+        const sub = modS - idx;
+        const p0 = loopPath[idx];
+        const p1 = loopPath[(idx + 1) % N];
+        return {
+            col: p0.col + (p1.col - p0.col) * sub,
+            row: p0.row + (p1.row - p0.row) * sub
+        };
+    };
+
+    // --- レンダリング開始 ---
+    ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
+    drawBackground();
+
+    ctx.save();
+    ctx.translate(baseCenterX + camShakeX, baseCenterY + camShakeY);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-camTargetX, -camTargetY);
+
+    // 1. 地面 (Ground)
+    const startGroundY = GY + (st.startRow + 1) * CELL;
+    const goalGroundY = GY + (st.goalRow + 1) * CELL;
+    const leftGroundOrigX = GX / 2;
+    const leftGroundOrigY = (startGroundY + TOTAL_H) / 2;
+    const rightGroundOrigX = (GX + COLS * CELL + TOTAL_W) / 2;
+    const rightGroundOrigY = (goalGroundY + TOTAL_H) / 2;
+
+    if (elapsed < SUCK_GROUND_START) {
+        drawGroundLeft();
+        drawGroundRight();
+        drawGroundPit();
+    } else if (elapsed < SUCK_GROUND_END) {
+        // レンガ・芝が1個ずつ独立して吸い込まれる
+        drawGroundSuckPieces(elapsed, SUCK_GROUND_START, SUCK_GROUND_END, bhX, bhY);
+    } else if (elapsed >= DROP_GROUND_START) {
+        // 落下復帰
+        const leftGrState = getObjectState(elapsed, SUCK_GROUND_START, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, leftGroundOrigX, leftGroundOrigY, bhX, bhY);
+        const rightGrState = getObjectState(elapsed, SUCK_GROUND_START + 80, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, rightGroundOrigX, rightGroundOrigY, bhX, bhY);
+
+        if (leftGrState.active) {
+            ctx.save();
+            ctx.translate(leftGrState.x, leftGrState.y);
+            if (leftGrState.rotation) ctx.rotate(leftGrState.rotation);
+            if (leftGrState.scale !== 1) ctx.scale(leftGrState.scale, leftGrState.scale);
+            if (leftGrState.alpha < 1) ctx.globalAlpha *= leftGrState.alpha;
+            ctx.translate(-leftGroundOrigX, -leftGroundOrigY);
+            drawGroundLeft();
+            ctx.restore();
+        }
+        if (rightGrState.active) {
+            ctx.save();
+            ctx.translate(rightGrState.x, rightGrState.y);
+            if (rightGrState.rotation) ctx.rotate(rightGrState.rotation);
+            if (rightGrState.scale !== 1) ctx.scale(rightGrState.scale, rightGrState.scale);
+            if (rightGrState.alpha < 1) ctx.globalAlpha *= rightGrState.alpha;
+            ctx.translate(-rightGroundOrigX, -rightGroundOrigY);
+            drawGroundRight();
+            ctx.restore();
+        }
+        if (leftGrState.active && rightGrState.active && leftGrState.scale === 1 && rightGrState.scale === 1) {
+            drawGroundPit();
+        }
+    }
+
+    // 2. グリッド線・天井
+    if (elapsed < SUCK_GROUND_START || elapsed >= DROP_GROUND_END) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(100,150,255,0.06)';
+        ctx.fillRect(GX, GY, COLS * CELL, ROWS * CELL);
+        drawGridLines();
+        drawCeiling();
+        ctx.restore();
+    }
+
+    // 3. ゴール (Goal)
+    const goalBx = GX + COLS * CELL;
+    const goalBy = GY + st.goalRow * CELL;
+    const goalOrigX = goalBx + 28;
+    const goalOrigY = goalBy + CELL / 2;
+    const goalState = getObjectState(elapsed, SUCK_GOAL_START, SUCK_GOAL_END, DROP_GOAL_START, DROP_GOAL_END, goalOrigX, goalOrigY, bhX, bhY);
+    if (goalState.active) {
+        ctx.save();
+        ctx.translate(goalState.x, goalState.y);
+        if (goalState.rotation) ctx.rotate(goalState.rotation);
+        if (goalState.scale !== 1) ctx.scale(goalState.scale, goalState.scale);
+        if (goalState.alpha < 1) ctx.globalAlpha *= goalState.alpha;
+        ctx.translate(-goalOrigX, -goalOrigY);
+        drawGoal();
+        ctx.restore();
+    }
+
+    // 4. 土管 (Pipe)
+    const px = GX - 78;
+    const py = GY + st.startRow * CELL + 2;
+    const pw = 60, ph = startGroundY - py;
+    const pipeOrigX = px + pw / 2;
+    const pipeOrigY = py + ph / 2;
+    const pipeState = getObjectState(elapsed, SUCK_PIPE_START, SUCK_PIPE_END, DROP_PIPE_START, DROP_PIPE_END, pipeOrigX, pipeOrigY, bhX, bhY);
+    if (pipeState.active) {
+        ctx.save();
+        ctx.translate(pipeState.x, pipeState.y);
+        if (pipeState.rotation) ctx.rotate(pipeState.rotation);
+        if (pipeState.scale !== 1) ctx.scale(pipeState.scale, pipeState.scale);
+        if (pipeState.alpha < 1) ctx.globalAlpha *= pipeState.alpha;
+        ctx.translate(-pipeOrigX, -pipeOrigY);
+        drawPipe();
+        ctx.restore();
+    }
+
+    // 5. ギミック矢印 (Arrows)
+    deState.gimmicks.forEach(g => {
+        const arrowOrigX = GX + (g.col + 0.5) * CELL;
+        const arrowOrigY = GY + (g.row + 0.5) * CELL;
+        const arrowState = getObjectState(elapsed, SUCK_ARROWS_START, SUCK_ARROWS_END, DROP_ARROWS_START, DROP_ARROWS_END, arrowOrigX, arrowOrigY, bhX, bhY);
+        if (arrowState.active) {
+            ctx.save();
+            ctx.translate(arrowState.x, arrowState.y);
+            if (arrowState.rotation) ctx.rotate(arrowState.rotation);
+            if (arrowState.scale !== 1) ctx.scale(arrowState.scale, arrowState.scale);
+            if (arrowState.alpha < 1) ctx.globalAlpha *= arrowState.alpha;
+            ctx.translate(-arrowOrigX, -arrowOrigY);
+            drawGimmickTile(g);
+            ctx.restore();
+        }
+    });
+
+    // 6. ループブロック & 他のブロック達の描画（ブラックホールがブロックに重なるように先描き）
+    if (elapsed < LOOP_FREEZE_TIME) {
+        // 終端速度到達＆ブラックホール出現まで: 高速周回＆残像描画
+        deState.placedBlocks.forEach(b => {
+            if (b.isCollider) return;
+            if (b.isLoopBlock) {
+                const s_b = loopS + b.loopOffset;
+                const curCoord = getLoopCoord(s_b);
+
+                if (elapsed >= T_HALF && loopSpeed > 3) {
+                    const trailCount = Math.min(5, Math.floor(loopSpeed * 0.35));
+                    for (let t = trailCount; t >= 1; t--) {
+                        const trailS = s_b - t * Math.min(0.35, 1.2 / trailCount);
+                        const tc = getLoopCoord(trailS);
+                        ctx.save();
+                        ctx.globalAlpha = 0.12 * (1 - t / (trailCount + 1));
+                        drawMarioBlock(tc.col, tc.row);
+                        ctx.restore();
+                    }
+                }
+                drawMarioBlock(curCoord.col, curCoord.row);
+            } else {
+                drawMarioBlock(b.col, b.row);
+            }
+        });
+    } else if (elapsed < SUCK_BLOCKS_END) {
+        // ブラックホール出現後: 外周回転を止め、重力に引かれつつプレイヤー吸引後に一気に中心へ吸い込まれる
+        const dtSecFreeze = (LOOP_FREEZE_TIME - T_HALF) / 1000;
+        const loopSAtFreeze = halfN + (v0 / k) * (Math.exp(k * dtSecFreeze) - 1);
+
+        let pullEase = 0;
+        let rotAngle = 0;
+        let scaleVal = 1;
+        let alphaVal = 1;
+
+        if (elapsed < SUCK_BLOCKS_START) {
+            // 爆発〜プレイヤー吸引中: ブラックホール出現と同時に重力でじわじわ中心へ引き寄せられる
+            const preT = (elapsed - LOOP_FREEZE_TIME) / (SUCK_BLOCKS_START - LOOP_FREEZE_TIME);
+            pullEase = 0.32 * Math.pow(preT, 1.2);
+            rotAngle = pullEase * Math.PI * 1.1;
+            scaleVal = 1 - pullEase * 0.28;
+        } else {
+            // プレイヤー吸引直後: 他のブロック達も一気にブラックホール中心へ吸い込まれる
+            const u = (elapsed - SUCK_BLOCKS_START) / (SUCK_BLOCKS_END - SUCK_BLOCKS_START);
+            const postEase = Math.pow(u, 2.1);
+            pullEase = 0.32 + 0.68 * postEase;
+            rotAngle = (0.32 * Math.PI * 1.1) + postEase * Math.PI * 3.0;
+            scaleVal = Math.max(0, (1 - 0.32 * 0.28) * (1 - postEase));
+            alphaVal = Math.max(0, 1 - Math.pow(u, 2.0));
+        }
+
+        deState.placedBlocks.forEach(b => {
+            if (b.isCollider) return;
+            let drawCol = b.col;
+            let drawRow = b.row;
+
+            if (b.isLoopBlock) {
+                const s_b_freeze = loopSAtFreeze + b.loopOffset;
+                const curCoordAtFreeze = getLoopCoord(s_b_freeze);
+                drawCol = curCoordAtFreeze.col;
+                drawRow = curCoordAtFreeze.row;
+            }
+
+            const bOrigX = GX + (drawCol + 0.5) * CELL;
+            const bOrigY = GY + (drawRow + 0.5) * CELL;
+            const curX = bOrigX + (bhX - bOrigX) * pullEase;
+            const curY = bOrigY + (bhY - bOrigY) * pullEase;
+
+            ctx.save();
+            ctx.translate(curX, curY);
+            if (rotAngle) ctx.rotate(rotAngle);
+            if (scaleVal !== 1) ctx.scale(scaleVal, scaleVal);
+            if (alphaVal < 1) ctx.globalAlpha *= alphaVal;
+            ctx.translate(-bOrigX, -bOrigY);
+            drawMarioBlock(drawCol, drawRow);
+            ctx.restore();
+        });
+    }
+
+    // 7. ブラックホール本体（ブロックの上に重なるように描画）
+    if (bhRadius > 0) {
+        const grad = ctx.createRadialGradient(bhX, bhY, bhRadius * 0.25, bhX, bhY, bhRadius * 2.3);
+        grad.addColorStop(0, 'rgba(0, 0, 0, 1)');
+        grad.addColorStop(0.35, 'rgba(88, 28, 135, 0.92)');
+        grad.addColorStop(0.6, 'rgba(147, 51, 234, 0.75)');
+        grad.addColorStop(0.85, 'rgba(56, 189, 248, 0.4)');
+        grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(bhX, bhY, bhRadius * 2.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        const diskAngle = elapsed * 0.005;
+        ctx.save();
+        ctx.translate(bhX, bhY);
+        ctx.rotate(diskAngle);
+        for (let i = 0; i < 6; i++) {
+            const a = (i * Math.PI) / 3;
+            ctx.strokeStyle = (i % 2 === 0) ? 'rgba(192, 132, 252, 0.45)' : 'rgba(56, 189, 248, 0.35)';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, bhRadius * 1.6, bhRadius * 0.75, a, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        updateAndDrawBlackHoleParticles(ctx, bhX, bhY, bhRadius, elapsed);
+
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(bhX, bhY, bhRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+    }
+
+    // 8. 爆発が起きる2つのブロック（ブラックホール生成後、ブラックホールに吸われながら融合し爆発）
+    if (!sn.exploded) {
+        let moveRatio = 0;
+        let whiteRatio = 0;
+        let vibAmp = 0;
+        let blockScale = 1.0;
+
+        if (elapsed < APPROACH_END) {
+            const t1 = elapsed / APPROACH_END;
+            const ease1 = t1 < 0.5 ? 2 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 2) / 2;
+            moveRatio = ease1 * 0.72;
+            whiteRatio = ease1 * 0.14;
+        } else {
+            const t2 = (elapsed - APPROACH_END) / (EXPLODE_TIME - APPROACH_END);
+            const fusionT = Math.min(1, t2 / 0.72);
+            moveRatio = 0.72 + 0.28 * (fusionT * fusionT);
+            whiteRatio = Math.min(1, 0.14 + 0.86 * Math.pow(t2, 0.75));
+            vibAmp = (0.04 + 0.12 * Math.sin(t2 * Math.PI)) * CELL;
+            if (elapsed >= SN_SUCK_START) {
+                const stNorm = Math.min(1, (elapsed - SN_SUCK_START) / (EXPLODE_TIME - SN_SUCK_START));
+                blockScale = 1.0 - 0.26 * Math.pow(stNorm, 1.5);
+            }
+        }
+
+        const shiftX = curExplosionX - focusX;
+        const shiftY = curExplosionY - focusY;
+
+        if (whiteRatio > 0.2) {
+            ctx.save();
+            const auraRadius = CELL * (0.6 + whiteRatio * 0.95);
+            const grad = ctx.createRadialGradient(curExplosionX, curExplosionY, 2, curExplosionX, curExplosionY, auraRadius);
+            grad.addColorStop(0, `rgba(255, 255, 255, ${whiteRatio * 0.92})`);
+            grad.addColorStop(0.5, `rgba(165, 243, 252, ${whiteRatio * 0.55})`);
+            grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(curExplosionX, curExplosionY, auraRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        sn.colliders.forEach((c, idx) => {
+            const curCol = c.fromCol + (sn.col - c.fromCol) * moveRatio;
+            const curRow = c.fromRow + (sn.row - c.fromRow) * moveRatio;
+            const phaseShift = idx * 2.1;
+            const vx = (vibAmp > 0 ? Math.sin(elapsed * 0.085 + phaseShift) * vibAmp : 0) + shiftX;
+            const vy = (vibAmp > 0 ? Math.cos(elapsed * 0.105 + phaseShift) * vibAmp : 0) + shiftY;
+            drawSupernovaBlock(curCol, curRow, whiteRatio, vx, vy, blockScale);
+        });
+    }
+
+    // 9. プレイヤー (Stickman) の描画（吹っ飛び & 画面外寸前で進路変更してブラックホール吸引）
+    const startCx = GX + (-1.5 + 0.5) * CELL;
+    const startBot = GY + (st.startRow + 1) * CELL;
+    const targetCornerX = TOTAL_W - 40;
+    const targetCornerY = 40;
+
+    if (elapsed < BLOW_START) {
+        let trembleX = 0;
+        if (elapsed >= APPROACH_END && elapsed < EXPLODE_TIME) {
+            trembleX = Math.sin(elapsed * 0.12) * 1.5;
+        } else if (elapsed >= EXPLODE_TIME) {
+            trembleX = Math.sin(elapsed * 0.25) * 3.5;
+        }
+        renderStickmanToContext(ctx, startCx + trembleX, startBot, 0, false);
+    } else if (elapsed < ESCAPE_POINT) {
+        const bt = (elapsed - BLOW_START) / (ESCAPE_POINT - BLOW_START);
+        const curCx = startCx + (targetCornerX - startCx) * Math.pow(bt, 0.82);
+        const curCy = (startBot - 33) + (targetCornerY - (startBot - 33)) * bt - Math.sin(bt * Math.PI) * 60;
+        const rot = -bt * Math.PI * 5.0;
+
+        ctx.save();
+        ctx.translate(curCx, curCy);
+        ctx.rotate(rot);
+        renderStickmanToContext(ctx, 0, 33, 0, true);
+        ctx.restore();
+    } else if (elapsed < SUCK_MAN_END) {
+        const mt = (elapsed - SUCK_MAN_START) / (SUCK_MAN_END - SUCK_MAN_START);
+        const angle0 = Math.atan2(targetCornerY - bhY, targetCornerX - bhX);
+        const dist0 = Math.hypot(targetCornerX - bhX, targetCornerY - bhY);
+
+        const easeM = Math.pow(mt, 2.2);
+        const curDist = dist0 * (1 - easeM);
+        const curAngle = angle0 + easeM * Math.PI * 2.6;
+        const curCx = bhX + Math.cos(curAngle) * curDist;
+        const curCy = bhY + Math.sin(curAngle) * curDist;
+        const scale = Math.max(0, 1 - easeM);
+        const rot = -Math.PI * 5.0 - easeM * Math.PI * 6.0;
+        const alpha = Math.max(0, 1 - Math.pow(mt, 2.0));
+
+        ctx.save();
+        ctx.translate(curCx, curCy);
+        ctx.rotate(rot);
+        ctx.scale(scale, scale);
+        if (alpha < 1) ctx.globalAlpha *= alpha;
+        renderStickmanToContext(ctx, 0, 33, 0, true);
+        ctx.restore();
+    } else if (elapsed < DROP_MAN_START) {
+        // 吸引完了・消失中
+    } else if (elapsed < DROP_MAN_END) {
+        const dt = (elapsed - DROP_MAN_START) / (DROP_MAN_END - DROP_MAN_START);
+        const b = easeOutBounce(dt);
+        const curY = (startBot - 340) + 340 * b;
+        renderStickmanToContext(ctx, startCx, curY, 0, true);
+    } else {
+        let squash = 1;
+        if (elapsed < DROP_MAN_END + 180) {
+            const stProgress = (elapsed - DROP_MAN_END) / 180;
+            squash = 1 - Math.sin(stProgress * Math.PI) * 0.10;
+        }
+        ctx.save();
+        ctx.translate(startCx, startBot);
+        ctx.scale(1 + (1 - squash) * 0.6, squash);
+        renderStickmanToContext(ctx, 0, 0, 0, false);
+        ctx.restore();
+    }
+
+    // 10. 超新星爆発エフェクト（ブラックホールに吸われながら爆発し、破片・粒子もブラックホールへ吸い込まれる）
+    if (sn.exploded) {
+        const t3 = Math.min(1, (elapsed - EXPLODE_TIME) / 1200);
+        const baseExpX = sn.explodeX !== undefined ? sn.explodeX : curExplosionX;
+        const baseExpY = sn.explodeY !== undefined ? sn.explodeY : curExplosionY;
+        const postPull = Math.min(1, Math.pow(t3, 1.1) * 0.85);
+        const effX = baseExpX + (bhX - baseExpX) * postPull;
+        const effY = baseExpY + (bhY - baseExpY) * postPull;
+
+        // 中心光球コア
+        if (t3 < 0.75) {
+            ctx.save();
+            const coreProgress = t3 / 0.75;
+            const coreRadius = CELL * (0.8 + coreProgress * 4.2) * (1 - coreProgress * 0.35);
+            const coreAlpha = Math.max(0, 1 - coreProgress);
+            const coreGrad = ctx.createRadialGradient(effX, effY, 0, effX, effY, coreRadius);
+            coreGrad.addColorStop(0, `rgba(255, 255, 255, ${coreAlpha})`);
+            coreGrad.addColorStop(0.35, `rgba(253, 224, 71, ${coreAlpha * 0.85})`);
+            coreGrad.addColorStop(0.7, `rgba(56, 189, 248, ${coreAlpha * 0.5})`);
+            coreGrad.addColorStop(1, 'rgba(168, 85, 247, 0)');
+            ctx.fillStyle = coreGrad;
+            ctx.beginPath();
+            ctx.arc(effX, effY, coreRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // 多重衝撃波リング
+        const rings = [
+            { delay: 0.0, maxR: 350, width: 14, color: '255, 255, 255' },
+            { delay: 0.06, maxR: 280, width: 9, color: '103, 232, 249' },
+            { delay: 0.12, maxR: 220, width: 6, color: '240, 171, 252' }
+        ];
+        rings.forEach(ring => {
+            if (t3 > ring.delay) {
+                const rt = Math.min(1, (t3 - ring.delay) / (1 - ring.delay));
+                const easeR = 1 - Math.pow(1 - rt, 2.5);
+                const radius = easeR * ring.maxR;
+                const alpha = Math.max(0, 1 - rt);
+                ctx.save();
+                ctx.strokeStyle = `rgba(${ring.color}, ${alpha})`;
+                ctx.lineWidth = Math.max(1.5, ring.width * (1 - rt * 0.7));
+                ctx.beginPath();
+                ctx.arc(effX, effY, radius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+        });
+
+        // 吹き飛ぶブロックデブリ（ブラックホールの重力に引かれて吸い込まれる）
+        sn.debris.forEach(d => {
+            const dx = bhX - d.x;
+            const dy = bhY - d.y;
+            const dist = Math.max(18, Math.hypot(dx, dy));
+            const pull = 18 / dist;
+            d.vx = d.vx * 0.92 + (dx / dist) * pull;
+            d.vy = d.vy * 0.92 + (dy / dist) * pull;
+            d.x += d.vx;
+            d.y += d.vy;
+            d.rot += d.vRot;
+            const nearFade = dist < 24 ? (dist / 24) : 1;
+            d.alpha = Math.max(0, (1 - t3 * 1.15) * nearFade);
+            if (d.alpha > 0) {
+                ctx.save();
+                ctx.translate(d.x, d.y);
+                ctx.rotate(d.rot);
+                ctx.globalAlpha = d.alpha;
+                ctx.fillStyle = '#f8c860';
+                ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size);
+                ctx.strokeStyle = '#c06010';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(-d.size / 2, -d.size / 2, d.size, d.size);
+                ctx.restore();
+            }
+        });
+
+        // 超新星エネルギー粒子（ブラックホールへ吸い込まれる）
+        sn.particles.forEach(p => {
+            const dx = bhX - p.x;
+            const dy = bhY - p.y;
+            const dist = Math.max(16, Math.hypot(dx, dy));
+            const pull = 22 / dist;
+            p.vx = p.vx * 0.92 + (dx / dist) * pull;
+            p.vy = p.vy * 0.92 + (dy / dist) * pull;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.alpha = Math.max(0, p.alpha - p.decay);
+            if (dist < 18) p.alpha *= 0.5;
+            if (p.alpha > 0) {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        });
+    }
+
+    // 11. パーティクル (土煙など)
+    updateAndDrawParticles(ctx);
+
+    ctx.restore();
+
+    // 爆発瞬間の画面全体ホワイトアウト閃光
+    if (sn.exploded) {
+        const t3 = Math.min(1, (elapsed - EXPLODE_TIME) / 1200);
+        if (t3 < 0.42) {
+            const flashAlpha = Math.pow(1 - t3 / 0.42, 2) * 0.90;
+            ctx.save();
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+            ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
+            ctx.restore();
+        }
+    }
+}
+
 // MARK: - Drawing Helpers
 function drawBackground() {
     const g = ctx.createLinearGradient(0, 0, 0, TOTAL_H);
@@ -1781,6 +2534,222 @@ function drawGround() {
     drawGroundLeft();
     drawGroundRight();
     drawGroundPit();
+}
+
+// MARK: - Ground Pieces Extraction for Black Hole Suction (レンガ・芝の1個ずつ独立吸引)
+let cachedGroundPieces = null;
+let cachedGroundStageId = null;
+
+function getGroundPieces() {
+    const st = getStage();
+    if (cachedGroundPieces && cachedGroundStageId === st.id) {
+        return cachedGroundPieces;
+    }
+
+    const pieces = [];
+    const extractSection = (startX, width, topY, isLeft) => {
+        if (width <= 0) return;
+        const totalHeight = TOTAL_H - topY;
+        if (totalHeight <= 0) return;
+
+        // 1. 芝片 (幅14pxごとに分割)
+        const gw = 14;
+        for (let x = startX; x < startX + width; x += gw) {
+            const pw = Math.min(gw, startX + width - x);
+            pieces.push({
+                type: 'grass',
+                x,
+                y: topY,
+                w: pw,
+                h: 10,
+                color: '#54c418',
+                sprout: (pw >= 7),
+                isLeft
+            });
+        }
+
+        // 2. レンガ片 (renderGroundSection と同一グリッド配置)
+        const bw = 26, bh = 13;
+        const halfW = bw / 2 - 2;
+        for (let row = 0; row * bh < totalHeight - 10; row++) {
+            const isStaggered = (row % 2 === 1);
+            const off = isStaggered ? bw / 2 : 0;
+            const by = topY + 10 + row * bh;
+            const blockH = Math.min(bh - 2, topY + totalHeight - by - 2);
+            if (blockH <= 0) continue;
+
+            for (let bx = startX - bw + off; bx < startX + width + bw; bx += bw) {
+                if (bx + 1 >= startX && bx + bw - 1 <= startX + width) {
+                    pieces.push({
+                        type: 'brick',
+                        x: bx + 1,
+                        y: by + 1,
+                        w: bw - 2,
+                        h: blockH,
+                        color: '#a05820',
+                        isLeft
+                    });
+                }
+            }
+
+            if (isStaggered) {
+                pieces.push({
+                    type: 'brick',
+                    x: startX + 1,
+                    y: by + 1,
+                    w: halfW,
+                    h: blockH,
+                    color: '#a05820',
+                    isLeft
+                });
+
+                const numFull = Math.floor((width - off) / bw);
+                const rightHalfX = startX + off + numFull * bw + 1;
+                if (rightHalfX + halfW <= startX + width) {
+                    pieces.push({
+                        type: 'brick',
+                        x: rightHalfX,
+                        y: by + 1,
+                        w: halfW,
+                        h: blockH,
+                        color: '#a05820',
+                        isLeft
+                    });
+                }
+            }
+        }
+    };
+
+    const startGroundY = GY + (st.startRow + 1) * CELL;
+    extractSection(0, GX, startGroundY, true);
+
+    const gridRight = GX + COLS * CELL;
+    const goalGroundY = GY + (st.goalRow + 1) * CELL;
+    extractSection(gridRight, TOTAL_W - gridRight, goalGroundY, false);
+
+    cachedGroundPieces = pieces;
+    cachedGroundStageId = st.id;
+    return pieces;
+}
+
+function drawGroundSuckPieces(elapsed, suckStart, suckEnd, bhX, bhY) {
+    const pieces = getGroundPieces();
+    if (pieces.length === 0) return;
+
+    let minY = Infinity;
+    let maxY = -Infinity;
+    pieces.forEach(p => {
+        const pcy = p.y + p.h / 2;
+        if (pcy < minY) minY = pcy;
+        if (pcy > maxY) maxY = pcy;
+    });
+    const yRange = Math.max(1, maxY - minY);
+
+    const totalDuration = suckEnd - suckStart;
+    const maxDelay = totalDuration * 0.62; // 全体の62%の時間差で上から順次剥離
+    const pDuration = totalDuration - maxDelay;
+
+    // 背景の下地土（Dirt）も上から順に削れ落ちるように描画
+    const groundProgress = Math.min(1, Math.max(0, (elapsed - suckStart) / totalDuration));
+    if (groundProgress < 1) {
+        ctx.save();
+        const dirtAlpha = Math.max(0, 1 - Math.pow(groundProgress, 1.8));
+        ctx.globalAlpha *= dirtAlpha;
+        const st = getStage();
+        const startGroundY = GY + (st.startRow + 1) * CELL;
+        const goalGroundY = GY + (st.goalRow + 1) * CELL;
+        const gridRight = GX + COLS * CELL;
+
+        // 進行度に応じて上端が削り下がる（崖の崩落表現）
+        const leftCutY = startGroundY + 10 + (TOTAL_H - (startGroundY + 10)) * (groundProgress * 0.75);
+        const rightCutY = goalGroundY + 10 + (TOTAL_H - (goalGroundY + 10)) * (groundProgress * 0.75);
+
+        ctx.fillStyle = '#c87830';
+        if (leftCutY < TOTAL_H) {
+            ctx.fillRect(0, leftCutY, GX, TOTAL_H - leftCutY);
+        }
+        if (rightCutY < TOTAL_H) {
+            ctx.fillRect(gridRight, rightCutY, TOTAL_W - gridRight, TOTAL_H - rightCutY);
+        }
+        ctx.restore();
+    }
+
+    // 各レンガ・芝ピースの個別描画（上から順に剥離）
+    pieces.forEach(p => {
+        const pcx = p.x + p.w / 2;
+        const pcy = p.y + p.h / 2;
+        const normY = (pcy - minY) / yRange;
+
+        // 芝片（最上面）は真っ先に剥がれ、レンガは上段から下段へ崖面からの崩れ要素を交えて吸引
+        let normOrder;
+        if (p.type === 'grass') {
+            normOrder = normY * 0.12;
+        } else {
+            const cliffEdge = p.isLeft
+                ? (1 - Math.min(1, pcx / GX))
+                : Math.min(1, (pcx - (GX + COLS * CELL)) / (TOTAL_W - (GX + COLS * CELL)));
+            normOrder = 0.10 + normY * 0.78 + cliffEdge * 0.12;
+        }
+
+        const pStart = suckStart + normOrder * maxDelay;
+        const pEnd = pStart + pDuration;
+
+        if (elapsed < pStart) {
+            // まだ吸われていない: 元の位置（剥離直前は微振動）
+            let jitterX = 0, jitterY = 0;
+            if (elapsed >= pStart - 130) {
+                const jt = (elapsed - (pStart - 130)) / 130;
+                jitterX = (Math.sin(elapsed * 0.25 + pcx) * 1.4) * jt;
+                jitterY = (Math.cos(elapsed * 0.28 + pcy) * 1.4) * jt;
+            }
+
+            ctx.save();
+            ctx.translate(jitterX, jitterY);
+            if (p.type === 'grass') {
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                if (p.sprout) ctx.fillRect(p.x, p.y, Math.min(7, p.w), 4);
+            } else if (p.type === 'brick') {
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+            }
+            ctx.restore();
+        } else if (elapsed < pEnd) {
+            // 剥がれてブラックホールへ吸引中
+            const u = (elapsed - pStart) / pDuration;
+            const ease = Math.pow(u, 2.3);
+
+            const curX = pcx + (bhX - pcx) * ease;
+            const curY = pcy + (bhY - pcy) * ease;
+            const rotDir = (pcx < bhX) ? 1 : -1;
+            const rot = ease * Math.PI * 4.2 * rotDir;
+            const scale = Math.max(0, 1 - ease);
+            const alpha = Math.max(0, 1 - Math.pow(u, 2.0));
+
+            ctx.save();
+            ctx.translate(curX, curY);
+            ctx.rotate(rot);
+            ctx.scale(scale, scale);
+            if (alpha < 1) ctx.globalAlpha *= alpha;
+            ctx.translate(-p.w / 2, -p.h / 2);
+
+            if (p.type === 'grass') {
+                ctx.fillStyle = '#54c418';
+                ctx.fillRect(0, 0, p.w, p.h);
+                if (p.sprout) ctx.fillRect(0, -3, Math.min(7, p.w), 4);
+                ctx.fillStyle = '#c87830';
+                ctx.fillRect(0, p.h - 3, p.w, 3);
+            } else if (p.type === 'brick') {
+                ctx.fillStyle = '#8a4818';
+                ctx.fillRect(-1, -1, p.w + 2, p.h + 2);
+                ctx.fillStyle = '#a05820';
+                ctx.fillRect(0, 0, p.w, p.h);
+                ctx.fillStyle = '#b86828';
+                ctx.fillRect(1, 1, p.w - 2, 2);
+            }
+            ctx.restore();
+        }
+    });
 }
 
 // 天井の描画 (Canvaに天井があるステージ用)
@@ -1937,6 +2906,60 @@ function drawMarioBlock(col, row) {
     const x = GX + col * CELL, y = GY + row * CELL;
     const p = 2;
     ctx.save();
+
+    const isGridAligned = (Math.abs(col - Math.round(col)) < 0.01 && Math.abs(row - Math.round(row)) < 0.01);
+    const g = isGridAligned ? getGimmick(Math.round(col), Math.round(row)) : null;
+    const hasArrow = g && (g.type === 'dash' || g.type === 'step');
+
+    if (hasArrow) {
+        // 矢印の上のブロックは、矢印の形状をくり抜いて下地本来の色（水色・緑色）を100%忠実に露出させる
+        const pulse = (Math.sin(Date.now() / 200) + 1) / 2;
+        const shift = (g.type === 'dash') ? pulse * 3 : pulse * 2;
+
+        function getDirAngle(dir) {
+            if (dir === 'down') return Math.PI / 2;
+            if (dir === 'left') return Math.PI;
+            if (dir === 'up') return -Math.PI / 2;
+            return 0;
+        }
+
+        ctx.beginPath();
+        // 1. 全体領域
+        ctx.rect(0, 0, TOTAL_W, TOTAL_H);
+
+        // 2. くり抜く矢印の形状パス（矢印の輪郭線まで綺麗に見えるよう1px余裕を持たせる）
+        ctx.save();
+        ctx.translate(x + CELL / 2, y + CELL / 2);
+        ctx.rotate(getDirAngle(g.dir));
+
+        if (g.type === 'dash') {
+            ctx.moveTo(-17 + shift, -7);
+            ctx.lineTo(5 + shift, -7);
+            ctx.lineTo(5 + shift, -14);
+            ctx.lineTo(18 + shift, 0);
+            ctx.lineTo(5 + shift, 14);
+            ctx.lineTo(5 + shift, 7);
+            ctx.lineTo(-17 + shift, 7);
+            ctx.closePath();
+        } else if (g.type === 'step') {
+            ctx.moveTo(-13 + shift, -6);
+            ctx.lineTo(3 + shift, -6);
+            ctx.lineTo(3 + shift, -12);
+            ctx.lineTo(15 + shift, 0);
+            ctx.lineTo(3 + shift, 12);
+            ctx.lineTo(3 + shift, 6);
+            ctx.lineTo(-13 + shift, 6);
+            ctx.closePath();
+        }
+        ctx.restore();
+
+        // 偶奇規則（evenodd）で矢印領域をクリッピングから除外（くり抜き）
+        ctx.clip('evenodd');
+
+        // ブロック自体の透明度
+        ctx.globalAlpha *= 0.58;
+    }
+
     ctx.fillStyle = '#e8a020';
     ctx.fillRect(x + p, y + p, CELL - p * 2, CELL - p * 2);
     ctx.fillStyle = '#f8c860';
@@ -2319,14 +3342,14 @@ function render() {
 
     const st = getStage();
 
-    // Draw forbidden tiles (赤の斜線)
-    st.forbidden.forEach(f => {
-        drawForbiddenTile(f.col, f.row);
-    });
-
     // Draw gimmick tiles (水色 / 緑色矢印)
     st.gimmicks.forEach(g => {
         drawGimmickTile(g);
+    });
+
+    // Draw forbidden tiles (赤の斜線 - 矢印の上にも重なって見えるようギミックの後に描画)
+    st.forbidden.forEach(f => {
+        drawForbiddenTile(f.col, f.row);
     });
 
     // Draw solution overlay (答え合わせ)
@@ -2808,7 +3831,7 @@ function markStageCleared(idx) {
         const key = customMode ? 'hako_custom_cleared_stages_v1' : 'hako_cleared_stages';
         try {
             localStorage.setItem(key, JSON.stringify(cleared));
-        } catch (e) {}
+        } catch (e) { }
     }
 }
 
@@ -2891,7 +3914,7 @@ function saveStageResult(idx, { cleared, blocksPlaced, usedHint }) {
         const recordsKey = customMode ? 'hako_custom_stage_records_v1' : STAGE_RECORDS_KEY;
         try {
             localStorage.setItem(recordsKey, JSON.stringify(records));
-        } catch (e) {}
+        } catch (e) { }
     }
 
     // 旧キーも同期して後方互換性を完全維持
@@ -3172,17 +4195,44 @@ function updateLegendUI() {
     if (!legendWrap) return;
     const st = getStage();
     legendWrap.innerHTML = '';
-    if (st && Array.isArray(st.legends)) {
+    if (!st) return;
+
+    // ギミック種別ごとに集約したリストを構築（上下左右などの多段重複を防止）
+    const items = [];
+    const hasForbidden = (st.forbidden && st.forbidden.length > 0) || (st.legends && st.legends.some(l => l.type === 'forbidden'));
+    if (hasForbidden) {
+        items.push({ icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' });
+    }
+    const hasDash = (st.gimmicks && st.gimmicks.some(g => g.type === 'dash')) || (st.legends && st.legends.some(l => l.type === 'dash'));
+    if (hasDash) {
+        items.push({ icon: '→', type: 'dash', text: '青矢印：矢印方向に端まで移動' });
+    }
+    const hasStep = (st.gimmicks && st.gimmicks.some(g => g.type === 'step')) || (st.legends && st.legends.some(l => l.type === 'step'));
+    if (hasStep) {
+        items.push({ icon: '→', type: 'step', text: '緑矢印：矢印方向に1マス移動' });
+    }
+    const hasPurple = (st.gimmicks && st.gimmicks.some(g => g.purpleBorder)) || (st.legends && st.legends.some(l => l.type === 'purple'));
+    if (hasPurple) {
+        items.push({ icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' });
+    }
+
+    if (Array.isArray(st.legends)) {
         st.legends.forEach(l => {
-            const item = document.createElement('div');
-            item.className = 'legend-item';
-            item.innerHTML = `
-                <span class="legend-icon legend-${l.type}">${l.icon}</span>
-                <span>${l.text}</span>
-            `;
-            legendWrap.appendChild(item);
+            if (l.type !== 'forbidden' && l.type !== 'dash' && l.type !== 'step' && l.type !== 'purple') {
+                items.push(l);
+            }
         });
     }
+
+    items.forEach(l => {
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        item.innerHTML = `
+            <span class="legend-icon legend-${l.type}">${l.icon}</span>
+            <span>${l.text}</span>
+        `;
+        legendWrap.appendChild(item);
+    });
 }
 
 function updateStageNavUI() {
@@ -3502,11 +4552,20 @@ window.addEventListener('DOMContentLoaded', () => {
 
         startBtn.disabled = true;
 
-        // スタート前のブロック配置と個数をバックアップ（超新星爆発時は全消去となるため復元しない）
+        // スタート前のブロック配置と個数をバックアップ（超新星爆発・ブラックホール時は全消去となるため復元しない）
         placedBlocksAtStart = countPlacedBlocks();
-        originalGrid = supernova ? null : grid.map(r => [...r]);
+        originalGrid = (supernova || blackHoleLoop) ? null : grid.map(r => [...r]);
         pendingSupernova = supernova || null;
         pendingBlackHole = blackHoleLoop || null;
+
+        if (pendingSupernova && pendingBlackHole) {
+            const sn = pendingSupernova;
+            const bh = pendingBlackHole;
+            pendingSupernova = null;
+            pendingBlackHole = null;
+            startDualSupernovaBlackHole(sn, bh);
+            return;
+        }
 
         if (pendingBlackHole) {
             const bh = pendingBlackHole;
@@ -3547,6 +4606,7 @@ window.addEventListener('DOMContentLoaded', () => {
         supernovaState = null;
         pendingBlackHole = null;
         blackHoleState = null;
+        dualEventState = null;
 
         // スタート後（実行中や結果画面）なら、スタート前の配置に復元して再挑戦しやすくする
         if (phase !== 'place' && originalGrid) {
@@ -3743,7 +4803,7 @@ window.addEventListener('DOMContentLoaded', () => {
         getStages: () => STAGES,
         // エディタ内でのキー配置有効/無効フラグ (ide.jsから制御可能)
         disableKeyPlacement: inEditorPreview,
-        setDisableKeyPlacement: function(disabled) {
+        setDisableKeyPlacement: function (disabled) {
             this.disableKeyPlacement = Boolean(disabled);
         }
     };
@@ -3801,7 +4861,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // MARK: - External Playground / Editor API
 // 教材ページや外部エディタからステージデータを即時注入してテストするためのAPI
-window.applyCustomStages = function(newStages, targetIndex = 0, targetView = 'game') {
+window.applyCustomStages = function (newStages, targetIndex = 0, targetView = 'game') {
     if (!Array.isArray(newStages) || newStages.length === 0) return false;
     STAGES.length = 0;
     newStages.forEach(st => STAGES.push(st));
@@ -3840,14 +4900,14 @@ function restoreOfficialStages() {
     customMode = false;
     try {
         localStorage.removeItem('hako_custom_mode_active');
-    } catch (e) {}
+    } catch (e) { }
 
     if (OFFICIAL_STAGES && OFFICIAL_STAGES.length > 0) {
         window.applyCustomStages(JSON.parse(JSON.stringify(OFFICIAL_STAGES)), 0, null);
     }
     try {
         history.replaceState(null, '', location.pathname);
-    } catch (e) {}
+    } catch (e) { }
     updateCustomModeUI();
     if (typeof updateSelectScreenUI === 'function') updateSelectScreenUI();
     showSharedNotice('公式ステージに戻しました');
@@ -3862,7 +4922,7 @@ function bootCustomStagesFromStorage() {
         customMode = false;
         try {
             localStorage.removeItem('hako_custom_mode_active');
-        } catch (e) {}
+        } catch (e) { }
         updateCustomModeUI();
         return false;
     }
@@ -3900,7 +4960,7 @@ window.addEventListener('message', (event) => {
 });
 
 // 本格Webエディタからのコード直接ホットリロード
-window.reloadStagesFromCode = function(code, targetIndex = 0) {
+window.reloadStagesFromCode = function (code, targetIndex = 0) {
     try {
         const runner = new Function(code + '; return (typeof STAGES !== "undefined" ? STAGES : (typeof stages !== "undefined" ? stages : null));');
         const parsedStages = runner();
