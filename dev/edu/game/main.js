@@ -76,6 +76,9 @@ let roundStartTime = null;
 let pendingSupernova = null;
 let supernovaState = null;
 let explosionMessageTimer = null;
+let pendingBlackHole = null;
+let blackHoleState = null;
+let blackHoleParticles = [];
 
 function makeMan() {
     const st = getStage();
@@ -176,12 +179,7 @@ function updateBlockBadge(preserveStatus = false) {
 
     if (phase === 'place' && statusBar && !preserveStatus) {
         if (!showSolution) {
-            const { supernova } = simulateGimmickBlockMoves();
-            if (supernova) {
-                statusBar.innerHTML = '<span class="status-place">このまま開始すると爆発します</span>';
-            } else {
-                statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
-            }
+            statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
         }
     }
 }
@@ -251,25 +249,30 @@ function simulateGimmickBlockMoves() {
                 if (hasMove && g.type === 'step') {
                     consumedStepGimmicks.add(`${c},${r}`);
                 }
+                const initDir = hasMove ? g.dir : null;
+                const initMode = hasMove ? g.type : null;
+                const initSteps = hasMove ? ((g.type === 'step') ? (g.steps || 1) : Infinity) : 0;
                 blocks.push({
                     id: idCounter++,
                     col: c,
                     row: r,
                     originCol: c,
                     originRow: r,
-                    dir: hasMove ? g.dir : null,
-                    mode: hasMove ? g.type : null,
-                    remainingSteps: hasMove ? ((g.type === 'step') ? (g.steps || 1) : Infinity) : 0,
+                    dir: initDir,
+                    mode: initMode,
+                    remainingSteps: initSteps,
                     isMoving: hasMove,
-                    path: [{ col: c, row: r }]
+                    path: [{ col: c, row: r }],
+                    history: [{ col: c, row: r, dir: initDir, tick: 0, pathIndex: 0 }]
                 });
             }
         }
     }
 
-    const maxTicks = 40;
+    const maxTicks = 60;
     let tickCount = 0;
     let supernova = null;
+    let blackHoleLoop = null;
 
     while (tickCount < maxTicks) {
         tickCount++;
@@ -361,7 +364,7 @@ function simulateGimmickBlockMoves() {
             }
         }
 
-        // 正面すれ違い衝突（AがBの位置へ、BがAの位置へ同時に進もうとした場合）
+        // 正面すれ違い衝突（AがBの位置へ、BがAの位置へ同時に進もうとした場合：マスの境界で衝突するため超新星爆発は起こさず互いに手前マスで停止）
         movingBlocks.forEach(b => {
             if (!b.isMoving || !intentions.has(b.id)) return;
             const dest = intentions.get(b.id);
@@ -369,17 +372,6 @@ function simulateGimmickBlockMoves() {
             if (other && intentions.has(other.id)) {
                 const otherDest = intentions.get(other.id);
                 if (otherDest.nc === b.col && otherDest.nr === b.row) {
-                    if (!supernova) {
-                        supernova = {
-                            col: (b.col + other.col) / 2,
-                            row: (b.row + other.row) / 2,
-                            tick: tickCount,
-                            colliders: [
-                                { id: b.id, originCol: b.originCol, originRow: b.originRow, fromCol: b.col, fromRow: b.row },
-                                { id: other.id, originCol: other.originCol, originRow: other.originRow, fromCol: other.col, fromRow: other.row }
-                            ]
-                        };
-                    }
                     b.isMoving = false;
                     other.isMoving = false;
                     intentions.delete(b.id);
@@ -423,6 +415,40 @@ function simulateGimmickBlockMoves() {
                 b.path.push({ col: b.col, row: b.row });
             }
         });
+
+        // ループ（周回）の検出（超新星爆発が発生していない場合）
+        if (!supernova && !blackHoleLoop) {
+            for (const b of blocks) {
+                if (!b.isMoving) continue;
+                const prev = b.history.find(h => h.col === b.col && h.row === b.row && h.dir === b.dir);
+                if (prev) {
+                    const loopPath = b.path.slice(prev.pathIndex, b.path.length - 1);
+                    if (loopPath.length >= 2) {
+                        const cols = loopPath.map(p => p.col);
+                        const rows = loopPath.map(p => p.row);
+                        const minC = Math.min(...cols), maxC = Math.max(...cols);
+                        const minR = Math.min(...rows), maxR = Math.max(...rows);
+                        const centerCol = (minC + maxC) / 2;
+                        const centerRow = (minR + maxR) / 2;
+                        blackHoleLoop = {
+                            blockId: b.id,
+                            originCol: b.originCol,
+                            originRow: b.originRow,
+                            loopPath,
+                            centerCol,
+                            centerRow,
+                            centerX: GX + (centerCol + 0.5) * CELL,
+                            centerY: GY + (centerRow + 0.5) * CELL
+                        };
+                        break;
+                    }
+                }
+                b.history.push({ col: b.col, row: b.row, dir: b.dir, tick: tickCount, pathIndex: b.path.length - 1 });
+            }
+            if (blackHoleLoop) {
+                break;
+            }
+        }
     }
 
     // 最終盤面の作成
@@ -452,7 +478,7 @@ function simulateGimmickBlockMoves() {
 
     const rounds = actualMoves.length > 0 ? [actualMoves] : [];
 
-    return { rounds, finalGrid, supernova };
+    return { rounds, finalGrid, supernova, blackHoleLoop };
 }
 
 function animateBlockMove(ts) {
@@ -1096,6 +1122,561 @@ function finishSupernova() {
     }, 1000);
 }
 
+// MARK: - Black Hole & Infinite Loop Sequence
+function easeOutBounce(x) {
+    const n1 = 7.5625;
+    const d1 = 2.75;
+    if (x < 1 / d1) {
+        return n1 * x * x;
+    } else if (x < 2 / d1) {
+        return n1 * (x -= 1.5 / d1) * x + 0.75;
+    } else if (x < 2.5 / d1) {
+        return n1 * (x -= 2.25 / d1) * x + 0.9375;
+    } else {
+        return n1 * (x -= 2.625 / d1) * x + 0.984375;
+    }
+}
+
+function initBlackHoleParticles(cx, cy) {
+    blackHoleParticles = [];
+    for (let i = 0; i < 54; i++) {
+        blackHoleParticles.push({
+            dist: 35 + Math.random() * 190,
+            angle: Math.random() * Math.PI * 2,
+            speed: 1.2 + Math.random() * 2.8,
+            size: 1.5 + Math.random() * 3.2,
+            color: (Math.random() < 0.45) ? '#c084fc' : (Math.random() < 0.75 ? '#38bdf8' : '#ffffff'),
+            alpha: 0.35 + Math.random() * 0.65
+        });
+    }
+}
+
+function updateAndDrawBlackHoleParticles(ctx, cx, cy, bhRadius, elapsed) {
+    if (bhRadius <= 0) return;
+    blackHoleParticles.forEach(p => {
+        p.dist -= p.speed * (0.85 + 32 / (p.dist + 12));
+        p.angle += 0.08 + (3.6 / (p.dist * 0.12 + 1));
+        if (p.dist <= bhRadius * 0.25) {
+            p.dist = 120 + Math.random() * 90;
+            p.angle = Math.random() * Math.PI * 2;
+        }
+        const px = cx + Math.cos(p.angle) * p.dist;
+        const py = cy + Math.sin(p.angle) * p.dist;
+        const fade = Math.min(1, p.dist / 30);
+        ctx.save();
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha * fade;
+        ctx.beginPath();
+        ctx.arc(px, py, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    });
+}
+
+function getSuckTransform(elapsed, suckStart, suckEnd, origX, origY, bhX, bhY) {
+    if (elapsed < suckStart) {
+        return { x: origX, y: origY, scale: 1, rotation: 0, alpha: 1, active: true, phase: 'idle' };
+    }
+    if (elapsed < suckEnd) {
+        const u = (elapsed - suckStart) / (suckEnd - suckStart);
+        const ease = Math.pow(u, 2.4);
+        const curX = origX + (bhX - origX) * ease;
+        const curY = origY + (bhY - origY) * ease;
+        const rot = ease * Math.PI * 3.5;
+        const scale = Math.max(0, 1 - ease);
+        const alpha = Math.max(0, 1 - Math.pow(u, 2.2));
+        return { x: curX, y: curY, scale, rotation: rot, alpha, active: true, phase: 'suck' };
+    }
+    return { x: bhX, y: bhY, scale: 0, rotation: 0, alpha: 0, active: false, phase: 'gone' };
+}
+
+function getObjectState(elapsed, suckStart, suckEnd, dropStart, dropEnd, origX, origY, bhX, bhY, topOffsetY = -340) {
+    if (elapsed < suckStart) {
+        return { x: origX, y: origY, scale: 1, rotation: 0, alpha: 1, active: true, phase: 'idle' };
+    }
+    if (elapsed < suckEnd) {
+        return getSuckTransform(elapsed, suckStart, suckEnd, origX, origY, bhX, bhY);
+    }
+    if (elapsed < dropStart) {
+        return { x: bhX, y: bhY, scale: 0, rotation: 0, alpha: 0, active: false, phase: 'gone' };
+    }
+    if (elapsed < dropEnd) {
+        const u = (elapsed - dropStart) / (dropEnd - dropStart);
+        const b = easeOutBounce(u);
+        const curY = (origY + topOffsetY) + (-topOffsetY) * b;
+        return { x: origX, y: curY, scale: 1, rotation: 0, alpha: 1, active: true, phase: 'drop' };
+    }
+    return { x: origX, y: origY, scale: 1, rotation: 0, alpha: 1, active: true, landed: true, phase: 'landed' };
+}
+
+function startBlackHole(loopData) {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    phase = 'blackhole';
+    startBtn.disabled = true;
+
+    const initialPlacedBlocks = [];
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (grid[r][c]) {
+                const pathIdx = loopData.loopPath.findIndex(p => p.col === c && p.row === r);
+                initialPlacedBlocks.push({
+                    col: c,
+                    row: r,
+                    isLoopBlock: (pathIdx !== -1),
+                    loopOffset: (pathIdx !== -1) ? pathIdx : 0
+                });
+            }
+        }
+    }
+
+    const st = getStage();
+    blackHoleState = {
+        loopPath: loopData.loopPath,
+        centerCol: loopData.centerCol,
+        centerRow: loopData.centerRow,
+        centerX: loopData.centerX,
+        centerY: loopData.centerY,
+        startTime: performance.now(),
+        placedBlocks: initialPlacedBlocks,
+        gimmicks: [...st.gimmicks],
+        landedImpacts: new Set()
+    };
+
+    initBlackHoleParticles(loopData.centerX, loopData.centerY);
+
+    if (statusBar) {
+        statusBar.innerHTML = '<span class="status-run">無限ループを検知しました...</span>';
+    }
+    if (hintText) {
+        hintText.textContent = '';
+    }
+
+    animId = requestAnimationFrame(animateBlackHole);
+}
+
+function finishBlackHole() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    blackHoleState = null;
+    pendingBlackHole = null;
+    slidingBlocks = [];
+    blockAnimationRounds = [];
+    currentRoundIndex = 0;
+
+    // ステージリセット（ブロックを全消去して再配置へ復帰）
+    grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    actionHistory = [];
+    originalGrid = null;
+    placedBlocksAtStart = 0;
+    gameParticles.length = 0;
+
+    phase = 'place';
+    man = makeMan();
+    startBtn.disabled = false;
+    statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
+    if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
+    updateBlockBadge(true);
+    render();
+}
+
+function animateBlackHole(ts) {
+    if (phase !== 'blackhole' || !blackHoleState) return;
+
+    const now = ts || performance.now();
+    const elapsed = Math.max(0, now - blackHoleState.startTime);
+
+    renderBlackHoleState(elapsed);
+
+    if (elapsed >= 7900) {
+        finishBlackHole();
+    } else {
+        animId = requestAnimationFrame(animateBlackHole);
+    }
+}
+
+function renderBlackHoleState(elapsed) {
+    const st = getStage();
+    const bhState = blackHoleState;
+    if (!bhState) return;
+
+    const cx = bhState.centerX;
+    const cy = bhState.centerY;
+
+    // --- タイムライン定義 ---
+    // 吸引順: ブロック → 矢印 → キャラクター → 土管 → ゴール → 地面
+    const SUCK_BLOCKS_START = 2500, SUCK_BLOCKS_END = 2950;
+    const SUCK_ARROWS_START = 2850, SUCK_ARROWS_END = 3300;
+    const SUCK_MAN_START    = 3200, SUCK_MAN_END    = 3650;
+    const SUCK_PIPE_START   = 3550, SUCK_PIPE_END   = 4000;
+    const SUCK_GOAL_START   = 3900, SUCK_GOAL_END   = 4350;
+    const SUCK_GROUND_START = 4250, SUCK_GROUND_END = 4950;
+
+    // 落下出現順 (反対の順): 地面 → ゴール → 土管 → キャラクター → 矢印（ステージリセットのためブロックは再出現しない）
+    const DROP_GROUND_START = 5750, DROP_GROUND_END = 6200;
+    const DROP_GOAL_START   = 6150, DROP_GOAL_END   = 6550;
+    const DROP_PIPE_START   = 6500, DROP_PIPE_END   = 6900;
+    const DROP_MAN_START    = 6850, DROP_MAN_END    = 7350;
+    const DROP_ARROWS_START = 7300, DROP_ARROWS_END = 7700;
+
+    // --- ステータスバー文言更新 ---
+    if (statusBar) {
+        if (elapsed < 500) {
+            statusBar.innerHTML = '<span class="status-run">無限ループ検知... 回転開始</span>';
+        } else if (elapsed < 2500) {
+            statusBar.innerHTML = '<span class="status-run">速度が指数関数的に増加中...！！</span>';
+        } else if (elapsed < 5000) {
+            statusBar.innerHTML = '<span class="status-fail">ブラックホールにすべて吸い込まれています！！</span>';
+        } else if (elapsed < 5750) {
+            statusBar.innerHTML = '<span class="status-place">......</span>';
+        } else {
+            statusBar.innerHTML = '<span class="status-run">上空から復帰中...！</span>';
+        }
+    }
+
+    // --- カメラ揺れ（Screen Shake）---
+    let shakeAmp = 0;
+    if (elapsed >= 2200 && elapsed < 4250) {
+        shakeAmp = ((elapsed - 2200) / 2050) * 5.0;
+    } else if (elapsed >= 4250 && elapsed < 5000) {
+        shakeAmp = 5.0 + ((elapsed - 4250) / 750) * 3.8;
+    } else if (elapsed >= 5000 && elapsed < 5400) {
+        shakeAmp = 8.8 * (1 - (elapsed - 5000) / 400);
+    } else if (elapsed >= DROP_GROUND_END - 50 && elapsed < DROP_GROUND_END + 200) {
+        const pt = (elapsed - (DROP_GROUND_END - 50)) / 250;
+        shakeAmp = 5.5 * (1 - pt);
+    }
+
+    let shakeX = 0, shakeY = 0;
+    if (shakeAmp > 0) {
+        shakeX = (Math.sin(elapsed * 0.08) * 0.7 + Math.sin(elapsed * 0.19) * 0.3) * shakeAmp;
+        shakeY = (Math.cos(elapsed * 0.09) * 0.7 + Math.cos(elapsed * 0.17) * 0.3) * shakeAmp;
+    }
+
+    // --- 着地衝撃土煙トリガー ---
+    const triggerImpact = (key, callback) => {
+        if (!bhState.landedImpacts.has(key)) {
+            bhState.landedImpacts.add(key);
+            callback();
+        }
+    };
+    if (elapsed >= DROP_GROUND_END) {
+        triggerImpact('ground', () => {
+            spawnDust(0, st.startRow);
+            spawnDust(COLS - 1, st.goalRow);
+        });
+    }
+    if (elapsed >= DROP_GOAL_END) {
+        triggerImpact('goal', () => { spawnDust(COLS, st.goalRow); });
+    }
+    if (elapsed >= DROP_PIPE_END) {
+        triggerImpact('pipe', () => { spawnDust(-1.5, st.startRow); });
+    }
+    if (elapsed >= DROP_MAN_END) {
+        triggerImpact('man', () => { spawnDust(-1.5, st.startRow); });
+    }
+
+    // --- ブラックホールのサイズ ---
+    let bhRadius = 0;
+    if (elapsed >= 1900 && elapsed < 2700) {
+        const t = (elapsed - 1900) / 800;
+        bhRadius = 60 * Math.pow(t, 1.8);
+    } else if (elapsed >= 2700 && elapsed < 5000) {
+        bhRadius = 60 + Math.sin(elapsed * 0.01) * 2.5;
+    } else if (elapsed >= 5000 && elapsed < 5400) {
+        const t = (elapsed - 5000) / 400;
+        bhRadius = Math.max(0, 60 * Math.pow(1 - t, 2));
+    }
+
+    // --- ループ回転の進行マス数 (s) の計算 ---
+    const loopPath = bhState.loopPath;
+    const N = loopPath.length;
+    const halfN = N / 2;
+    const T_half = 500;
+    let loopS = 0;
+    let loopSpeed = 1;
+
+    if (elapsed < T_half) {
+        loopS = (halfN / T_half) * elapsed;
+        loopSpeed = 1;
+    } else {
+        const dtSec = (elapsed - T_half) / 1000;
+        const v0 = halfN / 0.5; // マス/秒
+        const k = 2.2;
+        loopS = halfN + (v0 / k) * (Math.exp(k * dtSec) - 1);
+        loopSpeed = Math.exp(k * dtSec);
+    }
+
+    const getLoopCoord = (sVal) => {
+        const modS = ((sVal % N) + N) % N;
+        const idx = Math.floor(modS);
+        const sub = modS - idx;
+        const p0 = loopPath[idx];
+        const p1 = loopPath[(idx + 1) % N];
+        return {
+            col: p0.col + (p1.col - p0.col) * sub,
+            row: p0.row + (p1.row - p0.row) * sub
+        };
+    };
+
+    // --- レンダリング開始 ---
+    ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
+    drawBackground();
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    // 1. 地面 (Ground) の描画
+    const startGroundY = GY + (st.startRow + 1) * CELL;
+    const goalGroundY = GY + (st.goalRow + 1) * CELL;
+    const leftGroundOrigX = GX / 2;
+    const leftGroundOrigY = (startGroundY + TOTAL_H) / 2;
+    const rightGroundOrigX = (GX + COLS * CELL + TOTAL_W) / 2;
+    const rightGroundOrigY = (goalGroundY + TOTAL_H) / 2;
+
+    const leftGrState = getObjectState(elapsed, SUCK_GROUND_START, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, leftGroundOrigX, leftGroundOrigY, cx, cy);
+    const rightGrState = getObjectState(elapsed, SUCK_GROUND_START + 80, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, rightGroundOrigX, rightGroundOrigY, cx, cy);
+
+    if (leftGrState.active) {
+        ctx.save();
+        ctx.translate(leftGrState.x, leftGrState.y);
+        if (leftGrState.rotation) ctx.rotate(leftGrState.rotation);
+        if (leftGrState.scale !== 1) ctx.scale(leftGrState.scale, leftGrState.scale);
+        if (leftGrState.alpha < 1) ctx.globalAlpha *= leftGrState.alpha;
+        ctx.translate(-leftGroundOrigX, -leftGroundOrigY);
+        drawGroundLeft();
+        ctx.restore();
+    }
+
+    if (rightGrState.active) {
+        ctx.save();
+        ctx.translate(rightGrState.x, rightGrState.y);
+        if (rightGrState.rotation) ctx.rotate(rightGrState.rotation);
+        if (rightGrState.scale !== 1) ctx.scale(rightGrState.scale, rightGrState.scale);
+        if (rightGrState.alpha < 1) ctx.globalAlpha *= rightGrState.alpha;
+        ctx.translate(-rightGroundOrigX, -rightGroundOrigY);
+        drawGroundRight();
+        ctx.restore();
+    }
+
+    if (leftGrState.active && rightGrState.active && leftGrState.scale === 1 && rightGrState.scale === 1) {
+        drawGroundPit();
+    }
+
+    // 2. グリッド線・天井
+    if (elapsed < SUCK_GROUND_START || elapsed >= DROP_GROUND_END) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(100,150,255,0.06)';
+        ctx.fillRect(GX, GY, COLS * CELL, ROWS * CELL);
+        drawGridLines();
+        drawCeiling();
+        ctx.restore();
+    }
+
+    // 3. ゴール (Goal) の描画
+    const goalBx = GX + COLS * CELL;
+    const goalBy = GY + st.goalRow * CELL;
+    const goalOrigX = goalBx + 28;
+    const goalOrigY = goalBy + CELL / 2;
+    const goalState = getObjectState(elapsed, SUCK_GOAL_START, SUCK_GOAL_END, DROP_GOAL_START, DROP_GOAL_END, goalOrigX, goalOrigY, cx, cy);
+
+    if (goalState.active) {
+        ctx.save();
+        ctx.translate(goalState.x, goalState.y);
+        if (goalState.rotation) ctx.rotate(goalState.rotation);
+        if (goalState.scale !== 1) ctx.scale(goalState.scale, goalState.scale);
+        if (goalState.alpha < 1) ctx.globalAlpha *= goalState.alpha;
+        ctx.translate(-goalOrigX, -goalOrigY);
+        drawGoal();
+        ctx.restore();
+    }
+
+    // 4. 土管 (Pipe) の描画
+    const px = GX - 78;
+    const py = GY + st.startRow * CELL + 2;
+    const pw = 60, ph = startGroundY - py;
+    const pipeOrigX = px + pw / 2;
+    const pipeOrigY = py + ph / 2;
+    const pipeState = getObjectState(elapsed, SUCK_PIPE_START, SUCK_PIPE_END, DROP_PIPE_START, DROP_PIPE_END, pipeOrigX, pipeOrigY, cx, cy);
+
+    if (pipeState.active) {
+        ctx.save();
+        ctx.translate(pipeState.x, pipeState.y);
+        if (pipeState.rotation) ctx.rotate(pipeState.rotation);
+        if (pipeState.scale !== 1) ctx.scale(pipeState.scale, pipeState.scale);
+        if (pipeState.alpha < 1) ctx.globalAlpha *= pipeState.alpha;
+        ctx.translate(-pipeOrigX, -pipeOrigY);
+        drawPipe();
+        ctx.restore();
+    }
+
+    // 5. ギミック矢印 (Arrows) の描画
+    bhState.gimmicks.forEach(g => {
+        const arrowOrigX = GX + (g.col + 0.5) * CELL;
+        const arrowOrigY = GY + (g.row + 0.5) * CELL;
+        const arrowState = getObjectState(elapsed, SUCK_ARROWS_START, SUCK_ARROWS_END, DROP_ARROWS_START, DROP_ARROWS_END, arrowOrigX, arrowOrigY, cx, cy);
+
+        if (arrowState.active) {
+            ctx.save();
+            ctx.translate(arrowState.x, arrowState.y);
+            if (arrowState.rotation) ctx.rotate(arrowState.rotation);
+            if (arrowState.scale !== 1) ctx.scale(arrowState.scale, arrowState.scale);
+            if (arrowState.alpha < 1) ctx.globalAlpha *= arrowState.alpha;
+            ctx.translate(-arrowOrigX, -arrowOrigY);
+            drawGimmickTile(g);
+            ctx.restore();
+        }
+    });
+
+    // 6. ブロック (Blocks) の描画
+    if (elapsed < SUCK_BLOCKS_START) {
+        // 回転中: 各ループブロックの高速周回＆残像描画
+        bhState.placedBlocks.forEach(b => {
+            if (b.isLoopBlock) {
+                const s_b = loopS + b.loopOffset;
+                const curCoord = getLoopCoord(s_b);
+
+                // 加速時の残像 (モーションブラー)
+                if (elapsed >= T_half && loopSpeed > 3) {
+                    const trailCount = Math.min(5, Math.floor(loopSpeed * 0.35));
+                    for (let t = trailCount; t >= 1; t--) {
+                        const trailS = s_b - t * Math.min(0.35, 1.2 / trailCount);
+                        const tc = getLoopCoord(trailS);
+                        ctx.save();
+                        ctx.globalAlpha = 0.12 * (1 - t / (trailCount + 1));
+                        drawMarioBlock(tc.col, tc.row);
+                        ctx.restore();
+                    }
+                }
+
+                // 現在位置のブロック
+                drawMarioBlock(curCoord.col, curCoord.row);
+            } else {
+                // ループ外の静止ブロック
+                drawMarioBlock(b.col, b.row);
+            }
+        });
+    } else {
+        // 吸引中: 各ブロックがその瞬間の位置からブラックホール中心へ吸い込まれる
+        if (elapsed < SUCK_BLOCKS_END) {
+            const dtSecSuck = (SUCK_BLOCKS_START - T_half) / 1000;
+            const v0 = halfN / 0.5;
+            const k = 2.2;
+            const loopSAtSuck = halfN + (v0 / k) * (Math.exp(k * dtSecSuck) - 1);
+
+            bhState.placedBlocks.forEach(b => {
+                let bOrigX = GX + (b.col + 0.5) * CELL;
+                let bOrigY = GY + (b.row + 0.5) * CELL;
+                let curCoordAtSuck = null;
+
+                if (b.isLoopBlock) {
+                    const s_b_suck = loopSAtSuck + b.loopOffset;
+                    curCoordAtSuck = getLoopCoord(s_b_suck);
+                    bOrigX = GX + (curCoordAtSuck.col + 0.5) * CELL;
+                    bOrigY = GY + (curCoordAtSuck.row + 0.5) * CELL;
+                }
+
+                const bState = getSuckTransform(elapsed, SUCK_BLOCKS_START, SUCK_BLOCKS_END, bOrigX, bOrigY, cx, cy);
+
+                if (bState.active) {
+                    const drawCol = b.isLoopBlock ? curCoordAtSuck.col : b.col;
+                    const drawRow = b.isLoopBlock ? curCoordAtSuck.row : b.row;
+                    const targetCx = GX + (drawCol + 0.5) * CELL;
+                    const targetCy = GY + (drawRow + 0.5) * CELL;
+
+                    ctx.save();
+                    ctx.translate(bState.x, bState.y);
+                    if (bState.rotation) ctx.rotate(bState.rotation);
+                    if (bState.scale !== 1) ctx.scale(bState.scale, bState.scale);
+                    if (bState.alpha < 1) ctx.globalAlpha *= bState.alpha;
+                    ctx.translate(-targetCx, -targetCy);
+                    drawMarioBlock(drawCol, drawRow);
+                    ctx.restore();
+                }
+            });
+        }
+        // ステージリセットが目的のため、吸引完了後はブロックを再出現させない
+    }
+
+    // 7. キャラクター (Stickman) の描画
+    const manOrigX = GX + (-1.5 + 0.5) * CELL;
+    const manOrigY = GY + (st.startRow + 0.5) * CELL;
+    const manState = getObjectState(elapsed, SUCK_MAN_START, SUCK_MAN_END, DROP_MAN_START, DROP_MAN_END, manOrigX, manOrigY, cx, cy);
+
+    if (manState.active) {
+        ctx.save();
+        ctx.translate(manState.x, manState.y);
+        if (manState.rotation) ctx.rotate(manState.rotation);
+        if (manState.scale !== 1) ctx.scale(manState.scale, manState.scale);
+        if (manState.alpha < 1) ctx.globalAlpha *= manState.alpha;
+        ctx.translate(-manOrigX, -manOrigY);
+
+        if (manState.phase === 'drop') {
+            // 落下中のジャンプポーズ
+            const oldState = man.state;
+            man.state = 'jump';
+            drawStickman(-1.5, st.startRow);
+            man.state = oldState;
+        } else if (elapsed >= 2200 && elapsed < SUCK_MAN_START) {
+            // 揺れにビビる震えモーション
+            const jitterX = (Math.sin(elapsed * 0.15) * 1.5);
+            ctx.translate(jitterX, 0);
+            drawStickman(-1.5, st.startRow);
+        } else {
+            drawStickman(-1.5, st.startRow);
+        }
+        ctx.restore();
+    }
+
+    // 8. ブラックホール (Black Hole) 本体の描画
+    if (bhRadius > 0) {
+        // A. 降着円盤 (Accretion Disk) 光輪
+        const grad = ctx.createRadialGradient(cx, cy, bhRadius * 0.25, cx, cy, bhRadius * 2.3);
+        grad.addColorStop(0, 'rgba(0, 0, 0, 1)');
+        grad.addColorStop(0.35, 'rgba(88, 28, 135, 0.92)');
+        grad.addColorStop(0.6, 'rgba(147, 51, 234, 0.75)');
+        grad.addColorStop(0.85, 'rgba(56, 189, 248, 0.4)');
+        grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, bhRadius * 2.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // B. 回転する歪みフィラメント
+        const diskAngle = elapsed * 0.005;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(diskAngle);
+        for (let i = 0; i < 6; i++) {
+            const a = (i * Math.PI) / 3;
+            ctx.strokeStyle = (i % 2 === 0) ? 'rgba(192, 132, 252, 0.45)' : 'rgba(56, 189, 248, 0.35)';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, bhRadius * 1.6, bhRadius * 0.75, a, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // C. スパイラル光粒子
+        updateAndDrawBlackHoleParticles(ctx, cx, cy, bhRadius, elapsed);
+
+        // D. 中心の漆黒コア (事象の地平線)
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(cx, cy, bhRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // E. 純白の発光エッジ
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+    }
+
+    // 9. パーティクル (土煙など)
+    updateAndDrawParticles(ctx);
+
+    ctx.restore();
+}
+
 // MARK: - Drawing Helpers
 function drawBackground() {
     const g = ctx.createLinearGradient(0, 0, 0, TOTAL_H);
@@ -1105,98 +1686,101 @@ function drawBackground() {
     ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
 }
 
-function drawGround() {
-    const st = getStage();
-    const gridLeft = GX;
-    const gridRight = GX + COLS * CELL;
+function renderGroundSection(startX, width, topY) {
+    if (width <= 0) return;
+    const totalHeight = TOTAL_H - topY;
+    if (totalHeight <= 0) return;
 
-    // スタート位置（st.startRow）の足元に合わせて左側地面の上面高さを決定
-    // キャラクターの足元・土管の設置面は (st.startRow + 1) * CELL
-    const startGroundY = GY + (st.startRow + 1) * CELL;
+    // 草 (Grass)
+    ctx.fillStyle = '#54c418';
+    ctx.fillRect(startX, topY, width, 10);
+    for (let x = startX; x < startX + width; x += 14) {
+        ctx.fillRect(x, topY, 7, 4);
+    }
 
-    // ゴール位置（st.goalRow）の足元に合わせて右側地面の上面高さを決定
-    const goalGroundY = GY + (st.goalRow + 1) * CELL;
+    // 土 (Dirt)
+    ctx.fillStyle = '#c87830';
+    ctx.fillRect(startX, topY + 10, width, totalHeight - 10);
 
-    function renderGroundSection(startX, width, topY) {
-        if (width <= 0) return;
-        const totalHeight = TOTAL_H - topY;
-        if (totalHeight <= 0) return;
+    // レンガ模様 (Brick lines)
+    const bw = 26, bh = 13;
+    const halfW = bw / 2 - 2; // 0.5マスのレンガ幅（11px）
+    ctx.fillStyle = '#a05820';
+    for (let row = 0; row * bh < totalHeight - 10; row++) {
+        const isStaggered = (row % 2 === 1);
+        const off = isStaggered ? bw / 2 : 0;
+        const by = topY + 10 + row * bh;
+        const blockH = Math.min(bh - 2, topY + totalHeight - by - 2);
+        if (blockH <= 0) continue;
 
-        // 草 (Grass)
-        ctx.fillStyle = '#54c418';
-        ctx.fillRect(startX, topY, width, 10);
-        for (let x = startX; x < startX + width; x += 14) {
-            ctx.fillRect(x, topY, 7, 4);
+        // 通常のフルレンガ
+        for (let bx = startX - bw + off; bx < startX + width + bw; bx += bw) {
+            if (bx + 1 >= startX && bx + bw - 1 <= startX + width) {
+                ctx.fillRect(bx + 1, by + 1, bw - 2, blockH);
+            }
         }
 
-        // 土 (Dirt)
-        ctx.fillStyle = '#c87830';
-        ctx.fillRect(startX, topY + 10, width, totalHeight - 10);
+        // 下地が多く見える行（レンガが少ない行）の両端に0.5マスのレンガを追加
+        if (isStaggered) {
+            // 左端の0.5マスレンガ
+            ctx.fillRect(startX + 1, by + 1, halfW, blockH);
 
-        // レンガ模様 (Brick lines)
-        const bw = 26, bh = 13;
-        const halfW = bw / 2 - 2; // 0.5マスのレンガ幅（11px）
-        ctx.fillStyle = '#a05820';
-        for (let row = 0; row * bh < totalHeight - 10; row++) {
-            const isStaggered = (row % 2 === 1);
-            const off = isStaggered ? bw / 2 : 0;
-            const by = topY + 10 + row * bh;
-            const blockH = Math.min(bh - 2, topY + totalHeight - by - 2);
-            if (blockH <= 0) continue;
-
-            // 通常のフルレンガ
-            for (let bx = startX - bw + off; bx < startX + width + bw; bx += bw) {
-                if (bx + 1 >= startX && bx + bw - 1 <= startX + width) {
-                    ctx.fillRect(bx + 1, by + 1, bw - 2, blockH);
-                }
-            }
-
-            // 下地が多く見える行（レンガが少ない行）の両端に0.5マスのレンガを追加
-            if (isStaggered) {
-                // 左端の0.5マスレンガ
-                ctx.fillRect(startX + 1, by + 1, halfW, blockH);
-
-                // 右端の0.5マスレンガ（フルレンガ列の直後に配置）
-                const numFull = Math.floor((width - off) / bw);
-                const rightHalfX = startX + off + numFull * bw + 1;
-                if (rightHalfX + halfW <= startX + width) {
-                    ctx.fillRect(rightHalfX, by + 1, halfW, blockH);
-                }
+            // 右端の0.5マスレンガ（フルレンガ列の直後に配置）
+            const numFull = Math.floor((width - off) / bw);
+            const rightHalfX = startX + off + numFull * bw + 1;
+            if (rightHalfX + halfW <= startX + width) {
+                ctx.fillRect(rightHalfX, by + 1, halfW, blockH);
             }
         }
     }
+}
 
-    // 左側の足場 (スタート位置に合わせて地面を上まで伸ばす)
-    renderGroundSection(0, gridLeft, startGroundY);
+function drawGroundLeft() {
+    const st = getStage();
+    const startGroundY = GY + (st.startRow + 1) * CELL;
+    renderGroundSection(0, GX, startGroundY);
+}
 
-    // 右側の足場 (ゴール位置に合わせて地面を上まで伸ばす)
+function drawGroundRight() {
+    const st = getStage();
+    const gridRight = GX + COLS * CELL;
+    const goalGroundY = GY + (st.goalRow + 1) * CELL;
     renderGroundSection(gridRight, TOTAL_W - gridRight, goalGroundY);
+}
 
-    // 中央グリッド下の奈落演出（底なしの穴・崖）
+function drawGroundPit() {
+    const st = getStage();
+    const gridLeft = GX;
+    const gridRight = GX + COLS * CELL;
+    const startGroundY = GY + (st.startRow + 1) * CELL;
+    const goalGroundY = GY + (st.goalRow + 1) * CELL;
+
     ctx.save();
-    // 崖の左端の影 (startGroundY から TOTAL_H まで)
     const leftShadow = ctx.createLinearGradient(gridLeft, startGroundY, gridLeft + 14, startGroundY);
     leftShadow.addColorStop(0, 'rgba(0,0,0,0.4)');
     leftShadow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = leftShadow;
     ctx.fillRect(gridLeft, startGroundY, 14, TOTAL_H - startGroundY);
 
-    // 崖の右端の影 (goalGroundY から TOTAL_H まで)
     const rightShadow = ctx.createLinearGradient(gridRight - 14, goalGroundY, gridRight, goalGroundY);
     rightShadow.addColorStop(0, 'rgba(0,0,0,0)');
     rightShadow.addColorStop(1, 'rgba(0,0,0,0.4)');
     ctx.fillStyle = rightShadow;
     ctx.fillRect(gridRight - 14, goalGroundY, 14, TOTAL_H - goalGroundY);
 
-    // 奈落の最下部グラデーション
     const pitTop = GY + ROWS * CELL;
     const pitGrad = ctx.createLinearGradient(0, pitTop, 0, TOTAL_H);
     pitGrad.addColorStop(0, 'rgba(15, 23, 42, 0.12)');
     pitGrad.addColorStop(1, 'rgba(15, 23, 42, 0.50)');
     ctx.fillStyle = pitGrad;
     ctx.fillRect(gridLeft, pitTop, gridRight - gridLeft, Math.max(0, TOTAL_H - pitTop));
-
     ctx.restore();
+}
+
+function drawGround() {
+    drawGroundLeft();
+    drawGroundRight();
+    drawGroundPit();
 }
 
 // 天井の描画 (Canvaに天井があるステージ用)
@@ -2630,6 +3214,8 @@ function selectStage(idx) {
     currentRoundIndex = 0;
     pendingSupernova = null;
     supernovaState = null;
+    pendingBlackHole = null;
+    blackHoleState = null;
     originalGrid = null;
     showSolution = false;
     usedHintInStage = false;
@@ -2884,11 +3470,11 @@ window.addEventListener('DOMContentLoaded', () => {
     function triggerStart() {
         if (phase !== 'place') return;
 
-        // スタート直後のブロック移動と超新星爆発（2ブロック交差）の事前シミュレーション
-        const { rounds, supernova } = simulateGimmickBlockMoves();
+        // スタート直後のブロック移動・超新星爆発・無限ループの事前シミュレーション
+        const { rounds, supernova, blackHoleLoop } = simulateGimmickBlockMoves();
 
-        // 超新星爆発が発生しない通常時は、紫枠（必須設置）とブロック連結ルールをチェック
-        if (!supernova) {
+        // 超新星爆発もブラックホールも発生しない通常時は、紫枠（必須設置）とブロック連結ルールをチェック
+        if (!supernova && !blackHoleLoop) {
             const st = getStage();
             const requiredGimmicks = st.gimmicks.filter(g => g.purpleBorder);
             const missingRequired = requiredGimmicks.filter(g => !grid[g.row][g.col]);
@@ -2920,6 +3506,14 @@ window.addEventListener('DOMContentLoaded', () => {
         placedBlocksAtStart = countPlacedBlocks();
         originalGrid = supernova ? null : grid.map(r => [...r]);
         pendingSupernova = supernova || null;
+        pendingBlackHole = blackHoleLoop || null;
+
+        if (pendingBlackHole) {
+            const bh = pendingBlackHole;
+            pendingBlackHole = null;
+            startBlackHole(bh);
+            return;
+        }
 
         if (rounds.length > 0) {
             phase = 'block_move';
@@ -2951,6 +3545,8 @@ window.addEventListener('DOMContentLoaded', () => {
         currentRoundIndex = 0;
         pendingSupernova = null;
         supernovaState = null;
+        pendingBlackHole = null;
+        blackHoleState = null;
 
         // スタート後（実行中や結果画面）なら、スタート前の配置に復元して再挑戦しやすくする
         if (phase !== 'place' && originalGrid) {

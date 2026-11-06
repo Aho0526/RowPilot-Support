@@ -507,8 +507,8 @@ const STAGES = [
             try {
                 const saved = localStorage.getItem(STORAGE_KEY_PREFIX + key);
                 if (saved) {
-                    // 古い main.js キャッシュ（超新星爆発や土管高さ食い込み版、足場両端0.5マス未搭載）は破棄して最新ファイルを読ませる
-                    if (key === 'main.js' && (!saved.includes('startSupernova') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW'))) {
+                    // 古い main.js キャッシュ（超新星爆発や土管高さ食い込み版、足場両端0.5マス未搭載、ブラックホール演出未搭載、initDir未搭載）は破棄して最新ファイルを読ませる
+                    if (key === 'main.js' && (!saved.includes('startSupernova') || !saved.includes('startBlackHole') || !saved.includes('initDir') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         return;
                     }
@@ -2606,10 +2606,6 @@ const STAGES = [
         if (btnRedo) {
             btnRedo.addEventListener('click', () => performEditorRedo());
         }
-        const btnSettingsTop = document.getElementById('btn-open-settings-top');
-        if (btnSettingsTop) {
-            btnSettingsTop.addEventListener('click', () => openSettingsModal());
-        }
         if (btnReset) {
             btnReset.addEventListener('click', () => {
                 if (files[currentFile].isSystemFile) return;
@@ -2919,6 +2915,8 @@ const STAGES = [
             }, 180);
         }
 
+        const btnSettingsTop = document.getElementById('btn-open-settings-top');
+        if (btnSettingsTop) btnSettingsTop.addEventListener('click', openSettings);
         if (btnOpen) btnOpen.addEventListener('click', openSettings);
         if (btnClose) btnClose.addEventListener('click', closeSettings);
         if (btnSave) btnSave.addEventListener('click', closeSettings);

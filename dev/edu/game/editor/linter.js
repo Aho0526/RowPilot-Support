@@ -3846,8 +3846,15 @@
                 let nextIdx = idx + name.length;
                 while (nextIdx < sLine.length && /\s/.test(sLine[nextIdx])) nextIdx++;
                 if (nextIdx < sLine.length && sLine[nextIdx] === ':') {
+                    let pCharIdx = idx - 1;
+                    while (pCharIdx >= 0 && /\s/.test(sLine[pCharIdx])) pCharIdx--;
+                    const pChar = pCharIdx >= 0 ? sLine[pCharIdx] : '';
+                    if (pChar === '{' || pChar === ',') continue;
+
                     const beforeSlice = sLine.slice(0, idx);
-                    if (!beforeSlice.includes('?')) continue;
+                    const qCount = (beforeSlice.match(/\?/g) || []).length;
+                    const cCount = (beforeSlice.match(/:/g) || []).length;
+                    if (qCount <= cCount) continue;
                 }
 
                 if (!declared.has(name)) {
@@ -4814,11 +4821,13 @@
             const checkFiles = [
                 'index.html',
                 'stages.js',
+                'share-codec.js',
                 'main.js',
                 'style.css',
                 'editor/index.html',
                 'editor/ide.js',
                 'editor/linter.js',
+                'editor/share-ui.js',
                 'editor/ide.css',
                 'editor/docs.css',
                 'editor/sticky-scroll.css',
