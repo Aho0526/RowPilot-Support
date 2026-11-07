@@ -229,15 +229,27 @@ function placeBlock(col, row) {
     render();
 }
 
-// MARK: - Gimmick Block Movements at Start (離散時間並行シミュレーション・玉突き停止・超新星爆発対応)
+// MARK: - Gimmick Block Movements at Start (離散時間並行シミュレーション・交差退避スルー・玉突き停止・超新星爆発対応)
+function isHorizontalDirection(dir) {
+    return dir === 'left' || dir === 'right';
+}
+
+function isVerticalDirection(dir) {
+    return dir === 'up' || dir === 'down';
+}
+
+function isOrthogonalDirection(dirA, dirB) {
+    return (isHorizontalDirection(dirA) && isVerticalDirection(dirB)) ||
+           (isVerticalDirection(dirA) && isHorizontalDirection(dirB));
+}
+
 function simulateGimmickBlockMoves() {
     const st = getStage();
     // シミュレーション作業用の一時グリッド
     const simGrid = grid.map(r => [...r]);
 
-    // 初期配置でブロックが置かれていた step ギミックを記録
-    // （ブロックが退避射出された後は通常床とし、後続ブロックを曲げずに直進させる安全弁）
-    const consumedStepGimmicks = new Set();
+    // 初期配置でブロックが置かれていた退避用 step ギミックの射出方向を記録
+    const evacuatedStepDirs = new Map();
 
     const blocks = [];
     let idCounter = 1;
@@ -248,7 +260,21 @@ function simulateGimmickBlockMoves() {
                 const g = getGimmick(c, r);
                 const hasMove = g && (g.type === 'step' || g.type === 'dash');
                 if (hasMove && g.type === 'step') {
-                    consumedStepGimmicks.add(`${c},${r}`);
+                    const stepCount = g.steps || 1;
+                    let dc = 0, dr = 0;
+                    if (g.dir === 'right') dc = 1;
+                    else if (g.dir === 'left') dc = -1;
+                    else if (g.dir === 'up') dr = -1;
+                    else if (g.dir === 'down') dr = 1;
+                    const landCol = c + dc * stepCount;
+                    const landRow = r + dr * stepCount;
+                    const landGimmick = (landCol >= 0 && landCol < COLS && landRow >= 0 && landRow < ROWS)
+                        ? getGimmick(landCol, landRow)
+                        : null;
+                    const hasLandingGimmick = Boolean(landGimmick && (landGimmick.type === 'step' || landGimmick.type === 'dash'));
+                    if (!hasLandingGimmick) {
+                        evacuatedStepDirs.set(`${c},${r}`, g.dir);
+                    }
                 }
                 const initDir = hasMove ? g.dir : null;
                 const initMode = hasMove ? g.type : null;
@@ -262,6 +288,7 @@ function simulateGimmickBlockMoves() {
                     dir: initDir,
                     mode: initMode,
                     remainingSteps: initSteps,
+                    hasTurned: false,
                     isMoving: hasMove,
                     path: [{ col: c, row: r }],
                     history: [{ col: c, row: r, dir: initDir, tick: 0, pathIndex: 0 }]
@@ -326,7 +353,30 @@ function simulateGimmickBlockMoves() {
         };
         resolveStoppedQueue();
 
-        // 2-B. 同一マスへの複数進入競合・正面すれ違い衝突（禁忌：超新星爆発の検知）
+        // 2-B. 正面すれ違い衝突（AがBの位置へ、BがAの位置へ同時に進もうとした場合：マスの境界で衝突するため超新星爆発は起こさず互いに手前マスで停止）
+        let swapCollisionOccurred = false;
+        movingBlocks.forEach(b => {
+            if (!b.isMoving || !intentions.has(b.id)) return;
+            const dest = intentions.get(b.id);
+            const other = blocks.find(ob => ob.id !== b.id && ob.isMoving && ob.col === dest.nc && ob.row === dest.nr);
+            if (other && intentions.has(other.id)) {
+                const otherDest = intentions.get(other.id);
+                if (otherDest.nc === b.col && otherDest.nr === b.row) {
+                    b.isMoving = false;
+                    other.isMoving = false;
+                    intentions.delete(b.id);
+                    intentions.delete(other.id);
+                    swapCollisionOccurred = true;
+                }
+            }
+        });
+
+        // 正面すれ違い停止が発生した場合、その後続ブロックも先に玉突き停止させる
+        if (swapCollisionOccurred) {
+            resolveStoppedQueue();
+        }
+
+        // 2-C. 同一マスへの複数進入競合（禁忌：超新星爆発の検知）
         const targetGroups = new Map();
         movingBlocks.forEach(b => {
             if (b.isMoving && intentions.has(b.id)) {
@@ -337,7 +387,7 @@ function simulateGimmickBlockMoves() {
             }
         });
 
-        let collisionOccurred = false;
+        let sameCellCollisionOccurred = false;
 
         // 同一マスで2個以上のブロックが交わる場合
         for (const [destKey, group] of targetGroups.entries()) {
@@ -361,29 +411,12 @@ function simulateGimmickBlockMoves() {
                     b.isMoving = false;
                     intentions.delete(b.id);
                 });
-                collisionOccurred = true;
+                sameCellCollisionOccurred = true;
             }
         }
 
-        // 正面すれ違い衝突（AがBの位置へ、BがAの位置へ同時に進もうとした場合：マスの境界で衝突するため超新星爆発は起こさず互いに手前マスで停止）
-        movingBlocks.forEach(b => {
-            if (!b.isMoving || !intentions.has(b.id)) return;
-            const dest = intentions.get(b.id);
-            const other = blocks.find(ob => ob.id !== b.id && ob.isMoving && ob.col === dest.nc && ob.row === dest.nr);
-            if (other && intentions.has(other.id)) {
-                const otherDest = intentions.get(other.id);
-                if (otherDest.nc === b.col && otherDest.nr === b.row) {
-                    b.isMoving = false;
-                    other.isMoving = false;
-                    intentions.delete(b.id);
-                    intentions.delete(other.id);
-                    collisionOccurred = true;
-                }
-            }
-        });
-
         // 交差停止が発生した場合、その後続ブロックも玉突き停止させる
-        if (collisionOccurred) {
+        if (sameCellCollisionOccurred) {
             resolveStoppedQueue();
         }
 
@@ -395,11 +428,29 @@ function simulateGimmickBlockMoves() {
                 b.row = dest.nr;
                 b.path.push({ col: b.col, row: b.row });
 
-                // 移動先マスのギミック判定
+                // 移動先マスのギミック判定（交差ベクトルによる退避スルー判定）
+                const cellKey = `${b.col},${b.row}`;
                 const g = getGimmick(b.col, b.row);
-                const isConsumedStep = g && g.type === 'step' && consumedStepGimmicks.has(`${b.col},${b.row}`);
+                const evacDir = evacuatedStepDirs.get(cellKey);
+                const isOwnOrigin = (b.originCol === b.col && b.originRow === b.row);
+                const isEvacuatedPassThrough = Boolean(
+                    g &&
+                    g.type === 'step' &&
+                    evacDir &&
+                    !isOwnOrigin &&
+                    !b.hasTurned &&
+                    b.mode === 'dash' &&
+                    isOrthogonalDirection(evacDir, b.dir)
+                );
 
-                if (g && (g.type === 'step' || g.type === 'dash') && !isConsumedStep) {
+                if (isEvacuatedPassThrough) {
+                    evacuatedStepDirs.delete(cellKey);
+                }
+
+                if (g && (g.type === 'step' || g.type === 'dash') && !isEvacuatedPassThrough) {
+                    if (b.dir !== g.dir) {
+                        b.hasTurned = true;
+                    }
                     b.dir = g.dir;
                     b.mode = g.type;
                     b.remainingSteps = (g.type === 'step') ? (g.steps || 1) : Infinity;
