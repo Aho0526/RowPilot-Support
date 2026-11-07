@@ -508,7 +508,7 @@ const STAGES = [
                 const saved = localStorage.getItem(STORAGE_KEY_PREFIX + key);
                 if (saved) {
                     // 古い main.js キャッシュ（超新星爆発や土管高さ食い込み版、足場両端0.5マス未搭載、ブラックホール演出未搭載、レンガ個別吸引未搭載、矢印くり抜き未搭載）は破棄して最新ファイルを読ませる
-                    if (key === 'main.js' && (!saved.includes('startSupernova') || !saved.includes('startBlackHole') || !saved.includes('drawGroundSuckPieces') || saved.includes('drawGimmickArrowOverlay') || !saved.includes('evenodd') || !saved.includes('LOOP_FREEZE_TIME') || !saved.includes('initDir') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || !saved.includes('isOrthogonalDirection'))) {
+                    if (key === 'main.js' && (!saved.includes('startSupernova') || !saved.includes('startBlackHole') || !saved.includes('drawGroundSuckPieces') || saved.includes('drawGimmickArrowOverlay') || !saved.includes('evenodd') || !saved.includes('LOOP_FREEZE_TIME') || !saved.includes('initDir') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         return;
                     }
@@ -564,7 +564,7 @@ const STAGES = [
                     files[key].defaultContent = rawText;
 
                     let saved = !files[key].isSystemFile ? localStorage.getItem(STORAGE_KEY_PREFIX + key) : null;
-                    if (key === 'main.js' && saved && (!saved.includes('EMERGE_RISE_END') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || !saved.includes('isOrthogonalDirection'))) {
+                    if (key === 'main.js' && saved && (!saved.includes('EMERGE_RISE_END') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         saved = null;
                     }
