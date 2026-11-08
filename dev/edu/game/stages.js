@@ -1,5 +1,5 @@
 // ==========================================
-// ハコゲーム - stages.js (ステージ 1 〜 19 定義)
+// ハコゲーム - stages.js (ステージ 1 〜 23 定義)
 // ==========================================
 
 const STAGES = [
@@ -627,40 +627,188 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 19 (ジグザグの狭路)
+    // ステージ 19
     // ------------------------------------------
     {
         id: 19,
         title: 'ステージ 19',
-        subtitle: 'ジグザグの狭路',
+        subtitle: '交差点と跳躍のギミック',
         maxBlocks: 5,
         targetBlocks: 5,
-        startRow: 1,
+        startRow: 0,
         goalRow: 3,
         forbidden: [
-            { col: 2, row: 0 }, { col: 4, row: 0 },
-            { col: 2, row: 1 }, { col: 4, row: 1 },
-            { col: 0, row: 2 },
-            { col: 0, row: 3 }, { col: 4, row: 3 },
-            { col: 0, row: 4 }, { col: 4, row: 4 }
+            { col: 3, row: 1 },
+            { col: 2, row: 3 }
         ],
         gimmicks: [
-            { col: 3, row: 0, type: 'step', dir: 'right', steps: 1 },
             { col: 1, row: 1, type: 'step', dir: 'left', steps: 1 },
-            { col: 1, row: 4, type: 'dash', dir: 'right', purpleBorder: true },
-            { col: 3, row: 4, type: 'step', dir: 'up', steps: 1 }
+            { col: 3, row: 2, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: true },
+            { col: 0, row: 4, type: 'dash', dir: 'up', purpleBorder: false },
+            { col: 3, row: 4, type: 'dash', dir: 'left', purpleBorder: false }
         ],
         solution: [
-            { col: 0, row: 1 },
-            { col: 1, row: 2 },
-            { col: 2, row: 3 },
-            { col: 1, row: 4 },
-            { col: 3, row: 4 }
+            { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 },
+            { col: 1, row: 3 },
+            { col: 4, row: 3 }
         ],
         legends: [
             { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
             { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
-            { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
+            { icon: '←', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
+            { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
+        ]
+    },
+
+    // ------------------------------------------
+    // ステージ 20
+    // ------------------------------------------
+    {
+        id: 20,
+        title: 'ステージ 20',
+        subtitle: '流れる階段',
+        maxBlocks: 5,
+        targetBlocks: 5,
+        startRow: 4,
+        goalRow: 3,
+        forbidden: [
+            { col: 0, row: 4 }
+        ],
+        gimmicks: [
+            { col: 4, row: 0, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 1, row: 1, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 3, row: 1, type: 'dash', dir: 'down', purpleBorder: true },
+            { col: 4, row: 2, type: 'step', dir: 'left', steps: 1 },
+            { col: 2, row: 3, type: 'dash', dir: 'right', purpleBorder: false },
+            { col: 3, row: 4, type: 'dash', dir: 'left', purpleBorder: false }
+        ],
+        solution: [
+            { col: 4, row: 0 },
+            { col: 3, row: 1 },
+            { col: 2, row: 2 },
+            { col: 1, row: 3 }, { col: 2, row: 3 }
+        ],
+        legends: [
+            { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
+            { icon: '←', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
+            { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
+        ]
+    },
+
+    // ------------------------------------------
+    // ステージ 21
+    // ------------------------------------------
+    {
+        id: 21,
+        title: 'ステージ 21',
+        subtitle: '多重流路の交差点',
+        maxBlocks: 6,
+        targetBlocks: 6,
+        startRow: 1,
+        goalRow: 2,
+        forbidden: [
+            { col: 2, row: 0 },
+            { col: 4, row: 0 },
+            { col: 2, row: 1 },
+            { col: 2, row: 2 },
+            { col: 3, row: 3 },
+            { col: 4, row: 3 },
+            { col: 0, row: 4 },
+            { col: 2, row: 4 }
+        ],
+        gimmicks: [
+            { col: 1, row: 0, type: 'dash', dir: 'right', purpleBorder: false },
+            { col: 3, row: 0, type: 'step', dir: 'right', steps: 1 },
+            { col: 4, row: 0, type: 'step', dir: 'down', steps: 1 },
+            { col: 0, row: 2, type: 'step', dir: 'down', steps: 1 },
+            { col: 3, row: 2, type: 'dash', dir: 'left', purpleBorder: false },
+            { col: 0, row: 3, type: 'step', dir: 'down', steps: 1 },
+            { col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: false },
+            { col: 4, row: 3, type: 'step', dir: 'up', steps: 1 },
+            { col: 0, row: 4, type: 'dash', dir: 'right', purpleBorder: false },
+            { col: 2, row: 4, type: 'step', dir: 'up', steps: 1 },
+            { col: 4, row: 4, type: 'step', dir: 'left', steps: 1 }
+        ],
+        solution: [],
+        legends: [
+            { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
+            { icon: '↑', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' }
+        ]
+    },
+
+    // ------------------------------------------
+    // ステージ 22
+    // ------------------------------------------
+    {
+        id: 22,
+        title: 'ステージ 22',
+        subtitle: '一直線の架け橋',
+        maxBlocks: 5,
+        targetBlocks: 5,
+        startRow: 2,
+        goalRow: 2,
+        forbidden: [],
+        gimmicks: [
+            { col: 0, row: 0, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 1, row: 0, type: 'step', dir: 'left', steps: 1 },
+            { col: 2, row: 0, type: 'step', dir: 'left', steps: 1 },
+            { col: 1, row: 1, type: 'step', dir: 'right', steps: 1 },
+            { col: 2, row: 1, type: 'step', dir: 'up', steps: 1 },
+            { col: 3, row: 1, type: 'dash', dir: 'down', purpleBorder: true },
+            { col: 0, row: 2, type: 'dash', dir: 'right', purpleBorder: false },
+            { col: 1, row: 3, type: 'dash', dir: 'up', purpleBorder: false },
+            { col: 3, row: 3, type: 'dash', dir: 'left', purpleBorder: false }
+        ],
+        solution: [
+            { col: 0, row: 0 },
+            { col: 1, row: 0 },
+            { col: 1, row: 1 },
+            { col: 2, row: 1 },
+            { col: 3, row: 1 }
+        ],
+        legends: [
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
+            { icon: '←', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
+            { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
+        ]
+    },
+
+    // ------------------------------------------
+    // ステージ 23
+    // ------------------------------------------
+    {
+        id: 23,
+        title: 'ステージ 23',
+        subtitle: '循環する風と階段',
+        maxBlocks: 6,
+        targetBlocks: 6,
+        startRow: 4,
+        goalRow: 2,
+        forbidden: [],
+        gimmicks: [
+            { col: 3, row: 1, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 1, row: 2, type: 'dash', dir: 'down', purpleBorder: true },
+            { col: 2, row: 2, type: 'dash', dir: 'right', purpleBorder: false },
+            { col: 4, row: 2, type: 'step', dir: 'down', steps: 1 },
+            { col: 2, row: 3, type: 'step', dir: 'up', steps: 1 },
+            { col: 3, row: 3, type: 'step', dir: 'down', steps: 1 },
+            { col: 2, row: 4, type: 'dash', dir: 'left', purpleBorder: false },
+            { col: 3, row: 4, type: 'step', dir: 'left', steps: 1 }
+        ],
+        solution: [
+            { col: 2, row: 1 },
+            { col: 3, row: 1 },
+            { col: 1, row: 2 },
+            { col: 2, row: 3 },
+            { col: 3, row: 3 },
+            { col: 2, row: 4 }
+        ],
+        legends: [
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
+            { icon: '↓', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
         ]
     }

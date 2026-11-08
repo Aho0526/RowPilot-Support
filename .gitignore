@@ -7,3 +7,6 @@ node_modules/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Scratch temp files
+scratch/canva-fetch/
