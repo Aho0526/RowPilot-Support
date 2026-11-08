@@ -266,6 +266,7 @@ function simulateGimmickBlockMoves() {
     const maxTicks = 60;
     let tickCount = 0;
     let supernova = null;
+    let supernovas = [];
     let blackHoleLoop = null;
 
     while (tickCount < maxTicks) {
@@ -307,6 +308,9 @@ function simulateGimmickBlockMoves() {
                     if (!b.isMoving) {
                         stoppedCells.add(`${b.col},${b.row}`);
                     }
+                });
+                supernovas.forEach(s => {
+                    stoppedCells.add(`${s.col},${s.row}`);
                 });
                 movingBlocks.forEach(b => {
                     if (!b.isMoving) return;
@@ -364,8 +368,8 @@ function simulateGimmickBlockMoves() {
             for (const [destKey, group] of targetGroups.entries()) {
                 if (group.length > 1) {
                     const [nc, nr] = destKey.split(',').map(Number);
-                    if (!supernova) {
-                        supernova = {
+                    if (!supernovas.some(s => s.col === nc && s.row === nr)) {
+                        supernovas.push({
                             col: nc,
                             row: nr,
                             tick: tickCount,
@@ -374,9 +378,10 @@ function simulateGimmickBlockMoves() {
                                 originCol: b.originCol,
                                 originRow: b.originRow,
                                 fromCol: b.col,
-                                fromRow: b.row
+                                fromRow: b.row,
+                                path: [...b.path]
                             }))
-                        };
+                        });
                     }
                     group.forEach(b => {
                         b.isMoving = false;
@@ -491,7 +496,9 @@ function simulateGimmickBlockMoves() {
 
     const rounds = actualMoves.length > 0 ? [actualMoves] : [];
 
-    return { rounds, finalGrid, supernova, blackHoleLoop };
+    supernova = supernovas.length > 0 ? supernovas[0] : null;
+
+    return { rounds, finalGrid, supernova, supernovas, blackHoleLoop };
 }
 
 function animateBlockMove(ts) {
@@ -598,6 +605,25 @@ function finishBlockMove() {
 }
 
 // MARK: - Supernova Animation (禁忌：2つのブロックが一点で交わる際の超新星爆発演出)
+function getSpotStopRatio(spot) {
+    if (!spot.colliders || spot.colliders.length < 2) return 0.45;
+    const c0 = spot.colliders[0];
+    const c1 = spot.colliders[1];
+    const v0x = spot.col - c0.fromCol;
+    const v0y = spot.row - c0.fromRow;
+    const v1x = spot.col - c1.fromCol;
+    const v1y = spot.row - c1.fromRow;
+    const dot = v0x * v1x + v0y * v1y;
+    if (dot < -0.5) {
+        // 正面衝突（180度対向）：0.45 で隙間約10px。全く交わらない
+        return 0.45;
+    } else if (Math.abs(dot) < 0.5) {
+        // 直交衝突（90度対向）：0.35 で交点マスの手前で止まり、角のめり込みを防止
+        return 0.35;
+    }
+    return 0.40;
+}
+
 function startSupernova(supernovaData) {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
     phase = 'supernova';
@@ -606,14 +632,36 @@ function startSupernova(supernovaData) {
     // 爆発によってステージ上のブロックをすべて消去するため、バックアップも破棄
     originalGrid = null;
 
+    // 単一オブジェクトまたは複数オブジェクトの配列を正規化
+    const rawSpots = Array.isArray(supernovaData) ? supernovaData : [supernovaData];
+    const spots = rawSpots.map(s => ({
+        col: s.col,
+        row: s.row,
+        tick: s.tick,
+        colliders: s.colliders,
+        stopRatio: getSpotStopRatio(s),
+        focusX: GX + (s.col + 0.5) * CELL,
+        focusY: GY + (s.row + 0.5) * CELL
+    }));
+
+    // 全地点共通で「時間がゆっくり -> 2つが近づく -> 一瞬止まる -> ブルブル -> ドーン」のタイムラインを流す
+    const APPROACH_MOVE_END = 1000; // 0.0s〜1.0s: 2つのブロックが交わらない位置までゆっくり近づく
+    const APPROACH_END = 1200;      // 1.0s〜1.2s: 交わらない位置でピタッと一瞬止まる（静寂のタメ）
+    const FUSION_END = 2350;        // 1.2s〜2.35s: 激しくブルブル振動しながら白熱し、1つに融合してドーン
+    const PULL_START = 2050;        // 爆発直前に等倍へカメラを引き戻し始める
+    const TOTAL_END = 5050;
+
     supernovaState = {
-        col: supernovaData.col,
-        row: supernovaData.row,
-        colliders: supernovaData.colliders,
+        spots: spots,
+        col: spots[0].col,
+        row: spots[0].row,
+        colliders: spots[0].colliders,
+        timeline: { APPROACH_MOVE_END, APPROACH_END, FUSION_END, PULL_START, TOTAL_END },
         startTime: performance.now(),
         exploded: false,
         particles: [],
-        debris: []
+        debris: [],
+        landed: false
     };
 
     if (statusBar) {
@@ -717,13 +765,7 @@ function animateSupernova(ts) {
 
     const now = ts || performance.now();
     const elapsed = Math.max(0, now - supernovaState.startTime);
-
-    const APPROACH_END = 1200; // 0.0s〜1.2s: カメラが交点へ寄り、2つのブロックがゆっくり互いに近づく
-    const FUSION_END = 2350;   // 1.2s〜2.35s: 激しく振動しながら白くなり、互いに融合する
-    const TOTAL_END = 5050;    // 爆発＆吹っ飛び → 1秒後土管から生えて落下着地完了
-
-    const focusX = GX + (supernovaState.col + 0.5) * CELL;
-    const focusY = GY + (supernovaState.row + 0.5) * CELL;
+    const { APPROACH_END, FUSION_END, TOTAL_END } = supernovaState.timeline;
 
     if (elapsed >= FUSION_END && !supernovaState.exploded) {
         supernovaState.exploded = true;
@@ -734,10 +776,12 @@ function animateSupernova(ts) {
             }
         }
         updateBlockBadge(true);
-        spawnSupernovaExplosionParticles(focusX, focusY);
+        supernovaState.spots.forEach(sp => {
+            spawnSupernovaExplosionParticles(sp.focusX, sp.focusY);
+        });
     }
 
-    renderSupernovaState(elapsed, APPROACH_END, FUSION_END, TOTAL_END, focusX, focusY);
+    renderSupernovaState(elapsed);
 
     if (elapsed >= TOTAL_END) {
         finishSupernova();
@@ -862,54 +906,116 @@ function drawSupernovaStickmanFront(elapsed, APPROACH_END, FUSION_END) {
     }
 }
 
-function renderSupernovaState(elapsed, APPROACH_END, FUSION_END, TOTAL_END, focusX, focusY) {
+function renderSupernovaState(elapsed) {
+    if (!supernovaState) return;
+    const { APPROACH_MOVE_END, APPROACH_END, FUSION_END, PULL_START, TOTAL_END } = supernovaState.timeline;
+    const spotCount = supernovaState.spots.length;
+
     ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
 
     const EXPLOSION_FX_DURATION = 1300;
-    const PULL_START = FUSION_END - 300; // 2050ms: 爆発の300ms前から先行してカメラを引き始める
 
     // カメラズームとフォーカス位置の計算
     let zoom = 1.0;
     let camRatio = 0.0;
+    let currentFocusX = TOTAL_W / 2;
+    let currentFocusY = TOTAL_H / 2;
     let camShakeX = 0;
     let camShakeY = 0;
 
-    if (elapsed < APPROACH_END) {
-        const t1 = elapsed / APPROACH_END;
-        const ease1 = t1 < 0.5 ? 4 * t1 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 3) / 2;
-        zoom = 1.0 + 1.25 * ease1;
-        camRatio = ease1;
-    } else if (elapsed < PULL_START) {
-        const t2 = (elapsed - APPROACH_END) / (PULL_START - APPROACH_END);
-        zoom = 2.25 + 0.35 * (t2 * t2);
-        camRatio = 1.0;
-        camShakeX = Math.sin(elapsed * 0.08) * t2 * 2.5;
-        camShakeY = Math.cos(elapsed * 0.095) * t2 * 2.5;
-    } else if (elapsed < FUSION_END) {
-        // 爆発直前にカメラワークを先行して素早く広角へ引き戻す
-        const pt = (elapsed - PULL_START) / (FUSION_END - PULL_START);
-        const easePt = pt * pt;
-        zoom = 2.60 - 1.55 * easePt; // 2.60 から 1.05 まで先行して引く
-        camRatio = 1.0 - easePt * 0.95; // フォーカスも全体中央へ戻る
-        camShakeX = Math.sin(elapsed * 0.12) * 3.5;
-        camShakeY = Math.cos(elapsed * 0.14) * 3.5;
-    } else {
-        // 爆発後はほぼ標準倍率（1.0）へ収束
-        const zoomOutT = Math.min(1, (elapsed - FUSION_END) / 100);
-        const easeZoomOut = 1 - Math.pow(1 - zoomOutT, 3);
-        zoom = 1.05 - 0.05 * easeZoomOut;
-        camRatio = 0.05 * (1 - easeZoomOut);
+    if (spotCount <= 1) {
+        const spot = supernovaState.spots[0];
+        currentFocusX = spot.focusX;
+        currentFocusY = spot.focusY;
 
-        const shakeT = Math.min(1, (elapsed - FUSION_END) / 950);
-        const shakeDecay = Math.pow(1 - shakeT, 2);
-        camShakeX = Math.sin(elapsed * 0.14) * 14 * shakeDecay;
-        camShakeY = Math.cos(elapsed * 0.17) * 14 * shakeDecay;
+        if (elapsed < APPROACH_END) {
+            const t1 = elapsed / APPROACH_END;
+            const ease1 = t1 < 0.5 ? 4 * t1 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 3) / 2;
+            zoom = 1.0 + 1.25 * ease1;
+            camRatio = ease1;
+        } else if (elapsed < PULL_START) {
+            const t2 = (elapsed - APPROACH_END) / (PULL_START - APPROACH_END);
+            zoom = 2.25 + 0.35 * (t2 * t2);
+            camRatio = 1.0;
+            camShakeX = Math.sin(elapsed * 0.08) * t2 * 2.5;
+            camShakeY = Math.cos(elapsed * 0.095) * t2 * 2.5;
+        } else if (elapsed < FUSION_END) {
+            // 爆発直前にカメラワークを先行して等倍へ引き戻す
+            const pt = (elapsed - PULL_START) / (FUSION_END - PULL_START);
+            const easePt = pt * pt;
+            zoom = 2.60 - 1.60 * easePt; // 2.60 -> 1.0
+            camRatio = 1.0 - easePt;
+            camShakeX = Math.sin(elapsed * 0.12) * 3.5;
+            camShakeY = Math.cos(elapsed * 0.14) * 3.5;
+        } else {
+            zoom = 1.0;
+            camRatio = 0.0;
+            const shakeT = Math.min(1, (elapsed - FUSION_END) / 950);
+            const shakeDecay = Math.pow(1 - shakeT, 2);
+            camShakeX = Math.sin(elapsed * 0.14) * 14 * shakeDecay;
+            camShakeY = Math.cos(elapsed * 0.17) * 14 * shakeDecay;
+        }
+    } else {
+        // 複数地点の場合のシネマティックカメラワーク
+        // 1つ目をズーム（近づく->一瞬止まる） -> 振動が早くなる前にもう1つへクローズアップ -> 爆発直前に等倍へ戻して同時爆発
+        const T_SPOT1_END = APPROACH_END; // 1200ms
+        const T_PAN_END = 1650;           // 1200〜1650ms: 振動が早くなる前にパン移動
+
+        if (elapsed < T_SPOT1_END) {
+            // 1つ目をズームイン＆「近づく -> 一瞬止まる」を表示
+            const zoomInDur = 720;
+            const t1 = Math.min(1, elapsed / zoomInDur);
+            const ease1 = t1 < 0.5 ? 4 * t1 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 3) / 2;
+            zoom = 1.0 + 1.30 * ease1;
+            camRatio = ease1;
+            currentFocusX = supernovaState.spots[0].focusX;
+            currentFocusY = supernovaState.spots[0].focusY;
+        } else if (elapsed < T_PAN_END) {
+            // 振動が早くなる前にもう1つの地点へ素早くクローズアップパン移動
+            const panT = (elapsed - T_SPOT1_END) / (T_PAN_END - T_SPOT1_END);
+            const easePan = panT < 0.5 ? 4 * panT * panT * panT : 1 - Math.pow(-2 * panT + 2, 3) / 2;
+            const fromSpot = supernovaState.spots[0];
+            const toSpot = supernovaState.spots[1];
+            currentFocusX = fromSpot.focusX + (toSpot.focusX - fromSpot.focusX) * easePan;
+            currentFocusY = fromSpot.focusY + (toSpot.focusY - fromSpot.focusY) * easePan;
+            zoom = 2.30;
+            camRatio = 1.0;
+        } else if (elapsed < PULL_START) {
+            // 次の地点で振動が加速・白熱・融合していく様子を見せる
+            const lastSpot = supernovaState.spots[spotCount - 1];
+            currentFocusX = lastSpot.focusX;
+            currentFocusY = lastSpot.focusY;
+            const t3 = (elapsed - T_PAN_END) / (PULL_START - T_PAN_END);
+            zoom = 2.30 + 0.20 * (t3 * t3);
+            camRatio = 1.0;
+            camShakeX = Math.sin(elapsed * 0.08) * t3 * 2.5;
+            camShakeY = Math.cos(elapsed * 0.095) * t3 * 2.5;
+        } else if (elapsed < FUSION_END) {
+            // 2つが爆発する直前にカメラを等倍（1.0）へ引き戻す
+            const lastSpot = supernovaState.spots[spotCount - 1];
+            currentFocusX = lastSpot.focusX;
+            currentFocusY = lastSpot.focusY;
+            const pt = (elapsed - PULL_START) / (FUSION_END - PULL_START);
+            const easePt = pt * pt;
+            zoom = 2.50 - 1.50 * easePt; // 2.50 -> 1.0
+            camRatio = 1.0 - easePt;
+            camShakeX = Math.sin(elapsed * 0.12) * 3.5;
+            camShakeY = Math.cos(elapsed * 0.14) * 3.5;
+        } else {
+            // 爆発後は等倍（1.0）で画面中央固定、画面全体に爆風シェイク
+            zoom = 1.0;
+            camRatio = 0.0;
+            const shakeT = Math.min(1, (elapsed - FUSION_END) / 950);
+            const shakeDecay = Math.pow(1 - shakeT, 2);
+            camShakeX = Math.sin(elapsed * 0.14) * 16 * shakeDecay;
+            camShakeY = Math.cos(elapsed * 0.17) * 16 * shakeDecay;
+        }
     }
 
     const baseCenterX = TOTAL_W / 2;
     const baseCenterY = TOTAL_H / 2;
-    const camTargetX = baseCenterX + (focusX - baseCenterX) * camRatio;
-    const camTargetY = baseCenterY + (focusY - baseCenterY) * camRatio;
+    const camTargetX = baseCenterX + (currentFocusX - baseCenterX) * camRatio;
+    const camTargetY = baseCenterY + (currentFocusY - baseCenterY) * camRatio;
 
     ctx.save();
     ctx.translate(baseCenterX + camShakeX, baseCenterY + camShakeY);
@@ -927,11 +1033,16 @@ function renderSupernovaState(elapsed, APPROACH_END, FUSION_END, TOTAL_END, focu
     st.gimmicks.forEach(g => drawGimmickTile(g));
 
     if (!supernovaState.exploded) {
-        // 交差ブロック以外の盤面ブロックを描画
+        // 交差ブロック以外の盤面ブロックを描画（初期配置セル・衝突直前セル両方を除外して二重描画を防止）
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
                 if (grid[r][c]) {
-                    const isCollider = supernovaState.colliders.some(colObj => colObj.fromCol === c && colObj.fromRow === r);
+                    const isCollider = supernovaState.spots.some(sp =>
+                        sp.colliders.some(colObj =>
+                            (colObj.fromCol === c && colObj.fromRow === r) ||
+                            (colObj.originCol === c && colObj.originRow === r)
+                        )
+                    );
                     if (!isCollider) {
                         drawMarioBlock(c, r);
                     }
@@ -939,77 +1050,98 @@ function renderSupernovaState(elapsed, APPROACH_END, FUSION_END, TOTAL_END, focu
             }
         }
 
-        // 交差する2つのブロックの接近・振動・白熱・融合の計算
-        let moveRatio = 0;
+        // 全地点共通の「近づく -> 一瞬止まる -> ブルブル -> ドーン」の計算
         let whiteRatio = 0;
         let vibAmp = 0;
         let blockScale = 1.0;
+        let fusionT = 0;
 
         if (elapsed < APPROACH_END) {
-            const t1 = elapsed / APPROACH_END;
-            const ease1 = t1 < 0.5 ? 2 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 2) / 2;
-            moveRatio = ease1 * 0.72;
-            whiteRatio = ease1 * 0.12;
+            // 近づく（0〜1000ms）＆ 一瞬止まる（1000〜1200ms）の間は振動・白熱なし（静寂のタメ）
+            whiteRatio = 0;
+            vibAmp = 0;
+            blockScale = 1.0;
         } else {
+            // ブルブルフェーズ（1200〜2350ms）：前と同じ振動式で激しく振動しながら白熱・融合・収縮
             const t2 = (elapsed - APPROACH_END) / (FUSION_END - APPROACH_END);
-            const fusionT = Math.min(1, t2 / 0.75);
-            moveRatio = 0.72 + 0.28 * (fusionT * fusionT);
+            fusionT = Math.min(1, t2 / 0.75);
             whiteRatio = Math.min(1, 0.12 + 0.88 * Math.pow(t2, 0.8));
             vibAmp = (0.04 + 0.11 * Math.sin(t2 * Math.PI)) * CELL;
             if (t2 > 0.82) {
-                // 爆発直前の重力収縮
                 const shrinkT = (t2 - 0.82) / 0.18;
                 blockScale = 1.0 - 0.22 * shrinkT;
             }
         }
 
-        // 融合時の中心エネルギー発光オーラ
-        if (whiteRatio > 0.2) {
-            ctx.save();
-            const auraRadius = CELL * (0.6 + whiteRatio * 0.9);
-            const grad = ctx.createRadialGradient(focusX, focusY, 2, focusX, focusY, auraRadius);
-            grad.addColorStop(0, `rgba(255, 255, 255, ${whiteRatio * 0.9})`);
-            grad.addColorStop(0.5, `rgba(165, 243, 252, ${whiteRatio * 0.5})`);
-            grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(focusX, focusY, auraRadius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
+        // 全地点のブロックと融合オーラを描画
+        supernovaState.spots.forEach(spot => {
+            const stopRatio = spot.stopRatio || 0.45;
+            let moveRatio = 0;
 
-        // 2つのブロック（融合完了後は1つに重なる）を描画
-        supernovaState.colliders.forEach((c, idx) => {
-            const curCol = c.fromCol + (supernovaState.col - c.fromCol) * moveRatio;
-            const curRow = c.fromRow + (supernovaState.row - c.fromRow) * moveRatio;
-            const phaseShift = idx * 2.1;
-            const vx = vibAmp > 0 ? Math.sin(elapsed * 0.085 + phaseShift) * vibAmp : 0;
-            const vy = vibAmp > 0 ? Math.cos(elapsed * 0.105 + phaseShift) * vibAmp : 0;
-            drawSupernovaBlock(curCol, curRow, whiteRatio, vx, vy, blockScale);
+            if (elapsed < APPROACH_MOVE_END) {
+                // 時間がゆっくり、2つのブロックが近づく（交わらない手前まで）
+                const t1 = elapsed / APPROACH_MOVE_END;
+                const ease1 = t1 < 0.5 ? 2 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 2) / 2;
+                moveRatio = ease1 * stopRatio;
+            } else if (elapsed < APPROACH_END) {
+                // 一瞬止まる（交わらない位置でピタッと静止）
+                moveRatio = stopRatio;
+            } else {
+                // ブルブル振動しながら交点中心へ一気に融合
+                moveRatio = stopRatio + (1.0 - stopRatio) * (fusionT * fusionT);
+            }
+
+            // 白熱・融合オーラ
+            if (whiteRatio > 0.2) {
+                ctx.save();
+                const auraRadius = CELL * (0.6 + whiteRatio * 0.9);
+                const grad = ctx.createRadialGradient(spot.focusX, spot.focusY, 2, spot.focusX, spot.focusY, auraRadius);
+                grad.addColorStop(0, `rgba(255, 255, 255, ${whiteRatio * 0.9})`);
+                grad.addColorStop(0.5, `rgba(165, 243, 252, ${whiteRatio * 0.5})`);
+                grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(spot.focusX, spot.focusY, auraRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // コライダーブロックの描画（前と同じブルブル振動式）
+            spot.colliders.forEach((c, idx) => {
+                const curCol = c.fromCol + (spot.col - c.fromCol) * moveRatio;
+                const curRow = c.fromRow + (spot.row - c.fromRow) * moveRatio;
+                const phaseShift = idx * 2.1;
+                const vx = vibAmp > 0 ? Math.sin(elapsed * 0.085 + phaseShift) * vibAmp : 0;
+                const vy = vibAmp > 0 ? Math.cos(elapsed * 0.105 + phaseShift) * vibAmp : 0;
+                drawSupernovaBlock(curCol, curRow, whiteRatio, vx, vy, blockScale);
+            });
         });
     } else {
-        // 超新星爆発エフェクトの描画
+        // 超新星爆発エフェクト（全地点で同時に炸裂！）
         const t3 = Math.min(1, (elapsed - FUSION_END) / EXPLOSION_FX_DURATION);
 
-        // 1. 中心コアの巨大な爆発光球
+        // 1. 各地点の中心コア爆発光球
         if (t3 < 0.75) {
             ctx.save();
             const coreProgress = t3 / 0.75;
             const coreRadius = CELL * (0.8 + coreProgress * 4.8);
             const coreAlpha = Math.max(0, 1 - coreProgress);
-            const coreGrad = ctx.createRadialGradient(focusX, focusY, 0, focusX, focusY, coreRadius);
-            coreGrad.addColorStop(0, `rgba(255, 255, 255, ${coreAlpha})`);
-            coreGrad.addColorStop(0.35, `rgba(253, 224, 71, ${coreAlpha * 0.85})`);
-            coreGrad.addColorStop(0.7, `rgba(56, 189, 248, ${coreAlpha * 0.5})`);
-            coreGrad.addColorStop(1, 'rgba(168, 85, 247, 0)');
-            ctx.fillStyle = coreGrad;
-            ctx.beginPath();
-            ctx.arc(focusX, focusY, coreRadius, 0, Math.PI * 2);
-            ctx.fill();
+
+            supernovaState.spots.forEach(spot => {
+                const coreGrad = ctx.createRadialGradient(spot.focusX, spot.focusY, 0, spot.focusX, spot.focusY, coreRadius);
+                coreGrad.addColorStop(0, `rgba(255, 255, 255, ${coreAlpha})`);
+                coreGrad.addColorStop(0.35, `rgba(253, 224, 71, ${coreAlpha * 0.85})`);
+                coreGrad.addColorStop(0.7, `rgba(56, 189, 248, ${coreAlpha * 0.5})`);
+                coreGrad.addColorStop(1, 'rgba(168, 85, 247, 0)');
+                ctx.fillStyle = coreGrad;
+                ctx.beginPath();
+                ctx.arc(spot.focusX, spot.focusY, coreRadius, 0, Math.PI * 2);
+                ctx.fill();
+            });
             ctx.restore();
         }
 
-        // 2. 多重衝撃波リング（Shockwave Rings）
+        // 2. 多重衝撃波リング（全地点から同時放射）
         const rings = [
             { delay: 0.0, maxR: 380, width: 14, color: '255, 255, 255' },
             { delay: 0.06, maxR: 310, width: 9, color: '103, 232, 249' },
@@ -1024,9 +1156,12 @@ function renderSupernovaState(elapsed, APPROACH_END, FUSION_END, TOTAL_END, focu
                 ctx.save();
                 ctx.strokeStyle = `rgba(${ring.color}, ${alpha})`;
                 ctx.lineWidth = Math.max(1.5, ring.width * (1 - rt * 0.7));
-                ctx.beginPath();
-                ctx.arc(focusX, focusY, radius, 0, Math.PI * 2);
-                ctx.stroke();
+
+                supernovaState.spots.forEach(spot => {
+                    ctx.beginPath();
+                    ctx.arc(spot.focusX, spot.focusY, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                });
                 ctx.restore();
             }
         });
@@ -2205,23 +2340,30 @@ function renderDualEventState(elapsed) {
         ctx.stroke();
     }
 
-    // 8. 爆発が起きる2つのブロック（ブラックホール生成後、ブラックホールに吸われながら融合し爆発）
+    // 8. 爆発が起きる2つのブロック（近づく -> 一瞬止まる -> ブルブルしながら吸われ融合爆発）
     if (!sn.exploded) {
         let moveRatio = 0;
         let whiteRatio = 0;
         let vibAmp = 0;
         let blockScale = 1.0;
+        const APPROACH_MOVE_END = 1100;
+        const stopRatio = getSpotStopRatio(sn);
 
-        if (elapsed < APPROACH_END) {
-            const t1 = elapsed / APPROACH_END;
+        if (elapsed < APPROACH_MOVE_END) {
+            const t1 = elapsed / APPROACH_MOVE_END;
             const ease1 = t1 < 0.5 ? 2 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 2) / 2;
-            moveRatio = ease1 * 0.72;
-            whiteRatio = ease1 * 0.14;
+            moveRatio = ease1 * stopRatio;
+            whiteRatio = 0;
+            vibAmp = 0;
+        } else if (elapsed < APPROACH_END) {
+            moveRatio = stopRatio;
+            whiteRatio = 0;
+            vibAmp = 0;
         } else {
             const t2 = (elapsed - APPROACH_END) / (EXPLODE_TIME - APPROACH_END);
-            const fusionT = Math.min(1, t2 / 0.72);
-            moveRatio = 0.72 + 0.28 * (fusionT * fusionT);
-            whiteRatio = Math.min(1, 0.14 + 0.86 * Math.pow(t2, 0.75));
+            const fusionT = Math.min(1, t2 / 0.75);
+            moveRatio = stopRatio + (1.0 - stopRatio) * (fusionT * fusionT);
+            whiteRatio = Math.min(1, 0.12 + 0.88 * Math.pow(t2, 0.8));
             vibAmp = (0.04 + 0.12 * Math.sin(t2 * Math.PI)) * CELL;
             if (elapsed >= SN_SUCK_START) {
                 const stNorm = Math.min(1, (elapsed - SN_SUCK_START) / (EXPLODE_TIME - SN_SUCK_START));
@@ -4533,7 +4675,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (phase !== 'place') return;
 
         // スタート直後のブロック移動・超新星爆発・無限ループの事前シミュレーション
-        const { rounds, supernova, blackHoleLoop } = simulateGimmickBlockMoves();
+        const { rounds, supernova, supernovas, blackHoleLoop } = simulateGimmickBlockMoves();
 
         // 超新星爆発もブラックホールも発生しない通常時は、紫枠（必須設置）とブロック連結ルールをチェック
         if (!supernova && !blackHoleLoop) {
@@ -4567,11 +4709,11 @@ window.addEventListener('DOMContentLoaded', () => {
         // スタート前のブロック配置と個数をバックアップ（超新星爆発・ブラックホール時は全消去となるため復元しない）
         placedBlocksAtStart = countPlacedBlocks();
         originalGrid = (supernova || blackHoleLoop) ? null : grid.map(r => [...r]);
-        pendingSupernova = supernova || null;
+        pendingSupernova = (supernovas && supernovas.length > 0) ? supernovas : (supernova ? [supernova] : null);
         pendingBlackHole = blackHoleLoop || null;
 
         if (pendingSupernova && pendingBlackHole) {
-            const sn = pendingSupernova;
+            const sn = pendingSupernova[0];
             const bh = pendingBlackHole;
             pendingSupernova = null;
             pendingBlackHole = null;
@@ -4586,6 +4728,15 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 超新星爆発（禁忌）が発生する場合は先行移動（block_move）でずらさず、
+        // スタート直後から全地点同時に「時間がゆっくり -> 2つが近づく -> 一瞬止まる -> ブルブル -> ドーン」を開始
+        if (pendingSupernova) {
+            const sn = pendingSupernova;
+            pendingSupernova = null;
+            startSupernova(sn);
+            return;
+        }
+
         if (rounds.length > 0) {
             phase = 'block_move';
             blockAnimationRounds = rounds;
@@ -4594,10 +4745,6 @@ window.addEventListener('DOMContentLoaded', () => {
             statusBar.innerHTML = '<span class="status-run">ブロック移動中...</span>';
             if (hintText) hintText.textContent = '';
             animId = requestAnimationFrame(animateBlockMove);
-        } else if (pendingSupernova) {
-            const sn = pendingSupernova;
-            pendingSupernova = null;
-            startSupernova(sn);
         } else {
             statusBar.innerHTML = '<span class="status-run"> GO GO GO!!</span>';
             if (hintText) hintText.textContent = '';

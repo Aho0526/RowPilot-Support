@@ -131,10 +131,13 @@
         <p>To prevent congestion in the CoreBluetooth internal queue, the number of concurrent BLE writes is limited globally.</p>
         <pre><code>maxConcurrentWrites = 3</code></pre>
 
-        <h3>Write Timeout</h3>
+        <h3>Write Timeout &amp; Continuation Failsafe</h3>
         <p>Individual write operations have a dedicated timeout duration:</p>
         <pre><code>writeTimeout = 2.0s</code></pre>
-        <p>If a write does not complete within this window, the operation fails and the device state is updated.</p>
+        <p>If a write does not complete within this window, the operation fails and the device state is updated. Pending asynchronous continuations in the queue are guaranteed to be resumed with a <code>BLETimeoutError</code> and cleaned up under lock, preventing queue deadlocks when a packet is dropped.</p>
+
+        <h3>Characteristic Demux (UUID Filtering)</h3>
+        <p>CoreBluetooth invokes <code>peripheral(_:didWriteValueFor:error:)</code> for all <code>.withResponse</code> write operations on a peripheral. RowPilot strictly verifies that <code>characteristic.uuid == C2_CHAR_CONTROL_POINT</code> (<code>0x0021</code>) before completing CSAFE command promises, preventing Rowing Status Sample Rate (<code>0x0034</code>) write completions from prematurely unlocking the command queue.</p>
 
         <h3>Inter-frame Delay</h3>
         <p>To comply with the CSAFE specification and ensure processing time on the PM5:</p>
@@ -297,7 +300,8 @@
                 <td><strong>Power Data (0x33)</strong></td>
                 <td>
                   <ul>
-                    <li>Total Calories</li>
+                    <li>Average Power (Watts, bytes 4–5)</li>
+                    <li>Total Calories (bytes 6–7)</li>
                   </ul>
                 </td>
               </tr>
@@ -314,6 +318,14 @@
             </tbody>
           </table>
         </div>
+
+        <h3>Workout Summary Metrics Calculation</h3>
+        <p>When a workout record is stored, true session-wide averages are computed and persisted rather than the instantaneous values at completion:</p>
+        <ul>
+          <li><strong>Average Pace /500m</strong>: Computed from total distance and total elapsed time (<code>(elapsedTime / distance) * 500.0</code>), with fallback to the mean of valid data point paces.</li>
+          <li><strong>Average Stroke Rate (SPM)</strong>: Filtered mean of valid active rowing samples (<code>spm &gt; 0</code>) recorded during the session.</li>
+          <li><strong>Average Power (Watts)</strong>: Extracted from hardware register <code>0x33</code> bytes 4–5, with secondary fallback to the arithmetic mean of positive power samples in the data point history.</li>
+        </ul>
 
         <hr>
 
