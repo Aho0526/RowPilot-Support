@@ -635,21 +635,29 @@ async function handleTurnAction(request, env, headers) {
     }, headers);
 }
 
-// 接続切断・退出によるゲーム終了
+// 接続切断・退出・降伏によるゲーム終了
 async function handleAbandonGame(request, env, headers) {
-    const { roomId, playerId, reason } = await request.json();
+    const { roomId, playerId, reason, isSurrender } = await request.json();
     const db = env.DB;
 
     const room = await db.prepare('SELECT * FROM rooms WHERE id = ?').bind(roomId).first();
     if (!room) return jsonResponse({ error: 'ルームが存在しません' }, headers, 404);
 
     const players = await db.prepare('SELECT * FROM players WHERE room_id = ?').bind(roomId).all();
-    const survivor = players.results.find(p => p.id === playerId);
-    const leaver = players.results.find(p => p.id !== playerId);
+    const targetPlayer = players.results.find(p => p.id === playerId);
+    const otherPlayer = players.results.find(p => p.id !== playerId);
 
     const now = Date.now();
-    const winner = survivor ? survivor.role : (room.winner || 'victim');
-    const finishReason = reason || (leaver ? `相手（${leaver.name}）の通信切断によりゲーム終了` : '通信切断によりゲーム終了');
+    let winner;
+    let finishReason;
+
+    if (isSurrender) {
+        winner = otherPlayer ? otherPlayer.role : (targetPlayer?.role === 'victim' ? 'criminal' : 'victim');
+        finishReason = reason || '相手が降伏したため勝利！';
+    } else {
+        winner = targetPlayer ? targetPlayer.role : (room.winner || 'victim');
+        finishReason = reason || (otherPlayer ? `相手（${otherPlayer.name}）の通信切断によりゲーム終了` : '通信切断によりゲーム終了');
+    }
 
     await db.prepare(`
         UPDATE rooms SET status = 'finished', ended_at = ?, winner = ?, finish_reason = ?

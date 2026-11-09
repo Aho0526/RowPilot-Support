@@ -646,13 +646,13 @@ class ApiService {
         };
     }
 
-    // 回線切断・退出によるゲーム終了
-    async abandonGame(roomId, playerId, reason) {
+    // 回線切断・退出・降伏によるゲーム終了
+    async abandonGame(roomId, playerId, reason, isSurrender = false) {
         if (this.isRemoteMode() && !this.isAiRoom(roomId)) {
             const res = await fetch(`${this.serverUrl}/api/game/abandon`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId, playerId, reason })
+                body: JSON.stringify({ roomId, playerId, reason, isSurrender })
             });
             if (!res.ok) throw new Error((await res.json()).error || 'セッション終了エラー');
             return await res.json();
@@ -662,10 +662,19 @@ class ApiService {
         const room = data.rooms[roomId];
         if (!room) throw new Error('ルームが存在しません');
 
-        const survivor = data.players[playerId];
+        const player = data.players[playerId];
+        const opponent = Object.values(data.players).find(p => p.room_id === roomId && p.id !== playerId);
         const now = Date.now();
-        const winner = survivor ? survivor.role : (room.winner || 'victim');
-        const finishReason = reason || '相手の通信切断によりセッションが終了しました';
+
+        let winner;
+        let finishReason;
+        if (isSurrender) {
+            winner = opponent ? opponent.role : (player?.role === 'victim' ? 'criminal' : 'victim');
+            finishReason = reason || '相手が降伏したため勝利！';
+        } else {
+            winner = player ? player.role : (room.winner || 'victim');
+            finishReason = reason || '相手の通信切断によりセッションが終了しました';
+        }
 
         room.status = 'finished';
         room.ended_at = now;

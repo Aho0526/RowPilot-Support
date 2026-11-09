@@ -29,7 +29,7 @@
                 <button id="btnToggleKids" class="btn btn-outline btn-sm" style="border-radius: var(--radius-full);">こどもモード: OFF</button>
                 <button id="btnToggleSound" class="btn btn-outline btn-sm">音: ON</button>
                 <button id="btnHowToPlay" class="btn btn-outline btn-sm" data-i18n="btnHowToPlay">ルール説明</button>
-                <span class="app-version-badge" title="バージョン">v1.8-dev(9/29 22:30)</span>
+                <span class="app-version-badge" title="バージョン">v2.0-dev(11/9 22:30)</span>
             </div>
         </div>
     </header>
@@ -298,6 +298,9 @@
                         style="background:#e0f2fe; color:#0284c7; border:2px solid #bae6fd;">
                         あなたの番
                     </span>
+                    <button id="btnQuitGame" class="btn btn-outline btn-sm" style="color: #ef4444; border-color: #fca5a5;">
+                        終了
+                    </button>
                 </div>
             </div>
 
@@ -422,6 +425,9 @@
                                     </div>
                                 </div>
                                 <div class="insta-header-actions">
+                                    <button class="insta-icon-btn insta-dummy-action" title="ステッカー">😀</button>
+                                    <button class="insta-icon-btn insta-dummy-action" title="電話">📞</button>
+                                    <button class="insta-icon-btn insta-dummy-action" title="ビデオ通話">📹</button>
                                 </div>
                             </div>
 
@@ -442,9 +448,16 @@
 
                             <!-- DM 下部入力バー -->
                             <div class="insta-input-bar">
+                                <div class="insta-camera-btn insta-dummy-action">📷</div>
                                 <input type="text" id="instaInputText" class="insta-input-field"
                                     placeholder="メッセージを入力..." maxlength="100" data-i18n-placeholder="chatPlaceholder">
                                 <button id="btnSendInstaChat" class="insta-send-btn hidden" data-i18n="btnSend">送信</button>
+                                <div id="instaInputIcons" class="insta-input-extra-icons">
+                                    <span class="insta-dummy-action">🎙️</span>
+                                    <span class="insta-dummy-action">🖼️</span>
+                                    <span class="insta-dummy-action">😀</span>
+                                    <span class="insta-dummy-action">➕</span>
+                                </div>
                             </div>
                         </div>
 
@@ -468,28 +481,32 @@
                                 <!-- 4つのアクションボタン -->
                                 <div class="insta-action-buttons">
                                     <div class="insta-action-col insta-dummy-action">
+                                        <div class="insta-action-circle">👤</div>
                                         <span data-i18n="instaActionProfile">プロフィール</span>
                                     </div>
                                     <div class="insta-action-col insta-dummy-action">
+                                        <div class="insta-action-circle">🔍</div>
                                         <span data-i18n="instaActionSearch">検索</span>
                                     </div>
                                     <div class="insta-action-col insta-dummy-action">
+                                        <div class="insta-action-circle">🔔</div>
                                         <span data-i18n="instaActionMute">ミュート</span>
                                     </div>
                                     <div class="insta-action-col" id="btnOpenOptionsMenu"
                                         style="position:relative; cursor:pointer;">
+                                        <div class="insta-action-circle">•••</div>
                                         <span data-i18n="instaActionOptions">オプション</span>
 
                                         <!-- ================= VIEW 3: オプションメニューポップアップ ================= -->
                                         <div id="instaOptionsMenu" class="insta-options-dropdown hidden">
                                             <div class="insta-option-item insta-dummy-action">
-                                                <span data-i18n="instaOptRestrict">制限する</span>
+                                                <span>🚫</span> <span data-i18n="instaOptRestrict">制限する</span>
                                             </div>
                                             <div class="insta-option-item item-danger" id="btnTriggerBlockModal">
-                                                <span data-i18n="instaOptBlock">ブロック</span>
+                                                <span>⛔</span> <span data-i18n="instaOptBlock">ブロック</span>
                                             </div>
                                             <div class="insta-option-item insta-dummy-action">
-                                                <span data-i18n="instaOptReport">報告する</span>
+                                                <span>💬</span> <span data-i18n="instaOptReport">報告する</span>
                                             </div>
                                         </div>
                                     </div>
@@ -499,36 +516,42 @@
                                 <div class="insta-menu-list">
                                     <div class="insta-menu-item insta-dummy-action">
                                         <div class="insta-menu-left">
+                                            <span class="menu-icon-gradient">🟣</span>
                                             <span>カスタマイズ<br><small class="text-muted">テーマとフォント</small></span>
                                         </div>
                                         <span>›</span>
                                     </div>
                                     <div class="insta-menu-item insta-dummy-action">
                                         <div class="insta-menu-left">
+                                            <span>🔤</span>
                                             <span>ニックネーム</span>
                                         </div>
                                         <span>›</span>
                                     </div>
                                     <div class="insta-menu-item insta-dummy-action">
                                         <div class="insta-menu-left">
+                                            <span>⏱️</span>
                                             <span>消えるメッセージ<br><small class="text-muted">オフ</small></span>
                                         </div>
                                         <span>›</span>
                                     </div>
                                     <div class="insta-menu-item insta-dummy-action">
                                         <div class="insta-menu-left">
+                                            <span>🔒</span>
                                             <span>プライバシー・安全</span>
                                         </div>
                                         <span>›</span>
                                     </div>
                                     <div class="insta-menu-item insta-dummy-action">
                                         <div class="insta-menu-left">
+                                            <span>👥</span>
                                             <span>グループチャットを作成</span>
                                         </div>
                                         <span>›</span>
                                     </div>
                                     <div class="insta-menu-item insta-dummy-action">
                                         <div class="insta-menu-left">
+                                            <span>⚠️</span>
                                             <span>不具合を報告</span>
                                         </div>
                                         <span>›</span>
@@ -553,9 +576,11 @@
 
                                 <div class="sheet-rules-list">
                                     <div class="sheet-rule-item">
+                                        <span class="sheet-rule-icon">🚫</span>
                                         <span data-i18n="blockRule1">この人は、Instagram上であなたへのメッセージ送信や、あなたのプロフィールやコンテンツの検索ができなくなります。</span>
                                     </div>
                                     <div class="sheet-rule-item">
+                                        <span class="sheet-rule-icon">🔕</span>
                                         <span data-i18n="blockRule2">ブロックまたは報告したことは相手に通知されません。</span>
                                     </div>
                                 </div>
@@ -760,17 +785,31 @@
         </div>
     </div>
 
+    <!-- ゲーム終了確認モーダル -->
+    <div id="modalQuitConfirm" class="modal-backdrop hidden" style="z-index: 99999;">
+        <div class="modal-dialog" style="max-width: 400px; text-align: center;">
+            <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">ゲームを終了しますか？</h3>
+            <p style="color: var(--text-secondary); font-size: 0.88rem; line-height: 1.5; margin-bottom: 20px;">
+                現在の進行状況は破棄され、タイトル画面へ戻ります。
+            </p>
+            <div style="display: flex; gap: 10px;">
+                <button id="btnCancelQuit" class="btn btn-outline" style="flex: 1;">続ける</button>
+                <button id="btnConfirmQuit" class="btn btn-primary" style="flex: 1; background: #ef4444; border-color: #dc2626;">終了する</button>
+            </div>
+        </div>
+    </div>
+
     <!-- スクリプト群 -->
-    <script src="lang.js?v=1.8.3"></script>
-    <script src="audio.js?v=1.8.3"></script>
-    <script src="map.js?v=1.8.3"></script>
-    <script src="player.js?v=1.8.3"></script>
-    <script src="chat.js?v=1.8.3"></script>
-    <script src="api.js?v=1.8.3"></script>
-    <script src="result.js?v=1.8.3"></script>
-    <script src="ai.js?v=1.8.3"></script>
-    <script src="room.js?v=1.8.3"></script>
-    <script src="game.js?v=1.8.3"></script>
+    <script src="lang.js?v=2.0.0"></script>
+    <script src="audio.js?v=2.0.0"></script>
+    <script src="map.js?v=2.0.0"></script>
+    <script src="player.js?v=2.0.0"></script>
+    <script src="chat.js?v=2.0.0"></script>
+    <script src="api.js?v=2.0.0"></script>
+    <script src="result.js?v=2.0.0"></script>
+    <script src="ai.js?v=2.0.0"></script>
+    <script src="room.js?v=2.0.0"></script>
+    <script src="game.js?v=2.0.0"></script>
 </body>
 
 </html>

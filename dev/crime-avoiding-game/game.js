@@ -233,6 +233,51 @@ class GameManager {
                 await this.handleAbandonSession('相手の通信切断によりセッションを終了しました');
             });
         }
+
+        // ゲーム終了ボタンと確認モーダル
+        const btnQuitGame = document.getElementById('btnQuitGame');
+        const modalQuitConfirm = document.getElementById('modalQuitConfirm');
+        const btnCancelQuit = document.getElementById('btnCancelQuit');
+        const btnConfirmQuit = document.getElementById('btnConfirmQuit');
+
+        if (btnQuitGame && modalQuitConfirm) {
+            btnQuitGame.addEventListener('click', () => {
+                modalQuitConfirm.classList.remove('hidden');
+            });
+        }
+        if (btnCancelQuit && modalQuitConfirm) {
+            btnCancelQuit.addEventListener('click', () => {
+                modalQuitConfirm.classList.add('hidden');
+            });
+        }
+        if (btnConfirmQuit && modalQuitConfirm) {
+            btnConfirmQuit.addEventListener('click', async () => {
+                modalQuitConfirm.classList.add('hidden');
+                await this.handleQuitGame();
+            });
+        }
+    }
+
+    // ゲーム終了処理
+    async handleQuitGame() {
+        this.isGameOver = true;
+        this.stopPolling();
+        this.stopDisconnectCountdown();
+        if (this.peekBannerTimer) clearInterval(this.peekBannerTimer);
+
+        if (this.isAiMode) {
+            if (window.aiCriminal) window.aiCriminal.stop();
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('screenTitle').classList.remove('hidden');
+        } else {
+            try {
+                await window.apiService.abandonGame(this.roomId, this.playerId, '相手が降伏したため勝利！', true);
+            } catch (e) {
+                console.error('Surrender error:', e);
+            }
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('screenTitle').classList.remove('hidden');
+        }
     }
 
     // ゲーム開始
