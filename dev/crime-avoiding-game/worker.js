@@ -476,7 +476,7 @@ async function handleBlock(request, env, headers) {
 
     await db.prepare(`
         INSERT INTO messages (room_id, player_id, role, sender_name, content, sender_node_at_time, timestamp, elapsed_seconds)
-        VALUES (?, 'system', 'system', '🛡️ システム', '被害者が不審者をブロック＆削除しました。通信追跡が遮断されました。', '', ?, ?)
+        VALUES (?, 'system', 'system', 'システム', '被害者が不審者をブロック＆削除しました。通信追跡が遮断されました。', '', ?, ?)
     `).bind(roomId, now, elapsedSec).run();
 
     // 1人プレイモード（AI戦）の場合のみ、即時ゲーム終了（被害者の勝利）

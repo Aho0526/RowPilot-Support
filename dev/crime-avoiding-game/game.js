@@ -51,8 +51,8 @@ class GameManager {
         );
 
         // ルーム初期化
-        window.roomManager.init((roomId, playerId, role, mapType, isAiMode) => {
-            this.startGame(roomId, playerId, role, mapType, isAiMode);
+        window.roomManager.init((roomId, playerId, role, mapType, isAiMode, mapTheme) => {
+            this.startGame(roomId, playerId, role, mapType, isAiMode, mapTheme);
         });
 
         // サウンドトグル
@@ -61,8 +61,8 @@ class GameManager {
             btnSound.addEventListener('click', () => {
                 const enabled = window.soundManager.toggle();
                 const dict = window.languageManager ? window.languageManager.dictionary[window.languageManager.isKidsMode ? 'kids' : 'default'] : null;
-                const onText = dict ? dict.btnSoundOn : '🔊 音: ON';
-                const offText = dict ? dict.btnSoundOff : '🔇 音: OFF';
+                const onText = dict ? dict.btnSoundOn : '音: ON';
+                const offText = dict ? dict.btnSoundOff : '音: OFF';
                 btnSound.textContent = enabled ? onText : offText;
             });
         }
@@ -132,7 +132,7 @@ class GameManager {
         if (selectedNameEl) {
             if (window.playerManager.selectedNextNode) {
                 const nodeData = window.mapManager.nodes[window.playerManager.selectedNextNode];
-                selectedNameEl.textContent = `📍 ${lm.getNodeName(window.playerManager.selectedNextNode, nodeData ? nodeData.name : '')}`;
+                selectedNameEl.textContent = lm.getNodeName(window.playerManager.selectedNextNode, nodeData ? nodeData.name : '');
             } else {
                 selectedNameEl.textContent = lm.t('selectedNodeEmpty');
             }
@@ -236,11 +236,12 @@ class GameManager {
     }
 
     // ゲーム開始
-    async startGame(roomId, playerId, role, mapType, isAiMode) {
+    async startGame(roomId, playerId, role, mapType, isAiMode, mapTheme = 'residential') {
         this.roomId = roomId;
         this.playerId = playerId;
         this.role = role;
         this.mapType = mapType || '3x3';
+        this.mapTheme = mapTheme || 'residential';
         this.isAiMode = !!isAiMode;
         this.isGameOver = false;
         this.isWaitingOpponent = false;
@@ -263,8 +264,8 @@ class GameManager {
         const roleBadge = document.getElementById('gameHeaderRoleBadge');
         const lm = window.languageManager;
         roleBadge.textContent = role === 'victim'
-            ? (lm ? lm.t('roleBadgeVictim') : '🏃 逃走側 (被害者)')
-            : (lm ? lm.t('roleBadgeCriminal') : '🦹 追跡側 (犯罪者)');
+            ? (lm ? lm.t('roleBadgeVictim') : '逃走側 (被害者)')
+            : (lm ? lm.t('roleBadgeCriminal') : '追跡側 (犯罪者)');
         roleBadge.className = `role-badge badge-${role}`;
 
         // Instagramプロフィールの初期設定 (情報ニキ)
@@ -285,7 +286,7 @@ class GameManager {
         }
 
         // マップ初期化と描画
-        window.mapManager.initMapData(this.mapType);
+        window.mapManager.initMapData(this.mapType, this.mapTheme);
         const mapContainer = document.getElementById('gameMapContainer');
         window.mapManager.render(mapContainer, (nodeId) => this.handleNodeClick(nodeId));
 
@@ -402,7 +403,7 @@ class GameManager {
                 const btnBlock = document.getElementById('btnBlockCriminal');
                 if (btnBlock) {
                     btnBlock.disabled = true;
-                    btnBlock.textContent = '🛡️ ブロック中 (追跡遮断済み)';
+                    btnBlock.textContent = 'ブロック中 (追跡遮断済み)';
                     btnBlock.classList.add('is-blocked');
                 }
             }
@@ -488,7 +489,7 @@ class GameManager {
         const lm = window.languageManager;
         if (selectedNameEl && nodeData) {
             const locName = lm ? lm.getNodeName(targetNodeId, nodeData.name) : nodeData.name;
-            selectedNameEl.textContent = `📍 ${locName}`;
+            selectedNameEl.textContent = locName;
             selectedNameEl.style.color = '#0284c7';
         }
 

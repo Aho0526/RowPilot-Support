@@ -355,7 +355,7 @@ class ChatManager {
             this.lastSeenMessageCount = this.messages.length;
         }
 
-        // ★ 変更がない場合はDOM再構築をスキップ（毎秒のガクガク・アニメーション再発・チラつきを根絶）
+        // 変更がない場合はDOM再構築をスキップ（毎秒のガクガク・アニメーション再発・チラつきを根絶）
         const currentHash = JSON.stringify(this.messages.map(m => (m.id || m.timestamp) + '_' + m.content));
         if (this._renderedHash === currentHash) {
             return;
@@ -378,11 +378,11 @@ class ChatManager {
             emptyTip.style.color = '#71717a';
             emptyTip.style.fontSize = '0.82rem';
             if (isReplay) {
-                emptyTip.innerHTML = `💬 リプレイ開始時点：メッセージの送受信はまだありません。<br><span style="font-size:0.75rem; color:#a1a1aa;">シークバーを進めると、その時点でのメッセージがリアルタイムに表示されます。</span>`;
+                emptyTip.innerHTML = `リプレイ開始時点：メッセージの送受信はまだありません。<br><span style="font-size:0.75rem; color:#a1a1aa;">シークバーを進めると、その時点でのメッセージがリアルタイムに表示されます。</span>`;
             } else {
                 emptyTip.innerHTML = isKids
-                    ? `💬 メッセージを いれるか、すすむ ばしょを えらんで あいてと たたかおう！`
-                    : `💬 メッセージを入力して送信するか、交差点を進めて相手と心理戦を繰り広げましょう。`;
+                    ? `メッセージを いれるか、すすむ ばしょを えらんで あいてと たたかおう！`
+                    : `メッセージを入力して送信するか、交差点を進めて相手と心理戦を繰り広げましょう。`;
             }
             this.container.appendChild(emptyTip);
             return;
@@ -409,7 +409,6 @@ class ChatManager {
                 item.className = 'chat-message system-message';
                 item.innerHTML = `
                     <div class="system-bubble">
-                        <span class="system-icon">🛡️</span>
                         <span>${this.escapeHtml(msg.content)}</span>
                     </div>
                 `;

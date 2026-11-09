@@ -21,10 +21,28 @@ class RoomManager {
     bindEvents() {
         // 1. タイトル画面: 「一人でプレイ」ボタン
         const btnPlaySolo = document.getElementById('btnPlaySolo');
-        if (btnPlaySolo) {
+        const modalSoloMapSelect = document.getElementById('modalSoloMapSelect');
+        const btnCancelSoloModal = document.getElementById('btnCancelSoloModal');
+        const btnConfirmStartSolo = document.getElementById('btnConfirmStartSolo');
+
+        if (btnPlaySolo && modalSoloMapSelect) {
             btnPlaySolo.addEventListener('click', () => {
-                // AIとのセッションを即時開始！
-                this.handleStartSoloAi();
+                modalSoloMapSelect.classList.remove('hidden');
+            });
+        }
+        if (btnCancelSoloModal && modalSoloMapSelect) {
+            btnCancelSoloModal.addEventListener('click', () => {
+                modalSoloMapSelect.classList.add('hidden');
+            });
+        }
+        if (btnConfirmStartSolo && modalSoloMapSelect) {
+            btnConfirmStartSolo.addEventListener('click', () => {
+                modalSoloMapSelect.classList.add('hidden');
+                const typeEl = document.querySelector('input[name="soloMapType"]:checked');
+                const themeEl = document.querySelector('input[name="soloMapTheme"]:checked');
+                const mapType = typeEl ? typeEl.value : '3x3';
+                const mapTheme = themeEl ? themeEl.value : 'residential';
+                this.handleStartSoloAi(mapType, mapTheme);
             });
         }
 
@@ -158,13 +176,12 @@ class RoomManager {
     }
 
     // 「一人でプレイ (AI対戦)」を即時開始
-    async handleStartSoloAi() {
+    async handleStartSoloAi(mapType = '3x3', mapTheme = 'residential') {
         const playerName = 'あなた';
         const role = 'victim'; // AI戦はプレイヤーが逃げる側
-        const mapType = '3x3';
 
         try {
-            const res = await window.apiService.createRoom(playerName, role, mapType, true);
+            const res = await window.apiService.createRoom(playerName, role, mapType, true, mapTheme);
             this.roomId = res.roomId;
             this.isHost = true;
 
@@ -178,11 +195,11 @@ class RoomManager {
 
             const startNode = res.startNode || 'node_0_3';
             window.playerManager.setMe(res.playerId, playerName, role, startNode);
-            window.mapManager.initMapData(mapType);
+            window.mapManager.initMapData(mapType, mapTheme);
 
             // コールバック呼び出しでゲーム画面へ直行！
             if (this.onGameStartCallback) {
-                this.onGameStartCallback(this.roomId, res.playerId, role, mapType, true);
+                this.onGameStartCallback(this.roomId, res.playerId, role, mapType, true, mapTheme);
             }
         } catch (err) {
             alert('AI対戦の開始に失敗しました: ' + err.message);
@@ -200,17 +217,22 @@ class RoomManager {
         const mapTypeEl = document.querySelector('input[name="hostMapType"]:checked');
         const mapType = mapTypeEl ? mapTypeEl.value : '3x3';
 
+        const mapThemeEl = document.querySelector('input[name="hostMapTheme"]:checked');
+        const mapTheme = mapThemeEl ? mapThemeEl.value : 'residential';
+
         try {
-            const res = await window.apiService.createRoom(playerName, role, mapType, false);
+            const res = await window.apiService.createRoom(playerName, role, mapType, false, mapTheme);
             this.roomId = res.roomId;
             this.isHost = true;
 
-            const startNode = res.startNode || (mapType === '4x4'
-                ? (role === 'victim' ? 'node_0_4' : 'node_4_0')
-                : (role === 'victim' ? 'node_0_3' : 'node_3_0'));
+            const startNode = res.startNode || (mapType === '5x5'
+                ? (role === 'victim' ? 'node_0_5' : 'node_5_0')
+                : (mapType === '4x4'
+                    ? (role === 'victim' ? 'node_0_4' : 'node_4_0')
+                    : (role === 'victim' ? 'node_0_3' : 'node_3_0')));
 
             window.playerManager.setMe(res.playerId, playerName, role, startNode);
-            window.mapManager.initMapData(mapType);
+            window.mapManager.initMapData(mapType, mapTheme);
 
             // ロビー画面へ遷移
             this.showLobby(res.roomId, role);
@@ -263,8 +285,8 @@ class RoomManager {
         const myRoleBadge = document.getElementById('lobbyMyRole');
         const lm = window.languageManager;
         myRoleBadge.textContent = role === 'victim'
-            ? (lm ? lm.t('roleBadgeVictim') : '🏃 逃走側 (被害者)')
-            : (lm ? lm.t('roleBadgeCriminal') : '🦹 追跡側 (犯罪者)');
+            ? (lm ? lm.t('roleBadgeVictim') : '逃走側 (被害者)')
+            : (lm ? lm.t('roleBadgeCriminal') : '追跡側 (犯罪者)');
         myRoleBadge.className = `role-badge badge-${role}`;
 
         const hostControls = document.getElementById('lobbyHostControls');
@@ -306,7 +328,6 @@ class RoomManager {
                         return `
                             <div class="lobby-player-item ${p.isSelf ? 'is-me' : ''}">
                                 <div style="display:flex; align-items:center; gap:8px;">
-                                    <span style="font-size:1.4rem;">${p.role === 'criminal' ? '🦹' : '🏃'}</span>
                                     <span>${p.name} ${p.isSelf ? `<small style="color:var(--text-muted);">${selfTag}</small>` : ''}</span>
                                 </div>
                                 <span class="role-badge badge-${p.role}">${roleText}</span>
@@ -321,7 +342,7 @@ class RoomManager {
                     if (btnStart) {
                         btnStart.disabled = players.length < 2;
                         if (players.length >= 2) {
-                            btnStart.textContent = isKids ? '🚀 ゲームを はじめる！' : '🚀 ゲームを開始する！';
+                            btnStart.textContent = isKids ? 'ゲームを はじめる！' : 'ゲームを開始する！';
                             btnStart.classList.add('btn-primary');
                         } else {
                             btnStart.textContent = isKids ? 'ともだちが くるのを まっています…' : '友達の参加を待っています…';
@@ -340,7 +361,8 @@ class RoomManager {
                             window.playerManager.myId,
                             me ? me.role : 'victim',
                             state.room.mapType,
-                            false
+                            false,
+                            state.room.mapTheme || 'residential'
                         );
                     }
                 }

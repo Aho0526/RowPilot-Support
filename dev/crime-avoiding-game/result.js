@@ -106,7 +106,7 @@ class ResultManager {
         const isKids = lm && lm.isKidsMode;
 
         if (isBlockWin) {
-            titleEl.textContent = lm ? lm.t('resultBlockWinTitle') : '🛡️ 防犯ブロック成功！ (危険回避)';
+            titleEl.textContent = lm ? lm.t('resultBlockWinTitle') : '防犯ブロック成功！ (危険回避)';
             titleEl.className = 'result-win';
             badgeEl.textContent = lm ? lm.t('resultBlockBadge') : '防犯成功 (接触遮断)';
             badgeEl.className = 'winner-badge winner-victim';
@@ -114,8 +114,8 @@ class ResultManager {
             if (eduBanner) eduBanner.classList.remove('hidden');
         } else {
             titleEl.textContent = isWin
-                ? (lm ? lm.t('resultWinTitle') : '🎉 あなたの勝利！')
-                : (lm ? lm.t('resultLoseTitle') : '💀 敗北…');
+                ? (lm ? lm.t('resultWinTitle') : 'あなたの勝利！')
+                : (lm ? lm.t('resultLoseTitle') : '敗北…');
             titleEl.className = isWin ? 'result-win' : 'result-lose';
 
             if (winner === 'victim') {
@@ -327,17 +327,17 @@ class ResultManager {
         }
 
         if (timeEl) {
-            timeEl.textContent = `⏱️ ${minStr}:${secStr} 時点 (${this.currentStepIndex + 1}/${this.timelineEvents.length})`;
+            timeEl.textContent = `${minStr}:${secStr} 時点 (${this.currentStepIndex + 1}/${this.timelineEvents.length})`;
         }
 
         if (distEl) {
             if (dist === 0) {
-                distEl.innerHTML = `🚨 接触発生！ (同じ交差点)`;
+                distEl.innerHTML = `接触発生！ (同じ交差点)`;
                 distEl.style.background = '#fee2e2';
                 distEl.style.color = '#dc2626';
                 distEl.style.borderColor = '#fca5a5';
             } else if (dist <= 1) {
-                distEl.innerHTML = `⚠️ 最接近！ 隣接（距離: 1区画）`;
+                distEl.innerHTML = `最接近！ 隣接（距離: 1区画）`;
                 distEl.style.background = '#fef3c7';
                 distEl.style.color = '#b45309';
                 distEl.style.borderColor = '#fde68a';
@@ -359,7 +359,7 @@ class ResultManager {
             }
         }
 
-        // ★ シークバーの現在ステップまでに送受信されたチャットメッセージを抽出し、DM画面に完全同期！
+        // シークバーの現在ステップまでに送受信されたチャットメッセージを抽出し、DM画面に完全同期！
         if (window.chatManager) {
             const myPlayer = (this.reviewData?.players || []).find(p => p.role === this.myRole) || (this.reviewData?.players || [])[0];
             const myId = myPlayer ? myPlayer.id : 'me';
@@ -423,7 +423,7 @@ class ResultManager {
                 </div>
                 <div class="review-bubble">「${msg.content}」</div>
                 <div class="review-truth-tag" style="background:#eff6ff; color:#1d4ed8; padding:4px 8px; border-radius:6px; font-size:0.82rem; margin-top:4px;">
-                    📍 発言時の実際の位置: <strong>${actualNode}</strong> <span style="font-size:0.75rem; color:#60a5fa; margin-left:4px;">(タップしてマップで確認 ›)</span>
+                    発言時の実際の位置: <strong>${actualNode}</strong> <span style="font-size:0.75rem; color:#60a5fa; margin-left:4px;">(タップしてマップで確認 ›)</span>
                 </div>
             `;
 
@@ -458,7 +458,7 @@ class ResultManager {
             if (isBlockWin) {
                 tipsHtml += `
                     <div class="takeaway-box takeaway-success">
-                        <h4>🎉 すばらしい はんだん：あやしいひとを ブロック！</h4>
+                        <h4>すばらしい判断：あやしい相手をブロック！</h4>
                         <p>ネットで しりあった しらないひとから あやしいメッセージが きたら、<strong>「あいての おねがいを きかずに、すぐに ブロックして にげる」</strong>ことが いちばん あんぜんです。じぶんの みを まもる べんきょうが できましたね！</p>
                     </div>
                 `;
@@ -466,12 +466,12 @@ class ResultManager {
 
             tipsHtml += `
                 <div class="takeaway-box">
-                    <h4>🔍 メッセージと ほんとうの ばしょ（ウソを みやぶる）</h4>
+                    <h4>メッセージと ほんとうの ばしょ（ウソを見破る）</h4>
                     <p>あいては「すぐ あえるよ」「あやしいひとじゃ ないよ」と やさしいフリをして ウソをついていませんでしたか？<br>
                     ネットでは、あいての ことばを そのまま しんじないことが たいせつです。</p>
                 </div>
                 <div class="takeaway-box">
-                    <h4>🛡️ こわいめに あわないための 3つのおやくそく</h4>
+                    <h4>こわい目に遭わないための3つのお約束</h4>
                     <p>
                         ① <strong>いまいる ばしょや なまえ・しゃしんを ぜったいに おしえない</strong><br>
                         ② <strong>あやしいと おもったら すぐに「ブロック」する</strong><br>
@@ -484,7 +484,7 @@ class ResultManager {
             if (isBlockWin) {
                 tipsHtml += `
                     <div class="takeaway-box takeaway-success">
-                        <h4>🎉 完璧な防犯判断：不審な相手をブロック＆削除</h4>
+                        <h4>完璧な防犯判断：不審な相手をブロック＆削除</h4>
                         <p>インターネット上で知り合った知らない相手から不審な言動や誘導を受けた際、<strong>「相手のペースに巻き込まれず、即座にブロックして連絡を断つ」</strong>ことが最大の自己防衛です。このゲームを通じて、ためらわずに自ら通信を遮断する判断力を体験できました。</p>
                     </div>
                 `;
@@ -492,12 +492,12 @@ class ResultManager {
 
             tipsHtml += `
                 <div class="takeaway-box">
-                    <h4>🔍 チャットと真実のギャップ（心理誘導の見破り）</h4>
+                    <h4>チャットと真実のギャップ（心理誘導の見破り）</h4>
                     <p>相手はチャットで安心させる言葉（「すぐ会えるよ」「怪しい者じゃない」など）や、嘘の居場所を伝えていませんでしたか？
                     ネット上では相手の言葉を鵜呑みにせず、「なぜ相手がその質問や発言をしたのか」を客観的に見極めるリテラシーが求められます。</p>
                 </div>
                 <div class="takeaway-box">
-                    <h4>🛡️ 被害に遭わないための3大原則</h4>
+                    <h4>被害に遭わないための3大原則</h4>
                     <p>
                         ① <strong>居場所や個人情報を安易に教えない</strong>（駅名、公園名、写真など）<br>
                         ② <strong>違和感を覚えたら即座に「ブロック＆削除・通報」する</strong><br>

@@ -10,22 +10,26 @@
 class MapManager {
     constructor() {
         this.currentMapType = '3x3';
+        this.currentMapTheme = 'residential';
         this.nodes = {};
         this.edges = [];
         this.blockedEdges = new Set();
         this.container = null;
         this.onNodeClickCallback = null;
 
-        this.initMapData('3x3');
+        this.initMapData('3x3', 'residential');
     }
 
-    initMapData(mapType) {
+    initMapData(mapType = '3x3', mapTheme = 'residential') {
         this.currentMapType = mapType;
+        this.currentMapTheme = mapTheme;
         this.nodes = {};
         this.edges = [];
         this.blockedEdges = new Set();
 
-        if (mapType === '4x4') {
+        if (mapType === '5x5') {
+            this.build5x5Map();
+        } else if (mapType === '4x4') {
             this.build4x4Map();
         } else {
             this.build3x3Map();
@@ -123,6 +127,53 @@ class MapManager {
         }
     }
 
+    // 5x5街区 (6x6交差点 = 36ノード)
+    build5x5Map() {
+        const xCoords = [3.2, 21.9, 40.6, 59.4, 78.1, 96.8];
+        const yCoords = [3.2, 21.9, 40.6, 59.4, 78.1, 96.8];
+
+        for (let r = 0; r < 6; r++) {
+            for (let c = 0; c < 6; c++) {
+                const id = `node_${c}_${r}`;
+                this.nodes[id] = {
+                    id,
+                    col: c,
+                    row: r,
+                    x: xCoords[c],
+                    y: yCoords[r],
+                    name: `交差点 (${c},${r})`,
+                    neighbors: []
+                };
+            }
+        }
+
+        // 5x5用通行止め
+        this.addBlockedEdge('node_2_2', 'node_3_2');
+        this.addBlockedEdge('node_4_3', 'node_4_4');
+        this.addBlockedEdge('node_1_4', 'node_2_4');
+
+        for (let r = 0; r < 6; r++) {
+            for (let c = 0; c < 6; c++) {
+                const id = `node_${c}_${r}`;
+                if (c < 5) this.addEdge(id, `node_${c + 1}_${r}`);
+                if (r < 5) this.addEdge(id, `node_${c}_${r + 1}`);
+            }
+        }
+    }
+
+    getMapImagePath(mapType, mapTheme) {
+        const isNight = mapTheme === 'night_town' || mapTheme === 'night';
+        if (isNight) {
+            if (mapType === '5x5') return 'pic/5×5(night_town).png';
+            if (mapType === '4x4') return 'pic/4×4(night_town).png';
+            return 'pic/3×3(night_town).png';
+        } else {
+            if (mapType === '5x5') return 'pic/5×5(residential area).png';
+            if (mapType === '4x4') return 'pic/map_4x4(residential area).jpg';
+            return 'pic/map_3x3(residential area).jpg';
+        }
+    }
+
     getEdgeKey(u, v) {
         return u < v ? `${u}--${v}` : `${v}--${u}`;
     }
@@ -192,9 +243,7 @@ class MapManager {
         // 背景画像
         const img = document.createElement('img');
         img.className = 'map-background-img';
-        img.src = this.currentMapType === '4x4'
-            ? 'pic/map_4x4(residential area).jpg'
-            : 'pic/map_3x3(residential area).jpg';
+        img.src = this.getMapImagePath(this.currentMapType, this.currentMapTheme);
         img.alt = '街の地図';
         this.container.appendChild(img);
 
@@ -234,7 +283,7 @@ class MapManager {
                 sign.className = 'blocked-road-sign';
                 sign.style.left = `${midX}%`;
                 sign.style.top = `${midY}%`;
-                sign.innerHTML = isKids ? '⛔ <span>とおれない</span>' : '⛔ <span>通行止</span>';
+                sign.innerHTML = isKids ? '<span>とおれない</span>' : '<span>通行止</span>';
                 sign.title = isKids ? 'こうじちゅう・はいれないよ' : '工事中・進入禁止';
                 blockedSignLayer.appendChild(sign);
             }
@@ -398,10 +447,10 @@ class MapManager {
             let label = '';
             if (isKids) {
                 label = isInitialPeek
-                    ? '⚠️ あいての スタートばしょ！'
+                    ? 'あいての スタートばしょ！'
                     : (oppRole === 'criminal' ? 'おうひと (あいて)' : 'にげるひと (あいて)');
             } else {
-                label = isInitialPeek ? '⚠️ 相手の初期位置！' : (oppRole === 'criminal' ? '犯罪者（相手）' : '被害者（相手）');
+                label = isInitialPeek ? '相手の初期位置！' : (oppRole === 'criminal' ? '犯罪者（相手）' : '被害者（相手）');
             }
 
             oppEl.innerHTML = `

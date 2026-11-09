@@ -68,8 +68,8 @@ class ApiService {
 
     // ランダム開始位置の抽選（ゴールから離れ、互いにも離れた地点）
     pickStartNodes(mapType, goalNode) {
-        const size = mapType === '4x4' ? 5 : 4;
-        const minDist = mapType === '4x4' ? 4 : 3;
+        const size = mapType === '5x5' ? 6 : (mapType === '4x4' ? 5 : 4);
+        const minDist = mapType === '5x5' ? 5 : (mapType === '4x4' ? 4 : 3);
         const parse = id => id.split('_').slice(1).map(Number);
         const dist = (a, b) => {
             const [ax, ay] = parse(a), [bx, by] = parse(b);
@@ -97,12 +97,12 @@ class ApiService {
     // ==========================================
 
     // ルーム作成
-    async createRoom(hostName, preferredRole, mapType = '3x3', isAiMode = false) {
+    async createRoom(hostName, preferredRole, mapType = '3x3', isAiMode = false, mapTheme = 'residential') {
         if (this.isRemoteMode() && !isAiMode) {
             const res = await fetch(`${this.serverUrl}/api/room/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hostName, preferredRole, mapType, isAiMode })
+                body: JSON.stringify({ hostName, preferredRole, mapType, isAiMode, mapTheme })
             });
             if (!res.ok) throw new Error((await res.json()).error || 'ルーム作成に失敗しました');
             return await res.json();
@@ -115,7 +115,7 @@ class ApiService {
         const hostRole = preferredRole === 'criminal' ? 'criminal' : 'victim';
         const guestRole = hostRole === 'criminal' ? 'victim' : 'criminal';
 
-        const victimGoal = mapType === '4x4' ? 'node_4_4' : 'node_3_3';
+        const victimGoal = mapType === '5x5' ? 'node_5_5' : (mapType === '4x4' ? 'node_4_4' : 'node_3_3');
         const startNodes = this.pickStartNodes(mapType, victimGoal);
         const victimStart = startNodes.victim;
         const criminalStart = startNodes.criminal;
@@ -127,6 +127,7 @@ class ApiService {
             id: roomId,
             status: isAiMode ? 'playing' : 'waiting',
             map_type: mapType,
+            map_theme: mapTheme,
             current_turn: 1,
             max_turns: 12,
             time_limit: this.TIME_LIMIT_SEC,
@@ -383,6 +384,7 @@ class ApiService {
                 id: room.id,
                 status: room.status,
                 mapType: room.map_type,
+                mapTheme: room.map_theme || 'residential',
                 currentTurn: room.current_turn || 1,
                 maxTurns: room.max_turns || 12,
                 timeLimit: this.TIME_LIMIT_SEC,
@@ -616,7 +618,7 @@ class ApiService {
             room_id: roomId,
             player_id: 'system',
             role: 'system',
-            sender_name: '🛡️ 防犯システム',
+            sender_name: '防犯システム',
             turn: room ? room.current_turn : 1,
             content: '【不審者をブロック＆削除しました】相手からの追跡通信が遮断されました！',
             sender_node_at_time: '',

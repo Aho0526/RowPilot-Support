@@ -121,7 +121,7 @@ class AiCriminal {
 
         let nextNode = null;
         if (!isVictimBlocked) {
-            // 【ブロック前】AIは被害者の位置を把握！最短経路で詰める
+            // ブロック前：被害者の位置を把握し、最短経路で接近
             const shortestPath = window.mapManager.getShortestPath(aiPlayer.current_node, victimPlayer.current_node);
             if (shortestPath && shortestPath.length > 1) {
                 nextNode = shortestPath[1];
@@ -129,8 +129,27 @@ class AiCriminal {
                 nextNode = validMoves[Math.floor(Math.random() * validMoves.length)];
             }
         } else {
-            // 【ブロック後】GPS遮断！被害者の位置を見失いランダム巡回
-            nextNode = validMoves[Math.floor(Math.random() * validMoves.length)];
+            // ブロック後：追跡通信が遮断され、見失った状態
+            // 偶然の鉢合わせを防ぐため、プレイヤーから遠ざかる方向を優先して探索
+            const currentDist = window.mapManager.getDistance(aiPlayer.current_node, victimPlayer.current_node);
+            let maxDist = -1;
+            let awayMoves = [];
+
+            for (const move of validMoves) {
+                const dist = window.mapManager.getDistance(move, victimPlayer.current_node);
+                if (dist > maxDist) {
+                    maxDist = dist;
+                    awayMoves = [move];
+                } else if (dist === maxDist) {
+                    awayMoves.push(move);
+                }
+            }
+
+            if (awayMoves.length > 0 && maxDist >= currentDist) {
+                nextNode = awayMoves[Math.floor(Math.random() * awayMoves.length)];
+            } else {
+                nextNode = validMoves[Math.floor(Math.random() * validMoves.length)];
+            }
         }
 
         // 2. 心理戦チャットの決定
