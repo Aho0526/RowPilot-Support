@@ -101,9 +101,18 @@ class ResultManager {
         const badgeEl = document.getElementById('resultWinnerBadge');
         const eduBanner = document.getElementById('resultEducationBanner');
 
-        const isWin = (winner === myRole) || isBlockWin;
+        let isWin = (winner === myRole) || isBlockWin;
         const lm = window.languageManager;
         const isKids = lm && lm.isKidsMode;
+
+        // 降伏による勝敗の補正ガード
+        if (finishReason && finishReason.includes('降伏')) {
+            if (finishReason.includes('勝利')) {
+                // 理由が「相手が降伏したため勝利」であれば、残った側（閲覧者）の完全な勝利
+                isWin = true;
+                winner = myRole;
+            }
+        }
 
         if (isBlockWin) {
             titleEl.textContent = lm ? lm.t('resultBlockWinTitle') : '防犯ブロック成功！ (危険回避)';

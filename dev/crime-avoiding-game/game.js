@@ -265,13 +265,21 @@ class GameManager {
         this.stopDisconnectCountdown();
         if (this.peekBannerTimer) clearInterval(this.peekBannerTimer);
 
+        // リザルトモーダルを確実に閉じる
+        const resultModal = document.getElementById('resultModal');
+        if (resultModal) resultModal.classList.add('hidden');
+
         if (this.isAiMode) {
             if (window.aiCriminal) window.aiCriminal.stop();
             document.getElementById('screenGame').classList.add('hidden');
             document.getElementById('screenTitle').classList.remove('hidden');
         } else {
             try {
-                await window.apiService.abandonGame(this.roomId, this.playerId, '相手が降伏したため勝利！', true);
+                // 相手プレイヤー（残った側）のIDを取得し、勝者としてサーバーに通知
+                const state = await window.apiService.getGameState(this.roomId, this.playerId);
+                const opponent = (state.players || []).find(p => p.id !== this.playerId);
+                const winnerPlayerId = opponent ? opponent.id : this.playerId;
+                await window.apiService.abandonGame(this.roomId, winnerPlayerId, '相手が降伏したため勝利！', true);
             } catch (e) {
                 console.error('Surrender error:', e);
             }
