@@ -463,9 +463,11 @@ function simulateGimmickBlockMoves() {
                 }
                 b.history.push({ col: b.col, row: b.row, dir: b.dir, tick: tickCount, pathIndex: b.path.length - 1 });
             }
-            if (blackHoleLoop) {
-                break;
-            }
+        }
+
+        // 超新星爆発またはブラックホールが発生した tick で通常シミュレーションを終了
+        if (supernovas.length > 0 || blackHoleLoop) {
+            break;
         }
     }
 
@@ -592,11 +594,29 @@ function finishBlockMove() {
     blockAnimationRounds = [];
     currentRoundIndex = 0;
 
+    // 超新星爆発とブラックホールの同時発生
+    if (pendingSupernova && pendingBlackHole) {
+        const sn = pendingSupernova[0];
+        const bh = pendingBlackHole;
+        pendingSupernova = null;
+        pendingBlackHole = null;
+        startDualSupernovaBlackHole(sn, bh);
+        return;
+    }
+
     // 2つのブロックが一点で交わる禁忌（超新星爆発）が発生している場合はキャラ移動直前に発動
     if (pendingSupernova) {
         const sn = pendingSupernova;
         pendingSupernova = null;
         startSupernova(sn);
+        return;
+    }
+
+    // 無限周回（ブラックホール）が発生している場合
+    if (pendingBlackHole) {
+        const bh = pendingBlackHole;
+        pendingBlackHole = null;
+        startBlackHole(bh);
         return;
     }
 
@@ -4677,31 +4697,29 @@ window.addEventListener('DOMContentLoaded', () => {
         // スタート直後のブロック移動・超新星爆発・無限ループの事前シミュレーション
         const { rounds, supernova, supernovas, blackHoleLoop } = simulateGimmickBlockMoves();
 
-        // 超新星爆発もブラックホールも発生しない通常時は、紫枠（必須設置）とブロック連結ルールをチェック
-        if (!supernova && !blackHoleLoop) {
-            const st = getStage();
-            const requiredGimmicks = st.gimmicks.filter(g => g.purpleBorder);
-            const missingRequired = requiredGimmicks.filter(g => !grid[g.row][g.col]);
-            if (missingRequired.length > 0) {
-                statusBar.innerHTML = '<span class="status-fail">紫色の枠には必ずブロックを設置してください！</span>';
-                setTimeout(() => {
-                    if (phase === 'place') {
-                        updateBlockBadge();
-                    }
-                }, 1800);
-                return;
-            }
+        // 紫枠（必須設置）とブロック連結ルールを常にチェック
+        const st = getStage();
+        const requiredGimmicks = st.gimmicks.filter(g => g.purpleBorder);
+        const missingRequired = requiredGimmicks.filter(g => !grid[g.row][g.col]);
+        if (missingRequired.length > 0) {
+            statusBar.innerHTML = '<span class="status-fail">紫色の枠には必ずブロックを設置してください！</span>';
+            setTimeout(() => {
+                if (phase === 'place') {
+                    updateBlockBadge();
+                }
+            }, 1800);
+            return;
+        }
 
-            // ブロック同士の連結チェック (2個以上の場合はひっついておく必要がある)
-            if (!areBlocksConnected()) {
-                statusBar.innerHTML = '<span class="status-fail">ブロック同士をすべてくっつけて配置してください！</span>';
-                setTimeout(() => {
-                    if (phase === 'place') {
-                        updateBlockBadge();
-                    }
-                }, 2000);
-                return;
-            }
+        // ブロック同士の連結チェック (2個以上の場合はひっついておく必要がある)
+        if (!areBlocksConnected()) {
+            statusBar.innerHTML = '<span class="status-fail">ブロック同士をすべてくっつけて配置してください！</span>';
+            setTimeout(() => {
+                if (phase === 'place') {
+                    updateBlockBadge();
+                }
+            }, 2000);
+            return;
         }
 
         startBtn.disabled = true;
@@ -4712,6 +4730,19 @@ window.addEventListener('DOMContentLoaded', () => {
         pendingSupernova = (supernovas && supernovas.length > 0) ? supernovas : (supernova ? [supernova] : null);
         pendingBlackHole = blackHoleLoop || null;
 
+        // ブロックがギミックによって移動する場合は、先行移動（block_move）を優先して実行
+        if (rounds.length > 0) {
+            phase = 'block_move';
+            blockAnimationRounds = rounds;
+            currentRoundIndex = 0;
+            roundStartTime = performance.now();
+            statusBar.innerHTML = '<span class="status-run">ブロック移動中...</span>';
+            if (hintText) hintText.textContent = '';
+            animId = requestAnimationFrame(animateBlockMove);
+            return;
+        }
+
+        // 移動がない（0ステップでその場で発生する）場合の即時発動
         if (pendingSupernova && pendingBlackHole) {
             const sn = pendingSupernova[0];
             const bh = pendingBlackHole;
@@ -4728,8 +4759,6 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 超新星爆発（禁忌）が発生する場合は先行移動（block_move）でずらさず、
-        // スタート直後から全地点同時に「時間がゆっくり -> 2つが近づく -> 一瞬止まる -> ブルブル -> ドーン」を開始
         if (pendingSupernova) {
             const sn = pendingSupernova;
             pendingSupernova = null;
@@ -4737,19 +4766,9 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (rounds.length > 0) {
-            phase = 'block_move';
-            blockAnimationRounds = rounds;
-            currentRoundIndex = 0;
-            roundStartTime = performance.now();
-            statusBar.innerHTML = '<span class="status-run">ブロック移動中...</span>';
-            if (hintText) hintText.textContent = '';
-            animId = requestAnimationFrame(animateBlockMove);
-        } else {
-            statusBar.innerHTML = '<span class="status-run"> GO GO GO!!</span>';
-            if (hintText) hintText.textContent = '';
-            startRun();
-        }
+        statusBar.innerHTML = '<span class="status-run"> GO GO GO!!</span>';
+        if (hintText) hintText.textContent = '';
+        startRun();
     }
 
     function triggerReset() {
@@ -4960,6 +4979,9 @@ window.addEventListener('DOMContentLoaded', () => {
         getStage,
         getCurrentStageIndex: () => currentStageIndex,
         getStages: () => STAGES,
+        getGrid: () => grid,
+        placeBlock: (col, row) => placeBlock(col, row),
+        render,
         // エディタ内でのキー配置有効/無効フラグ (ide.jsから制御可能)
         disableKeyPlacement: inEditorPreview,
         setDisableKeyPlacement: function (disabled) {

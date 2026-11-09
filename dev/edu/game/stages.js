@@ -750,7 +750,9 @@ const STAGES = [
         targetBlocks: 5,
         startRow: 2,
         goalRow: 2,
-        forbidden: [],
+        forbidden: [
+            { col: 4, row: 2 }
+        ],
         gimmicks: [
             { col: 0, row: 0, type: 'dash', dir: 'down', purpleBorder: false },
             { col: 1, row: 0, type: 'step', dir: 'left', steps: 1 },
@@ -785,14 +787,16 @@ const STAGES = [
         subtitle: '循環する風と階段',
         maxBlocks: 6,
         targetBlocks: 6,
-        startRow: 4,
-        goalRow: 2,
-        forbidden: [],
+        startRow: 3,
+        goalRow: 3,
+        forbidden: [
+            { col: 4, row: 2 }
+        ],
         gimmicks: [
             { col: 3, row: 1, type: 'dash', dir: 'down', purpleBorder: false },
             { col: 1, row: 2, type: 'dash', dir: 'down', purpleBorder: true },
             { col: 2, row: 2, type: 'dash', dir: 'right', purpleBorder: false },
-            { col: 4, row: 2, type: 'step', dir: 'down', steps: 1 },
+            { col: 4, row: 2, type: 'dash', dir: 'down', purpleBorder: false },
             { col: 2, row: 3, type: 'step', dir: 'up', steps: 1 },
             { col: 3, row: 3, type: 'step', dir: 'down', steps: 1 },
             { col: 2, row: 4, type: 'dash', dir: 'left', purpleBorder: false },
