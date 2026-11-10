@@ -210,6 +210,7 @@ const STAGES = [
     };
 
     const STORAGE_KEY_PREFIX = 'hako_game_ide_v2_';
+    const STORAGE_KEY_LAST_SAVED_STAGE = STORAGE_KEY_PREFIX + 'last_saved_stage';
 
     // ── 状態管理 ──
     let currentFile = 'stages.js';
@@ -508,7 +509,7 @@ const STAGES = [
                 const saved = localStorage.getItem(STORAGE_KEY_PREFIX + key);
                 if (saved) {
                     // 古い main.js キャッシュ（超新星爆発や土管高さ食い込み版、足場両端0.5マス未搭載、ブラックホール演出未搭載、レンガ個別吸引未搭載、矢印くり抜き未搭載）は破棄して最新ファイルを読ませる
-                    if (key === 'main.js' && (!saved.includes('startSupernova') || !saved.includes('startBlackHole') || !saved.includes('drawGroundSuckPieces') || saved.includes('drawGimmickArrowOverlay') || !saved.includes('evenodd') || !saved.includes('LOOP_FREEZE_TIME') || !saved.includes('initDir') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('computeSpotOverlap'))) {
+                    if (key === 'main.js' && (!saved.includes('startSupernova') || !saved.includes('startBlackHole') || !saved.includes('drawGroundSuckPieces') || saved.includes('drawGimmickArrowOverlay') || !saved.includes('evenodd') || !saved.includes('LOOP_FREEZE_TIME') || !saved.includes('initDir') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('PAN_DURATION'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         return;
                     }
@@ -564,7 +565,7 @@ const STAGES = [
                     files[key].defaultContent = rawText;
 
                     let saved = !files[key].isSystemFile ? localStorage.getItem(STORAGE_KEY_PREFIX + key) : null;
-                    if (key === 'main.js' && saved && (!saved.includes('EMERGE_RISE_END') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions'))) {
+                    if (key === 'main.js' && saved && (!saved.includes('EMERGE_RISE_END') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('PAN_DURATION'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         saved = null;
                     }
@@ -2242,6 +2243,40 @@ const STAGES = [
         return null;
     }
 
+    // 最後に変更を保存したステージを永続化・復元
+    function setLastSavedStage(stageId, stageIndex) {
+        try {
+            const payload = {
+                id: stageId != null ? Number(stageId) : null,
+                index: typeof stageIndex === 'number' ? stageIndex : 0,
+                updatedAt: Date.now()
+            };
+            localStorage.setItem(STORAGE_KEY_LAST_SAVED_STAGE, JSON.stringify(payload));
+        } catch (e) { /* ignore */ }
+    }
+
+    function getLastSavedStageIndex() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY_LAST_SAVED_STAGE);
+            if (!raw) return 0;
+            const data = JSON.parse(raw);
+            if (!data) return 0;
+
+            const parsed = parseStagesSafely();
+            if (!parsed || parsed.length === 0) return 0;
+
+            if (data.id != null) {
+                const idxById = parsed.findIndex(s => Number(s.id) === Number(data.id));
+                if (idxById !== -1) return idxById;
+            }
+
+            if (typeof data.index === 'number' && data.index >= 0 && data.index < parsed.length) {
+                return data.index;
+            }
+        } catch (e) { /* ignore */ }
+        return 0;
+    }
+
     function populateStageJumpSelectors() {
         const parsed = parseStagesSafely();
         if (!parsed || parsed.length === 0) return;
@@ -2364,7 +2399,9 @@ const STAGES = [
         const targetLine = idLineIdx !== -1 ? idLineIdx + 1 : Math.max(1, lines.length - 25);
 
         jumpToLine(targetLine, 1);
-        saveAndRun(false, parsed ? parsed.length : 0);
+        const newStageIdx = parsed ? parsed.length : 0;
+        setLastSavedStage(nextId, newStageIdx);
+        saveAndRun(false, newStageIdx);
         showToast(`✨ ステージ ${nextId} の雛形を追加してゲームに反映しました！`);
     }
 
@@ -2452,7 +2489,16 @@ const STAGES = [
         }
         if (btnOpenStageBuilder) {
             btnOpenStageBuilder.addEventListener('click', () => {
-                const cursorStageIdx = findEditedStageIndex(files['stages.js'].content, codeTextarea.selectionStart);
+                let cursorStageIdx = null;
+                if (currentFile === 'stages.js' && codeTextarea) {
+                    const code = files['stages.js'].content || '';
+                    const cursorOffset = Math.max(0, Math.min(codeTextarea.selectionStart || 0, code.length));
+                    const textBeforeCursor = code.slice(0, cursorOffset);
+                    const matches = textBeforeCursor.match(/\bid\s*:\s*\d+/g);
+                    if (matches && matches.length > 0) {
+                        cursorStageIdx = matches.length - 1;
+                    }
+                }
                 openStageBuilderModal(cursorStageIdx);
             });
         }
@@ -2699,6 +2745,17 @@ const STAGES = [
             : (currentFile === 'stages.js' && codeTextarea
                 ? findEditedStageIndex(files['stages.js'].content, codeTextarea.selectionStart)
                 : 0);
+
+        if (currentFile === 'stages.js') {
+            const parsed = parseStagesSafely(files['stages.js'].content);
+            if (parsed && parsed.length > 0) {
+                const safeTargetIdx = Math.max(0, Math.min(targetStageIdx, parsed.length - 1));
+                const st = parsed[safeTargetIdx];
+                if (st) {
+                    setLastSavedStage(st.id, safeTargetIdx);
+                }
+            }
+        }
 
         if (previewIframe && previewIframe.contentWindow) {
             const win = previewIframe.contentWindow;
@@ -3115,11 +3172,14 @@ const STAGES = [
         }
     }
 
-    function openStageBuilderModal(targetStageIdx = 0) {
+    function openStageBuilderModal(targetStageIdx = null) {
         populateStageJumpSelectors();
         const overlay = document.getElementById('stage-builder-overlay');
         if (!overlay) return;
-        loadStageIntoBuilder(targetStageIdx);
+        const resolvedIdx = (targetStageIdx !== null && targetStageIdx !== undefined)
+            ? targetStageIdx
+            : getLastSavedStageIndex();
+        loadStageIntoBuilder(resolvedIdx);
         overlay.classList.add('is-open');
         overlay.setAttribute('aria-hidden', 'false');
     }
@@ -3436,7 +3496,15 @@ const STAGES = [
             jumpToLine(idLine + 1, 1);
         }
 
-        saveAndRun(false, builderState.stageIndex);
+        const parsedAfter = parseStagesSafely(code);
+        let savedIndex = builderState.stageIndex;
+        if (parsedAfter) {
+            const foundIdx = parsedAfter.findIndex(s => Number(s.id) === Number(builderState.id));
+            if (foundIdx !== -1) savedIndex = foundIdx;
+        }
+        setLastSavedStage(builderState.id, savedIndex);
+
+        saveAndRun(false, savedIndex);
         showToast(`🎨 ステージ ${builderState.id} の盤面を stages.js に反映しました！`);
     }
 

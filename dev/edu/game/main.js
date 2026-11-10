@@ -257,14 +257,15 @@ function simulateGimmickBlockMoves() {
                     remainingSteps: initSteps,
                     isMoving: hasMove,
                     path: [{ col: c, row: r }],
-                    history: [{ col: c, row: r, dir: initDir, tick: 0, pathIndex: 0 }]
+                    history: [{ col: c, row: r, dir: initDir, mode: initMode, remainingSteps: initSteps, tick: 0, pathIndex: 0 }]
                 });
             }
         }
     }
 
-    const maxTicks = 60;
+    const maxTicks = 80;
     let tickCount = 0;
+    let lastStopTick = 0;
     let supernova = null;
     let supernovas = [];
     let blackHoleLoop = null;
@@ -400,8 +401,8 @@ function simulateGimmickBlockMoves() {
         resolveSameCellCollisions(true);
         resolveSameCellCollisions(false);
 
-        // このティックで実際に移動するブロックが1つもなく、衝突も発生しなかった場合は余分な静止フレームを作らず終了
-        if (intentions.size === 0 && !swapCollisionOccurred && !sameCellCollisionOccurred) {
+        // このティックで実際に移動するブロックが1つもない場合は余分な静止フレームを作らず終了
+        if (intentions.size === 0) {
             tickCount--;
             break;
         }
@@ -434,40 +435,141 @@ function simulateGimmickBlockMoves() {
             }
         });
 
-        // ループ（周回）の検出（超新星爆発との同時発生も許容）
-        if (!blackHoleLoop) {
-            for (const b of blocks) {
-                if (!b.isMoving) continue;
-                const prev = b.history.find(h => h.col === b.col && h.row === b.row && h.dir === b.dir);
-                if (prev) {
-                    const loopPath = b.path.slice(prev.pathIndex, b.path.length - 1);
-                    if (loopPath.length >= 2) {
-                        const cols = loopPath.map(p => p.col);
-                        const rows = loopPath.map(p => p.row);
-                        const minC = Math.min(...cols), maxC = Math.max(...cols);
-                        const minR = Math.min(...rows), maxR = Math.max(...rows);
-                        const centerCol = (minC + maxC) / 2;
-                        const centerRow = (minR + maxR) / 2;
-                        blackHoleLoop = {
-                            blockId: b.id,
-                            originCol: b.originCol,
-                            originRow: b.originRow,
-                            loopPath,
-                            centerCol,
-                            centerRow,
-                            centerX: GX + (centerCol + 0.5) * CELL,
-                            centerY: GY + (centerRow + 0.5) * CELL
-                        };
+        // いずれかのブロックが停止・衝突したティックを記録（盤面の障害物状態が変化した最終ティック）
+        if (movingBlocks.some(b => !b.isMoving) || swapCollisionOccurred || sameCellCollisionOccurred) {
+            lastStopTick = tickCount;
+        }
+
+        // ループ（周回）の検出（全移動中ブロックが障害物確定後に周期軌道へ入った場合のみブラックホールとする）
+        const stillMoving = blocks.filter(b => b.isMoving);
+        const loopMatches = new Map();
+
+        for (const b of stillMoving) {
+            let matchedPrev = null;
+            for (let i = b.history.length - 1; i >= 0; i--) {
+                const h = b.history[i];
+                if (h.tick < lastStopTick) break;
+                if (
+                    h.col === b.col &&
+                    h.row === b.row &&
+                    h.dir === b.dir &&
+                    h.mode === b.mode &&
+                    h.remainingSteps === b.remainingSteps &&
+                    (b.path.length - 1 - h.pathIndex) >= 2
+                ) {
+                    matchedPrev = h;
+                    break;
+                }
+            }
+            if (matchedPrev) {
+                loopMatches.set(b.id, matchedPrev);
+            }
+            b.history.push({
+                col: b.col,
+                row: b.row,
+                dir: b.dir,
+                mode: b.mode,
+                remainingSteps: b.remainingSteps,
+                tick: tickCount,
+                pathIndex: b.path.length - 1
+            });
+        }
+
+        if (stillMoving.length > 0 && loopMatches.size === stillMoving.length) {
+            // 各ループブロックが周期軌道に最初に入ったティック (entryTick) を逆算
+            let maxLoopEntryTick = 0;
+            stillMoving.forEach(lb => {
+                const prev = loopMatches.get(lb.id);
+                const period = (lb.path.length - 1) - prev.pathIndex;
+                let entryIdx = prev.pathIndex;
+                while (entryIdx > 0) {
+                    const hBefore = lb.history[entryIdx - 1];
+                    const hLater = lb.history[entryIdx - 1 + period];
+                    if (
+                        hBefore && hLater &&
+                        hBefore.col === hLater.col &&
+                        hBefore.row === hLater.row &&
+                        hBefore.dir === hLater.dir &&
+                        hBefore.mode === hLater.mode &&
+                        hBefore.remainingSteps === hLater.remainingSteps
+                    ) {
+                        entryIdx--;
+                    } else {
                         break;
                     }
                 }
-                b.history.push({ col: b.col, row: b.row, dir: b.dir, tick: tickCount, pathIndex: b.path.length - 1 });
-            }
-        }
+                if (entryIdx > maxLoopEntryTick) {
+                    maxLoopEntryTick = entryIdx;
+                }
+            });
 
-        // 超新星爆発またはブラックホールが発生した tick で通常シミュレーションを終了
-        if (supernovas.length > 0 || blackHoleLoop) {
-            break;
+            // ループ以外のブロックが実際に移動した最終ティックを算出
+            let maxNonLoopMoveTick = 0;
+            blocks.forEach(nb => {
+                if (nb.isMoving) return;
+                for (let t = nb.path.length - 1; t >= 1; t--) {
+                    if (nb.path[t].col !== nb.path[t - 1].col || nb.path[t].row !== nb.path[t - 1].row) {
+                        if (t > maxNonLoopMoveTick) {
+                            maxNonLoopMoveTick = t;
+                        }
+                        break;
+                    }
+                }
+            });
+
+            const preMoveEndTick = Math.max(maxLoopEntryTick, maxNonLoopMoveTick);
+            const primaryB = stillMoving[0];
+            const primaryPrev = loopMatches.get(primaryB.id);
+            const primaryPeriod = (primaryB.path.length - 1) - primaryPrev.pathIndex;
+            const loopPath = primaryB.path.slice(preMoveEndTick, preMoveEndTick + primaryPeriod);
+
+            if (loopPath.length >= 2) {
+                const cols = loopPath.map(p => p.col);
+                const rows = loopPath.map(p => p.row);
+                const minC = Math.min(...cols), maxC = Math.max(...cols);
+                const minR = Math.min(...rows), maxR = Math.max(...rows);
+                const centerCol = (minC + maxC) / 2;
+                const centerRow = (minR + maxR) / 2;
+
+                const loopBlockOffsets = stillMoving.map(lb => {
+                    const lbState = lb.history[preMoveEndTick];
+                    let offsetIdx = 0;
+                    for (let k = 0; k < primaryPeriod; k++) {
+                        const pk = primaryB.history[preMoveEndTick + k];
+                        if (pk && pk.col === lbState.col && pk.row === lbState.row && pk.dir === lbState.dir) {
+                            offsetIdx = k;
+                            break;
+                        }
+                    }
+                    return {
+                        id: lb.id,
+                        col: lbState.col,
+                        row: lbState.row,
+                        loopOffset: offsetIdx
+                    };
+                });
+
+                blackHoleLoop = {
+                    blockId: primaryB.id,
+                    originCol: primaryB.originCol,
+                    originRow: primaryB.originRow,
+                    loopPath,
+                    loopBlockOffsets,
+                    centerCol,
+                    centerRow,
+                    centerX: GX + (centerCol + 0.5) * CELL,
+                    centerY: GY + (centerRow + 0.5) * CELL
+                };
+
+                blocks.forEach(b => {
+                    b.path = b.path.slice(0, preMoveEndTick + 1);
+                    const lastPos = b.path[b.path.length - 1];
+                    b.col = lastPos.col;
+                    b.row = lastPos.row;
+                });
+                tickCount = preMoveEndTick;
+                break;
+            }
         }
     }
 
@@ -477,14 +579,15 @@ function simulateGimmickBlockMoves() {
         finalGrid[b.row][b.col] = true;
     });
 
-    // 実際に1マス以上移動したブロックのみをアニメーション対象にする
+    // 実際に1マス以上移動したブロックのみをアニメーション対象にする（往復して元の位置に戻ったブロックも含める）
     const actualMoves = [];
     const maxSteps = tickCount;
     const stepDuration = 100;
     const totalDuration = Math.max(260, maxSteps * stepDuration);
 
     blocks.forEach(b => {
-        if (b.col !== b.originCol || b.row !== b.originRow) {
+        const hasMoved = b.path.some(p => p.col !== b.originCol || p.row !== b.originRow);
+        if (hasMoved) {
             actualMoves.push({
                 fromCol: b.originCol,
                 fromRow: b.originRow,
@@ -596,11 +699,11 @@ function finishBlockMove() {
 
     // 超新星爆発とブラックホールの同時発生
     if (pendingSupernova && pendingBlackHole) {
-        const sn = pendingSupernova[0];
+        const snList = Array.isArray(pendingSupernova) ? pendingSupernova : [pendingSupernova];
         const bh = pendingBlackHole;
         pendingSupernova = null;
         pendingBlackHole = null;
-        startDualSupernovaBlackHole(sn, bh);
+        startDualSupernovaBlackHole(snList, bh);
         return;
     }
 
@@ -665,18 +768,33 @@ function startSupernova(supernovaData) {
     }));
 
     // 全地点共通で「時間がゆっくり -> 2つが近づく -> 一瞬止まる -> ブルブル -> ドーン」のタイムラインを流す
-    const APPROACH_MOVE_END = 1000; // 0.0s〜1.0s: 2つのブロックが交わらない位置までゆっくり近づく
-    const APPROACH_END = 1200;      // 1.0s〜1.2s: 交わらない位置でピタッと一瞬止まる（静寂のタメ）
-    const FUSION_END = 2350;        // 1.2s〜2.35s: 激しくブルブル振動しながら白熱し、1つに融合してドーン
-    const PULL_START = 2050;        // 爆発直前に等倍へカメラを引き戻し始める
-    const TOTAL_END = 5050;
+    // 2点以上の場合は爆発までの時間を動的に少し伸ばし、地点間のカメラパンをスムーズに行う
+    const spotCount = spots.length;
+    const PAN_DURATION = 750; // スポット間のスムーズな移動時間
+    let APPROACH_MOVE_END = 1000;
+    let APPROACH_END = 1200;
+    let FUSION_END = 2350;
+    let PULL_START = 2050;
+    let TOTAL_END = 5050;
+
+    if (spotCount >= 2) {
+        const T_SPOT0_END = 1100;
+        const T_PANS_END = T_SPOT0_END + (spotCount - 1) * PAN_DURATION;
+        const STAY_LAST = 800;
+        const PULL_DURATION = 450;
+        PULL_START = T_PANS_END + STAY_LAST;
+        FUSION_END = PULL_START + PULL_DURATION;
+        TOTAL_END = FUSION_END + 2700;
+        APPROACH_MOVE_END = 1000;
+        APPROACH_END = 1150;
+    }
 
     supernovaState = {
         spots: spots,
         col: spots[0].col,
         row: spots[0].row,
         colliders: spots[0].colliders,
-        timeline: { APPROACH_MOVE_END, APPROACH_END, FUSION_END, PULL_START, TOTAL_END },
+        timeline: { APPROACH_MOVE_END, APPROACH_END, FUSION_END, PULL_START, TOTAL_END, PAN_DURATION },
         startTime: performance.now(),
         exploded: false,
         particles: [],
@@ -976,13 +1094,14 @@ function renderSupernovaState(elapsed) {
             camShakeY = Math.cos(elapsed * 0.17) * 14 * shakeDecay;
         }
     } else {
-        // 複数地点の場合のシネマティックカメラワーク
-        // 1つ目をズーム（近づく->一瞬止まる） -> 振動が早くなる前にもう1つへクローズアップ -> 爆発直前に等倍へ戻して同時爆発
-        const T_SPOT1_END = APPROACH_END; // 1200ms
-        const T_PAN_END = 1650;           // 1200〜1650ms: 振動が早くなる前にパン移動
+        // 複数地点の場合のシネマティックカメラワーク（動的に伸ばされた時間で全地点をスムーズにパン移動）
+        const PAN_DURATION = supernovaState.timeline.PAN_DURATION || 750;
+        const T_SPOT0_END = 1100;
+        const T_PANS_END = T_SPOT0_END + (spotCount - 1) * PAN_DURATION;
+        const PULL_DURATION = FUSION_END - PULL_START;
 
-        if (elapsed < T_SPOT1_END) {
-            // 1つ目をズームイン＆「近づく -> 一瞬止まる」を表示
+        if (elapsed < T_SPOT0_END) {
+            // スポット0をズームイン＆「近づく -> 一瞬止まる」を表示
             const zoomInDur = 720;
             const t1 = Math.min(1, elapsed / zoomInDur);
             const ease1 = t1 < 0.5 ? 4 * t1 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 3) / 2;
@@ -990,33 +1109,35 @@ function renderSupernovaState(elapsed) {
             camRatio = ease1;
             currentFocusX = supernovaState.spots[0].focusX;
             currentFocusY = supernovaState.spots[0].focusY;
-        } else if (elapsed < T_PAN_END) {
-            // 振動が早くなる前にもう1つの地点へ素早くクローズアップパン移動
-            const panT = (elapsed - T_SPOT1_END) / (T_PAN_END - T_SPOT1_END);
-            const easePan = panT < 0.5 ? 4 * panT * panT * panT : 1 - Math.pow(-2 * panT + 2, 3) / 2;
-            const fromSpot = supernovaState.spots[0];
-            const toSpot = supernovaState.spots[1];
+        } else if (elapsed < T_PANS_END) {
+            // スポット間を滑らかなS字イージングで流れるようにパン移動
+            const panElapsed = elapsed - T_SPOT0_END;
+            const k = Math.min(spotCount - 2, Math.floor(panElapsed / PAN_DURATION));
+            const u = (panElapsed - k * PAN_DURATION) / PAN_DURATION;
+            const easePan = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+            const fromSpot = supernovaState.spots[k];
+            const toSpot = supernovaState.spots[k + 1];
             currentFocusX = fromSpot.focusX + (toSpot.focusX - fromSpot.focusX) * easePan;
             currentFocusY = fromSpot.focusY + (toSpot.focusY - fromSpot.focusY) * easePan;
             zoom = 2.30;
             camRatio = 1.0;
         } else if (elapsed < PULL_START) {
-            // 次の地点で振動が加速・白熱・融合していく様子を見せる
+            // 最後の地点で振動が加速・白熱・融合していく様子を見せる
             const lastSpot = supernovaState.spots[spotCount - 1];
             currentFocusX = lastSpot.focusX;
             currentFocusY = lastSpot.focusY;
-            const t3 = (elapsed - T_PAN_END) / (PULL_START - T_PAN_END);
+            const t3 = (elapsed - T_PANS_END) / (PULL_START - T_PANS_END);
             zoom = 2.30 + 0.20 * (t3 * t3);
             camRatio = 1.0;
             camShakeX = Math.sin(elapsed * 0.08) * t3 * 2.5;
             camShakeY = Math.cos(elapsed * 0.095) * t3 * 2.5;
         } else if (elapsed < FUSION_END) {
-            // 2つが爆発する直前にカメラを等倍（1.0）へ引き戻す
+            // 全地点が爆発する直前にカメラを等倍（1.0）へ滑らかに引き戻す
             const lastSpot = supernovaState.spots[spotCount - 1];
             currentFocusX = lastSpot.focusX;
             currentFocusY = lastSpot.focusY;
-            const pt = (elapsed - PULL_START) / (FUSION_END - PULL_START);
-            const easePt = pt * pt;
+            const pt = (elapsed - PULL_START) / PULL_DURATION;
+            const easePt = pt < 0.5 ? 2 * pt * pt : 1 - Math.pow(-2 * pt + 2, 2) / 2;
             zoom = 2.50 - 1.50 * easePt; // 2.50 -> 1.0
             camRatio = 1.0 - easePt;
             camShakeX = Math.sin(elapsed * 0.12) * 3.5;
@@ -1376,7 +1497,12 @@ function startBlackHole(loopData) {
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (grid[r][c]) {
-                const pathIdx = loopData.loopPath.findIndex(p => p.col === c && p.row === r);
+                const offsetObj = loopData.loopBlockOffsets
+                    ? loopData.loopBlockOffsets.find(o => o.col === c && o.row === r)
+                    : null;
+                const pathIdx = offsetObj
+                    ? offsetObj.loopOffset
+                    : (loopData.loopBlockOffsets ? -1 : loopData.loopPath.findIndex(p => p.col === c && p.row === r));
                 initialPlacedBlocks.push({
                     col: c,
                     row: r,
@@ -1838,12 +1964,42 @@ function startDualSupernovaBlackHole(snData, bhData) {
     startBtn.disabled = true;
     originalGrid = null;
 
+    const rawSpots = Array.isArray(snData) ? snData : [snData];
+    const spots = rawSpots.map(s => ({
+        col: s.col,
+        row: s.row,
+        tick: s.tick,
+        colliders: s.colliders,
+        stopRatio: getSpotStopRatio(s),
+        focusX: GX + (s.col + 0.5) * CELL,
+        focusY: GY + (s.row + 0.5) * CELL,
+        exploded: false,
+        explodeX: undefined,
+        explodeY: undefined,
+        particles: [],
+        debris: []
+    }));
+
+    const spotCount = spots.length;
+    const PAN_DURATION = 750;
+    const extraTime = spotCount >= 2 ? (spotCount - 1) * PAN_DURATION : 0;
+
     const initialPlacedBlocks = [];
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (grid[r][c]) {
-                const pathIdx = bhData.loopPath.findIndex(p => p.col === c && p.row === r);
-                const isCollider = snData.colliders.some(colObj => colObj.originCol === c && colObj.originRow === r);
+                const offsetObj = bhData.loopBlockOffsets
+                    ? bhData.loopBlockOffsets.find(o => o.col === c && o.row === r)
+                    : null;
+                const pathIdx = offsetObj
+                    ? offsetObj.loopOffset
+                    : (bhData.loopBlockOffsets ? -1 : bhData.loopPath.findIndex(p => p.col === c && p.row === r));
+                const isCollider = spots.some(sp =>
+                    sp.colliders.some(colObj =>
+                        (colObj.fromCol === c && colObj.fromRow === r) ||
+                        (colObj.originCol === c && colObj.originRow === r)
+                    )
+                );
                 initialPlacedBlocks.push({
                     col: c,
                     row: r,
@@ -1857,14 +2013,8 @@ function startDualSupernovaBlackHole(snData, bhData) {
 
     const st = getStage();
     dualEventState = {
-        sn: {
-            col: snData.col,
-            row: snData.row,
-            colliders: snData.colliders,
-            exploded: false,
-            particles: [],
-            debris: []
-        },
+        spots: spots,
+        sn: spots[0],
         bh: {
             loopPath: bhData.loopPath,
             centerCol: bhData.centerCol,
@@ -1872,6 +2022,8 @@ function startDualSupernovaBlackHole(snData, bhData) {
             centerX: bhData.centerX,
             centerY: bhData.centerY
         },
+        extraTime: extraTime,
+        PAN_DURATION: PAN_DURATION,
         startTime: performance.now(),
         placedBlocks: initialPlacedBlocks,
         gimmicks: [...st.gimmicks],
@@ -1923,7 +2075,8 @@ function animateDualEvent(ts) {
 
     renderDualEventState(elapsed);
 
-    if (elapsed >= 8350) {
+    const totalEnd = 8350 + (dualEventState.extraTime || 0);
+    if (elapsed >= totalEnd) {
         finishDualEvent();
     } else {
         animId = requestAnimationFrame(animateDualEvent);
@@ -1935,114 +2088,166 @@ function renderDualEventState(elapsed) {
     const deState = dualEventState;
     if (!deState) return;
 
-    const sn = deState.sn;
+    const spots = deState.spots || [deState.sn];
+    const spotCount = spots.length;
     const bh = deState.bh;
-    const focusX = GX + (sn.col + 0.5) * CELL;
-    const focusY = GY + (sn.row + 0.5) * CELL;
     const bhX = bh.centerX;
     const bhY = bh.centerY;
+    const extraTime = deState.extraTime || 0;
+    const PAN_DURATION = deState.PAN_DURATION || 750;
 
-    // --- タイムライン定義 ---
-    // 1. 開始 -> 爆発にカメラが寄る (と同時期に回転開始・終端速度まで加速)
-    // 2. 終端速度到達でブラックホールがブロックに重なるように出現 (1750〜2350ms)
-    // 3. 爆発の少し前にカメラが等倍になる (1850〜2350ms) & 爆発する2つのブロックが吸われ始める (1900〜2450ms)
-    // 4. 2つのブロックが吸われながら融合爆発 (2450ms)
-    // 5. プレイヤーが吹き飛ばされる (2550〜3100ms) -> 進路を変えて吸われる (3100〜3550ms)
-    // 6. 他のブロック達も吸われる (3450〜3900ms) -> 矢印・土管・ゴール・地面が吸われ、逆順で落下復帰
+    // --- タイムライン定義（2点以上の爆発時は動的に時間を伸ばす）---
     const T_HALF = 450;             // 0〜0.45s: ループブロック半周通常回転
-    const BH_APPEAR_START = 1750;   // 1.75s: ループブロックが終端速度に到達し、ブラックホール出現開始
-    const BH_APPEAR_END = 2350;     // 2.35s: ブラックホール最大半径到達
-    const LOOP_FREEZE_TIME = 2150;  // 2.15s: ブラックホールがブロックに重なり、外周回転から吸引フェーズへ移行
+    const BH_APPEAR_START = 1750 + extraTime;   // ループブロックが終端速度に到達し、ブラックホール出現開始
+    const BH_APPEAR_END = 2350 + extraTime;     // ブラックホール最大半径到達
+    const LOOP_FREEZE_TIME = 2150 + extraTime;  // ブラックホールがブロックに重なり、外周回転から吸引フェーズへ移行
 
     const APPROACH_END = 1350;      // 0〜1.35s: カメラが超新星交点へズーム
-    const PULL_START = 1850;        // 1.85s〜2.35s: 爆発の少し前にカメラが等倍へ戻る
-    const PULL_END = 2350;
-    const SN_SUCK_START = 1900;     // 1.90s〜2.45s: ブラックホール生成後、爆発する2つのブロックが吸われながら融合
-    const EXPLODE_TIME = 2450;      // 2.45s: 吸われながら超新星爆発！
+    const PULL_START = 1850 + extraTime;        // 爆発の少し前にカメラが等倍へ戻る
+    const PULL_END = 2350 + extraTime;
+    const SN_SUCK_START = 1900 + extraTime;     // ブラックホール生成後、爆発するブロックが吸われながら融合
+    const EXPLODE_TIME = 2450 + extraTime;      // 吸われながら超新星爆発！
 
-    const BLOW_START = 2550;        // 2.55s: 爆風でプレイヤー吹っ飛び開始
-    const ESCAPE_POINT = 3100;      // 3.10s: プレイヤーが画面右上端寸前に到達
-    const SUCK_MAN_START = 3100;    // 3.10s〜3.55s: 進路を急変させてブラックホールへスパイラル吸引
-    const SUCK_MAN_END = 3550;
+    const BLOW_START = 2550 + extraTime;        // 爆風でプレイヤー吹っ飛び開始
+    const ESCAPE_POINT = 3100 + extraTime;      // プレイヤーが画面右上端寸前に到達
+    const SUCK_MAN_START = 3100 + extraTime;    // 進路を急変させてブラックホールへスパイラル吸引
+    const SUCK_MAN_END = 3550 + extraTime;
 
     // 他のブロック達・ステージ要素の吸引タイムライン
-    const SUCK_BLOCKS_START = 3450, SUCK_BLOCKS_END = 3900;
-    const SUCK_ARROWS_START = 3800, SUCK_ARROWS_END = 4250;
-    // 芝生が剥離され始めると同時にゴールも吸い込まれる（芝生だけ消えてゴールが浮くのを防止）
-    const SUCK_GOAL_START = 3550, SUCK_GOAL_END = 4050;
-    const SUCK_PIPE_START = 4150, SUCK_PIPE_END = 4600;
-    // 地面（レンガ・芝片）はプレイヤー吸引終了（3550ms）〜 5250ms に流れるように吸引
-    const SUCK_GROUND_START = 3550, SUCK_GROUND_END = 5250;
+    const SUCK_BLOCKS_START = 3450 + extraTime, SUCK_BLOCKS_END = 3900 + extraTime;
+    const SUCK_ARROWS_START = 3800 + extraTime, SUCK_ARROWS_END = 4250 + extraTime;
+    const SUCK_GOAL_START = 3550 + extraTime, SUCK_GOAL_END = 4050 + extraTime;
+    const SUCK_PIPE_START = 4150 + extraTime, SUCK_PIPE_END = 4600 + extraTime;
+    const SUCK_GROUND_START = 3550 + extraTime, SUCK_GROUND_END = 5250 + extraTime;
 
     // 落下出現タイムライン（反対の順: 地面 → ゴール → 土管 → キャラクター → 矢印）
-    const DROP_GROUND_START = 6250, DROP_GROUND_END = 6700;
-    const DROP_GOAL_START = 6650, DROP_GOAL_END = 7050;
-    const DROP_PIPE_START = 7000, DROP_PIPE_END = 7400;
-    const DROP_MAN_START = 7350, DROP_MAN_END = 7850;
-    const DROP_ARROWS_START = 7800, DROP_ARROWS_END = 8200;
+    const DROP_GROUND_START = 6250 + extraTime, DROP_GROUND_END = 6700 + extraTime;
+    const DROP_GOAL_START = 6650 + extraTime, DROP_GOAL_END = 7050 + extraTime;
+    const DROP_PIPE_START = 7000 + extraTime, DROP_PIPE_END = 7400 + extraTime;
+    const DROP_MAN_START = 7350 + extraTime, DROP_MAN_END = 7850 + extraTime;
+    const DROP_ARROWS_START = 7800 + extraTime, DROP_ARROWS_END = 8200 + extraTime;
 
     // --- ステータスバー文言 ---
     if (statusBar) {
         statusBar.innerHTML = '<span class="status-place">•••••</span>';
     }
 
-    // 爆発する2つのブロックの吸引オフセット計算（ブラックホール生成後、吸われながら爆発）
+    // 爆発するブロックの吸引オフセット計算 & 爆発発火処理
     let snSuckRatio = 0;
     if (elapsed >= SN_SUCK_START) {
         const stNorm = Math.min(1, (elapsed - SN_SUCK_START) / (EXPLODE_TIME - SN_SUCK_START));
         snSuckRatio = Math.pow(stNorm, 1.85) * 0.58;
     }
-    const curExplosionX = focusX + (bhX - focusX) * snSuckRatio;
-    const curExplosionY = focusY + (bhY - focusY) * snSuckRatio;
 
-    // --- 爆発発火処理 ---
-    if (elapsed >= EXPLODE_TIME && !sn.exploded) {
-        sn.exploded = true;
-        sn.explodeX = curExplosionX;
-        sn.explodeY = curExplosionY;
-        spawnSupernovaExplosionParticles(curExplosionX, curExplosionY, sn);
-    }
+    spots.forEach(sp => {
+        sp.curExplosionX = sp.focusX + (bhX - sp.focusX) * snSuckRatio;
+        sp.curExplosionY = sp.focusY + (bhY - sp.focusY) * snSuckRatio;
+
+        if (elapsed >= EXPLODE_TIME && !sp.exploded) {
+            sp.exploded = true;
+            sp.explodeX = sp.curExplosionX;
+            sp.explodeY = sp.curExplosionY;
+            spawnSupernovaExplosionParticles(sp.curExplosionX, sp.curExplosionY, sp);
+        }
+    });
 
     // --- カメラズーム & オフセット計算 ---
     let zoom = 1.0;
     let camRatio = 0.0;
     let camShakeX = 0;
     let camShakeY = 0;
+    let currentFocusX = TOTAL_W / 2;
+    let currentFocusY = TOTAL_H / 2;
 
-    if (elapsed < APPROACH_END) {
-        const t1 = elapsed / APPROACH_END;
-        const ease1 = t1 < 0.5 ? 2 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 2) / 2;
-        zoom = 1.0 + 1.35 * ease1; // 1.0 -> 2.35
-        camRatio = ease1;
-    } else if (elapsed < PULL_START) {
-        zoom = 2.35;
-        camRatio = 1.0;
-        camShakeX = Math.sin(elapsed * 0.1) * 2.2;
-        camShakeY = Math.cos(elapsed * 0.12) * 2.2;
-    } else if (elapsed < PULL_END) {
-        // 爆発の少し前にカメラが等倍に戻る
-        const pt = (elapsed - PULL_START) / (PULL_END - PULL_START);
-        const easePt = pt < 0.5 ? 2 * pt * pt : 1 - Math.pow(-2 * pt + 2, 2) / 2;
-        zoom = 2.35 - 1.35 * easePt; // 2.35 -> 1.0
-        camRatio = 1.0 - easePt;     // 1.0 -> 0.0
-        camShakeX = Math.sin(elapsed * 0.15) * 3.2;
-        camShakeY = Math.cos(elapsed * 0.18) * 3.2;
+    if (spotCount <= 1) {
+        currentFocusX = spots[0].focusX;
+        currentFocusY = spots[0].focusY;
+
+        if (elapsed < APPROACH_END) {
+            const t1 = elapsed / APPROACH_END;
+            const ease1 = t1 < 0.5 ? 2 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 2) / 2;
+            zoom = 1.0 + 1.35 * ease1; // 1.0 -> 2.35
+            camRatio = ease1;
+        } else if (elapsed < PULL_START) {
+            zoom = 2.35;
+            camRatio = 1.0;
+            camShakeX = Math.sin(elapsed * 0.1) * 2.2;
+            camShakeY = Math.cos(elapsed * 0.12) * 2.2;
+        } else if (elapsed < PULL_END) {
+            // 爆発の少し前にカメラが等倍に戻る
+            const pt = (elapsed - PULL_START) / (PULL_END - PULL_START);
+            const easePt = pt < 0.5 ? 2 * pt * pt : 1 - Math.pow(-2 * pt + 2, 2) / 2;
+            zoom = 2.35 - 1.35 * easePt; // 2.35 -> 1.0
+            camRatio = 1.0 - easePt;     // 1.0 -> 0.0
+            camShakeX = Math.sin(elapsed * 0.15) * 3.2;
+            camShakeY = Math.cos(elapsed * 0.18) * 3.2;
+        } else {
+            zoom = 1.0;
+            camRatio = 0.0;
+        }
     } else {
-        zoom = 1.0;
-        camRatio = 0.0;
+        // 複数地点の場合（動的に伸ばされた時間で全地点をスムーズにパン移動）
+        const T_SPOT0_END = 1100;
+        const T_PANS_END = T_SPOT0_END + (spotCount - 1) * PAN_DURATION;
 
-        // 画面全体の揺れ（爆風 & ブラックホール重力波）
+        if (elapsed < T_SPOT0_END) {
+            const zoomInDur = 720;
+            const t1 = Math.min(1, elapsed / zoomInDur);
+            const ease1 = t1 < 0.5 ? 4 * t1 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 3) / 2;
+            zoom = 1.0 + 1.35 * ease1;
+            camRatio = ease1;
+            currentFocusX = spots[0].focusX;
+            currentFocusY = spots[0].focusY;
+        } else if (elapsed < T_PANS_END) {
+            // スポット間を滑らかなS字イージングで流れるようにパン移動
+            const panElapsed = elapsed - T_SPOT0_END;
+            const k = Math.min(spotCount - 2, Math.floor(panElapsed / PAN_DURATION));
+            const u = (panElapsed - k * PAN_DURATION) / PAN_DURATION;
+            const easePan = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+            const fromSpot = spots[k];
+            const toSpot = spots[k + 1];
+            currentFocusX = fromSpot.focusX + (toSpot.focusX - fromSpot.focusX) * easePan;
+            currentFocusY = fromSpot.focusY + (toSpot.focusY - fromSpot.focusY) * easePan;
+            zoom = 2.35;
+            camRatio = 1.0;
+        } else if (elapsed < PULL_START) {
+            const lastSpot = spots[spotCount - 1];
+            currentFocusX = lastSpot.focusX;
+            currentFocusY = lastSpot.focusY;
+            zoom = 2.35;
+            camRatio = 1.0;
+            camShakeX = Math.sin(elapsed * 0.1) * 2.2;
+            camShakeY = Math.cos(elapsed * 0.12) * 2.2;
+        } else if (elapsed < PULL_END) {
+            // 爆発の少し前にカメラが等倍に戻る
+            const lastSpot = spots[spotCount - 1];
+            currentFocusX = lastSpot.focusX;
+            currentFocusY = lastSpot.focusY;
+            const pt = (elapsed - PULL_START) / (PULL_END - PULL_START);
+            const easePt = pt < 0.5 ? 2 * pt * pt : 1 - Math.pow(-2 * pt + 2, 2) / 2;
+            zoom = 2.35 - 1.35 * easePt;
+            camRatio = 1.0 - easePt;
+            camShakeX = Math.sin(elapsed * 0.15) * 3.2;
+            camShakeY = Math.cos(elapsed * 0.18) * 3.2;
+        } else {
+            zoom = 1.0;
+            camRatio = 0.0;
+        }
+    }
+
+    // 画面全体の揺れ（爆風 & ブラックホール重力波）
+    if (elapsed >= PULL_END) {
         let shakeAmp = 0;
         if (elapsed < EXPLODE_TIME) {
             shakeAmp = 3.5;
-        } else if (elapsed < 3250) {
+        } else if (elapsed < 3250 + extraTime) {
             shakeAmp = 12 * (1 - (elapsed - EXPLODE_TIME) / 800);
-        } else if (elapsed < 4850) {
-            shakeAmp = ((elapsed - 3250) / 1600) * 6.5;
-        } else if (elapsed < 5550) {
-            shakeAmp = 6.5 + ((elapsed - 4850) / 700) * 3.0;
-        } else if (elapsed < 5950) {
-            shakeAmp = 9.5 * (1 - (elapsed - 5550) / 400);
+        } else if (elapsed < 4850 + extraTime) {
+            shakeAmp = ((elapsed - (3250 + extraTime)) / 1600) * 6.5;
+        } else if (elapsed < 5550 + extraTime) {
+            shakeAmp = 6.5 + ((elapsed - (4850 + extraTime)) / 700) * 3.0;
+        } else if (elapsed < 5950 + extraTime) {
+            shakeAmp = 9.5 * (1 - (elapsed - (5550 + extraTime)) / 400);
         } else if (elapsed >= DROP_GROUND_END - 50 && elapsed < DROP_GROUND_END + 200) {
             const pt = (elapsed - (DROP_GROUND_END - 50)) / 250;
             shakeAmp = 5.5 * (1 - pt);
@@ -2056,8 +2261,8 @@ function renderDualEventState(elapsed) {
 
     const baseCenterX = TOTAL_W / 2;
     const baseCenterY = TOTAL_H / 2;
-    const camTargetX = baseCenterX + (focusX - baseCenterX) * camRatio;
-    const camTargetY = baseCenterY + (focusY - baseCenterY) * camRatio;
+    const camTargetX = baseCenterX + (currentFocusX - baseCenterX) * camRatio;
+    const camTargetY = baseCenterY + (currentFocusY - baseCenterY) * camRatio;
 
     // --- 着地衝撃土煙トリガー ---
     const triggerImpact = (key, callback) => {
@@ -2082,19 +2287,19 @@ function renderDualEventState(elapsed) {
         triggerImpact('man', () => { spawnDust(-1.5, st.startRow); });
     }
 
-    // --- ブラックホールのサイズ（終端速度到達後の 1750ms からブロックに重なるように出現）---
+    // --- ブラックホールのサイズ ---
     let bhRadius = 0;
     if (elapsed >= BH_APPEAR_START && elapsed < BH_APPEAR_END) {
         const t = (elapsed - BH_APPEAR_START) / (BH_APPEAR_END - BH_APPEAR_START);
         bhRadius = 62 * Math.pow(t, 1.6);
-    } else if (elapsed >= BH_APPEAR_END && elapsed < 5550) {
+    } else if (elapsed >= BH_APPEAR_END && elapsed < 5550 + extraTime) {
         bhRadius = 62 + Math.sin(elapsed * 0.01) * 2.5;
-    } else if (elapsed >= 5550 && elapsed < 5950) {
-        const t = (elapsed - 5550) / 400;
+    } else if (elapsed >= 5550 + extraTime && elapsed < 5950 + extraTime) {
+        const t = (elapsed - (5550 + extraTime)) / 400;
         bhRadius = Math.max(0, 62 * Math.pow(1 - t, 2));
     }
 
-    // --- ループ回転の進行マス数 (s) の計算（0msから開始し、1750msで終端速度に到達）---
+    // --- ループ回転の進行マス数 (s) の計算 ---
     const loopPath = bh.loopPath;
     const N = loopPath.length;
     const halfN = N / 2;
@@ -2360,63 +2565,67 @@ function renderDualEventState(elapsed) {
         ctx.stroke();
     }
 
-    // 8. 爆発が起きる2つのブロック（近づく -> 一瞬止まる -> ブルブルしながら吸われ融合爆発）
-    if (!sn.exploded) {
-        let moveRatio = 0;
-        let whiteRatio = 0;
-        let vibAmp = 0;
-        let blockScale = 1.0;
-        const APPROACH_MOVE_END = 1100;
-        const stopRatio = getSpotStopRatio(sn);
+    // 8. 爆発が起きるブロック達（全地点で近づく -> 一瞬止まる -> ブルブルしながら吸われ融合爆発）
+    spots.forEach(sp => {
+        if (!sp.exploded) {
+            let moveRatio = 0;
+            let whiteRatio = 0;
+            let vibAmp = 0;
+            let blockScale = 1.0;
+            const APPROACH_MOVE_END = 1100;
+            const stopRatio = sp.stopRatio || 0.45;
 
-        if (elapsed < APPROACH_MOVE_END) {
-            const t1 = elapsed / APPROACH_MOVE_END;
-            const ease1 = t1 < 0.5 ? 2 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 2) / 2;
-            moveRatio = ease1 * stopRatio;
-            whiteRatio = 0;
-            vibAmp = 0;
-        } else if (elapsed < APPROACH_END) {
-            moveRatio = stopRatio;
-            whiteRatio = 0;
-            vibAmp = 0;
-        } else {
-            const t2 = (elapsed - APPROACH_END) / (EXPLODE_TIME - APPROACH_END);
-            const fusionT = Math.min(1, t2 / 0.75);
-            moveRatio = stopRatio + (1.0 - stopRatio) * (fusionT * fusionT);
-            whiteRatio = Math.min(1, 0.12 + 0.88 * Math.pow(t2, 0.8));
-            vibAmp = (0.04 + 0.12 * Math.sin(t2 * Math.PI)) * CELL;
-            if (elapsed >= SN_SUCK_START) {
-                const stNorm = Math.min(1, (elapsed - SN_SUCK_START) / (EXPLODE_TIME - SN_SUCK_START));
-                blockScale = 1.0 - 0.26 * Math.pow(stNorm, 1.5);
+            if (elapsed < APPROACH_MOVE_END) {
+                const t1 = elapsed / APPROACH_MOVE_END;
+                const ease1 = t1 < 0.5 ? 2 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 2) / 2;
+                moveRatio = ease1 * stopRatio;
+                whiteRatio = 0;
+                vibAmp = 0;
+            } else if (elapsed < APPROACH_END) {
+                moveRatio = stopRatio;
+                whiteRatio = 0;
+                vibAmp = 0;
+            } else {
+                const t2 = (elapsed - APPROACH_END) / (EXPLODE_TIME - APPROACH_END);
+                const fusionT = Math.min(1, t2 / 0.75);
+                moveRatio = stopRatio + (1.0 - stopRatio) * (fusionT * fusionT);
+                whiteRatio = Math.min(1, 0.12 + 0.88 * Math.pow(t2, 0.8));
+                vibAmp = (0.04 + 0.12 * Math.sin(t2 * Math.PI)) * CELL;
+                if (elapsed >= SN_SUCK_START) {
+                    const stNorm = Math.min(1, (elapsed - SN_SUCK_START) / (EXPLODE_TIME - SN_SUCK_START));
+                    blockScale = 1.0 - 0.26 * Math.pow(stNorm, 1.5);
+                }
             }
+
+            const curX = sp.curExplosionX;
+            const curY = sp.curExplosionY;
+            const shiftX = curX - sp.focusX;
+            const shiftY = curY - sp.focusY;
+
+            if (whiteRatio > 0.2) {
+                ctx.save();
+                const auraRadius = CELL * (0.6 + whiteRatio * 0.95);
+                const grad = ctx.createRadialGradient(curX, curY, 2, curX, curY, auraRadius);
+                grad.addColorStop(0, `rgba(255, 255, 255, ${whiteRatio * 0.92})`);
+                grad.addColorStop(0.5, `rgba(165, 243, 252, ${whiteRatio * 0.55})`);
+                grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(curX, curY, auraRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            sp.colliders.forEach((c, idx) => {
+                const curCol = c.fromCol + (sp.col - c.fromCol) * moveRatio;
+                const curRow = c.fromRow + (sp.row - c.fromRow) * moveRatio;
+                const phaseShift = idx * 2.1;
+                const vx = (vibAmp > 0 ? Math.sin(elapsed * 0.085 + phaseShift) * vibAmp : 0) + shiftX;
+                const vy = (vibAmp > 0 ? Math.cos(elapsed * 0.105 + phaseShift) * vibAmp : 0) + shiftY;
+                drawSupernovaBlock(curCol, curRow, whiteRatio, vx, vy, blockScale);
+            });
         }
-
-        const shiftX = curExplosionX - focusX;
-        const shiftY = curExplosionY - focusY;
-
-        if (whiteRatio > 0.2) {
-            ctx.save();
-            const auraRadius = CELL * (0.6 + whiteRatio * 0.95);
-            const grad = ctx.createRadialGradient(curExplosionX, curExplosionY, 2, curExplosionX, curExplosionY, auraRadius);
-            grad.addColorStop(0, `rgba(255, 255, 255, ${whiteRatio * 0.92})`);
-            grad.addColorStop(0.5, `rgba(165, 243, 252, ${whiteRatio * 0.55})`);
-            grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(curExplosionX, curExplosionY, auraRadius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
-
-        sn.colliders.forEach((c, idx) => {
-            const curCol = c.fromCol + (sn.col - c.fromCol) * moveRatio;
-            const curRow = c.fromRow + (sn.row - c.fromRow) * moveRatio;
-            const phaseShift = idx * 2.1;
-            const vx = (vibAmp > 0 ? Math.sin(elapsed * 0.085 + phaseShift) * vibAmp : 0) + shiftX;
-            const vy = (vibAmp > 0 ? Math.cos(elapsed * 0.105 + phaseShift) * vibAmp : 0) + shiftY;
-            drawSupernovaBlock(curCol, curRow, whiteRatio, vx, vy, blockScale);
-        });
-    }
+    });
 
     // 9. プレイヤー (Stickman) の描画（吹っ飛び & 画面外寸前で進路変更してブラックホール吸引）
     const startCx = GX + (-1.5 + 0.5) * CELL;
@@ -2484,107 +2693,109 @@ function renderDualEventState(elapsed) {
         ctx.restore();
     }
 
-    // 10. 超新星爆発エフェクト（ブラックホールに吸われながら爆発し、破片・粒子もブラックホールへ吸い込まれる）
-    if (sn.exploded) {
-        const t3 = Math.min(1, (elapsed - EXPLODE_TIME) / 1200);
-        const baseExpX = sn.explodeX !== undefined ? sn.explodeX : curExplosionX;
-        const baseExpY = sn.explodeY !== undefined ? sn.explodeY : curExplosionY;
-        const postPull = Math.min(1, Math.pow(t3, 1.1) * 0.85);
-        const effX = baseExpX + (bhX - baseExpX) * postPull;
-        const effY = baseExpY + (bhY - baseExpY) * postPull;
+    // 10. 超新星爆発エフェクト（全地点でブラックホールに吸われながら爆発し、破片・粒子も吸い込まれる）
+    spots.forEach(sp => {
+        if (sp.exploded) {
+            const t3 = Math.min(1, (elapsed - EXPLODE_TIME) / 1200);
+            const baseExpX = sp.explodeX !== undefined ? sp.explodeX : sp.curExplosionX;
+            const baseExpY = sp.explodeY !== undefined ? sp.explodeY : sp.curExplosionY;
+            const postPull = Math.min(1, Math.pow(t3, 1.1) * 0.85);
+            const effX = baseExpX + (bhX - baseExpX) * postPull;
+            const effY = baseExpY + (bhY - baseExpY) * postPull;
 
-        // 中心光球コア
-        if (t3 < 0.75) {
-            ctx.save();
-            const coreProgress = t3 / 0.75;
-            const coreRadius = CELL * (0.8 + coreProgress * 4.2) * (1 - coreProgress * 0.35);
-            const coreAlpha = Math.max(0, 1 - coreProgress);
-            const coreGrad = ctx.createRadialGradient(effX, effY, 0, effX, effY, coreRadius);
-            coreGrad.addColorStop(0, `rgba(255, 255, 255, ${coreAlpha})`);
-            coreGrad.addColorStop(0.35, `rgba(253, 224, 71, ${coreAlpha * 0.85})`);
-            coreGrad.addColorStop(0.7, `rgba(56, 189, 248, ${coreAlpha * 0.5})`);
-            coreGrad.addColorStop(1, 'rgba(168, 85, 247, 0)');
-            ctx.fillStyle = coreGrad;
-            ctx.beginPath();
-            ctx.arc(effX, effY, coreRadius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
-
-        // 多重衝撃波リング
-        const rings = [
-            { delay: 0.0, maxR: 350, width: 14, color: '255, 255, 255' },
-            { delay: 0.06, maxR: 280, width: 9, color: '103, 232, 249' },
-            { delay: 0.12, maxR: 220, width: 6, color: '240, 171, 252' }
-        ];
-        rings.forEach(ring => {
-            if (t3 > ring.delay) {
-                const rt = Math.min(1, (t3 - ring.delay) / (1 - ring.delay));
-                const easeR = 1 - Math.pow(1 - rt, 2.5);
-                const radius = easeR * ring.maxR;
-                const alpha = Math.max(0, 1 - rt);
+            // 中心光球コア
+            if (t3 < 0.75) {
                 ctx.save();
-                ctx.strokeStyle = `rgba(${ring.color}, ${alpha})`;
-                ctx.lineWidth = Math.max(1.5, ring.width * (1 - rt * 0.7));
+                const coreProgress = t3 / 0.75;
+                const coreRadius = CELL * (0.8 + coreProgress * 4.2) * (1 - coreProgress * 0.35);
+                const coreAlpha = Math.max(0, 1 - coreProgress);
+                const coreGrad = ctx.createRadialGradient(effX, effY, 0, effX, effY, coreRadius);
+                coreGrad.addColorStop(0, `rgba(255, 255, 255, ${coreAlpha})`);
+                coreGrad.addColorStop(0.35, `rgba(253, 224, 71, ${coreAlpha * 0.85})`);
+                coreGrad.addColorStop(0.7, `rgba(56, 189, 248, ${coreAlpha * 0.5})`);
+                coreGrad.addColorStop(1, 'rgba(168, 85, 247, 0)');
+                ctx.fillStyle = coreGrad;
                 ctx.beginPath();
-                ctx.arc(effX, effY, radius, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-            }
-        });
-
-        // 吹き飛ぶブロックデブリ（ブラックホールの重力に引かれて吸い込まれる）
-        sn.debris.forEach(d => {
-            const dx = bhX - d.x;
-            const dy = bhY - d.y;
-            const dist = Math.max(18, Math.hypot(dx, dy));
-            const pull = 18 / dist;
-            d.vx = d.vx * 0.92 + (dx / dist) * pull;
-            d.vy = d.vy * 0.92 + (dy / dist) * pull;
-            d.x += d.vx;
-            d.y += d.vy;
-            d.rot += d.vRot;
-            const nearFade = dist < 24 ? (dist / 24) : 1;
-            d.alpha = Math.max(0, (1 - t3 * 1.15) * nearFade);
-            if (d.alpha > 0) {
-                ctx.save();
-                ctx.translate(d.x, d.y);
-                ctx.rotate(d.rot);
-                ctx.globalAlpha = d.alpha;
-                ctx.fillStyle = '#f8c860';
-                ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size);
-                ctx.strokeStyle = '#c06010';
-                ctx.lineWidth = 1.5;
-                ctx.strokeRect(-d.size / 2, -d.size / 2, d.size, d.size);
-                ctx.restore();
-            }
-        });
-
-        // 超新星エネルギー粒子（ブラックホールへ吸い込まれる）
-        sn.particles.forEach(p => {
-            const dx = bhX - p.x;
-            const dy = bhY - p.y;
-            const dist = Math.max(16, Math.hypot(dx, dy));
-            const pull = 22 / dist;
-            p.vx = p.vx * 0.92 + (dx / dist) * pull;
-            p.vy = p.vy * 0.92 + (dy / dist) * pull;
-            p.x += p.vx;
-            p.y += p.vy;
-            p.alpha = Math.max(0, p.alpha - p.decay);
-            if (dist < 18) p.alpha *= 0.5;
-            if (p.alpha > 0) {
-                ctx.save();
-                ctx.globalAlpha = p.alpha;
-                ctx.fillStyle = p.color;
-                ctx.shadowColor = p.color;
-                ctx.shadowBlur = 8;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.arc(effX, effY, coreRadius, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
             }
-        });
-    }
+
+            // 多重衝撃波リング
+            const rings = [
+                { delay: 0.0, maxR: 350, width: 14, color: '255, 255, 255' },
+                { delay: 0.06, maxR: 280, width: 9, color: '103, 232, 249' },
+                { delay: 0.12, maxR: 220, width: 6, color: '240, 171, 252' }
+            ];
+            rings.forEach(ring => {
+                if (t3 > ring.delay) {
+                    const rt = Math.min(1, (t3 - ring.delay) / (1 - ring.delay));
+                    const easeR = 1 - Math.pow(1 - rt, 2.5);
+                    const radius = easeR * ring.maxR;
+                    const alpha = Math.max(0, 1 - rt);
+                    ctx.save();
+                    ctx.strokeStyle = `rgba(${ring.color}, ${alpha})`;
+                    ctx.lineWidth = Math.max(1.5, ring.width * (1 - rt * 0.7));
+                    ctx.beginPath();
+                    ctx.arc(effX, effY, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            });
+
+            // 吹き飛ぶブロックデブリ（ブラックホールの重力に引かれて吸い込まれる）
+            sp.debris.forEach(d => {
+                const dx = bhX - d.x;
+                const dy = bhY - d.y;
+                const dist = Math.max(18, Math.hypot(dx, dy));
+                const pull = 18 / dist;
+                d.vx = d.vx * 0.92 + (dx / dist) * pull;
+                d.vy = d.vy * 0.92 + (dy / dist) * pull;
+                d.x += d.vx;
+                d.y += d.vy;
+                d.rot += d.vRot;
+                const nearFade = dist < 24 ? (dist / 24) : 1;
+                d.alpha = Math.max(0, (1 - t3 * 1.15) * nearFade);
+                if (d.alpha > 0) {
+                    ctx.save();
+                    ctx.translate(d.x, d.y);
+                    ctx.rotate(d.rot);
+                    ctx.globalAlpha = d.alpha;
+                    ctx.fillStyle = '#f8c860';
+                    ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size);
+                    ctx.strokeStyle = '#c06010';
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(-d.size / 2, -d.size / 2, d.size, d.size);
+                    ctx.restore();
+                }
+            });
+
+            // 超新星エネルギー粒子（ブラックホールへ吸い込まれる）
+            sp.particles.forEach(p => {
+                const dx = bhX - p.x;
+                const dy = bhY - p.y;
+                const dist = Math.max(16, Math.hypot(dx, dy));
+                const pull = 22 / dist;
+                p.vx = p.vx * 0.92 + (dx / dist) * pull;
+                p.vy = p.vy * 0.92 + (dy / dist) * pull;
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha = Math.max(0, p.alpha - p.decay);
+                if (dist < 18) p.alpha *= 0.5;
+                if (p.alpha > 0) {
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = p.color;
+                    ctx.shadowColor = p.color;
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            });
+        }
+    });
 
     // 11. パーティクル (土煙など)
     updateAndDrawParticles(ctx);
@@ -2592,7 +2803,8 @@ function renderDualEventState(elapsed) {
     ctx.restore();
 
     // 爆発瞬間の画面全体ホワイトアウト閃光
-    if (sn.exploded) {
+    const anyExploded = spots.some(sp => sp.exploded);
+    if (anyExploded) {
         const t3 = Math.min(1, (elapsed - EXPLODE_TIME) / 1200);
         if (t3 < 0.42) {
             const flashAlpha = Math.pow(1 - t3 / 0.42, 2) * 0.90;
@@ -4744,11 +4956,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // 移動がない（0ステップでその場で発生する）場合の即時発動
         if (pendingSupernova && pendingBlackHole) {
-            const sn = pendingSupernova[0];
+            const snList = Array.isArray(pendingSupernova) ? pendingSupernova : [pendingSupernova];
             const bh = pendingBlackHole;
             pendingSupernova = null;
             pendingBlackHole = null;
-            startDualSupernovaBlackHole(sn, bh);
+            startDualSupernovaBlackHole(snList, bh);
             return;
         }
 
