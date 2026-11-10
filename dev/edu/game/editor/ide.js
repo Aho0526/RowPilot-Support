@@ -391,6 +391,13 @@ const STAGES = [
         editorStageJumpSelect = document.getElementById('editor-stage-jump-select');
         btnOpenStageBuilder = document.getElementById('btn-open-stage-builder');
         btnAddStageTemplate = document.getElementById('btn-add-stage-template');
+
+        try {
+            if (localStorage.getItem('hako_system_banner_minimized') === '1') {
+                if (systemBannerContainer) systemBannerContainer.classList.add('is-minimized');
+                if (systemBanner) systemBanner.classList.add('is-minimized');
+            }
+        } catch (e) { }
     }
 
     function initStickyScroll() {
@@ -468,13 +475,12 @@ const STAGES = [
         if (diagnosticsBar) {
             diagnosticsBar.style.display = editorPrefs.diagnosticsBar ? 'flex' : 'none';
         }
-        if (stickyScrollController) {
+        const stickyEl = document.getElementById('editor-sticky-scroll-container');
+        if (stickyEl) {
+            stickyEl.style.display = editorPrefs.stickyScroll ? '' : 'none';
+        }
+        if (stickyScrollController && typeof stickyScrollController.setEnabled === 'function') {
             stickyScrollController.setEnabled(Boolean(editorPrefs.stickyScroll));
-        } else {
-            const stickyEl = document.getElementById('editor-sticky-scroll-container');
-            if (stickyEl && !editorPrefs.stickyScroll) {
-                stickyEl.style.display = 'none';
-            }
         }
         const darkBtn = document.getElementById('theme-choice-dark');
         const lightBtn = document.getElementById('theme-choice-light');
@@ -669,6 +675,11 @@ const STAGES = [
         const isSys = Boolean(files[fileKey].isSystemFile);
         if (systemBannerContainer) {
             systemBannerContainer.style.display = isSys ? 'block' : 'none';
+            if (isSys) {
+                const isMinimized = localStorage.getItem('hako_system_banner_minimized') === '1';
+                systemBannerContainer.classList.toggle('is-minimized', isMinimized);
+                if (systemBanner) systemBanner.classList.toggle('is-minimized', isMinimized);
+            }
         }
         if (codeTextarea) {
             codeTextarea.readOnly = isSys;
@@ -2460,14 +2471,18 @@ const STAGES = [
         }
 
         // システムバナーの最小化・展開・stages.js移動
-        if (bannerBtnMinimize && systemBanner) {
+        if (bannerBtnMinimize) {
             bannerBtnMinimize.addEventListener('click', () => {
-                systemBanner.classList.add('is-minimized');
+                if (systemBannerContainer) systemBannerContainer.classList.add('is-minimized');
+                if (systemBanner) systemBanner.classList.add('is-minimized');
+                try { localStorage.setItem('hako_system_banner_minimized', '1'); } catch (e) { }
             });
         }
-        if (bannerMinimizedIcon && systemBanner) {
+        if (bannerMinimizedIcon) {
             bannerMinimizedIcon.addEventListener('click', () => {
-                systemBanner.classList.remove('is-minimized');
+                if (systemBannerContainer) systemBannerContainer.classList.remove('is-minimized');
+                if (systemBanner) systemBanner.classList.remove('is-minimized');
+                try { localStorage.setItem('hako_system_banner_minimized', '0'); } catch (e) { }
             });
         }
         if (bannerBtnGotoGame) {
@@ -2956,6 +2971,7 @@ const STAGES = [
 
         function openSettings() {
             if (!overlay) return;
+            applyPreferences();
             overlay.style.display = 'flex';
             requestAnimationFrame(() => overlay.classList.add('is-open'));
             overlay.setAttribute('aria-hidden', 'false');
@@ -3333,7 +3349,11 @@ const STAGES = [
             }
         }
 
-        const arrowSymbols = { up: '↑', down: '↓', left: '←', right: '→' };
+        function getBuilderArrowSvg(dir, size = 21) {
+            const rotMap = { up: 0, right: 90, down: 180, left: 270 };
+            const deg = rotMap[dir] !== undefined ? rotMap[dir] : 0;
+            return `<svg class="builder-arrow-svg" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"><g transform="rotate(${deg} 12 12)"><path d="M 6.5 11 L 12 5.5 L 17.5 11 M 12 5.5 L 12 19.5" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;
+        }
         let solCount = 0;
 
         if (gridEl) {
@@ -3351,13 +3371,12 @@ const STAGES = [
                     if (cellData.purpleBorder) cls += ' is-purple';
                     cellEl.className = cls;
 
-                    const arrow = cellData.dashDir
-                        ? arrowSymbols[cellData.dashDir]
-                        : (cellData.stepDir ? arrowSymbols[cellData.stepDir] : '');
+                    const arrowDir = cellData.dashDir || cellData.stepDir;
+                    const arrowSvg = arrowDir ? getBuilderArrowSvg(arrowDir, 21) : '';
 
                     cellEl.innerHTML = `
                         <span class="builder-cell-coord">${c},${r}</span>
-                        ${arrow ? `<span class="builder-cell-arrow">${arrow}</span>` : ''}
+                        ${arrowSvg ? `<span class="builder-cell-arrow">${arrowSvg}</span>` : ''}
                         ${cellData.solution ? `<span class="builder-cell-sol">💡箱</span>` : ''}
                     `;
 
