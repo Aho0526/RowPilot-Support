@@ -269,6 +269,7 @@ function simulateGimmickBlockMoves() {
     let supernova = null;
     let supernovas = [];
     let blackHoleLoop = null;
+    let blackHoleLoops = [];
 
     while (tickCount < maxTicks) {
         tickCount++;
@@ -518,12 +519,55 @@ function simulateGimmickBlockMoves() {
             });
 
             const preMoveEndTick = Math.max(maxLoopEntryTick, maxNonLoopMoveTick);
-            const primaryB = stillMoving[0];
-            const primaryPrev = loopMatches.get(primaryB.id);
-            const primaryPeriod = (primaryB.path.length - 1) - primaryPrev.pathIndex;
-            const loopPath = primaryB.path.slice(preMoveEndTick, preMoveEndTick + primaryPeriod);
 
-            if (loopPath.length >= 2) {
+            // 各移動ブロックの周期長を保存
+            const blockPeriods = new Map();
+            stillMoving.forEach(lb => {
+                const prev = loopMatches.get(lb.id);
+                blockPeriods.set(lb.id, (lb.path.length - 1) - prev.pathIndex);
+            });
+
+            // 各移動ブロックの周期パスを取得
+            const blockLoopPaths = new Map();
+            stillMoving.forEach(b => {
+                const period = blockPeriods.get(b.id);
+                const lp = b.path.slice(preMoveEndTick, preMoveEndTick + period);
+                blockLoopPaths.set(b.id, lp);
+            });
+
+            // ループのクラスタリング（共通セルを共有するブロック同士を同一グループとする）
+            const visited = new Set();
+            const loopGroups = [];
+
+            stillMoving.forEach(b => {
+                if (visited.has(b.id)) return;
+                const groupBlocks = [b];
+                visited.add(b.id);
+                const bPath = blockLoopPaths.get(b.id);
+                const cellSet = new Set(bPath.map(p => `${p.col},${p.row}`));
+
+                let added = true;
+                while (added) {
+                    added = false;
+                    stillMoving.forEach(ob => {
+                        if (visited.has(ob.id)) return;
+                        const obPath = blockLoopPaths.get(ob.id);
+                        const sharesCell = obPath.some(p => cellSet.has(`${p.col},${p.row}`));
+                        if (sharesCell) {
+                            visited.add(ob.id);
+                            groupBlocks.push(ob);
+                            obPath.forEach(p => cellSet.add(`${p.col},${p.row}`));
+                            added = true;
+                        }
+                    });
+                }
+                loopGroups.push(groupBlocks);
+            });
+
+            const detectedLoops = loopGroups.map((grp, grpIdx) => {
+                const primaryB = grp[0];
+                const primaryPeriod = blockPeriods.get(primaryB.id);
+                const loopPath = primaryB.path.slice(preMoveEndTick, preMoveEndTick + primaryPeriod);
                 const cols = loopPath.map(p => p.col);
                 const rows = loopPath.map(p => p.row);
                 const minC = Math.min(...cols), maxC = Math.max(...cols);
@@ -531,7 +575,7 @@ function simulateGimmickBlockMoves() {
                 const centerCol = (minC + maxC) / 2;
                 const centerRow = (minR + maxR) / 2;
 
-                const loopBlockOffsets = stillMoving.map(lb => {
+                const loopBlockOffsets = grp.map(lb => {
                     const lbState = lb.history[preMoveEndTick];
                     let offsetIdx = 0;
                     for (let k = 0; k < primaryPeriod; k++) {
@@ -549,7 +593,8 @@ function simulateGimmickBlockMoves() {
                     };
                 });
 
-                blackHoleLoop = {
+                return {
+                    id: grpIdx + 1,
                     blockId: primaryB.id,
                     originCol: primaryB.originCol,
                     originRow: primaryB.originRow,
@@ -560,6 +605,11 @@ function simulateGimmickBlockMoves() {
                     centerX: GX + (centerCol + 0.5) * CELL,
                     centerY: GY + (centerRow + 0.5) * CELL
                 };
+            }).filter(lp => lp.loopPath.length >= 2);
+
+            if (detectedLoops.length > 0) {
+                blackHoleLoops = detectedLoops;
+                blackHoleLoop = detectedLoops[0];
 
                 blocks.forEach(b => {
                     b.path = b.path.slice(0, preMoveEndTick + 1);
@@ -571,6 +621,73 @@ function simulateGimmickBlockMoves() {
                 break;
             }
         }
+
+        // 超新星爆発が発生した場合、このtickでシミュレーションを終了（爆発後の余分な進行を防止）
+        if (supernovas.length > 0) {
+            break;
+        }
+    }
+
+    // 超新星爆発が発生している場合のブロック選別と先行移動の調整
+    const supernovaColliderIds = new Set();
+    const actualMoves = [];
+    const stepDuration = 100;
+
+    if (supernovas.length > 0) {
+        // 最初の爆発 tick 以外の超新星は除外（同時に起きたもののみ残す）
+        const firstTick = supernovas[0].tick;
+        supernovas = supernovas.filter(s => s.tick === firstTick);
+
+        // 超新星爆発に関係するブロック（2つ以上）のIDを収集
+        supernovas.forEach(s => {
+            s.colliders.forEach(c => supernovaColliderIds.add(c.id));
+        });
+
+        // 衝突直前までの先行移動ティック数 (0-based)
+        const preMoveEndTick = firstTick - 1;
+
+        blocks.forEach(b => {
+            if (supernovaColliderIds.has(b.id)) {
+                // 爆発に関与するブロックのみ移動させる（衝突直前の位置まで）
+                b.path = b.path.slice(0, preMoveEndTick + 1);
+                const lastPos = b.path[b.path.length - 1];
+                b.col = lastPos.col;
+                b.row = lastPos.row;
+                const hasMoved = b.path.some(p => p.col !== b.originCol || p.row !== b.originRow);
+                if (hasMoved) {
+                    actualMoves.push({
+                        fromCol: b.originCol,
+                        fromRow: b.originRow,
+                        toCol: b.col,
+                        toRow: b.row,
+                        path: b.path,
+                        duration: Math.max(260, preMoveEndTick * stepDuration)
+                    });
+                }
+            } else {
+                // 爆発に関与しないブロックは初期位置にとどまり、移動アニメーションを行わない
+                b.col = b.originCol;
+                b.row = b.originRow;
+                b.path = [{ col: b.originCol, row: b.originRow }];
+            }
+        });
+    } else {
+        // 通常時（超新星爆発なし）
+        const maxSteps = tickCount;
+        const totalDuration = Math.max(260, maxSteps * stepDuration);
+        blocks.forEach(b => {
+            const hasMoved = b.path.some(p => p.col !== b.originCol || p.row !== b.originRow);
+            if (hasMoved) {
+                actualMoves.push({
+                    fromCol: b.originCol,
+                    fromRow: b.originRow,
+                    toCol: b.col,
+                    toRow: b.row,
+                    path: b.path,
+                    duration: totalDuration
+                });
+            }
+        });
     }
 
     // 最終盤面の作成
@@ -579,31 +696,11 @@ function simulateGimmickBlockMoves() {
         finalGrid[b.row][b.col] = true;
     });
 
-    // 実際に1マス以上移動したブロックのみをアニメーション対象にする（往復して元の位置に戻ったブロックも含める）
-    const actualMoves = [];
-    const maxSteps = tickCount;
-    const stepDuration = 100;
-    const totalDuration = Math.max(260, maxSteps * stepDuration);
-
-    blocks.forEach(b => {
-        const hasMoved = b.path.some(p => p.col !== b.originCol || p.row !== b.originRow);
-        if (hasMoved) {
-            actualMoves.push({
-                fromCol: b.originCol,
-                fromRow: b.originRow,
-                toCol: b.col,
-                toRow: b.row,
-                path: b.path,
-                duration: totalDuration
-            });
-        }
-    });
-
     const rounds = actualMoves.length > 0 ? [actualMoves] : [];
 
     supernova = supernovas.length > 0 ? supernovas[0] : null;
 
-    return { rounds, finalGrid, supernova, supernovas, blackHoleLoop };
+    return { rounds, finalGrid, supernova, supernovas, blackHoleLoop, blackHoleLoops };
 }
 
 function animateBlockMove(ts) {
@@ -770,23 +867,51 @@ function startSupernova(supernovaData) {
     // 全地点共通で「時間がゆっくり -> 2つが近づく -> 一瞬止まる -> ブルブル -> ドーン」のタイムラインを流す
     // 2点以上の場合は爆発までの時間を動的に少し伸ばし、地点間のカメラパンをスムーズに行う
     const spotCount = spots.length;
-    const PAN_DURATION = 750; // スポット間のスムーズな移動時間
     let APPROACH_MOVE_END = 1000;
     let APPROACH_END = 1200;
     let FUSION_END = 2350;
     let PULL_START = 2050;
     let TOTAL_END = 5050;
+    let schedule = null;
 
     if (spotCount >= 2) {
-        const T_SPOT0_END = 1100;
-        const T_PANS_END = T_SPOT0_END + (spotCount - 1) * PAN_DURATION;
-        const STAY_LAST = 800;
-        const PULL_DURATION = 450;
-        PULL_START = T_PANS_END + STAY_LAST;
+        // 各スポットの滞在時間 (stay) とパン時間 (pan) を動的に生成
+        // 最初の爆発クローズアップから最後の爆発クローズアップまで徐々に見る時間を縮め、迫り来る演出にする
+        const stays = [];
+        const pans = [];
+        const firstStay = 1050;
+        const lastStay = spotCount === 2 ? 680 : Math.max(300, 680 - (spotCount - 2) * 110);
+
+        for (let i = 0; i < spotCount; i++) {
+            const ratio = spotCount > 1 ? i / (spotCount - 1) : 0;
+            stays.push(Math.round(firstStay + (lastStay - firstStay) * Math.pow(ratio, 0.85)));
+            if (i < spotCount - 1) {
+                const panRatio = spotCount > 2 ? i / (spotCount - 2) : 0;
+                pans.push(Math.round(360 - panRatio * 120));
+            }
+        }
+
+        schedule = [];
+        let curTime = 0;
+        for (let i = 0; i < spotCount; i++) {
+            const stayStart = curTime;
+            const stayEnd = curTime + stays[i];
+            schedule.push({ type: 'stay', spotIndex: i, start: stayStart, end: stayEnd });
+            curTime = stayEnd;
+            if (i < spotCount - 1) {
+                const panStart = curTime;
+                const panEnd = curTime + pans[i];
+                schedule.push({ type: 'pan', fromSpot: i, toSpot: i + 1, start: panStart, end: panEnd });
+                curTime = panEnd;
+            }
+        }
+
+        APPROACH_MOVE_END = 900;
+        APPROACH_END = 1050;
+        PULL_START = curTime;
+        const PULL_DURATION = 380;
         FUSION_END = PULL_START + PULL_DURATION;
         TOTAL_END = FUSION_END + 2700;
-        APPROACH_MOVE_END = 1000;
-        APPROACH_END = 1150;
     }
 
     supernovaState = {
@@ -794,7 +919,7 @@ function startSupernova(supernovaData) {
         col: spots[0].col,
         row: spots[0].row,
         colliders: spots[0].colliders,
-        timeline: { APPROACH_MOVE_END, APPROACH_END, FUSION_END, PULL_START, TOTAL_END, PAN_DURATION },
+        timeline: { APPROACH_MOVE_END, APPROACH_END, FUSION_END, PULL_START, TOTAL_END, schedule },
         startTime: performance.now(),
         exploded: false,
         particles: [],
@@ -1094,43 +1219,49 @@ function renderSupernovaState(elapsed) {
             camShakeY = Math.cos(elapsed * 0.17) * 14 * shakeDecay;
         }
     } else {
-        // 複数地点の場合のシネマティックカメラワーク（動的に伸ばされた時間で全地点をスムーズにパン移動）
-        const PAN_DURATION = supernovaState.timeline.PAN_DURATION || 750;
-        const T_SPOT0_END = 1100;
-        const T_PANS_END = T_SPOT0_END + (spotCount - 1) * PAN_DURATION;
+        // 複数地点の場合のシネマティックカメラワーク（見る時間を徐々に縮めて爆発が迫る緊迫感を演出）
+        const schedule = supernovaState.timeline.schedule;
         const PULL_DURATION = FUSION_END - PULL_START;
+        const currentItem = schedule ? schedule.find(s => elapsed >= s.start && elapsed < s.end) : null;
 
-        if (elapsed < T_SPOT0_END) {
-            // スポット0をズームイン＆「近づく -> 一瞬止まる」を表示
-            const zoomInDur = 720;
-            const t1 = Math.min(1, elapsed / zoomInDur);
-            const ease1 = t1 < 0.5 ? 4 * t1 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 3) / 2;
-            zoom = 1.0 + 1.30 * ease1;
-            camRatio = ease1;
-            currentFocusX = supernovaState.spots[0].focusX;
-            currentFocusY = supernovaState.spots[0].focusY;
-        } else if (elapsed < T_PANS_END) {
-            // スポット間を滑らかなS字イージングで流れるようにパン移動
-            const panElapsed = elapsed - T_SPOT0_END;
-            const k = Math.min(spotCount - 2, Math.floor(panElapsed / PAN_DURATION));
-            const u = (panElapsed - k * PAN_DURATION) / PAN_DURATION;
-            const easePan = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-            const fromSpot = supernovaState.spots[k];
-            const toSpot = supernovaState.spots[k + 1];
-            currentFocusX = fromSpot.focusX + (toSpot.focusX - fromSpot.focusX) * easePan;
-            currentFocusY = fromSpot.focusY + (toSpot.focusY - fromSpot.focusY) * easePan;
-            zoom = 2.30;
-            camRatio = 1.0;
-        } else if (elapsed < PULL_START) {
-            // 最後の地点で振動が加速・白熱・融合していく様子を見せる
-            const lastSpot = supernovaState.spots[spotCount - 1];
-            currentFocusX = lastSpot.focusX;
-            currentFocusY = lastSpot.focusY;
-            const t3 = (elapsed - T_PANS_END) / (PULL_START - T_PANS_END);
-            zoom = 2.30 + 0.20 * (t3 * t3);
-            camRatio = 1.0;
-            camShakeX = Math.sin(elapsed * 0.08) * t3 * 2.5;
-            camShakeY = Math.cos(elapsed * 0.095) * t3 * 2.5;
+        if (currentItem) {
+            if (currentItem.type === 'stay') {
+                const sp = supernovaState.spots[currentItem.spotIndex];
+                currentFocusX = sp.focusX;
+                currentFocusY = sp.focusY;
+
+                if (currentItem.spotIndex === 0) {
+                    // スポット0へのズームイン
+                    const zoomInDur = 560;
+                    const t1 = Math.min(1, elapsed / zoomInDur);
+                    const ease1 = t1 < 0.5 ? 4 * t1 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 3) / 2;
+                    zoom = 1.0 + 1.30 * ease1;
+                    camRatio = ease1;
+                } else if (currentItem.spotIndex === spotCount - 1) {
+                    // 最後のスポット：激しい白熱と融合のズーム＆振動
+                    const t3 = (elapsed - currentItem.start) / (currentItem.end - currentItem.start);
+                    zoom = 2.30 + 0.20 * (t3 * t3);
+                    camRatio = 1.0;
+                    camShakeX = Math.sin(elapsed * 0.08) * t3 * 2.5;
+                    camShakeY = Math.cos(elapsed * 0.095) * t3 * 2.5;
+                } else {
+                    // 中間スポット
+                    zoom = 2.30;
+                    camRatio = 1.0;
+                    camShakeX = Math.sin(elapsed * 0.08) * 1.5;
+                    camShakeY = Math.cos(elapsed * 0.095) * 1.5;
+                }
+            } else if (currentItem.type === 'pan') {
+                // スポット間の高速スムーズパン（S字イージング）
+                const u = (elapsed - currentItem.start) / (currentItem.end - currentItem.start);
+                const easePan = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+                const fromSp = supernovaState.spots[currentItem.fromSpot];
+                const toSp = supernovaState.spots[currentItem.toSpot];
+                currentFocusX = fromSp.focusX + (toSp.focusX - fromSp.focusX) * easePan;
+                currentFocusY = fromSp.focusY + (toSp.focusY - fromSp.focusY) * easePan;
+                zoom = 2.30;
+                camRatio = 1.0;
+            }
         } else if (elapsed < FUSION_END) {
             // 全地点が爆発する直前にカメラを等倍（1.0）へ滑らかに引き戻す
             const lastSpot = supernovaState.spots[spotCount - 1];
@@ -1452,6 +1583,298 @@ function updateAndDrawBlackHoleParticles(ctx, cx, cy, bhRadius, elapsed) {
     });
 }
 
+function easeOutBack(x) {
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+}
+
+const BLACKHOLE_UI_SELECTORS = [
+    '.cloud',
+    '#gameBackToHomeBtn',
+    '#gameToSelectBtn',
+    '#gameToEditorBtn',
+    '.stage-nav-pill',
+    '#helpBtn',
+    '#answerBtn',
+    '.status-wrap',
+    '#statusBar',
+    '#blockBadge',
+    '#startBtn',
+    '#resetBtn',
+    '#legendWrap'
+];
+
+function resetBlackHoleUiStyles() {
+    BLACKHOLE_UI_SELECTORS.forEach(sel => {
+        const els = document.querySelectorAll(sel);
+        els.forEach(el => {
+            el.style.transform = '';
+            el.style.opacity = '';
+            el.style.visibility = '';
+            el.style.filter = '';
+            el.style.pointerEvents = '';
+            delete el._bhOrigCenter;
+        });
+    });
+    if (document.body) {
+        document.body.style.backgroundColor = '';
+        document.body.style.backgroundImage = '';
+    }
+    if (canvas) {
+        canvas.style.cursor = '';
+    }
+}
+
+function updateBlackHoleUiSuck(elapsed, midClientX, midClientY, suckStart = 3300, suckEnd = 4750) {
+    if (elapsed < suckStart) return;
+
+    if (document.body) {
+        const bgT = Math.min(1, (elapsed - suckStart) / (suckEnd - suckStart));
+        const skyA = Math.max(0, 1 - bgT);
+        document.body.style.backgroundColor = '#060814';
+        document.body.style.backgroundImage = `linear-gradient(180deg, rgba(92,148,252,${skyA}) 0%, rgba(92,148,252,${skyA}) 60%, rgba(139,188,255,${skyA}) 100%)`;
+    }
+
+    BLACKHOLE_UI_SELECTORS.forEach((sel, idx) => {
+        const els = document.querySelectorAll(sel);
+        els.forEach(el => {
+            if (el.style.display === 'none' || (typeof getComputedStyle === 'function' && getComputedStyle(el).display === 'none')) return;
+
+            const itemStart = suckStart + idx * 80;
+            const itemEnd = Math.min(suckEnd, itemStart + 650);
+
+            if (elapsed < itemStart) {
+                el.style.transform = '';
+                el.style.opacity = '';
+            } else if (elapsed < itemEnd) {
+                const u = (elapsed - itemStart) / (itemEnd - itemStart);
+                const ease = Math.pow(u, 2.2);
+
+                if (!el._bhOrigCenter) {
+                    const r = el.getBoundingClientRect();
+                    el._bhOrigCenter = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+                }
+
+                const dx = (midClientX - el._bhOrigCenter.x) * ease;
+                const dy = (midClientY - el._bhOrigCenter.y) * ease;
+                const rot = ease * 380;
+                const scale = Math.max(0, 1 - ease);
+                const opacity = Math.max(0, 1 - Math.pow(u, 1.8));
+
+                el.style.transform = `translate(${dx}px, ${dy}px) scale(${scale}) rotate(${rot}deg)`;
+                el.style.opacity = opacity;
+                el.style.pointerEvents = 'none';
+            } else {
+                el.style.transform = 'scale(0)';
+                el.style.opacity = '0';
+                el.style.visibility = 'hidden';
+                el.style.pointerEvents = 'none';
+            }
+        });
+    });
+}
+
+// 吸収後、クリックを待たずに上空（-window.innerHeight）から重力落下・着地バウンドして定位置に復帰
+function updateBlackHoleUiDrop(relDropT) {
+    if (document.body) {
+        const bgP = Math.min(1, relDropT / 700);
+        document.body.style.backgroundColor = '#060814';
+        document.body.style.backgroundImage = `linear-gradient(180deg, rgba(92,148,252,${bgP}) 0%, rgba(92,148,252,${bgP}) 60%, rgba(139,188,255,${bgP}) 100%)`;
+    }
+
+    const dropItems = [
+        // 雲 (0ms 〜 700ms: 上空からふわっと降りてくる)
+        { sel: '.cloud', start: 0, end: 700 },
+
+        // ヘッダー群 (800ms 〜 1750ms: 上からドスンと落下着地)
+        { sel: '#gameBackToHomeBtn', start: 800, end: 1250 },
+        { sel: '#gameToSelectBtn', start: 900, end: 1350 },
+        { sel: '#gameToEditorBtn', start: 1000, end: 1450 },
+        { sel: '.stage-nav-pill', start: 1100, end: 1550 },
+        { sel: '#helpBtn', start: 1200, end: 1650 },
+        { sel: '#answerBtn', start: 1300, end: 1750 },
+
+        // 右カラム群 (2400ms 〜 3950ms: 地面・ゴール・土管の着地後、順番にドスンドスンと落下)
+        { sel: '.status-wrap', start: 2400, end: 2950 },
+        { sel: '#statusBar', start: 2400, end: 2950 },
+        { sel: '#blockBadge', start: 2650, end: 3200 },
+        { sel: '#startBtn', start: 2900, end: 3450 },
+        { sel: '#resetBtn', start: 3150, end: 3700 },
+        { sel: '#legendWrap', start: 3400, end: 3950 }
+    ];
+
+    dropItems.forEach(item => {
+        const els = document.querySelectorAll(item.sel);
+        els.forEach(el => {
+            const isHidden = el.style.display === 'none' || (typeof getComputedStyle === 'function' && getComputedStyle(el).display === 'none');
+            if (item.sel === '#gameToEditorBtn' && isHidden) return;
+
+            if (relDropT < item.start) {
+                el.style.opacity = '0';
+                el.style.visibility = 'hidden';
+                el.style.transform = 'translateY(-120vh)';
+            } else if (relDropT < item.end) {
+                const u = (relDropT - item.start) / (item.end - item.start);
+                const b = easeOutBounce(u);
+                const curY = -window.innerHeight * (1 - b);
+                const opacity = Math.min(1, u * 3.5);
+
+                el.style.visibility = 'visible';
+                el.style.opacity = opacity;
+                el.style.transform = `translateY(${curY}px)`;
+                el.style.pointerEvents = 'none';
+            } else {
+                el.style.visibility = 'visible';
+                el.style.opacity = '1';
+                el.style.transform = '';
+                el.style.filter = '';
+                el.style.pointerEvents = '';
+                delete el._bhOrigCenter;
+            }
+        });
+    });
+}
+
+// 連星ブラックホールのインスパイラル（Inspiral）から合体（Merger）を描画（GW190521 数値相対論シミュレーションの再現）
+function drawBinaryBlackHoleSystem(ctx, x1, y1, r1, x2, y2, r2, midX, midY, u, elapsed, flash = 0) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
+
+    ctx.save();
+
+    // 1. 重力波パルス波紋 (Chirp Wave Ripples: 相対論的インスパイラル重力波)
+    if (dist > 8 && u > 0.05 && u < 1.0) {
+        const rippleCount = 3;
+        const chirpFactor = 1 + Math.pow(u, 2.5) * 3.5;
+        for (let i = 0; i < rippleCount; i++) {
+            const wavePhase = (elapsed * 0.12 * chirpFactor + i * 55) % 160;
+            const waveRadius = Math.max(10, dist * 0.4 + wavePhase);
+            const alpha = Math.max(0, (1 - wavePhase / 160) * 0.45 * Math.min(1, u * 2));
+            ctx.strokeStyle = `rgba(147, 197, 253, ${alpha})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(midX, midY, waveRadius, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+
+    // 2. 重力レンズ光輪 (Einstein Lensing Ring / Accretion Glow)
+    const combinedR = (r1 + r2) * 1.25 + dist * 0.35;
+    const lensGrad = ctx.createRadialGradient(midX, midY, Math.max(1, dist * 0.25), midX, midY, combinedR);
+    lensGrad.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
+    lensGrad.addColorStop(0.35, 'rgba(88, 28, 135, 0.75)');
+    lensGrad.addColorStop(0.65, 'rgba(147, 197, 253, 0.4)');
+    lensGrad.addColorStop(0.88, 'rgba(56, 189, 248, 0.18)');
+    lensGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
+    ctx.fillStyle = lensGrad;
+    ctx.beginPath();
+    ctx.arc(midX, midY, combinedR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. 事象の地平線 (Event Horizons: 接触時はダンベル型メタボール)
+    ctx.fillStyle = '#000000';
+    const contactThresh = (r1 + r2) * 1.18;
+
+    if (dist < contactThresh && dist > 1) {
+        // ダンベル型（ピーナッツ型）結合
+        const normX = -Math.sin(angle);
+        const normY = Math.cos(angle);
+        const contactRatio = 1 - dist / contactThresh;
+        const waist = Math.max(2, Math.min(r1, r2) * contactRatio * 0.85);
+
+        ctx.beginPath();
+        ctx.arc(x1, y1, r1, angle + Math.PI / 2, angle - Math.PI / 2, false);
+        ctx.quadraticCurveTo(midX + normX * waist, midY + normY * waist, x2 + Math.cos(angle - Math.PI / 2) * r2, y2 + Math.sin(angle - Math.PI / 2) * r2);
+        ctx.arc(x2, y2, r2, angle - Math.PI / 2, angle + Math.PI / 2, false);
+        ctx.quadraticCurveTo(midX - normX * waist, midY - normY * waist, x1 + Math.cos(angle + Math.PI / 2) * r1, y1 + Math.sin(angle + Math.PI / 2) * r1);
+        ctx.closePath();
+        ctx.fill();
+
+        // 輪郭のフォトンリング (鮮明な青白リング)
+        ctx.strokeStyle = 'rgba(191, 219, 254, 0.9)';
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+    } else {
+        // 独立した2つのブラックホール
+        ctx.beginPath();
+        ctx.arc(x1, y1, r1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(191, 219, 254, 0.9)';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(x2, y2, r2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(191, 219, 254, 0.9)';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+    }
+
+    // 4. マージフラッシュ（合体閃光）
+    if (flash > 0.02) {
+        const flashGrad = ctx.createRadialGradient(midX, midY, 0, midX, midY, (r1 + r2) * 2.8);
+        flashGrad.addColorStop(0, `rgba(255, 255, 255, ${flash * 0.95})`);
+        flashGrad.addColorStop(0.4, `rgba(192, 132, 252, ${flash * 0.8})`);
+        flashGrad.addColorStop(0.75, `rgba(56, 189, 248, ${flash * 0.4})`);
+        flashGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = flashGrad;
+        ctx.beginPath();
+        ctx.arc(midX, midY, (r1 + r2) * 2.8, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+function drawSingleBlackHoleDisc(ctx, cx, cy, bhRadius, elapsed, customColor) {
+    if (bhRadius <= 0) return;
+    ctx.save();
+
+    const grad = ctx.createRadialGradient(cx, cy, bhRadius * 0.25, cx, cy, bhRadius * 2.3);
+    grad.addColorStop(0, 'rgba(0, 0, 0, 1)');
+    grad.addColorStop(0.35, customColor || 'rgba(88, 28, 135, 0.92)');
+    grad.addColorStop(0.6, 'rgba(147, 51, 234, 0.75)');
+    grad.addColorStop(0.85, 'rgba(56, 189, 248, 0.4)');
+    grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, bhRadius * 2.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    const diskAngle = elapsed * 0.005;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(diskAngle);
+    for (let i = 0; i < 6; i++) {
+        const a = (i * Math.PI) / 3;
+        ctx.strokeStyle = (i % 2 === 0) ? 'rgba(192, 132, 252, 0.45)' : 'rgba(56, 189, 248, 0.35)';
+        ctx.lineWidth = Math.max(1.5, bhRadius * 0.035);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, bhRadius * 1.6, bhRadius * 0.75, a, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(cx, cy, bhRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1.5, bhRadius * 0.033);
+    ctx.beginPath();
+    ctx.arc(cx, cy, bhRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+}
+
 function getSuckTransform(elapsed, suckStart, suckEnd, origX, origY, bhX, bhY) {
     if (elapsed < suckStart) {
         return { x: origX, y: origY, scale: 1, rotation: 0, alpha: 1, active: true, phase: 'idle' };
@@ -1488,45 +1911,101 @@ function getObjectState(elapsed, suckStart, suckEnd, dropStart, dropEnd, origX, 
     return { x: origX, y: origY, scale: 1, rotation: 0, alpha: 1, active: true, landed: true, phase: 'landed' };
 }
 
-function startBlackHole(loopData) {
+function startBlackHole(loopDataOrList) {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
     phase = 'blackhole';
     startBtn.disabled = true;
+
+    // 単一・複数の正規化
+    const rawLoops = Array.isArray(loopDataOrList) ? loopDataOrList : [loopDataOrList];
+    const isMulti = rawLoops.length >= 2;
+    const loopCount = rawLoops.length;
+
+    // 合体中心（重心）
+    const midCenterX = rawLoops.reduce((sum, l) => sum + l.centerX, 0) / loopCount;
+    const midCenterY = rawLoops.reduce((sum, l) => sum + l.centerY, 0) / loopCount;
+
+    const holes = rawLoops.map((l, idx) => {
+        const dx = l.centerX - midCenterX;
+        const dy = l.centerY - midCenterY;
+        const initRadius = Math.sqrt(dx * dx + dy * dy);
+        const initAngle = Math.atan2(dy, dx);
+        return {
+            id: l.id || (idx + 1),
+            loopPath: l.loopPath,
+            loopBlockOffsets: l.loopBlockOffsets,
+            centerCol: l.centerCol,
+            centerRow: l.centerRow,
+            centerX: l.centerX,
+            centerY: l.centerY,
+            dx,
+            dy,
+            initRadius,
+            initAngle,
+            curX: l.centerX,
+            curY: l.centerY
+        };
+    });
 
     const initialPlacedBlocks = [];
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (grid[r][c]) {
-                const offsetObj = loopData.loopBlockOffsets
-                    ? loopData.loopBlockOffsets.find(o => o.col === c && o.row === r)
-                    : null;
-                const pathIdx = offsetObj
-                    ? offsetObj.loopOffset
-                    : (loopData.loopBlockOffsets ? -1 : loopData.loopPath.findIndex(p => p.col === c && p.row === r));
+                let foundLoopIdx = -1;
+                let foundOffset = 0;
+                for (let li = 0; li < holes.length; li++) {
+                    const lData = holes[li];
+                    const offsetObj = lData.loopBlockOffsets
+                        ? lData.loopBlockOffsets.find(o => o.col === c && o.row === r)
+                        : null;
+                    if (offsetObj) {
+                        foundLoopIdx = li;
+                        foundOffset = offsetObj.loopOffset;
+                        break;
+                    }
+                    const pathIdx = lData.loopPath ? lData.loopPath.findIndex(p => p.col === c && p.row === r) : -1;
+                    if (pathIdx !== -1) {
+                        foundLoopIdx = li;
+                        foundOffset = pathIdx;
+                        break;
+                    }
+                }
                 initialPlacedBlocks.push({
                     col: c,
                     row: r,
-                    isLoopBlock: (pathIdx !== -1),
-                    loopOffset: (pathIdx !== -1) ? pathIdx : 0
+                    isLoopBlock: (foundLoopIdx !== -1),
+                    loopIndex: foundLoopIdx,
+                    loopOffset: foundOffset
                 });
             }
         }
     }
 
+    const TM = (loopCount <= 2) ? 4000 : 5800;
+    const DROP_BASE = TM + 5700;
+    const totalDuration = DROP_BASE + 5300;
+
     const st = getStage();
     blackHoleState = {
-        loopPath: loopData.loopPath,
-        centerCol: loopData.centerCol,
-        centerRow: loopData.centerRow,
-        centerX: loopData.centerX,
-        centerY: loopData.centerY,
+        isMulti,
+        holes,
+        midCenterX,
+        midCenterY,
+        loopPath: holes[0].loopPath,
+        centerCol: holes[0].centerCol,
+        centerRow: holes[0].centerRow,
+        centerX: holes[0].centerX,
+        centerY: holes[0].centerY,
         startTime: performance.now(),
         placedBlocks: initialPlacedBlocks,
         gimmicks: [...st.gimmicks],
-        landedImpacts: new Set()
+        landedImpacts: new Set(),
+        totalDuration
     };
 
-    initBlackHoleParticles(loopData.centerX, loopData.centerY);
+    holes.forEach(h => {
+        initBlackHoleParticles(h.centerX, h.centerY);
+    });
 
     if (statusBar) {
         statusBar.innerHTML = '<span class="status-place">•••••</span>';
@@ -1540,6 +2019,8 @@ function startBlackHole(loopData) {
 
 function finishBlackHole() {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
+    resetBlackHoleUiStyles();
+
     blackHoleState = null;
     pendingBlackHole = null;
     slidingBlocks = [];
@@ -1563,18 +2044,585 @@ function finishBlackHole() {
 }
 
 function animateBlackHole(ts) {
-    if (phase !== 'blackhole' || !blackHoleState) return;
+    if (!blackHoleState) return;
+    if (phase !== 'blackhole') return;
 
     const now = ts || performance.now();
     const elapsed = Math.max(0, now - blackHoleState.startTime);
 
-    renderBlackHoleState(elapsed);
-
-    if (elapsed >= 7900) {
-        finishBlackHole();
+    if (blackHoleState.isMulti) {
+        renderMultiBlackHoleState(elapsed);
+        if (elapsed >= blackHoleState.totalDuration) {
+            finishBlackHole();
+            return;
+        }
     } else {
-        animId = requestAnimationFrame(animateBlackHole);
+        // 単一ブラックホール時（従来のフロー）
+        renderBlackHoleState(elapsed);
+        if (elapsed >= 7900) {
+            finishBlackHole();
+            return;
+        }
     }
+
+    animId = requestAnimationFrame(animateBlackHole);
+}
+
+function drawPostMergedBlackHole(ctx, elapsed, midX, midY, TM, maxMergedRadius, collapseStart, collapseEnd) {
+    let r = maxMergedRadius;
+    let flash = 0;
+
+    if (elapsed < TM + 180) {
+        const t = (elapsed - TM) / 180;
+        flash = 1 - t;
+        r = 60 + (maxMergedRadius - 60) * t;
+    } else if (elapsed < collapseStart) {
+        const ringT = (elapsed - (TM + 180)) / 1000;
+        const decay = Math.exp(-ringT * 1.5);
+        r = maxMergedRadius + Math.sin(elapsed * 0.016) * 3.5 * decay;
+    } else if (elapsed < collapseEnd) {
+        const t = (elapsed - collapseStart) / (collapseEnd - collapseStart);
+        r = Math.max(0, maxMergedRadius * Math.pow(1 - t, 2.5));
+    } else {
+        r = 0;
+    }
+
+    if (r > 0) {
+        drawSingleBlackHoleDisc(ctx, midX, midY, r, elapsed, 'rgba(126, 34, 206, 0.95)');
+    }
+
+    if (flash > 0.05) {
+        ctx.save();
+        ctx.fillStyle = `rgba(255, 255, 255, ${flash * 0.85})`;
+        ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
+        ctx.restore();
+    }
+}
+
+// 階層的連星ブラックホール（Hierarchical Binary Merger）シミュレーション
+function renderHierarchicalBinaryBlackHoles(ctx, elapsed, holes, midX, midY, T_GENESIS, TM, BH_COLLAPSE_START, BH_COLLAPSE_END) {
+    const K = holes.length;
+    const maxMergedRadius = Math.round(60 * Math.min(2.0, Math.sqrt(K)));
+
+    if (elapsed < T_GENESIS) {
+        holes.forEach(h => {
+            h.curX = h.centerX;
+            h.curY = h.centerY;
+            h.curRadius = 0;
+        });
+        return;
+    }
+
+    if (K <= 2) {
+        // 2天体: 連星インスパイラル（公転チャープ加速・軌道収縮・ダンベル型接触融合）
+        const h0 = holes[0];
+        const h1 = holes[1];
+        const T_SPIRAL = 1600;
+
+        if (elapsed < T_SPIRAL) {
+            const t = (elapsed - T_GENESIS) / (T_SPIRAL - T_GENESIS);
+            const r = 45 * Math.pow(t, 1.4);
+            h0.curX = h0.centerX; h0.curY = h0.centerY; h0.curRadius = r;
+            h1.curX = h1.centerX; h1.curY = h1.centerY; h1.curRadius = r;
+            drawSingleBlackHoleDisc(ctx, h0.curX, h0.curY, r, elapsed);
+            drawSingleBlackHoleDisc(ctx, h1.curX, h1.curY, r, elapsed);
+        } else if (elapsed < TM) {
+            const u = (elapsed - T_SPIRAL) / (TM - T_SPIRAL);
+            const dTheta = 4.6 * Math.PI * (1 - Math.pow(1 - u, 2.2));
+            const rRatio = Math.max(0, Math.pow(1 - u, 0.82));
+
+            const curR0 = h0.initRadius * rRatio;
+            const curR1 = h1.initRadius * rRatio;
+            const a0 = h0.initAngle + dTheta;
+            const a1 = h1.initAngle + dTheta;
+
+            h0.curX = midX + Math.cos(a0) * curR0;
+            h0.curY = midY + Math.sin(a0) * curR0;
+            h0.curRadius = 45;
+
+            h1.curX = midX + Math.cos(a1) * curR1;
+            h1.curY = midY + Math.sin(a1) * curR1;
+            h1.curRadius = 45;
+
+            const flash = (u > 0.94) ? (u - 0.94) / 0.06 : 0;
+            drawBinaryBlackHoleSystem(ctx, h0.curX, h0.curY, 45, h1.curX, h1.curY, 45, midX, midY, u, elapsed, flash);
+        } else {
+            h0.curX = midX; h0.curY = midY;
+            h1.curX = midX; h1.curY = midY;
+            drawPostMergedBlackHole(ctx, elapsed, midX, midY, TM, maxMergedRadius, BH_COLLAPSE_START, BH_COLLAPSE_END);
+        }
+    } else if (K === 3) {
+        // 3天体: 任意の2つ (h0, h1) を第1段階で合体させ、残りの1つ (h2) と第2段階で合体
+        const h0 = holes[0];
+        const h1 = holes[1];
+        const h2 = holes[2];
+
+        const T_S1_START = 1600;
+        const T_S1_END = 3600;
+        const T_S2_START = 3600;
+
+        const mAx = (h0.centerX + h1.centerX) / 2;
+        const mAy = (h0.centerY + h1.centerY) / 2;
+        const rA0 = Math.hypot(h0.centerX - mAx, h0.centerY - mAy);
+        const angA0 = Math.atan2(h0.centerY - mAy, h0.centerX - mAx);
+        const angA1 = Math.atan2(h1.centerY - mAy, h1.centerX - mAx);
+
+        if (elapsed < T_S1_START) {
+            const t = (elapsed - T_GENESIS) / (T_S1_START - T_GENESIS);
+            const r = 45 * Math.pow(t, 1.4);
+            holes.forEach(h => {
+                h.curX = h.centerX; h.curY = h.centerY; h.curRadius = r;
+                drawSingleBlackHoleDisc(ctx, h.curX, h.curY, r, elapsed);
+            });
+        } else if (elapsed < T_S1_END) {
+            const u1 = (elapsed - T_S1_START) / (T_S1_END - T_S1_START);
+            const dTheta = 4.2 * Math.PI * (1 - Math.pow(1 - u1, 2.2));
+            const rRatio = Math.max(0, Math.pow(1 - u1, 0.85));
+
+            h0.curX = mAx + Math.cos(angA0 + dTheta) * (rA0 * rRatio);
+            h0.curY = mAy + Math.sin(angA0 + dTheta) * (rA0 * rRatio);
+            h0.curRadius = 45;
+
+            h1.curX = mAx + Math.cos(angA1 + dTheta) * (rA0 * rRatio);
+            h1.curY = mAy + Math.sin(angA1 + dTheta) * (rA0 * rRatio);
+            h1.curRadius = 45;
+
+            h2.curX = h2.centerX;
+            h2.curY = h2.centerY;
+            h2.curRadius = 45;
+
+            const flash1 = (u1 > 0.93) ? (u1 - 0.93) / 0.07 : 0;
+            drawBinaryBlackHoleSystem(ctx, h0.curX, h0.curY, 45, h1.curX, h1.curY, 45, mAx, mAy, u1, elapsed, flash1);
+            drawSingleBlackHoleDisc(ctx, h2.curX, h2.curY, 45, elapsed);
+        } else if (elapsed < TM) {
+            const u2 = (elapsed - T_S2_START) / (TM - T_S2_START);
+            const dTheta = 4.4 * Math.PI * (1 - Math.pow(1 - u2, 2.2));
+            const rRatio = Math.max(0, Math.pow(1 - u2, 0.85));
+
+            const rMid_mA = Math.hypot(mAx - midX, mAy - midY);
+            const rMid_h2 = Math.hypot(h2.centerX - midX, h2.centerY - midY);
+            const angMid_mA = Math.atan2(mAy - midY, mAx - midX);
+            const angMid_h2 = Math.atan2(h2.centerY - midY, h2.centerX - midX);
+
+            const curX_mA = midX + Math.cos(angMid_mA + dTheta) * (rMid_mA * rRatio);
+            const curY_mA = midY + Math.sin(angMid_mA + dTheta) * (rMid_mA * rRatio);
+            const curX_h2 = midX + Math.cos(angMid_h2 + dTheta) * (rMid_h2 * rRatio);
+            const curY_h2 = midY + Math.sin(angMid_h2 + dTheta) * (rMid_h2 * rRatio);
+
+            h0.curX = curX_mA; h0.curY = curY_mA;
+            h1.curX = curX_mA; h1.curY = curY_mA;
+            h2.curX = curX_h2; h2.curY = curY_h2;
+
+            const flash2 = (u2 > 0.94) ? (u2 - 0.94) / 0.06 : 0;
+            drawBinaryBlackHoleSystem(ctx, curX_mA, curY_mA, 64, curX_h2, curY_h2, 45, midX, midY, u2, elapsed, flash2);
+        } else {
+            holes.forEach(h => { h.curX = midX; h.curY = midY; });
+            drawPostMergedBlackHole(ctx, elapsed, midX, midY, TM, maxMergedRadius, BH_COLLAPSE_START, BH_COLLAPSE_END);
+        }
+    } else {
+        // 4天体以上: ペアA (h0, h1) とペアB (h2, h3) が第1段階で並行合体し、第2段階で中間天体同士が合体
+        const h0 = holes[0], h1 = holes[1], h2 = holes[2], h3 = holes[3];
+        const T_S1_START = 1600;
+        const T_S1_END = 3600;
+        const T_S2_START = 3600;
+
+        const mAx = (h0.centerX + h1.centerX) / 2, mAy = (h0.centerY + h1.centerY) / 2;
+        const mBx = (h2.centerX + h3.centerX) / 2, mBy = (h2.centerY + h3.centerY) / 2;
+
+        const rA0 = Math.hypot(h0.centerX - mAx, h0.centerY - mAy);
+        const angA0 = Math.atan2(h0.centerY - mAy, h0.centerX - mAx);
+        const angA1 = Math.atan2(h1.centerY - mAy, h1.centerX - mAx);
+
+        const rB0 = Math.hypot(h2.centerX - mBx, h2.centerY - mBy);
+        const angB0 = Math.atan2(h2.centerY - mBy, h2.centerX - mBx);
+        const angB1 = Math.atan2(h3.centerY - mBy, h3.centerX - mBx);
+
+        if (elapsed < T_S1_START) {
+            const t = (elapsed - T_GENESIS) / (T_S1_START - T_GENESIS);
+            const r = 45 * Math.pow(t, 1.4);
+            holes.forEach(h => {
+                h.curX = h.centerX; h.curY = h.centerY; h.curRadius = r;
+                drawSingleBlackHoleDisc(ctx, h.curX, h.curY, r, elapsed);
+            });
+        } else if (elapsed < T_S1_END) {
+            const u1 = (elapsed - T_S1_START) / (T_S1_END - T_S1_START);
+            const dTheta = 4.2 * Math.PI * (1 - Math.pow(1 - u1, 2.2));
+            const rRatio = Math.max(0, Math.pow(1 - u1, 0.85));
+
+            h0.curX = mAx + Math.cos(angA0 + dTheta) * (rA0 * rRatio);
+            h0.curY = mAy + Math.sin(angA0 + dTheta) * (rA0 * rRatio);
+            h1.curX = mAx + Math.cos(angA1 + dTheta) * (rA0 * rRatio);
+            h1.curY = mAy + Math.sin(angA1 + dTheta) * (rA0 * rRatio);
+
+            h2.curX = mBx + Math.cos(angB0 + dTheta) * (rB0 * rRatio);
+            h2.curY = mBy + Math.sin(angB0 + dTheta) * (rB0 * rRatio);
+            h3.curX = mBx + Math.cos(angB1 + dTheta) * (rB0 * rRatio);
+            h3.curY = mBy + Math.sin(angB1 + dTheta) * (rB0 * rRatio);
+
+            const flash1 = (u1 > 0.93) ? (u1 - 0.93) / 0.07 : 0;
+            drawBinaryBlackHoleSystem(ctx, h0.curX, h0.curY, 45, h1.curX, h1.curY, 45, mAx, mAy, u1, elapsed, flash1);
+            drawBinaryBlackHoleSystem(ctx, h2.curX, h2.curY, 45, h3.curX, h3.curY, 45, mBx, mBy, u1, elapsed, flash1);
+        } else if (elapsed < TM) {
+            const u2 = (elapsed - T_S2_START) / (TM - T_S2_START);
+            const dTheta = 4.4 * Math.PI * (1 - Math.pow(1 - u2, 2.2));
+            const rRatio = Math.max(0, Math.pow(1 - u2, 0.85));
+
+            const rMid_mA = Math.hypot(mAx - midX, mAy - midY);
+            const rMid_mB = Math.hypot(mBx - midX, mBy - midY);
+            const angMid_mA = Math.atan2(mAy - midY, mAx - midX);
+            const angMid_mB = Math.atan2(mBy - midY, mBx - midX);
+
+            const curX_mA = midX + Math.cos(angMid_mA + dTheta) * (rMid_mA * rRatio);
+            const curY_mA = midY + Math.sin(angMid_mA + dTheta) * (rMid_mA * rRatio);
+            const curX_mB = midX + Math.cos(angMid_mB + dTheta) * (rMid_mB * rRatio);
+            const curY_mB = midY + Math.sin(angMid_mB + dTheta) * (rMid_mB * rRatio);
+
+            h0.curX = curX_mA; h0.curY = curY_mA;
+            h1.curX = curX_mA; h1.curY = curY_mA;
+            h2.curX = curX_mB; h2.curY = curY_mB;
+            h3.curX = curX_mB; h3.curY = curY_mB;
+
+            const flash2 = (u2 > 0.94) ? (u2 - 0.94) / 0.06 : 0;
+            drawBinaryBlackHoleSystem(ctx, curX_mA, curY_mA, 64, curX_mB, curY_mB, 64, midX, midY, u2, elapsed, flash2);
+        } else {
+            holes.forEach(h => { h.curX = midX; h.curY = midY; });
+            drawPostMergedBlackHole(ctx, elapsed, midX, midY, TM, maxMergedRadius, BH_COLLAPSE_START, BH_COLLAPSE_END);
+        }
+    }
+}
+
+function renderMultiBlackHoleState(elapsed) {
+    const st = getStage();
+    const bhState = blackHoleState;
+    if (!bhState) return;
+
+    const midX = bhState.midCenterX;
+    const midY = bhState.midCenterY;
+    const holes = bhState.holes;
+    const K = holes.length;
+
+    // タイムライン定数（ゆっくり丁寧に演出）
+    const TM = (K <= 2) ? 4000 : 5800;
+    const T_GENESIS = 1000;
+    const T_half = 600;
+
+    const SUCK_BLOCKS_START = TM + 700, SUCK_BLOCKS_END = TM + 1400;
+    const SUCK_ARROWS_START = TM + 1200, SUCK_ARROWS_END = TM + 1900;
+    const SUCK_MAN_START = TM + 1700, SUCK_MAN_END = TM + 2400;
+    const SUCK_PIPE_START = TM + 2200, SUCK_PIPE_END = TM + 2900;
+    const SUCK_GOAL_START = TM + 2700, SUCK_GOAL_END = TM + 3400;
+    const SUCK_GROUND_START = TM + 2300, SUCK_GROUND_END = TM + 3900;
+    const SUCK_UI_START = TM + 1200, SUCK_UI_END = TM + 3900;
+    const BH_COLLAPSE_START = TM + 3900, BH_COLLAPSE_END = TM + 4700;
+
+    const DROP_BASE = TM + 5700;
+    const DROP_GROUND_START = DROP_BASE + 400, DROP_GROUND_END = DROP_BASE + 1100;
+    const DROP_GOAL_START = DROP_BASE + 1400, DROP_GOAL_END = DROP_BASE + 2100;
+    const DROP_PIPE_START = DROP_BASE + 2000, DROP_PIPE_END = DROP_BASE + 2700;
+    const DROP_MAN_START = DROP_BASE + 3200, DROP_MAN_END = DROP_BASE + 4000;
+    const DROP_ARROWS_START = DROP_BASE + 3800, DROP_ARROWS_END = DROP_BASE + 4600;
+
+    // カメラの揺れ（Screen Shake）
+    let shakeAmp = 0;
+    if (elapsed >= 1600 && elapsed < TM) {
+        const t = (elapsed - 1600) / (TM - 1600);
+        shakeAmp = 1.5 + t * 5.5;
+    } else if (elapsed >= TM && elapsed < TM + 250) {
+        shakeAmp = 10.0;
+    } else if (elapsed >= TM + 250 && elapsed < BH_COLLAPSE_START) {
+        shakeAmp = 5.0;
+    } else if (elapsed >= BH_COLLAPSE_START && elapsed < BH_COLLAPSE_END) {
+        const t = (elapsed - BH_COLLAPSE_START) / (BH_COLLAPSE_END - BH_COLLAPSE_START);
+        shakeAmp = 5.0 * (1 - t);
+    } else if (elapsed >= DROP_GROUND_END - 60 && elapsed < DROP_GROUND_END + 250) {
+        const t = (elapsed - (DROP_GROUND_END - 60)) / 310;
+        shakeAmp = 6.0 * (1 - t);
+    }
+
+    const shakeX = shakeAmp > 0 ? (Math.sin(elapsed * 0.09) * 0.7 + Math.sin(elapsed * 0.21) * 0.3) * shakeAmp : 0;
+    const shakeY = shakeAmp > 0 ? (Math.cos(elapsed * 0.1) * 0.7 + Math.cos(elapsed * 0.18) * 0.3) * shakeAmp : 0;
+
+    // 着地土煙トリガー
+    const triggerImpact = (key, callback) => {
+        if (!bhState.landedImpacts.has(key)) {
+            bhState.landedImpacts.add(key);
+            callback();
+        }
+    };
+    if (elapsed >= DROP_GROUND_END) {
+        triggerImpact('ground', () => {
+            spawnDust(0, st.startRow);
+            spawnDust(COLS - 1, st.goalRow);
+        });
+    }
+    if (elapsed >= DROP_GOAL_END) {
+        triggerImpact('goal', () => { spawnDust(COLS, st.goalRow); });
+    }
+    if (elapsed >= DROP_PIPE_END) {
+        triggerImpact('pipe', () => { spawnDust(-1.5, st.startRow); });
+    }
+    if (elapsed >= DROP_MAN_END) {
+        triggerImpact('man', () => { spawnDust(-1.5, st.startRow); });
+    }
+
+    // UI群の吸引 / 上空からの自動落下更新
+    if (canvas) {
+        const canvasRect = canvas.getBoundingClientRect();
+        const sx = canvasRect.width / TOTAL_W;
+        const sy = canvasRect.height / TOTAL_H;
+        const midClientX = canvasRect.left + midX * sx;
+        const midClientY = canvasRect.top + midY * sy;
+
+        if (elapsed >= DROP_BASE) {
+            updateBlackHoleUiDrop(elapsed - DROP_BASE);
+        } else {
+            updateBlackHoleUiSuck(elapsed, midClientX, midClientY, SUCK_UI_START, SUCK_UI_END);
+        }
+    }
+
+    // ループ進行計算
+    const primaryHole = holes[0];
+    const loopPath = primaryHole.loopPath;
+    const N = loopPath.length;
+    const halfN = N / 2;
+    let loopS = 0;
+
+    if (elapsed < T_half) {
+        loopS = (halfN / T_half) * elapsed;
+    } else {
+        const dtSec = (elapsed - T_half) / 1000;
+        const v0 = halfN / 0.5;
+        const k = 2.2;
+        loopS = halfN + (v0 / k) * (Math.exp(k * dtSec) - 1);
+    }
+
+    const getHoleLoopCoord = (holeData, sVal) => {
+        const lp = holeData.loopPath;
+        const lN = lp.length;
+        const modS = ((sVal % lN) + lN) % lN;
+        const idx = Math.floor(modS);
+        const sub = modS - idx;
+        const p0 = lp[idx];
+        const p1 = lp[(idx + 1) % lN];
+        return {
+            col: p0.col + (p1.col - p0.col) * sub,
+            row: p0.row + (p1.row - p0.row) * sub
+        };
+    };
+
+    // レンダリング開始
+    ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
+    ctx.fillStyle = '#060814';
+    ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
+
+    let skyAlpha = 1;
+    if (elapsed >= BH_COLLAPSE_START && elapsed < DROP_BASE) {
+        skyAlpha = Math.max(0, 1 - (elapsed - BH_COLLAPSE_START) / (BH_COLLAPSE_END - BH_COLLAPSE_START));
+    } else if (elapsed >= DROP_BASE) {
+        skyAlpha = Math.min(1, (elapsed - DROP_BASE) / 700);
+    }
+    if (skyAlpha > 0) {
+        ctx.save();
+        ctx.globalAlpha = skyAlpha;
+        drawBackground();
+        ctx.restore();
+    }
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    // 1. 地面 (Ground) の描画
+    const startGroundY = GY + (st.startRow + 1) * CELL;
+    const goalGroundY = GY + (st.goalRow + 1) * CELL;
+    const leftGroundOrigX = GX / 2;
+    const leftGroundOrigY = (startGroundY + TOTAL_H) / 2;
+    const rightGroundOrigX = (GX + COLS * CELL + TOTAL_W) / 2;
+    const rightGroundOrigY = (goalGroundY + TOTAL_H) / 2;
+
+    if (elapsed < SUCK_GROUND_START) {
+        drawGroundLeft();
+        drawGroundRight();
+        drawGroundPit();
+    } else if (elapsed < SUCK_GROUND_END) {
+        drawGroundSuckPieces(elapsed, SUCK_GROUND_START, SUCK_GROUND_END, midX, midY);
+    } else if (elapsed >= DROP_GROUND_START) {
+        const leftGrState = getObjectState(elapsed, SUCK_GROUND_START, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, leftGroundOrigX, leftGroundOrigY, midX, midY);
+        const rightGrState = getObjectState(elapsed, SUCK_GROUND_START + 80, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, rightGroundOrigX, rightGroundOrigY, midX, midY);
+
+        if (leftGrState.active) {
+            ctx.save();
+            ctx.translate(leftGrState.x, leftGrState.y);
+            if (leftGrState.rotation) ctx.rotate(leftGrState.rotation);
+            if (leftGrState.scale !== 1) ctx.scale(leftGrState.scale, leftGrState.scale);
+            if (leftGrState.alpha < 1) ctx.globalAlpha *= leftGrState.alpha;
+            ctx.translate(-leftGroundOrigX, -leftGroundOrigY);
+            drawGroundLeft();
+            ctx.restore();
+        }
+
+        if (rightGrState.active) {
+            ctx.save();
+            ctx.translate(rightGrState.x, rightGrState.y);
+            if (rightGrState.rotation) ctx.rotate(rightGrState.rotation);
+            if (rightGrState.scale !== 1) ctx.scale(rightGrState.scale, rightGrState.scale);
+            if (rightGrState.alpha < 1) ctx.globalAlpha *= rightGrState.alpha;
+            ctx.translate(-rightGroundOrigX, -rightGroundOrigY);
+            drawGroundRight();
+            ctx.restore();
+        }
+
+        if (leftGrState.active && rightGrState.active && leftGrState.scale === 1 && rightGrState.scale === 1) {
+            drawGroundPit();
+        }
+    }
+
+    // 2. グリッド線・天井
+    if (elapsed < SUCK_GROUND_START || elapsed >= DROP_GROUND_END) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(100,150,255,0.06)';
+        ctx.fillRect(GX, GY, COLS * CELL, ROWS * CELL);
+        drawGridLines();
+        drawCeiling();
+        st.forbidden.forEach(f => drawForbiddenTile(f.col, f.row));
+        ctx.restore();
+    }
+
+    // 3. ゴール (Goal)
+    const goalBx = GX + COLS * CELL;
+    const goalBy = GY + st.goalRow * CELL;
+    const goalOrigX = goalBx + 28;
+    const goalOrigY = goalBy + CELL / 2;
+    const goalState = getObjectState(elapsed, SUCK_GOAL_START, SUCK_GOAL_END, DROP_GOAL_START, DROP_GOAL_END, goalOrigX, goalOrigY, midX, midY);
+    if (goalState.active) {
+        ctx.save();
+        ctx.translate(goalState.x, goalState.y);
+        if (goalState.rotation) ctx.rotate(goalState.rotation);
+        if (goalState.scale !== 1) ctx.scale(goalState.scale, goalState.scale);
+        if (goalState.alpha < 1) ctx.globalAlpha *= goalState.alpha;
+        ctx.translate(-goalOrigX, -goalOrigY);
+        drawGoal();
+        ctx.restore();
+    }
+
+    // 4. 土管 (Pipe)
+    const pipeOrigX = GX - 48;
+    const pipeOrigY = GY + (st.startRow + 0.5) * CELL;
+    const pipeState = getObjectState(elapsed, SUCK_PIPE_START, SUCK_PIPE_END, DROP_PIPE_START, DROP_PIPE_END, pipeOrigX, pipeOrigY, midX, midY);
+    if (pipeState.active) {
+        ctx.save();
+        ctx.translate(pipeState.x, pipeState.y);
+        if (pipeState.rotation) ctx.rotate(pipeState.rotation);
+        if (pipeState.scale !== 1) ctx.scale(pipeState.scale, pipeState.scale);
+        if (pipeState.alpha < 1) ctx.globalAlpha *= pipeState.alpha;
+        ctx.translate(-pipeOrigX, -pipeOrigY);
+        drawPipe();
+        ctx.restore();
+    }
+
+    // 5. 矢印ギミック (Gimmicks)
+    st.gimmicks.forEach(g => {
+        const arrowOrigX = GX + (g.col + 0.5) * CELL;
+        const arrowOrigY = GY + (g.row + 0.5) * CELL;
+        const arrowState = getObjectState(elapsed, SUCK_ARROWS_START, SUCK_ARROWS_END, DROP_ARROWS_START, DROP_ARROWS_END, arrowOrigX, arrowOrigY, midX, midY);
+        if (arrowState.active) {
+            ctx.save();
+            ctx.translate(arrowState.x, arrowState.y);
+            if (arrowState.rotation) ctx.rotate(arrowState.rotation);
+            if (arrowState.scale !== 1) ctx.scale(arrowState.scale, arrowState.scale);
+            if (arrowState.alpha < 1) ctx.globalAlpha *= arrowState.alpha;
+            ctx.translate(-arrowOrigX, -arrowOrigY);
+            drawGimmickTile(g);
+            ctx.restore();
+        }
+    });
+
+    // 6. ブロック (Blocks) の描画
+    if (elapsed < SUCK_BLOCKS_START) {
+        bhState.placedBlocks.forEach(b => {
+            if (b.isLoopBlock && b.loopIndex >= 0 && b.loopIndex < holes.length) {
+                const targetHole = holes[b.loopIndex];
+                const s_b = loopS + b.loopOffset;
+                const curCoord = getHoleLoopCoord(targetHole, s_b);
+
+                const offsetX = targetHole.curX - targetHole.centerX;
+                const offsetY = targetHole.curY - targetHole.centerY;
+                const bX = GX + (curCoord.col + 0.5) * CELL + offsetX;
+                const bY = GY + (curCoord.row + 0.5) * CELL + offsetY;
+
+                ctx.save();
+                ctx.translate(bX - (GX + (curCoord.col + 0.5) * CELL), bY - (GY + (curCoord.row + 0.5) * CELL));
+                drawMarioBlock(curCoord.col, curCoord.row);
+                ctx.restore();
+            } else {
+                drawMarioBlock(b.col, b.row);
+            }
+        });
+    } else if (elapsed < SUCK_BLOCKS_END) {
+        bhState.placedBlocks.forEach(b => {
+            let bOrigX = GX + (b.col + 0.5) * CELL;
+            let bOrigY = GY + (b.row + 0.5) * CELL;
+            let curCoordAtSuck = null;
+
+            if (b.isLoopBlock && b.loopIndex >= 0 && b.loopIndex < holes.length) {
+                const targetHole = holes[b.loopIndex];
+                const dtSecSuck = (SUCK_BLOCKS_START - T_half) / 1000;
+                const v0 = halfN / 0.5;
+                const k = 2.2;
+                const loopSAtSuck = halfN + (v0 / k) * (Math.exp(k * dtSecSuck) - 1);
+                const s_b_suck = loopSAtSuck + b.loopOffset;
+                curCoordAtSuck = getHoleLoopCoord(targetHole, s_b_suck);
+                bOrigX = GX + (curCoordAtSuck.col + 0.5) * CELL;
+                bOrigY = GY + (curCoordAtSuck.row + 0.5) * CELL;
+            }
+
+            const bState = getSuckTransform(elapsed, SUCK_BLOCKS_START, SUCK_BLOCKS_END, bOrigX, bOrigY, midX, midY);
+            if (bState.active) {
+                const drawCol = (b.isLoopBlock && curCoordAtSuck) ? curCoordAtSuck.col : b.col;
+                const drawRow = (b.isLoopBlock && curCoordAtSuck) ? curCoordAtSuck.row : b.row;
+                const targetCx = GX + (drawCol + 0.5) * CELL;
+                const targetCy = GY + (drawRow + 0.5) * CELL;
+
+                ctx.save();
+                ctx.translate(bState.x, bState.y);
+                if (bState.rotation) ctx.rotate(bState.rotation);
+                if (bState.scale !== 1) ctx.scale(bState.scale, bState.scale);
+                if (bState.alpha < 1) ctx.globalAlpha *= bState.alpha;
+                ctx.translate(-targetCx, -targetCy);
+                drawMarioBlock(drawCol, drawRow);
+                ctx.restore();
+            }
+        });
+    }
+
+    // 7. キャラクター (Stickman)
+    const manOrigX = GX + (-1.5 + 0.5) * CELL;
+    const manOrigY = GY + (st.startRow + 0.5) * CELL;
+    const manState = getObjectState(elapsed, SUCK_MAN_START, SUCK_MAN_END, DROP_MAN_START, DROP_MAN_END, manOrigX, manOrigY, midX, midY);
+    if (manState.active) {
+        ctx.save();
+        ctx.translate(manState.x, manState.y);
+        if (manState.rotation) ctx.rotate(manState.rotation);
+        if (manState.scale !== 1) ctx.scale(manState.scale, manState.scale);
+        if (manState.alpha < 1) ctx.globalAlpha *= manState.alpha;
+        ctx.translate(-manOrigX, -manOrigY);
+
+        if (elapsed >= 1600 && elapsed < SUCK_MAN_START) {
+            const jitterX = Math.sin(elapsed * 0.15) * 2.0;
+            ctx.translate(jitterX, 0);
+            drawStickman(-1.5, st.startRow);
+        } else {
+            drawStickman(-1.5, st.startRow);
+        }
+        ctx.restore();
+    }
+
+    // 8. 階層的連星ブラックホール（Hierarchical Binary Merger）の描画
+    renderHierarchicalBinaryBlackHoles(ctx, elapsed, holes, midX, midY, T_GENESIS, TM, BH_COLLAPSE_START, BH_COLLAPSE_END);
+
+    // 9. パーティクル
+    updateAndDrawParticles(ctx);
+
+    ctx.restore();
 }
 
 function renderBlackHoleState(elapsed) {
@@ -1981,8 +3029,40 @@ function startDualSupernovaBlackHole(snData, bhData) {
     }));
 
     const spotCount = spots.length;
-    const PAN_DURATION = 750;
-    const extraTime = spotCount >= 2 ? (spotCount - 1) * PAN_DURATION : 0;
+    let extraTime = 0;
+    let schedule = null;
+
+    if (spotCount >= 2) {
+        const stays = [];
+        const pans = [];
+        const firstStay = 1050;
+        const lastStay = spotCount === 2 ? 680 : Math.max(300, 680 - (spotCount - 2) * 110);
+
+        for (let i = 0; i < spotCount; i++) {
+            const ratio = spotCount > 1 ? i / (spotCount - 1) : 0;
+            stays.push(Math.round(firstStay + (lastStay - firstStay) * Math.pow(ratio, 0.85)));
+            if (i < spotCount - 1) {
+                const panRatio = spotCount > 2 ? i / (spotCount - 2) : 0;
+                pans.push(Math.round(360 - panRatio * 120));
+            }
+        }
+
+        schedule = [];
+        let curTime = 0;
+        for (let i = 0; i < spotCount; i++) {
+            const stayStart = curTime;
+            const stayEnd = curTime + stays[i];
+            schedule.push({ type: 'stay', spotIndex: i, start: stayStart, end: stayEnd });
+            curTime = stayEnd;
+            if (i < spotCount - 1) {
+                const panStart = curTime;
+                const panEnd = curTime + pans[i];
+                schedule.push({ type: 'pan', fromSpot: i, toSpot: i + 1, start: panStart, end: panEnd });
+                curTime = panEnd;
+            }
+        }
+        extraTime = Math.max(0, curTime - 2220);
+    }
 
     const initialPlacedBlocks = [];
     for (let r = 0; r < ROWS; r++) {
@@ -2023,7 +3103,7 @@ function startDualSupernovaBlackHole(snData, bhData) {
             centerY: bhData.centerY
         },
         extraTime: extraTime,
-        PAN_DURATION: PAN_DURATION,
+        schedule: schedule,
         startTime: performance.now(),
         placedBlocks: initialPlacedBlocks,
         gimmicks: [...st.gimmicks],
@@ -2186,30 +3266,38 @@ function renderDualEventState(elapsed) {
             camRatio = 0.0;
         }
     } else {
-        // 複数地点の場合（動的に伸ばされた時間で全地点をスムーズにパン移動）
-        const T_SPOT0_END = 1100;
-        const T_PANS_END = T_SPOT0_END + (spotCount - 1) * PAN_DURATION;
+        // 複数地点の場合（見る時間を徐々に縮めて爆発が迫る緊迫感を演出）
+        const schedule = dualEventState.schedule;
+        const currentItem = schedule ? schedule.find(s => elapsed >= s.start && elapsed < s.end) : null;
 
-        if (elapsed < T_SPOT0_END) {
-            const zoomInDur = 720;
-            const t1 = Math.min(1, elapsed / zoomInDur);
-            const ease1 = t1 < 0.5 ? 4 * t1 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 3) / 2;
-            zoom = 1.0 + 1.35 * ease1;
-            camRatio = ease1;
-            currentFocusX = spots[0].focusX;
-            currentFocusY = spots[0].focusY;
-        } else if (elapsed < T_PANS_END) {
-            // スポット間を滑らかなS字イージングで流れるようにパン移動
-            const panElapsed = elapsed - T_SPOT0_END;
-            const k = Math.min(spotCount - 2, Math.floor(panElapsed / PAN_DURATION));
-            const u = (panElapsed - k * PAN_DURATION) / PAN_DURATION;
-            const easePan = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-            const fromSpot = spots[k];
-            const toSpot = spots[k + 1];
-            currentFocusX = fromSpot.focusX + (toSpot.focusX - fromSpot.focusX) * easePan;
-            currentFocusY = fromSpot.focusY + (toSpot.focusY - fromSpot.focusY) * easePan;
-            zoom = 2.35;
-            camRatio = 1.0;
+        if (currentItem) {
+            if (currentItem.type === 'stay') {
+                const sp = spots[currentItem.spotIndex];
+                currentFocusX = sp.focusX;
+                currentFocusY = sp.focusY;
+
+                if (currentItem.spotIndex === 0) {
+                    const zoomInDur = 560;
+                    const t1 = Math.min(1, elapsed / zoomInDur);
+                    const ease1 = t1 < 0.5 ? 4 * t1 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 3) / 2;
+                    zoom = 1.0 + 1.35 * ease1;
+                    camRatio = ease1;
+                } else {
+                    zoom = 2.35;
+                    camRatio = 1.0;
+                    camShakeX = Math.sin(elapsed * 0.1) * 2.2;
+                    camShakeY = Math.cos(elapsed * 0.12) * 2.2;
+                }
+            } else if (currentItem.type === 'pan') {
+                const u = (elapsed - currentItem.start) / (currentItem.end - currentItem.start);
+                const easePan = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+                const fromSpot = spots[currentItem.fromSpot];
+                const toSpot = spots[currentItem.toSpot];
+                currentFocusX = fromSpot.focusX + (toSpot.focusX - fromSpot.focusX) * easePan;
+                currentFocusY = fromSpot.focusY + (toSpot.focusY - fromSpot.focusY) * easePan;
+                zoom = 2.35;
+                camRatio = 1.0;
+            }
         } else if (elapsed < PULL_START) {
             const lastSpot = spots[spotCount - 1];
             currentFocusX = lastSpot.focusX;
@@ -4907,7 +5995,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (phase !== 'place') return;
 
         // スタート直後のブロック移動・超新星爆発・無限ループの事前シミュレーション
-        const { rounds, supernova, supernovas, blackHoleLoop } = simulateGimmickBlockMoves();
+        const { rounds, supernova, supernovas, blackHoleLoop, blackHoleLoops } = simulateGimmickBlockMoves();
 
         // 紫枠（必須設置）とブロック連結ルールを常にチェック
         const st = getStage();
@@ -4940,7 +6028,7 @@ window.addEventListener('DOMContentLoaded', () => {
         placedBlocksAtStart = countPlacedBlocks();
         originalGrid = (supernova || blackHoleLoop) ? null : grid.map(r => [...r]);
         pendingSupernova = (supernovas && supernovas.length > 0) ? supernovas : (supernova ? [supernova] : null);
-        pendingBlackHole = blackHoleLoop || null;
+        pendingBlackHole = (blackHoleLoops && blackHoleLoops.length > 0) ? blackHoleLoops : (blackHoleLoop ? [blackHoleLoop] : null);
 
         // ブロックがギミックによって移動する場合は、先行移動（block_move）を優先して実行
         if (rounds.length > 0) {
@@ -4989,6 +6077,8 @@ window.addEventListener('DOMContentLoaded', () => {
             clearTimeout(explosionMessageTimer);
             explosionMessageTimer = null;
         }
+        resetBlackHoleUiStyles();
+        if (canvas) canvas.style.cursor = '';
         slidingBlocks = [];
         blockAnimationRounds = [];
         currentRoundIndex = 0;

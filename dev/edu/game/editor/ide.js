@@ -514,8 +514,8 @@ const STAGES = [
             try {
                 const saved = localStorage.getItem(STORAGE_KEY_PREFIX + key);
                 if (saved) {
-                    // 古い main.js キャッシュ（超新星爆発や土管高さ食い込み版、足場両端0.5マス未搭載、ブラックホール演出未搭載、レンガ個別吸引未搭載、矢印くり抜き未搭載）は破棄して最新ファイルを読ませる
-                    if (key === 'main.js' && (!saved.includes('startSupernova') || !saved.includes('startBlackHole') || !saved.includes('drawGroundSuckPieces') || saved.includes('drawGimmickArrowOverlay') || !saved.includes('evenodd') || !saved.includes('LOOP_FREEZE_TIME') || !saved.includes('initDir') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('PAN_DURATION'))) {
+                    // 古い main.js キャッシュ（超新星爆発や土管高さ食い込み版、足場両端0.5マス未搭載、ブラックホール演出未搭載、レンガ個別吸引未搭載、矢印くり抜き未搭載、爆発関与ブロック選別未搭載、連星インスパイラル合体・上空自動落下未搭載、雲・外枠吸引未搭載）は破棄して最新ファイルを読ませる
+                    if (key === 'main.js' && (!saved.includes('startSupernova') || !saved.includes('startBlackHole') || !saved.includes('drawGroundSuckPieces') || saved.includes('drawGimmickArrowOverlay') || !saved.includes('evenodd') || !saved.includes('LOOP_FREEZE_TIME') || !saved.includes('initDir') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('supernovaColliderIds') || !saved.includes('renderHierarchicalBinaryBlackHoles') || !saved.includes('updateBlackHoleUiDrop') || saved.includes('drawGoalArea()') || !saved.includes('.status-wrap'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         return;
                     }
@@ -571,7 +571,7 @@ const STAGES = [
                     files[key].defaultContent = rawText;
 
                     let saved = !files[key].isSystemFile ? localStorage.getItem(STORAGE_KEY_PREFIX + key) : null;
-                    if (key === 'main.js' && saved && (!saved.includes('EMERGE_RISE_END') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('PAN_DURATION'))) {
+                    if (key === 'main.js' && saved && (!saved.includes('EMERGE_RISE_END') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('supernovaColliderIds') || !saved.includes('renderHierarchicalBinaryBlackHoles') || !saved.includes('updateBlackHoleUiDrop') || saved.includes('drawGoalArea()') || !saved.includes('.status-wrap'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         saved = null;
                     }
