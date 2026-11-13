@@ -741,6 +741,45 @@
                                 <span class="palette-icon purple">🟪</span>
                                 <span>紫枠 (必須マス)</span>
                             </button>
+                            <button type="button" class="palette-tool-btn" data-tool="switch">
+                                <span class="palette-icon switch">🔄</span>
+                                <span>スイッチ (黄枠)</span>
+                            </button>
+                            <button type="button" class="palette-tool-btn" data-tool="laser">
+                                <span class="palette-icon laser">⚡</span>
+                                <span>レーザー (辺設置)</span>
+                            </button>
+                        </div>
+                        <div class="builder-tool-options builder-switch-panel" id="builder-switch-options" style="display: none;">
+                            <div class="builder-opt-row">
+                                <span class="builder-opt-label">切替方向数:</span>
+                                <div class="builder-seg-group" id="builder-switch-count-btns">
+                                    <button type="button" class="builder-seg-btn active" data-count="2">2方向</button>
+                                    <button type="button" class="builder-seg-btn" data-count="3">3方向</button>
+                                    <button type="button" class="builder-seg-btn" data-count="4">4方向</button>
+                                </div>
+                                <span class="builder-opt-label" style="margin-left: 6px;">移動:</span>
+                                <div class="builder-seg-group" id="builder-switch-movetype-btns">
+                                    <button type="button" class="builder-seg-btn active" data-movetype="step">1マス</button>
+                                    <button type="button" class="builder-seg-btn" data-movetype="dash">端まで</button>
+                                </div>
+                            </div>
+                            <div class="builder-switch-preview-row">
+                                <span class="builder-opt-label">切り替わり順（番号をクリックして向き指定）:</span>
+                                <div class="builder-switch-preview" id="builder-switch-preview"></div>
+                            </div>
+                            <div class="builder-opt-row">
+                                <span class="builder-opt-label" id="builder-switch-slot-label">1番目の向き:</span>
+                                <div class="builder-seg-group" id="builder-switch-dir-btns">
+                                    <button type="button" class="builder-seg-btn" data-dir="up" title="上向きに設定">↑ 上</button>
+                                    <button type="button" class="builder-seg-btn active" data-dir="right" title="右向きに設定">→ 右</button>
+                                    <button type="button" class="builder-seg-btn" data-dir="down" title="下向きに設定">↓ 下</button>
+                                    <button type="button" class="builder-seg-btn" data-dir="left" title="左向きに設定">← 左</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="builder-tool-options" id="builder-laser-options" style="display: none;">
+                            <span class="builder-opt-guide">マスをクリックするたびに設置辺が <strong>上辺(↓) → 右辺(←) → 下辺(↑) → 左辺(→) → 解除</strong> の順に切り替わります。</span>
                         </div>
                     </div>
 
@@ -782,30 +821,32 @@
                             <input type="number" id="builder-input-id" min="1" max="999" value="1">
                         </div>
                         <div class="builder-field">
-                            <label for="builder-input-maxblocks">最大ブロック数 (maxBlocks)</label>
+                            <label for="builder-input-maxblocks">最大 (maxBlocks)</label>
                             <input type="number" id="builder-input-maxblocks" min="1" max="25" value="6">
                         </div>
-                        <div class="builder-field full">
+                        <div class="builder-field">
+                            <label for="builder-input-targetblocks">目標 (targetBlocks)</label>
+                            <input type="number" id="builder-input-targetblocks" min="1" max="25" value="4">
+                        </div>
+                        <div class="builder-field">
                             <label for="builder-input-title">タイトル (title)</label>
                             <input type="text" id="builder-input-title" value="ステージ 1">
                         </div>
-                        <div class="builder-field full">
+                        <div class="builder-field span-2">
                             <label for="builder-input-subtitle">サブタイトル・ヒント (subtitle)</label>
                             <input type="text" id="builder-input-subtitle" value="ブロックを配置してゴールへ導こう">
                         </div>
                     </div>
 
-                    <div class="builder-section-label" style="margin-top: 12px;">4. 自動生成される stages.js コード</div>
+                    <div class="builder-section-label" style="margin-top: 10px;">4. 自動生成される stages.js コード</div>
                     <pre class="builder-code-preview" id="builder-code-preview"></pre>
                 </div>
             </div>
 
             <div class="stage-builder-footer">
                 <button type="button" class="builder-btn builder-btn-cancel" id="btn-builder-cancel">キャンセル</button>
-                <button type="button" class="builder-btn builder-btn-copy" id="btn-builder-copy-code">📋
-                    コードをコピー</button>
-                <button type="button" class="builder-btn builder-btn-apply" id="btn-builder-apply">⚡ stages.js
-                    に書き込んでゲームに即時反映</button>
+                <button type="button" class="builder-btn builder-btn-copy" id="btn-builder-copy-code">コードをコピー</button>
+                <button type="button" class="builder-btn builder-btn-apply" id="btn-builder-apply">stages.js に書き込んでゲームに即時反映</button>
             </div>
         </div>
     </div>

@@ -108,6 +108,135 @@ function getGimmick(col, row) {
     return st.gimmicks.find(g => g.col === col && g.row === row);
 }
 
+// MARK: - Switch Block & Laser Helpers
+const CLOCKWISE_DIRS = ['right', 'down', 'left', 'up'];
+let switchStates = new Map(); // key: "col,row", value: { seq, index, currentDir }
+let pendingSwitchEvents = []; // [{ tick, col, row, dir }]
+let pendingFinalSwitchDirs = null; // Map<"col,row", dir>
+
+function getSwitchDirSequence(gimmick) {
+    if (gimmick && Array.isArray(gimmick.dirs) && gimmick.dirs.length >= 2) {
+        const custom = gimmick.dirs.slice(0, 4).filter(d => CLOCKWISE_DIRS.includes(d));
+        if (custom.length >= 2) return custom;
+    }
+    const startDir = CLOCKWISE_DIRS.includes(gimmick && gimmick.dir) ? gimmick.dir : 'right';
+    const rawCount = Number(gimmick && gimmick.switchCount);
+    const count = Math.max(2, Math.min(4, Number.isFinite(rawCount) ? Math.round(rawCount) : 2));
+    const startIdx = CLOCKWISE_DIRS.indexOf(startDir);
+    const seq = [];
+    for (let i = 0; i < count; i++) {
+        seq.push(CLOCKWISE_DIRS[(startIdx + i) % 4]);
+    }
+    return seq;
+}
+
+function resetSwitchStates() {
+    switchStates = new Map();
+    pendingSwitchEvents = [];
+    pendingFinalSwitchDirs = null;
+    const st = getStage();
+    if (!st || !Array.isArray(st.gimmicks)) return;
+    st.gimmicks.forEach(g => {
+        if (g && g.type === 'switch') {
+            const seq = getSwitchDirSequence(g);
+            switchStates.set(`${g.col},${g.row}`, {
+                seq,
+                index: 0,
+                currentDir: seq[0]
+            });
+        }
+    });
+}
+
+function getEffectiveGimmickDir(g) {
+    if (!g) return 'right';
+    if (g.type === 'switch') {
+        const state = switchStates.get(`${g.col},${g.row}`);
+        if (state) return state.currentDir;
+        return getSwitchDirSequence(g)[0];
+    }
+    return g.dir || 'right';
+}
+
+function getEffectiveGimmickMoveType(g) {
+    if (!g) return 'step';
+    if (g.type === 'switch') {
+        return g.moveType === 'dash' ? 'dash' : 'step';
+    }
+    return g.type;
+}
+
+function computeLaserBeams(targetGrid) {
+    const st = getStage();
+    if (!st || !Array.isArray(st.lasers) || st.lasers.length === 0) return [];
+    const beams = [];
+    st.lasers.forEach(laser => {
+        if (!laser || typeof laser.col !== 'number' || typeof laser.row !== 'number') return;
+        const { col, row, side } = laser;
+        let dc = 0, dr = 0;
+        let startX = GX + col * CELL;
+        let startY = GY + row * CELL;
+        if (side === 'top') {
+            dc = 0; dr = 1;
+            startX = GX + (col + 0.5) * CELL;
+            startY = GY + row * CELL;
+        } else if (side === 'bottom') {
+            dc = 0; dr = -1;
+            startX = GX + (col + 0.5) * CELL;
+            startY = GY + (row + 1) * CELL;
+        } else if (side === 'left') {
+            dc = 1; dr = 0;
+            startX = GX + col * CELL;
+            startY = GY + (row + 0.5) * CELL;
+        } else if (side === 'right') {
+            dc = -1; dr = 0;
+            startX = GX + (col + 1) * CELL;
+            startY = GY + (row + 0.5) * CELL;
+        } else {
+            return;
+        }
+
+        let c = col;
+        let r = row;
+        let blocked = false;
+        let endX = startX;
+        let endY = startY;
+        const cells = [];
+
+        while (c >= 0 && c < COLS && r >= 0 && r < ROWS) {
+            if (targetGrid && targetGrid[r] && targetGrid[r][c]) {
+                blocked = true;
+                if (dc === 1) endX = GX + c * CELL;
+                else if (dc === -1) endX = GX + (c + 1) * CELL;
+                else if (dr === 1) endY = GY + r * CELL;
+                else if (dr === -1) endY = GY + (r + 1) * CELL;
+                break;
+            }
+            cells.push({ col: c, row: r });
+            c += dc;
+            r += dr;
+        }
+
+        if (!blocked) {
+            if (dc === 1) endX = GX + COLS * CELL;
+            else if (dc === -1) endX = GX;
+            else if (dr === 1) endY = GY + ROWS * CELL;
+            else if (dr === -1) endY = GY;
+        }
+
+        beams.push({
+            laser,
+            startX,
+            startY,
+            endX,
+            endY,
+            blocked,
+            cells
+        });
+    });
+    return beams;
+}
+
 function getBlock(col, row) {
     const r = Math.floor(row);
     const c = Math.floor(col);
@@ -235,6 +364,39 @@ function simulateGimmickBlockMoves() {
     // シミュレーション作業用の一時グリッド
     const simGrid = grid.map(r => [...r]);
 
+    // スイッチブロックのシミュレーション用状態管理
+    const simSwitches = new Map();
+    const switchEvents = [];
+    if (Array.isArray(st.gimmicks)) {
+        st.gimmicks.forEach(g => {
+            if (g && g.type === 'switch') {
+                const seq = getSwitchDirSequence(g);
+                simSwitches.set(`${g.col},${g.row}`, {
+                    seq,
+                    index: 0,
+                    moveType: getEffectiveGimmickMoveType(g),
+                    steps: g.steps || 1
+                });
+            }
+        });
+    }
+    function getSimSwitchKey() {
+        if (simSwitches.size === 0) return '';
+        const parts = [];
+        simSwitches.forEach((sw, key) => parts.push(`${key}:${sw.index}`));
+        return parts.join('|');
+    }
+    function consumeSwitchAt(col, row, tick) {
+        const key = `${col},${row}`;
+        const sw = simSwitches.get(key);
+        if (!sw) return null;
+        const activeDir = sw.seq[sw.index];
+        sw.index = (sw.index + 1) % sw.seq.length;
+        const nextDir = sw.seq[sw.index];
+        switchEvents.push({ tick, col, row, dir: nextDir });
+        return { dir: activeDir, mode: sw.moveType, steps: sw.steps };
+    }
+
     const blocks = [];
     let idCounter = 1;
 
@@ -242,10 +404,22 @@ function simulateGimmickBlockMoves() {
         for (let c = 0; c < COLS; c++) {
             if (simGrid[r][c]) {
                 const g = getGimmick(c, r);
-                const hasMove = Boolean(g && (g.type === 'step' || g.type === 'dash'));
-                const initDir = hasMove ? g.dir : null;
-                const initMode = hasMove ? g.type : null;
-                const initSteps = hasMove ? ((g.type === 'step') ? (g.steps || 1) : Infinity) : 0;
+                const hasMove = Boolean(g && (g.type === 'step' || g.type === 'dash' || g.type === 'switch'));
+                let initDir = null;
+                let initMode = null;
+                let initSteps = 0;
+                let startedOnSwitch = false;
+                if (g && g.type === 'switch') {
+                    const sw = simSwitches.get(`${c},${r}`);
+                    initDir = sw ? sw.seq[sw.index] : getSwitchDirSequence(g)[0];
+                    initMode = sw ? sw.moveType : getEffectiveGimmickMoveType(g);
+                    initSteps = (initMode === 'step') ? (g.steps || 1) : Infinity;
+                    startedOnSwitch = true;
+                } else if (hasMove) {
+                    initDir = g.dir;
+                    initMode = g.type;
+                    initSteps = (g.type === 'step') ? (g.steps || 1) : Infinity;
+                }
                 blocks.push({
                     id: idCounter++,
                     col: c,
@@ -256,8 +430,9 @@ function simulateGimmickBlockMoves() {
                     mode: initMode,
                     remainingSteps: initSteps,
                     isMoving: hasMove,
+                    startedOnSwitch,
                     path: [{ col: c, row: r }],
-                    history: [{ col: c, row: r, dir: initDir, mode: initMode, remainingSteps: initSteps, tick: 0, pathIndex: 0 }]
+                    history: [{ col: c, row: r, dir: initDir, mode: initMode, remainingSteps: initSteps, switchKey: getSimSwitchKey(), tick: 0, pathIndex: 0 }]
                 });
             }
         }
@@ -409,6 +584,14 @@ function simulateGimmickBlockMoves() {
             break;
         }
 
+        // スイッチ上の初期ブロックが出発する場合は、到着処理より先にスイッチを切り替える
+        blocks.forEach(b => {
+            if (b.isMoving && intentions.has(b.id) && b.startedOnSwitch) {
+                consumeSwitchAt(b.col, b.row, tickCount);
+                b.startedOnSwitch = false;
+            }
+        });
+
         // 動けるブロックを1マス進める
         blocks.forEach(b => {
             if (b.isMoving && intentions.has(b.id)) {
@@ -419,7 +602,14 @@ function simulateGimmickBlockMoves() {
 
                 // 移動先マスのギミック判定（床の矢印ギミックは常に有効）
                 const g = getGimmick(b.col, b.row);
-                if (g && (g.type === 'step' || g.type === 'dash')) {
+                if (g && g.type === 'switch') {
+                    const swRes = consumeSwitchAt(b.col, b.row, tickCount);
+                    if (swRes) {
+                        b.dir = swRes.dir;
+                        b.mode = swRes.mode;
+                        b.remainingSteps = (swRes.mode === 'step') ? swRes.steps : Infinity;
+                    }
+                } else if (g && (g.type === 'step' || g.type === 'dash')) {
                     b.dir = g.dir;
                     b.mode = g.type;
                     b.remainingSteps = (g.type === 'step') ? (g.steps || 1) : Infinity;
@@ -445,6 +635,7 @@ function simulateGimmickBlockMoves() {
         // ループ（周回）の検出（全移動中ブロックが障害物確定後に周期軌道へ入った場合のみブラックホールとする）
         const stillMoving = blocks.filter(b => b.isMoving);
         const loopMatches = new Map();
+        const curSwitchKey = getSimSwitchKey();
 
         for (const b of stillMoving) {
             let matchedPrev = null;
@@ -457,6 +648,7 @@ function simulateGimmickBlockMoves() {
                     h.dir === b.dir &&
                     h.mode === b.mode &&
                     h.remainingSteps === b.remainingSteps &&
+                    h.switchKey === curSwitchKey &&
                     (b.path.length - 1 - h.pathIndex) >= 2
                 ) {
                     matchedPrev = h;
@@ -472,6 +664,7 @@ function simulateGimmickBlockMoves() {
                 dir: b.dir,
                 mode: b.mode,
                 remainingSteps: b.remainingSteps,
+                switchKey: curSwitchKey,
                 tick: tickCount,
                 pathIndex: b.path.length - 1
             });
@@ -749,7 +942,12 @@ function simulateGimmickBlockMoves() {
 
     supernova = supernovas.length > 0 ? supernovas[0] : null;
 
-    return { rounds, finalGrid, supernova, supernovas, blackHoleLoop, blackHoleLoops };
+    const finalSwitchDirs = new Map();
+    simSwitches.forEach((sw, key) => {
+        finalSwitchDirs.set(key, sw.seq[sw.index]);
+    });
+
+    return { rounds, finalGrid, supernova, supernovas, blackHoleLoop, blackHoleLoops, switchEvents, finalSwitchDirs };
 }
 
 function animateBlockMove(ts) {
@@ -789,6 +987,42 @@ function animateBlockMove(ts) {
     }
 }
 
+function applySwitchStatesUpToTick(targetTick) {
+    const st = getStage();
+    if (!st || !Array.isArray(st.gimmicks)) return;
+    st.gimmicks.forEach(g => {
+        if (g && g.type === 'switch') {
+            const key = `${g.col},${g.row}`;
+            const seq = getSwitchDirSequence(g);
+            switchStates.set(key, { seq, index: 0, currentDir: seq[0] });
+        }
+    });
+    if (!Array.isArray(pendingSwitchEvents)) return;
+    pendingSwitchEvents.forEach(ev => {
+        if (ev.tick <= targetTick) {
+            const key = `${ev.col},${ev.row}`;
+            const cur = switchStates.get(key);
+            if (cur) {
+                const idx = cur.seq.indexOf(ev.dir);
+                cur.index = idx >= 0 ? idx : cur.index;
+                cur.currentDir = ev.dir;
+            }
+        }
+    });
+}
+
+function applyFinalSwitchStates() {
+    if (!pendingFinalSwitchDirs) return;
+    pendingFinalSwitchDirs.forEach((dir, key) => {
+        const cur = switchStates.get(key);
+        if (cur) {
+            const idx = cur.seq.indexOf(dir);
+            if (idx >= 0) cur.index = idx;
+            cur.currentDir = dir;
+        }
+    });
+}
+
 function renderBlockMoveState(activeMoves, progress) {
     ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
     drawBackground();
@@ -796,24 +1030,33 @@ function renderBlockMoveState(activeMoves, progress) {
     drawGridLines();
     drawCeiling();
 
+    const maxSegs = activeMoves.reduce((mx, m) => Math.max(mx, m.path && m.path.length > 1 ? m.path.length - 1 : 1), 1);
+    applySwitchStatesUpToTick(progress * maxSegs);
+
     const st = getStage();
     st.forbidden.forEach(f => drawForbiddenTile(f.col, f.row));
     st.gimmicks.forEach(g => drawGimmickTile(g));
     drawSolutionOverlay();
 
+    // 静止しているブロック用の仮グリッドと移動中ブロック矩形を構築
+    const staticGrid = grid.map(r => [...r]);
+    activeMoves.forEach(m => {
+        if (m.fromRow >= 0 && m.fromRow < ROWS && m.fromCol >= 0 && m.fromCol < COLS) {
+            staticGrid[m.fromRow][m.fromCol] = false;
+        }
+    });
+
     // 静止しているブロックを描画
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-            if (grid[r][c]) {
-                const isMoving = activeMoves.some(m => m.fromCol === c && m.fromRow === r);
-                if (!isMoving) {
-                    drawMarioBlock(c, r);
-                }
+            if (staticGrid[r][c]) {
+                drawMarioBlock(c, r);
             }
         }
     }
 
     // 移動中のブロックを描画（path に沿った補間位置）
+    const movingRects = [];
     activeMoves.forEach(m => {
         let currentC = m.fromCol;
         let currentR = m.fromRow;
@@ -830,9 +1073,16 @@ function renderBlockMoveState(activeMoves, progress) {
             currentC = m.fromCol + (m.toCol - m.fromCol) * progress;
             currentR = m.fromRow + (m.toRow - m.fromRow) * progress;
         }
+        movingRects.push({
+            x: GX + currentC * CELL,
+            y: GY + currentR * CELL,
+            w: CELL,
+            h: CELL
+        });
         drawMarioBlock(currentC, currentR);
     });
 
+    drawLasers(true, staticGrid, movingRects);
     drawPipe();
     drawGoal();
     drawStickman(-1.5, st.startRow);
@@ -842,6 +1092,7 @@ function finishBlockMove() {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
     blockAnimationRounds = [];
     currentRoundIndex = 0;
+    applyFinalSwitchStates();
 
     // 超新星爆発とブラックホールの同時発生
     if (pendingSupernova && pendingBlackHole) {
@@ -1531,6 +1782,9 @@ function renderSupernovaState(elapsed) {
 
     // 1. 土管の奥側にキャラクターを配置（土管の中からニュッと生えてくる）
     drawSupernovaStickmanBehind(elapsed, APPROACH_END, FUSION_END);
+
+    // レーザー描画（起動中）
+    drawLasers(true, grid);
 
     // 2. 土管とゴールの描画（生えてくる途中のキャラの手前に土管が重なる）
     drawPipe();
@@ -4426,6 +4680,79 @@ function drawGimmickTile(gimmick) {
         ctx.stroke();
 
         ctx.restore();
+    } else if (gimmick.type === 'switch') {
+        // スイッチブロック: 黄色枠 + 現在の向き・移動種別の矢印 + 切替方向数バッジ
+        const curDir = getEffectiveGimmickDir(gimmick);
+        const moveType = getEffectiveGimmickMoveType(gimmick);
+        const seq = getSwitchDirSequence(gimmick);
+
+        ctx.fillStyle = moveType === 'dash' ? 'rgba(0, 195, 255, 0.16)' : 'rgba(250, 204, 21, 0.22)';
+        ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
+
+        ctx.save();
+        ctx.translate(x + CELL / 2, y + CELL / 2);
+        ctx.rotate(getDirAngle(curDir));
+
+        if (moveType === 'dash') {
+            ctx.fillStyle = '#00c0ff';
+            ctx.strokeStyle = '#0077b6';
+            ctx.lineWidth = 2;
+            const shift = pulse * 3;
+            ctx.beginPath();
+            ctx.moveTo(-16 + shift, -6);
+            ctx.lineTo(4 + shift, -6);
+            ctx.lineTo(4 + shift, -13);
+            ctx.lineTo(16 + shift, 0);
+            ctx.lineTo(4 + shift, 13);
+            ctx.lineTo(4 + shift, 6);
+            ctx.lineTo(-16 + shift, 6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        } else {
+            ctx.fillStyle = '#22c55e';
+            ctx.strokeStyle = '#15803d';
+            ctx.lineWidth = 2;
+            const shift = pulse * 2;
+            ctx.beginPath();
+            ctx.moveTo(-12 + shift, -5);
+            ctx.lineTo(2 + shift, -5);
+            ctx.lineTo(2 + shift, -11);
+            ctx.lineTo(13 + shift, 0);
+            ctx.lineTo(2 + shift, 11);
+            ctx.lineTo(2 + shift, 5);
+            ctx.lineTo(-12 + shift, 5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // くっきりした黄色の枠
+        ctx.save();
+        ctx.strokeStyle = '#ca8a04';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(x + 2.5, y + 2.5, CELL - 5, CELL - 5);
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x + 2.5, y + 2.5, CELL - 5, CELL - 5);
+        ctx.restore();
+
+        // 右上の切替数バッジ（2〜4）
+        ctx.save();
+        ctx.fillStyle = '#facc15';
+        ctx.strokeStyle = '#854d0e';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x + CELL - 9, y + 9, 6.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#422006';
+        ctx.font = 'bold 8.5px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(seq.length), x + CELL - 9, y + 9.5);
+        ctx.restore();
     } else if (gimmick.purpleBorder) {
         // 矢印のない紫枠マス（ブロックが置かれていない場合のみ背景表示）
         if (!isBlockPlacedHere) {
@@ -4465,6 +4792,144 @@ function drawForbiddenTile(col, row) {
     ctx.restore();
 }
 
+// Laser emitter & beam drawing
+function drawLasers(isActive, targetGrid, movingRects) {
+    const st = getStage();
+    if (!st || !Array.isArray(st.lasers) || st.lasers.length === 0) return;
+
+    const beams = isActive ? computeLaserBeams(targetGrid || grid) : [];
+
+    // 移動中ブロックの補間矩形によるビームの追加クリッピング
+    if (isActive && Array.isArray(movingRects) && movingRects.length > 0) {
+        beams.forEach(b => {
+            const { side } = b.laser;
+            movingRects.forEach(mr => {
+                if (side === 'left' || side === 'right') {
+                    // 横向きレーザー: Yが矩形範囲内にあるか
+                    if (b.startY >= mr.y + 1 && b.startY <= mr.y + mr.h - 1) {
+                        if (side === 'left' && mr.x >= b.startX - 1 && mr.x < b.endX) {
+                            b.endX = mr.x;
+                            b.blocked = true;
+                        } else if (side === 'right' && (mr.x + mr.w) <= b.startX + 1 && (mr.x + mr.w) > b.endX) {
+                            b.endX = mr.x + mr.w;
+                            b.blocked = true;
+                        }
+                    }
+                } else {
+                    // 縦向きレーザー: Xが矩形範囲内にあるか
+                    if (b.startX >= mr.x + 1 && b.startX <= mr.x + mr.w - 1) {
+                        if (side === 'top' && mr.y >= b.startY - 1 && mr.y < b.endY) {
+                            b.endY = mr.y;
+                            b.blocked = true;
+                        } else if (side === 'bottom' && (mr.y + mr.h) <= b.startY + 1 && (mr.y + mr.h) > b.endY) {
+                            b.endY = mr.y + mr.h;
+                            b.blocked = true;
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    // 1. ビーム描画（起動時のみ）
+    if (isActive) {
+        const pulse = (Math.sin(Date.now() / 80) + 1) / 2;
+        beams.forEach(b => {
+            const len = Math.hypot(b.endX - b.startX, b.endY - b.startY);
+            if (len < 1) return;
+
+            ctx.save();
+            ctx.lineCap = 'round';
+
+            // 外側のシアン発光グロー
+            ctx.strokeStyle = `rgba(6, 182, 212, ${0.38 + pulse * 0.16})`;
+            ctx.lineWidth = 10 + pulse * 2;
+            ctx.beginPath();
+            ctx.moveTo(b.startX, b.startY);
+            ctx.lineTo(b.endX, b.endY);
+            ctx.stroke();
+
+            // 中間層シアン
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(b.startX, b.startY);
+            ctx.lineTo(b.endX, b.endY);
+            ctx.stroke();
+
+            // 中心の白い高輝度コア
+            ctx.strokeStyle = '#ecfeff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(b.startX, b.startY);
+            ctx.lineTo(b.endX, b.endY);
+            ctx.stroke();
+
+            // ブロック面で受け止められた場合のヒットエフェクト
+            if (b.blocked) {
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = '#22d3ee';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(b.endX, b.endY, 4 + pulse * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        });
+    }
+
+    // 2. レーザー発射口（本体）の描画（常に表示）
+    st.lasers.forEach(laser => {
+        if (!laser || typeof laser.col !== 'number' || typeof laser.row !== 'number') return;
+        const cellX = GX + laser.col * CELL;
+        const cellY = GY + laser.row * CELL;
+        let cx = cellX + CELL / 2;
+        let cy = cellY + CELL / 2;
+        let angle = 0;
+
+        if (laser.side === 'top') {
+            cx = cellX + CELL / 2;
+            cy = cellY;
+            angle = Math.PI / 2; // 下向き発射
+        } else if (laser.side === 'bottom') {
+            cx = cellX + CELL / 2;
+            cy = cellY + CELL;
+            angle = -Math.PI / 2; // 上向き発射
+        } else if (laser.side === 'left') {
+            cx = cellX;
+            cy = cellY + CELL / 2;
+            angle = 0; // 右向き発射
+        } else if (laser.side === 'right') {
+            cx = cellX + CELL;
+            cy = cellY + CELL / 2;
+            angle = Math.PI; // 左向き発射
+        } else {
+            return;
+        }
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angle);
+
+        // 本体の台座（マスの枠に取り付く形状）
+        ctx.fillStyle = '#0f766e';
+        ctx.strokeStyle = '#134e4a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-4, -10, 10, 20, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        // 発射レンズ部分
+        ctx.fillStyle = isActive ? '#22d3ee' : '#64748b';
+        ctx.beginPath();
+        ctx.arc(5, 0, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    });
+}
+
 function drawGridLines() {
     ctx.strokeStyle = 'rgba(0,0,60,0.13)';
     ctx.lineWidth = 1;
@@ -4495,12 +4960,14 @@ function drawMarioBlock(col, row) {
 
     const isGridAligned = (Math.abs(col - Math.round(col)) < 0.01 && Math.abs(row - Math.round(row)) < 0.01);
     const g = isGridAligned ? getGimmick(Math.round(col), Math.round(row)) : null;
-    const hasArrow = g && (g.type === 'dash' || g.type === 'step');
+    const hasArrow = g && (g.type === 'dash' || g.type === 'step' || g.type === 'switch');
 
     if (hasArrow) {
         // 矢印の上のブロックは、矢印の形状をくり抜いて下地本来の色（水色・緑色）を100%忠実に露出させる
+        const arrowType = g.type === 'switch' ? getEffectiveGimmickMoveType(g) : g.type;
+        const arrowDir = getEffectiveGimmickDir(g);
         const pulse = (Math.sin(Date.now() / 200) + 1) / 2;
-        const shift = (g.type === 'dash') ? pulse * 3 : pulse * 2;
+        const shift = (arrowType === 'dash') ? pulse * 3 : pulse * 2;
 
         function getDirAngle(dir) {
             if (dir === 'down') return Math.PI / 2;
@@ -4516,9 +4983,9 @@ function drawMarioBlock(col, row) {
         // 2. くり抜く矢印の形状パス（矢印の輪郭線まで綺麗に見えるよう1px余裕を持たせる）
         ctx.save();
         ctx.translate(x + CELL / 2, y + CELL / 2);
-        ctx.rotate(getDirAngle(g.dir));
+        ctx.rotate(getDirAngle(arrowDir));
 
-        if (g.type === 'dash') {
+        if (arrowType === 'dash') {
             ctx.moveTo(-17 + shift, -7);
             ctx.lineTo(5 + shift, -7);
             ctx.lineTo(5 + shift, -14);
@@ -4527,7 +4994,7 @@ function drawMarioBlock(col, row) {
             ctx.lineTo(5 + shift, 7);
             ctx.lineTo(-17 + shift, 7);
             ctx.closePath();
-        } else if (g.type === 'step') {
+        } else if (arrowType === 'step') {
             ctx.moveTo(-13 + shift, -6);
             ctx.lineTo(3 + shift, -6);
             ctx.lineTo(3 + shift, -12);
@@ -4563,6 +5030,14 @@ function drawMarioBlock(col, row) {
     ctx.moveTo(x + p, y + CELL / 2); ctx.lineTo(x + CELL - p, y + CELL / 2);
     ctx.stroke();
     ctx.restore();
+
+    if (g && g.type === 'switch') {
+        ctx.save();
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x + 2, y + 2, CELL - 4, CELL - 4);
+        ctx.restore();
+    }
 }
 
 // Warp-pipe / Start platform on left
@@ -5017,6 +5492,9 @@ function render() {
         }
     }
 
+    // Draw lasers (起動中のみビーム描画、本体は常に描画)
+    drawLasers(phase !== 'place', grid);
+
     // Draw pipe & goal
     drawPipe();
     drawGoal();
@@ -5036,6 +5514,10 @@ function render() {
 
 // MARK: - Route Solver & Simulation (Character moves rightward)
 function solveRoute() {
+    return applyLaserCollisionsToKeyframes(solveRouteRaw());
+}
+
+function solveRouteRaw() {
     const st = getStage();
     const keyframes = [];
     let curX = -1.5;
@@ -5163,6 +5645,55 @@ function solveRoute() {
     }
 
     keyframes[keyframes.length - 1].type = 'fail';
+    return applyLaserCollisionsToKeyframes(keyframes);
+}
+
+function applyLaserCollisionsToKeyframes(keyframes) {
+    const rawBeams = computeLaserBeams(grid);
+    const activeBeams = rawBeams
+        .filter(b => Math.hypot(b.endX - b.startX, b.endY - b.startY) >= 1)
+        .map(b => ({
+            minX: Math.min(b.startX, b.endX) - 2,
+            maxX: Math.max(b.startX, b.endX) + 2,
+            minY: Math.min(b.startY, b.endY) - 2,
+            maxY: Math.max(b.startY, b.endY) + 2
+        }));
+    if (activeBeams.length === 0 || keyframes.length < 2) return keyframes;
+
+    const SUB_STEPS = 24;
+    for (let i = 0; i < keyframes.length - 1; i++) {
+        const prevKf = keyframes[i];
+        const nextKf = keyframes[i + 1];
+        for (let s = 0; s <= SUB_STEPS; s++) {
+            const ratio = s / SUB_STEPS;
+            const x = prevKf.x + (nextKf.x - prevKf.x) * ratio;
+            const y = (prevKf.type === 'jump')
+                ? prevKf.y + (nextKf.y - prevKf.y) * ratio - 4 * 0.5 * ratio * (1 - ratio)
+                : prevKf.y + (nextKf.y - prevKf.y) * ratio;
+            const time = prevKf.time + (nextKf.time - prevKf.time) * ratio;
+
+            const px = GX + (x + 0.5) * CELL;
+            const pyBot = GY + (y + 1) * CELL;
+            const charLeft = px - 7;
+            const charRight = px + 7;
+            const charTop = pyBot - 40;
+            const charBot = pyBot - 2;
+
+            const hit = activeBeams.some(b =>
+                charRight >= b.minX && charLeft <= b.maxX &&
+                charBot >= b.minY && charTop <= b.maxY
+            );
+            if (hit) {
+                const truncated = keyframes.slice(0, i + 1);
+                if (s > 0) {
+                    truncated.push({ x, y, type: 'fail', time });
+                } else {
+                    truncated[truncated.length - 1] = { ...truncated[truncated.length - 1], type: 'fail' };
+                }
+                return truncated;
+            }
+        }
+    }
     return keyframes;
 }
 
@@ -5342,6 +5873,7 @@ function completeRespawn() {
     slidingBlocks = [];
     blockAnimationRounds = [];
     currentRoundIndex = 0;
+    resetSwitchStates();
     phase = 'place';
     man = makeMan();
     startBtn.disabled = false;
@@ -5892,6 +6424,7 @@ function selectStage(idx) {
     placedBlocksAtStart = 0;
     gameParticles.length = 0;
     lastKfIndex = -1;
+    resetSwitchStates();
     updateAnswerBtnUI();
     phase = 'place';
     man = makeMan();
@@ -6141,7 +6674,9 @@ window.addEventListener('DOMContentLoaded', () => {
         if (phase !== 'place') return;
 
         // スタート直後のブロック移動・超新星爆発・無限ループの事前シミュレーション
-        const { rounds, supernova, supernovas, blackHoleLoop, blackHoleLoops } = simulateGimmickBlockMoves();
+        const { rounds, supernova, supernovas, blackHoleLoop, blackHoleLoops, switchEvents, finalSwitchDirs } = simulateGimmickBlockMoves();
+        pendingSwitchEvents = switchEvents || [];
+        pendingFinalSwitchDirs = finalSwitchDirs || null;
 
         // 紫枠（必須設置）とブロック連結ルールを常にチェック
         const st = getStage();
@@ -6248,6 +6783,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         placedBlocksAtStart = 0;
         gameParticles.length = 0;
+        resetSwitchStates();
 
         phase = 'place';
         man = makeMan();

@@ -1078,8 +1078,8 @@
         // 行単位のキー名タイポ検証（例: maxBlock, forbiden, gimmick, startrow, goalrow, colm, dirs など）
         const VALID_STAGE_KEYS = new Set([
             "id", "title", "subtitle", "maxBlocks", "targetBlocks", "startRow", "goalRow", "hasCeiling",
-            "forbidden", "gimmicks", "solution", "legends",
-            "col", "row", "type", "dir", "steps", "purpleBorder", "icon", "text"
+            "forbidden", "gimmicks", "lasers", "solution", "legends",
+            "col", "row", "type", "dir", "dirs", "steps", "switchCount", "moveType", "side", "purpleBorder", "icon", "text"
         ]);
         for (let i = 0; i < lines.length; i++) {
             const rawLine = lines[i];
@@ -1151,8 +1151,9 @@
         }
 
         const REQUIRED_KEYS = ["id", "title", "maxBlocks", "startRow", "goalRow"];
-        const VALID_GIMMICK_TYPES = ["dash", "step"];
+        const VALID_GIMMICK_TYPES = ["dash", "step", "switch"];
         const VALID_GIMMICK_DIRS = ["up", "down", "left", "right"];
+        const VALID_LASER_SIDES = ["top", "right", "bottom", "left"];
         const seenIds = new Map();
 
         evalStages.forEach((stage, idx) => {
@@ -1208,10 +1209,35 @@
                         issues.push(createIssue(gLine, 1, "ステージ " + (stage.id || stageNum) + " の gimmicks[" + gIdx + "] の座標 (" + (g && g.col) + ", " + (g && g.row) + ") が不正または盤面外です", "col と row は 0〜4 の範囲で指定してください。", "error", lines[gLine - 1] || "", true));
                     }
                     if (g && g.type && !VALID_GIMMICK_TYPES.includes(g.type)) {
-                        issues.push(createIssue(gLine, 1, "ステージ " + (stage.id || stageNum) + " の ギミック種別「" + g.type + "」は無効です", "指定できる type は 'dash'（水色矢印）または 'step'（緑矢印）です。", "error", lines[gLine - 1] || "", true));
+                        issues.push(createIssue(gLine, 1, "ステージ " + (stage.id || stageNum) + " の ギミック種別「" + g.type + "」は無効です", "指定できる type は 'dash'（水色矢印）、'step'（緑矢印）、'switch'（スイッチブロック）です。", "error", lines[gLine - 1] || "", true));
+                    }
+                    if (g && g.type === "switch") {
+                        if (g.dirs !== undefined) {
+                            if (!Array.isArray(g.dirs) || g.dirs.length < 2 || g.dirs.length > 4 || g.dirs.some(d => !VALID_GIMMICK_DIRS.includes(d))) {
+                                issues.push(createIssue(gLine, 1, "ステージ " + (stage.id || stageNum) + " の スイッチブロック dirs 設定が不正です", "dirs は 'up', 'down', 'left', 'right' から 2〜4 個の配列で指定してください。", "error", lines[gLine - 1] || "", true));
+                            }
+                        }
+                        if (g.switchCount !== undefined && (typeof g.switchCount !== "number" || !Number.isInteger(g.switchCount) || g.switchCount < 2 || g.switchCount > 4)) {
+                            issues.push(createIssue(gLine, 1, "ステージ " + (stage.id || stageNum) + " の スイッチブロック switchCount (" + g.switchCount + ") が範囲外です", "switchCount は 2〜4 の整数を指定してください。", "error", lines[gLine - 1] || "", true));
+                        }
+                        if (g.moveType !== undefined && g.moveType !== "step" && g.moveType !== "dash") {
+                            issues.push(createIssue(gLine, 1, "ステージ " + (stage.id || stageNum) + " の スイッチブロック moveType「" + g.moveType + "」は無効です", "moveType は 'step' または 'dash' を指定してください。", "error", lines[gLine - 1] || "", true));
+                        }
                     }
                     if (g && g.dir && !VALID_GIMMICK_DIRS.includes(g.dir)) {
                         issues.push(createIssue(gLine, 1, "ステージ " + (stage.id || stageNum) + " の ギミック向き「" + g.dir + "」は無効です", "向き dir は 'up', 'down', 'left', 'right' のいずれかを指定してください。", "error", lines[gLine - 1] || "", true));
+                    }
+                });
+            }
+
+            if (Array.isArray(stage.lasers)) {
+                const lLine = findPropLineFrom(stLine, "lasers");
+                stage.lasers.forEach((l, lIdx) => {
+                    if (!l || typeof l.col !== "number" || typeof l.row !== "number" || l.col < 0 || l.col > 4 || l.row < 0 || l.row > 4) {
+                        issues.push(createIssue(lLine, 1, "ステージ " + (stage.id || stageNum) + " の lasers[" + lIdx + "] の座標 (" + (l && l.col) + ", " + (l && l.row) + ") が不正または盤面外です", "col と row は 0〜4 の範囲で指定してください。", "error", lines[lLine - 1] || "", true));
+                    }
+                    if (!l || !VALID_LASER_SIDES.includes(l.side)) {
+                        issues.push(createIssue(lLine, 1, "ステージ " + (stage.id || stageNum) + " の lasers[" + lIdx + "] の辺 side「" + (l && l.side) + "」は無効です", "side は 'top', 'right', 'bottom', 'left' のいずれかを指定してください。", "error", lines[lLine - 1] || "", true));
                     }
                 });
             }
