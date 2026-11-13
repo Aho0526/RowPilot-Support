@@ -626,16 +626,19 @@ function simulateGimmickBlockMoves() {
 
     if (hasSupernova || hasBlackHole) {
         const activeEndTicks = new Map();
+        const snColliderIds = new Set();
+        let firstExplosionTick = 0;
 
         if (hasSupernova) {
             // 最初の爆発 tick 以外の超新星は除外（同時に起きたもののみ残す）
-            const firstTick = supernovas[0].tick;
-            supernovas = supernovas.filter(s => s.tick === firstTick);
-            const snPreMoveEndTick = firstTick - 1;
+            firstExplosionTick = supernovas[0].tick;
+            supernovas = supernovas.filter(s => s.tick === firstExplosionTick);
+            const snPreMoveEndTick = firstExplosionTick - 1;
 
             // 超新星爆発に関係するブロック（2つ以上）のIDを収集
             supernovas.forEach(s => {
                 s.colliders.forEach(c => {
+                    snColliderIds.add(c.id);
                     const prev = activeEndTicks.get(c.id);
                     if (prev === undefined || snPreMoveEndTick > prev) {
                         activeEndTicks.set(c.id, snPreMoveEndTick);
@@ -659,6 +662,7 @@ function simulateGimmickBlockMoves() {
         }
 
         // 道を空けるなど、特殊演出ブロックの移動に間接的に関与するブロックを連鎖的に収集
+        // 超新星爆発時の間接関与ブロックは爆発発生ティックまで進めて爆発地点上から退避させる
         const originMap = new Map();
         const blockById = new Map();
         blocks.forEach(b => {
@@ -677,9 +681,13 @@ function simulateGimmickBlockMoves() {
                     const pos = b.path[t];
                     const blocker = originMap.get(`${pos.col},${pos.row}`);
                     if (blocker && blocker.id !== b.id) {
+                        let reqTick = endTick;
+                        if (hasSupernova && !snColliderIds.has(blocker.id)) {
+                            reqTick = Math.max(reqTick, Math.min(firstExplosionTick, blocker.path.length - 1));
+                        }
                         const prevTick = activeEndTicks.get(blocker.id);
-                        if (prevTick === undefined || endTick > prevTick) {
-                            activeEndTicks.set(blocker.id, endTick);
+                        if (prevTick === undefined || reqTick > prevTick) {
+                            activeEndTicks.set(blocker.id, reqTick);
                             changed = true;
                         }
                     }

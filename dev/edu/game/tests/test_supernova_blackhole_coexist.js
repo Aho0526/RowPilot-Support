@@ -87,7 +87,10 @@ console.log('Test 1: ステージ22の貫通防止（間接関与ブロックの
     assert(movedOrigins.includes('2,0'), 'Collider (2,0) must move');
     assert(movedOrigins.includes('3,1'), 'Collider (3,1) must move');
     assert(!movedOrigins.includes('4,4'), 'Unrelated block (4,4) must stay still');
-    console.log(' -> OK: 道を空けた (1,0) も移動対象になり、無関係な (4,4) は停止しました。');
+    const moveA = moves.find(m => m.fromCol === 1 && m.fromRow === 0);
+    assert(moveA.toCol === 2 && moveA.toRow === 2, `Block (1,0) should evacuate explosion cell (1,2) to (2,2), got (${moveA.toCol},${moveA.toRow})`);
+    assert(res.finalGrid[2][1] === false, 'Explosion cell (1,2) must be empty before supernova animation');
+    console.log(' -> OK: 道を空けた (1,0) も移動対象になり、爆発地点(1,2)から退避し、無関係な (4,4) は停止しました。');
 }
 
 // ------------------------------------------------------------------
