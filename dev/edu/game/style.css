@@ -874,24 +874,23 @@ body {
     align-items: center;
 }
 
-/* Canvas Wrapper (迫力ある大きな表示サイズ) */
+/* Canvas Wrapper (背景と一体化させ、レイヤーの枠・影を出さない) */
 .game-wrapper {
     position: relative;
     display: inline-block;
-    box-shadow: 0 8px 0 #00000050, 0 14px 0 #00000025;
-    border-radius: 6px;
-    overflow: hidden;
+    background: transparent;
 }
 
 #gameCanvas {
     display: block;
-    /* 縦横比（496:324）を保持しつつ、利用可能な領域を最大限使って大迫力に表示 */
-    width: min(960px, calc(100vw - 420px), calc((100vh - 120px) * (496 / 324)));
+    background: transparent;
+    /* 縦横比（496:376）を保持しつつ、利用可能な領域を最大限使って大迫力に表示 */
+    width: min(960px, calc(100vw - 420px), calc((100vh - 120px) * (496 / 376)));
     height: auto;
     max-height: calc(100vh - 120px);
     min-width: 496px;
-    min-height: 324px;
-    aspect-ratio: 496 / 324;
+    min-height: 376px;
+    aspect-ratio: 496 / 376;
     object-fit: contain;
     image-rendering: pixelated;
     cursor: crosshair;
@@ -1421,12 +1420,12 @@ body {
     }
 
     #gameCanvas {
-        width: min(1040px, calc(100vw - 440px), calc((100vh - 110px) * (496 / 324)));
+        width: min(1040px, calc(100vw - 440px), calc((100vh - 110px) * (496 / 376)));
         height: auto;
         max-height: calc(100vh - 110px);
         min-width: 496px;
-        min-height: 324px;
-        aspect-ratio: 496 / 324;
+        min-height: 376px;
+        aspect-ratio: 496 / 376;
     }
 
     .game-right-col {
@@ -1464,7 +1463,7 @@ body {
     }
 
     #gameCanvas {
-        width: min(960px, calc(100vw - 400px), calc((100vh - 84px) * (496 / 324)));
+        width: min(960px, calc(100vw - 400px), calc((100vh - 84px) * (496 / 376)));
         max-height: calc(100vh - 84px);
     }
 
@@ -1496,12 +1495,12 @@ body {
     }
 
     #gameCanvas {
-        width: min(94vw, 720px, calc(52vh * (496 / 324)));
+        width: min(94vw, 720px, calc(52vh * (496 / 376)));
         height: auto;
         max-height: 52vh;
         min-width: 0;
         min-height: 0;
-        aspect-ratio: 496 / 324;
+        aspect-ratio: 496 / 376;
     }
 
     .game-right-col {
@@ -1586,12 +1585,12 @@ body {
     }
 
     #gameCanvas {
-        width: min(94vw, 600px, calc(48vh * (496 / 324)));
+        width: min(94vw, 600px, calc(48vh * (496 / 376)));
         height: auto;
         max-height: 48vh;
         min-width: 0;
         min-height: 0;
-        aspect-ratio: 496 / 324;
+        aspect-ratio: 496 / 376;
     }
 
     .btn-large {
@@ -1646,12 +1645,12 @@ body {
     }
 
     #gameCanvas {
-        width: min(96vw, 560px, calc(46vh * (496 / 324)));
+        width: min(96vw, 560px, calc(46vh * (496 / 376)));
         height: auto;
         max-height: 46vh;
         min-width: 0;
         min-height: 0;
-        aspect-ratio: 496 / 324;
+        aspect-ratio: 496 / 376;
     }
 
     .btn-large {
@@ -1892,13 +1891,12 @@ body.in-iframe .game-wrapper,
     height: auto !important;
     max-width: 100% !important;
     max-height: 100% !important;
-    aspect-ratio: 496 / 324 !important;
+    aspect-ratio: 496 / 376 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35) !important;
+    box-shadow: none !important;
     background: transparent !important;
-    overflow: hidden !important;
 }
 
 html.in-iframe #gameCanvas,
@@ -1908,7 +1906,7 @@ body.in-iframe #gameCanvas,
     max-width: 100% !important;
     width: 100% !important;
     height: 100% !important;
-    aspect-ratio: 496 / 324 !important;
+    aspect-ratio: 496 / 376 !important;
     object-fit: contain !important;
     display: block !important;
     border-radius: 6px !important;

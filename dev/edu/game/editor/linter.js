@@ -302,22 +302,120 @@
     }
 
     /**
-     * 変更された行（差分行）を検出する
+     * 変更された行（差分行）と削除境界行を検出する（先頭・末尾の共通行を除外して行ズレを防止）
      */
-    function computeChangedLines(oldCode, newCode) {
-        if (!oldCode || oldCode === newCode) return new Set();
+    function computeDiffInfo(oldCode, newCode) {
+        const changed = new Set();
+        const deletedAnchors = new Set();
+        if (!oldCode || oldCode === newCode) {
+            return { changed, deletedAnchors };
+        }
 
         const oldLines = oldCode.split('\n');
         const newLines = newCode.split('\n');
-        const changed = new Set();
+        const oldLen = oldLines.length;
+        const newLen = newLines.length;
 
-        for (let i = 0; i < newLines.length; i++) {
-            if (i >= oldLines.length || newLines[i] !== oldLines[i]) {
-                changed.add(i + 1);
+        // 先頭の共通行をスキップ
+        let prefix = 0;
+        while (prefix < oldLen && prefix < newLen && oldLines[prefix] === newLines[prefix]) {
+            prefix++;
+        }
+
+        // 末尾の共通行をスキップ
+        let oldEnd = oldLen - 1;
+        let newEnd = newLen - 1;
+        while (oldEnd >= prefix && newEnd >= prefix && oldLines[oldEnd] === newLines[newEnd]) {
+            oldEnd--;
+            newEnd--;
+        }
+
+        const m = oldEnd - prefix + 1;
+        const n = newEnd - prefix + 1;
+
+        if (m <= 0 && n <= 0) {
+            return { changed, deletedAnchors };
+        }
+        if (m <= 0) {
+            // 純粋な行追加
+            for (let j = prefix; j <= newEnd; j++) {
+                changed.add(j + 1);
+            }
+            return { changed, deletedAnchors };
+        }
+        if (n <= 0) {
+            // 純粋な行削除：削除が発生した境界行（1-indexed）を記録
+            const anchor = Math.min(newLen, Math.max(1, prefix + 1));
+            deletedAnchors.add(anchor);
+            return { changed, deletedAnchors };
+        }
+
+        // 差分領域が極端に大きい場合は簡易比較にフォールバック
+        if (m * n > 400000) {
+            const oldSet = new Set(oldLines.slice(prefix, oldEnd + 1));
+            for (let j = prefix; j <= newEnd; j++) {
+                if (!oldSet.has(newLines[j])) {
+                    changed.add(j + 1);
+                }
+            }
+            if (changed.size === 0) {
+                deletedAnchors.add(Math.min(newLen, Math.max(1, prefix + 1)));
+            }
+            return { changed, deletedAnchors };
+        }
+
+        // LCS DPテーブル（1次元ロール配列でマッチ復元はバックトラック用にInt32Array使用）
+        const cols = n + 1;
+        const dp = new Int32Array((m + 1) * cols);
+        for (let i = 1; i <= m; i++) {
+            const oLine = oldLines[prefix + i - 1];
+            const rowOff = i * cols;
+            const prevOff = (i - 1) * cols;
+            for (let j = 1; j <= n; j++) {
+                if (oLine === newLines[prefix + j - 1]) {
+                    dp[rowOff + j] = dp[prevOff + j - 1] + 1;
+                } else {
+                    const up = dp[prevOff + j];
+                    const left = dp[rowOff + j - 1];
+                    dp[rowOff + j] = up >= left ? up : left;
+                }
             }
         }
 
-        return changed;
+        // バックトラックして newLines の未マッチ行（変更・追加行）を抽出
+        const matchedNew = new Uint8Array(n);
+        let i = m;
+        let j = n;
+        while (i > 0 && j > 0) {
+            if (oldLines[prefix + i - 1] === newLines[prefix + j - 1]) {
+                matchedNew[j - 1] = 1;
+                i--;
+                j--;
+            } else if (dp[(i - 1) * cols + j] >= dp[i * cols + (j - 1)]) {
+                i--;
+            } else {
+                j--;
+            }
+        }
+
+        for (let k = 0; k < n; k++) {
+            if (!matchedNew[k]) {
+                changed.add(prefix + k + 1);
+            }
+        }
+
+        if (changed.size === 0 && m > n) {
+            deletedAnchors.add(Math.min(newLen, Math.max(1, prefix + 1)));
+        }
+
+        return { changed, deletedAnchors };
+    }
+
+    /**
+     * 変更された行（差分行）を検出する
+     */
+    function computeChangedLines(oldCode, newCode) {
+        return computeDiffInfo(oldCode, newCode).changed;
     }
 
     /**
@@ -1173,7 +1271,7 @@
                 userHint = '色コード（"#00FF66" など）を「 " " 」で囲んでいるか、全角文字がないか確認してください';
             }
 
-            let errorLine = findSyntaxErrorLine(lines);
+            let errorLine = findSyntaxErrorLine(lines, changedLines);
             if (changedLines && changedLines.size > 0) {
                 for (const line of changedLines) {
                     if (Math.abs(line - errorLine) <= 2) {
@@ -1233,7 +1331,7 @@
                         const clean = stripLineComment(lines[i]);
                         if (wordRegex.test(clean)) {
                             foundLine = i + 1;
-                            break;
+                            if (changedLines && changedLines.has(foundLine)) break;
                         }
                     }
                     return [createIssue(
@@ -1246,14 +1344,15 @@
                         changedLines ? changedLines.has(foundLine) : false
                     )];
                 }
+                const fallbackLine = (changedLines && changedLines.size > 0) ? Math.min(...changedLines) : 1;
                 return [createIssue(
-                    1,
+                    fallbackLine,
                     1,
                     `stages.js の実行時にエラーが発生しました（${msg}）`,
                     `設定値の記述形式が正しいか確認してください`,
                     'error',
-                    lines[0] || '',
-                    false
+                    lines[fallbackLine - 1] || '',
+                    changedLines ? changedLines.has(fallbackLine) : false
                 )];
             }
         }
@@ -1264,24 +1363,121 @@
     function getAutoCloseBrackets(codeStr) {
         const stack = [];
         let inStr = null;
+        let inMultiComment = false;
+        let prevNonSpace = '';
+        let lastWord = '';
+        const templateStack = [];
+
         for (let i = 0; i < codeStr.length; i++) {
             const c = codeStr[i];
-            if (inStr) {
-                if (c === '\\') { i++; continue; }
-                if (c === inStr) inStr = null;
+            const next = codeStr[i + 1];
+            const topTpl = templateStack.length > 0 ? templateStack[templateStack.length - 1] : null;
+
+            if (inMultiComment) {
+                if (c === '*' && next === '/') {
+                    inMultiComment = false;
+                    i++;
+                }
                 continue;
             }
-            if (c === '"' || c === "'" || c === '`') { inStr = c; continue; }
+            if (topTpl === 'TEMPLATE') {
+                if (c === '\\') { i++; continue; }
+                if (c === '$' && next === '{') {
+                    templateStack.push({ type: 'EXPR', braces: 1 });
+                    stack.push('}');
+                    i++;
+                    continue;
+                }
+                if (c === '`') {
+                    templateStack.pop();
+                    prevNonSpace = '`';
+                    lastWord = '';
+                }
+                continue;
+            }
+            if (inStr) {
+                if (c === '\\') { i++; continue; }
+                if (c === inStr) {
+                    inStr = null;
+                    prevNonSpace = c;
+                    lastWord = '';
+                }
+                continue;
+            }
+            if (c === '/' && next === '/') {
+                while (i < codeStr.length && codeStr[i] !== '\n') i++;
+                continue;
+            }
+            if (c === '/' && next === '*') {
+                inMultiComment = true;
+                i++;
+                continue;
+            }
+            if (c === '"' || c === "'") {
+                inStr = c;
+                continue;
+            }
+            if (c === '`') {
+                templateStack.push('TEMPLATE');
+                continue;
+            }
+            if (c === '/') {
+                const isRegex = !prevNonSpace || /[(=:;,!&|?+\-*%^~<>{}\[]/.test(prevNonSpace) || /^(return|case|typeof|delete|void|throw|in|of|new)$/.test(lastWord);
+                if (isRegex) {
+                    i++;
+                    let inCC = false;
+                    while (i < codeStr.length && codeStr[i] !== '\n') {
+                        if (codeStr[i] === '\\') { i += 2; continue; }
+                        if (codeStr[i] === '[') inCC = true;
+                        else if (codeStr[i] === ']') inCC = false;
+                        else if (codeStr[i] === '/' && !inCC) break;
+                        i++;
+                    }
+                    prevNonSpace = '/';
+                    lastWord = '';
+                    continue;
+                }
+            }
+
+            if (topTpl && topTpl.type === 'EXPR') {
+                if (c === '{') topTpl.braces++;
+                else if (c === '}') {
+                    topTpl.braces--;
+                    if (topTpl.braces === 0) templateStack.pop();
+                }
+            }
+
             if (c === '{') stack.push('}');
             else if (c === '[') stack.push(']');
             else if (c === '(') stack.push(')');
             else if (c === '}' || c === ']' || c === ')') stack.pop();
+
+            if (/[a-zA-Z0-9_$]/.test(c)) {
+                lastWord += c;
+            } else if (!/\s/.test(c)) {
+                lastWord = '';
+            }
+            if (!/\s/.test(c)) prevNonSpace = c;
         }
         return stack.reverse().join('');
     }
 
-    function findSyntaxErrorLine(lines) {
-        for (let i = 1; i <= lines.length; i++) {
+    function findSyntaxErrorLine(lines, changedLines) {
+        let startLine = 1;
+        if (changedLines && changedLines.size > 0) {
+            const minChanged = Math.min(...changedLines);
+            if (minChanged > 5) {
+                const preCode = lines.slice(0, minChanged - 2).join('\n');
+                try {
+                    new Function(preCode + '\n' + getAutoCloseBrackets(preCode));
+                    startLine = minChanged - 1;
+                } catch (_e) {
+                    startLine = 1;
+                }
+            }
+        }
+
+        for (let i = startLine; i <= lines.length; i++) {
             const rawLine = lines[i - 1];
             const trimmed = stripLineComment(rawLine).trim();
             // 空行や次行へ続く演算子末尾の行はスキップ
@@ -1305,6 +1501,9 @@
                     return i;
                 }
             }
+        }
+        if (changedLines && changedLines.size > 0) {
+            return Math.max(...changedLines);
         }
         return lines.length;
     }
@@ -3555,11 +3754,7 @@
     /**
      * 8.5 JavaScript (core.js 等) の未定義識別子・関数名タイポ・GameConfigプロパティ参照チェック
      */
-    function checkJavaScriptSemanticAndConfigRefs(filename, code) {
-        const issues = [];
-        const lines = code.split('\n');
-
-        // 1. 文字列・テンプレートリテラル・正規表現・コメントを空白に置換したコードを作成（行・列番号を完全保持）
+    function stripJsCommentsAndLiterals(code) {
         let stripped = '';
         let i = 0;
         const len = code.length;
@@ -3649,7 +3844,6 @@
             const ch = code[i];
             const next = code[i + 1];
 
-            // 行コメント //
             if (ch === '/' && next === '/') {
                 while (i < len && code[i] !== '\n') {
                     stripped += ' ';
@@ -3657,7 +3851,6 @@
                 }
                 continue;
             }
-            // ブロックコメント /* ... */
             if (ch === '/' && next === '*') {
                 stripped += '  ';
                 i += 2;
@@ -3671,7 +3864,6 @@
                 }
                 continue;
             }
-            // 文字列 "..." または '...'
             if (ch === '"' || ch === "'") {
                 const q = ch;
                 stripped += ' ';
@@ -3693,14 +3885,12 @@
                 lastWord = '';
                 continue;
             }
-            // テンプレートリテラル `...`
             if (ch === '`') {
                 consumeTemplateLiteral();
                 lastTokenChar = '`';
                 lastWord = '';
                 continue;
             }
-            // 正規表現リテラル /.../
             if (ch === '/' && next !== '/' && next !== '*') {
                 const regexPrecedingWords = new Set(['return', 'typeof', 'void', 'delete', 'throw', 'case', 'in', 'of', 'instanceof', 'new', 'yield', 'await']);
                 if (!lastTokenChar || '=(,:;[!?&|+-*~^%<>/{};'.includes(lastTokenChar) || regexPrecedingWords.has(lastWord)) {
@@ -3743,42 +3933,128 @@
             stripped += ch;
             i++;
         }
+        return stripped;
+    }
+
+    function extractVarDeclarations(stripped, declaredSet) {
+        const kwRe = /\b(?:var|let|const)\b/g;
+        let km;
+        while ((km = kwRe.exec(stripped)) !== null) {
+            let p = km.index + km[0].length;
+            const n = stripped.length;
+            let expectBinding = true;
+            let depth = 0;
+
+            while (p < n) {
+                const ch = stripped[p];
+                if (ch === ';' && depth === 0) break;
+
+                if (expectBinding && depth === 0) {
+                    while (p < n && /\s/.test(stripped[p])) p++;
+                    if (p >= n || stripped[p] === ';') break;
+                    if (stripped[p] === '{' || stripped[p] === '[') {
+                        const closeCh = stripped[p] === '{' ? '}' : ']';
+                        let d = 1;
+                        p++;
+                        const start = p;
+                        while (p < n && d > 0) {
+                            if (stripped[p] === '{' || stripped[p] === '[') d++;
+                            else if (stripped[p] === '}' || stripped[p] === ']') d--;
+                            p++;
+                        }
+                        const inner = stripped.slice(start, p - 1);
+                        inner.split(',').forEach(part => {
+                            const sub = part.split(':').pop().split('=')[0].trim().replace(/^\.\.\./, '');
+                            if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(sub)) declaredSet.add(sub);
+                        });
+                        expectBinding = false;
+                        continue;
+                    } else if (/[a-zA-Z_$]/.test(stripped[p])) {
+                        let id = '';
+                        while (p < n && /[a-zA-Z0-9_$]/.test(stripped[p])) {
+                            id += stripped[p];
+                            p++;
+                        }
+                        declaredSet.add(id);
+                        expectBinding = false;
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (ch === '(' || ch === '[' || ch === '{') {
+                    depth++;
+                } else if (ch === ')' || ch === ']' || ch === '}') {
+                    if (depth === 0) break;
+                    depth--;
+                } else if (ch === ',' && depth === 0) {
+                    expectBinding = true;
+                } else if (ch === '\n' && depth === 0) {
+                    let q = p - 1;
+                    while (q >= 0 && (stripped[q] === ' ' || stripped[q] === '\t')) q--;
+                    const prevCh = q >= 0 ? stripped[q] : '';
+                    let r = p + 1;
+                    while (r < n && (stripped[r] === ' ' || stripped[r] === '\t')) r++;
+                    const nextCh = r < n ? stripped[r] : '';
+                    if (!'=+-*/%&|^?:,.(['.includes(prevCh) && !'=+-*/%&|^?:,.'.includes(nextCh)) {
+                        break;
+                    }
+                }
+                p++;
+            }
+        }
+    }
+
+    function checkJavaScriptSemanticAndConfigRefs(filename, code, options) {
+        const issues = [];
+        const lines = code.split('\n');
+
+        // 1. 文字列・テンプレートリテラル・正規表現・コメントを空白に置換したコードを作成（行・列番号を完全保持）
+        const stripped = stripJsCommentsAndLiterals(code);
 
         // 2. ファイル内の全宣言識別子（var/let/const/function/メソッド/引数/catch/分割代入）を収集
         const declared = new Set(JS_BUILTIN_IDENTIFIERS);
         let m;
 
-        const varDeclRe = /\b(?:var|let|const)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g;
-        while ((m = varDeclRe.exec(stripped)) !== null) declared.add(m[1]);
+        extractVarDeclarations(stripped, declared);
 
-        // カンマ区切りの複数変数宣言 (例: let a, b, c; や let minC = Infinity, maxC = -Infinity;)
-        const commaVarRe = /,\s*([a-zA-Z_$][a-zA-Z0-9_$]*)(?=\s*(?:=|;|,|\n))/g;
-        while ((m = commaVarRe.exec(stripped)) !== null) declared.add(m[1]);
-
-        const destructDeclRe = /\b(?:var|let|const)\s*[\[{]([^\]}]+)[\]}]\s*(?:=|\bof\b|\bin\b)/g;
-        while ((m = destructDeclRe.exec(stripped)) !== null) {
-            const parts = m[1].split(',');
-            for (const p of parts) {
-                const sub = p.split(':').pop().split('=')[0].trim().replace(/^\.\.\./, '');
-                if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(sub)) declared.add(sub);
+        // 同プロジェクト内の他JSファイルで定義されたトップレベル宣言も参照可能として登録
+        if (options && options.allFiles) {
+            for (const otherName of Object.keys(options.allFiles)) {
+                if (otherName === filename || !otherName.endsWith('.js')) continue;
+                const entry = options.allFiles[otherName];
+                if (!entry || entry.isSystemFile) continue;
+                const otherCode = typeof entry === 'string' ? entry : (entry.content || '');
+                if (!otherCode) continue;
+                const otherStripped = stripJsCommentsAndLiterals(otherCode);
+                const otherFnRe = /\bfunction\s*\*?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g;
+                let om;
+                while ((om = otherFnRe.exec(otherStripped)) !== null) declared.add(om[1]);
+                const otherClsRe = /\bclass\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g;
+                while ((om = otherClsRe.exec(otherStripped)) !== null) declared.add(om[1]);
+                extractVarDeclarations(otherStripped, declared);
             }
+        }
+
+        function extractParamNames(paramStr, targetSet) {
+            if (!paramStr || !paramStr.trim()) return;
+            const cleaned = paramStr.replace(/[{}[\]]/g, ',');
+            cleaned.split(',').forEach(part => {
+                const sub = part.split('=').shift().split(':').pop().trim().replace(/^\.\.\./, '');
+                if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(sub)) targetSet.add(sub);
+            });
         }
 
         const funcDeclRe = /\bfunction\s*\*?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(([^)]*)\)/g;
         while ((m = funcDeclRe.exec(stripped)) !== null) {
             declared.add(m[1]);
-            m[2].split(',').forEach(arg => {
-                const cleanArg = arg.split('=')[0].trim().replace(/^\.\.\./, '');
-                if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleanArg)) declared.add(cleanArg);
-            });
+            extractParamNames(m[2], declared);
         }
 
         const anonFuncRe = /\bfunction\s*\(([^)]*)\)/g;
         while ((m = anonFuncRe.exec(stripped)) !== null) {
-            m[1].split(',').forEach(arg => {
-                const cleanArg = arg.split('=')[0].trim().replace(/^\.\.\./, '');
-                if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleanArg)) declared.add(cleanArg);
-            });
+            extractParamNames(m[1], declared);
         }
 
         // クラスメソッドおよびオブジェクト短縮メソッド (例: checkHit(rectX, rectY, rectW, rectH) { ... })
@@ -3788,19 +4064,13 @@
             const methodName = m[1];
             if (!controlFlowKeywords.has(methodName)) {
                 declared.add(methodName);
-                m[2].split(',').forEach(arg => {
-                    const cleanArg = arg.split('=')[0].trim().replace(/^\.\.\./, '');
-                    if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleanArg)) declared.add(cleanArg);
-                });
+                extractParamNames(m[2], declared);
             }
         }
 
         const arrowParenRe = /\(([^()]*)\)\s*=>/g;
         while ((m = arrowParenRe.exec(stripped)) !== null) {
-            m[1].split(',').forEach(arg => {
-                const cleanArg = arg.split('=')[0].trim().replace(/^\.\.\./, '');
-                if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleanArg)) declared.add(cleanArg);
-            });
+            extractParamNames(m[1], declared);
         }
 
         const arrowSingleRe = /\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>/g;
@@ -4628,6 +4898,143 @@
     }
 
     /**
+     * 11. baselineCode との差分による成立性チェック（削除された関数・定義への参照切れ検知）
+     */
+    function checkBaselineIntegrity(filename, code, options, diffInfo) {
+        if (!options || !options.baselineCode || !filename.endsWith('.js')) return [];
+        if (options.baselineCode === code) return [];
+
+        const issues = [];
+        const lines = code.split('\n');
+        const baseStripped = stripJsCommentsAndLiterals(options.baselineCode);
+        const curStripped = stripJsCommentsAndLiterals(code);
+
+        // baseline 内の関数・クラス定義と行番号を抽出
+        function collectTopDefs(stripped) {
+            const defs = new Map();
+            const fnRe = /\bfunction\s*\*?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g;
+            let m;
+            while ((m = fnRe.exec(stripped)) !== null) {
+                const name = m[1];
+                if (!defs.has(name)) {
+                    const line = stripped.slice(0, m.index).split('\n').length;
+                    defs.set(name, { kind: 'function', line });
+                }
+            }
+            const clsRe = /\bclass\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\b/g;
+            while ((m = clsRe.exec(stripped)) !== null) {
+                const name = m[1];
+                if (!defs.has(name)) {
+                    const line = stripped.slice(0, m.index).split('\n').length;
+                    defs.set(name, { kind: 'class', line });
+                }
+            }
+            return defs;
+        }
+
+        const baseDefs = collectTopDefs(baseStripped);
+        const curDefs = collectTopDefs(curStripped);
+        const curVarDecls = new Set();
+        extractVarDeclarations(curStripped, curVarDecls);
+
+        // 現在コード内で識別子が参照されているか（.prop や objKey: は除外）
+        function isIdentifierUsedInJs(strippedText, name) {
+            const re = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
+            let um;
+            while ((um = re.exec(strippedText)) !== null) {
+                const idx = um.index;
+                let prev = idx - 1;
+                while (prev >= 0 && /\s/.test(strippedText[prev])) prev--;
+                if (prev >= 0 && strippedText[prev] === '.') continue;
+                let next = idx + name.length;
+                while (next < strippedText.length && /\s/.test(strippedText[next])) next++;
+                if (next < strippedText.length && strippedText[next] === ':') {
+                    const pChar = prev >= 0 ? strippedText[prev] : '';
+                    if (pChar === '{' || pChar === ',') continue;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        // 削除された定義に対応する最適な現在コード行を算出
+        const anchorCandidates = [];
+        if (diffInfo) {
+            diffInfo.deletedAnchors.forEach(l => anchorCandidates.push(l));
+            diffInfo.changed.forEach(l => anchorCandidates.push(l));
+        }
+
+        function pickBestLine(origLine) {
+            if (anchorCandidates.length > 0) {
+                let best = anchorCandidates[0];
+                let bestDist = Math.abs(best - origLine);
+                for (let i = 1; i < anchorCandidates.length; i++) {
+                    const d = Math.abs(anchorCandidates[i] - origLine);
+                    if (d < bestDist) {
+                        best = anchorCandidates[i];
+                        bestDist = d;
+                    }
+                }
+                return Math.min(lines.length, Math.max(1, best));
+            }
+            return Math.min(lines.length, Math.max(1, origLine));
+        }
+
+        for (const [name, info] of baseDefs.entries()) {
+            if (curDefs.has(name) || curVarDecls.has(name)) continue;
+
+            // 自ファイル内で参照されているか
+            let usedInSelf = isIdentifierUsedInJs(curStripped, name);
+            let usedInOtherFile = null;
+
+            // 他ファイル（allFiles）で参照されているか
+            if (!usedInSelf && options.allFiles && typeof options.allFiles === 'object') {
+                for (const otherName of Object.keys(options.allFiles)) {
+                    if (otherName === filename) continue;
+                    const entry = options.allFiles[otherName];
+                    if (!entry || entry.isSystemFile) continue;
+                    const otherContent = typeof entry === 'string' ? entry : (entry.content || '');
+                    if (!otherContent) continue;
+
+                    if (otherName.endsWith('.js')) {
+                        const otherStripped = stripJsCommentsAndLiterals(otherContent);
+                        if (isIdentifierUsedInJs(otherStripped, name)) {
+                            usedInOtherFile = otherName;
+                            break;
+                        }
+                    } else if (otherName.endsWith('.html')) {
+                        const fnCallRe = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\(`);
+                        if (fnCallRe.test(otherContent)) {
+                            usedInOtherFile = otherName;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (usedInSelf || usedInOtherFile) {
+                const targetLine = pickBestLine(info.line);
+                const label = info.kind === 'class' ? `クラス「${name}」` : `関数「${name}()」`;
+                const msg = usedInOtherFile
+                    ? `[変更監視] 元のコードにあった${label}が削除されています（${usedInOtherFile} から参照されています）`
+                    : `[変更監視] 元のコードにあった${label}が削除されたため、呼び出し箇所が成立しません`;
+                const hint = `削除された${label}を元に戻すか、参照箇所を修正してください`;
+                issues.push(createIssue(
+                    targetLine,
+                    1,
+                    msg,
+                    hint,
+                    'error',
+                    lines[targetLine - 1] || '',
+                    true
+                ));
+            }
+        }
+
+        return issues;
+    }
+
+    /**
      * メイン診断関数
      * @param {string} filename ファイル名 (config.js, style.css, etc.) ※1引数呼び出し時は code として扱う後方互換あり
      * @param {string} code コード文字列
@@ -4667,9 +5074,10 @@
         }
 
         options = options || {};
+        const diffInfo = options.baselineCode ? computeDiffInfo(options.baselineCode, code) : null;
         let changedLines = options.changedLines;
-        if (!changedLines && options.baselineCode) {
-            changedLines = computeChangedLines(options.baselineCode, code);
+        if (!changedLines && diffInfo) {
+            changedLines = diffInfo.changed;
         }
 
         let issues = [];
@@ -4694,7 +5102,10 @@
                 issues = issues.concat(checkJavaScriptNativeSyntax(code, changedLines, false));
             }
             if (issues.filter(i => i.severity === 'error').length === 0) {
-                issues = issues.concat(checkJavaScriptSemanticAndConfigRefs(filename, code));
+                issues = issues.concat(checkJavaScriptSemanticAndConfigRefs(filename, code, options));
+                if (options.baselineCode) {
+                    issues = issues.concat(checkBaselineIntegrity(filename, code, options, diffInfo));
+                }
             }
         } else if (filename.endsWith('.css')) {
             issues = issues.concat(checkCSS(code, 0));
@@ -4716,9 +5127,10 @@
         }
 
         // 差分行マーク付け
-        if (changedLines && changedLines.size > 0) {
+        if ((changedLines && changedLines.size > 0) || (diffInfo && diffInfo.deletedAnchors.size > 0)) {
             for (const issue of issues) {
-                if (changedLines.has(issue.line)) {
+                if ((changedLines && changedLines.has(issue.line)) ||
+                    (diffInfo && diffInfo.deletedAnchors.has(issue.line))) {
                     issue.isChangedByUser = true;
                 }
             }

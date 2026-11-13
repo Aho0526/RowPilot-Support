@@ -10,8 +10,8 @@ const CELL = 56;
 const LEFT_W = 108;
 const RIGHT_W = 108;
 const TOTAL_W = LEFT_W + COLS * CELL + RIGHT_W;
-const GY = 36;
-const TOTAL_H = ROWS * CELL + 44;
+const GY = 88;
+const TOTAL_H = GY + ROWS * CELL + 8;
 
 const GX = LEFT_W;
 
@@ -270,6 +270,7 @@ function simulateGimmickBlockMoves() {
     let supernovas = [];
     let blackHoleLoop = null;
     let blackHoleLoops = [];
+    let bhPreMoveEndTick = null;
 
     while (tickCount < maxTicks) {
         tickCount++;
@@ -610,46 +611,86 @@ function simulateGimmickBlockMoves() {
             if (detectedLoops.length > 0) {
                 blackHoleLoops = detectedLoops;
                 blackHoleLoop = detectedLoops[0];
-
-                blocks.forEach(b => {
-                    b.path = b.path.slice(0, preMoveEndTick + 1);
-                    const lastPos = b.path[b.path.length - 1];
-                    b.col = lastPos.col;
-                    b.row = lastPos.row;
-                });
+                bhPreMoveEndTick = preMoveEndTick;
                 tickCount = preMoveEndTick;
                 break;
             }
         }
-
-        // 超新星爆発が発生した場合、このtickでシミュレーションを終了（爆発後の余分な進行を防止）
-        if (supernovas.length > 0) {
-            break;
-        }
     }
 
-    // 超新星爆発が発生している場合のブロック選別と先行移動の調整
-    const supernovaColliderIds = new Set();
+    // 特殊演出（超新星爆発・ブラックホール）が発生している場合のブロック選別と先行移動の調整
+    const hasSupernova = supernovas.length > 0;
+    const hasBlackHole = blackHoleLoops.length > 0;
     const actualMoves = [];
     const stepDuration = 100;
 
-    if (supernovas.length > 0) {
-        // 最初の爆発 tick 以外の超新星は除外（同時に起きたもののみ残す）
-        const firstTick = supernovas[0].tick;
-        supernovas = supernovas.filter(s => s.tick === firstTick);
+    if (hasSupernova || hasBlackHole) {
+        const activeEndTicks = new Map();
 
-        // 超新星爆発に関係するブロック（2つ以上）のIDを収集
-        supernovas.forEach(s => {
-            s.colliders.forEach(c => supernovaColliderIds.add(c.id));
+        if (hasSupernova) {
+            // 最初の爆発 tick 以外の超新星は除外（同時に起きたもののみ残す）
+            const firstTick = supernovas[0].tick;
+            supernovas = supernovas.filter(s => s.tick === firstTick);
+            const snPreMoveEndTick = firstTick - 1;
+
+            // 超新星爆発に関係するブロック（2つ以上）のIDを収集
+            supernovas.forEach(s => {
+                s.colliders.forEach(c => {
+                    const prev = activeEndTicks.get(c.id);
+                    if (prev === undefined || snPreMoveEndTick > prev) {
+                        activeEndTicks.set(c.id, snPreMoveEndTick);
+                    }
+                });
+            });
+        }
+
+        if (hasBlackHole) {
+            const bhTick = bhPreMoveEndTick !== null ? bhPreMoveEndTick : 0;
+            blackHoleLoops.forEach(lp => {
+                if (lp.loopBlockOffsets) {
+                    lp.loopBlockOffsets.forEach(o => {
+                        const prev = activeEndTicks.get(o.id);
+                        if (prev === undefined || bhTick > prev) {
+                            activeEndTicks.set(o.id, bhTick);
+                        }
+                    });
+                }
+            });
+        }
+
+        // 道を空けるなど、特殊演出ブロックの移動に間接的に関与するブロックを連鎖的に収集
+        const originMap = new Map();
+        const blockById = new Map();
+        blocks.forEach(b => {
+            originMap.set(`${b.originCol},${b.originRow}`, b);
+            blockById.set(b.id, b);
         });
 
-        // 衝突直前までの先行移動ティック数 (0-based)
-        const preMoveEndTick = firstTick - 1;
+        let changed = true;
+        while (changed) {
+            changed = false;
+            for (const [bId, endTick] of activeEndTicks.entries()) {
+                const b = blockById.get(bId);
+                if (!b) continue;
+                const maxT = Math.min(endTick, b.path.length - 1);
+                for (let t = 1; t <= maxT; t++) {
+                    const pos = b.path[t];
+                    const blocker = originMap.get(`${pos.col},${pos.row}`);
+                    if (blocker && blocker.id !== b.id) {
+                        const prevTick = activeEndTicks.get(blocker.id);
+                        if (prevTick === undefined || endTick > prevTick) {
+                            activeEndTicks.set(blocker.id, endTick);
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
 
         blocks.forEach(b => {
-            if (supernovaColliderIds.has(b.id)) {
-                // 爆発に関与するブロックのみ移動させる（衝突直前の位置まで）
-                b.path = b.path.slice(0, preMoveEndTick + 1);
+            if (activeEndTicks.has(b.id)) {
+                const endTick = activeEndTicks.get(b.id);
+                b.path = b.path.slice(0, endTick + 1);
                 const lastPos = b.path[b.path.length - 1];
                 b.col = lastPos.col;
                 b.row = lastPos.row;
@@ -661,11 +702,11 @@ function simulateGimmickBlockMoves() {
                         toCol: b.col,
                         toRow: b.row,
                         path: b.path,
-                        duration: Math.max(260, preMoveEndTick * stepDuration)
+                        duration: Math.max(260, endTick * stepDuration)
                     });
                 }
             } else {
-                // 爆発に関与しないブロックは初期位置にとどまり、移動アニメーションを行わない
+                // 爆発やブラックホール等の特殊演出に関与しないブロックは初期位置にとどまり、移動アニメーションを行わない
                 b.col = b.originCol;
                 b.row = b.originRow;
                 b.path = [{ col: b.originCol, row: b.originRow }];
@@ -2412,8 +2453,6 @@ function renderMultiBlackHoleState(elapsed) {
 
     // レンダリング開始
     ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
-    ctx.fillStyle = '#060814';
-    ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
 
     let skyAlpha = 1;
     if (elapsed >= BH_COLLAPSE_START && elapsed < DROP_BASE) {
@@ -2421,10 +2460,10 @@ function renderMultiBlackHoleState(elapsed) {
     } else if (elapsed >= DROP_BASE) {
         skyAlpha = Math.min(1, (elapsed - DROP_BASE) / 700);
     }
-    if (skyAlpha > 0) {
+    if (skyAlpha < 1) {
         ctx.save();
-        ctx.globalAlpha = skyAlpha;
-        drawBackground();
+        ctx.fillStyle = `rgba(6, 8, 20, ${1 - skyAlpha})`;
+        ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
         ctx.restore();
     }
 
@@ -3064,16 +3103,59 @@ function startDualSupernovaBlackHole(snData, bhData) {
         extraTime = Math.max(0, curTime - 2220);
     }
 
+    const rawLoops = Array.isArray(bhData) ? bhData : [bhData];
+    const isMultiBH = rawLoops.length >= 2;
+    const loopCount = rawLoops.length;
+    const midCenterX = rawLoops.reduce((sum, l) => sum + l.centerX, 0) / loopCount;
+    const midCenterY = rawLoops.reduce((sum, l) => sum + l.centerY, 0) / loopCount;
+
+    const holes = rawLoops.map((l, idx) => {
+        const dx = l.centerX - midCenterX;
+        const dy = l.centerY - midCenterY;
+        const initRadius = Math.sqrt(dx * dx + dy * dy);
+        const initAngle = Math.atan2(dy, dx);
+        return {
+            id: l.id || (idx + 1),
+            loopPath: l.loopPath,
+            loopBlockOffsets: l.loopBlockOffsets,
+            centerCol: l.centerCol,
+            centerRow: l.centerRow,
+            centerX: l.centerX,
+            centerY: l.centerY,
+            dx,
+            dy,
+            initRadius,
+            initAngle,
+            curX: l.centerX,
+            curY: l.centerY,
+            curRadius: 0
+        };
+    });
+
     const initialPlacedBlocks = [];
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (grid[r][c]) {
-                const offsetObj = bhData.loopBlockOffsets
-                    ? bhData.loopBlockOffsets.find(o => o.col === c && o.row === r)
-                    : null;
-                const pathIdx = offsetObj
-                    ? offsetObj.loopOffset
-                    : (bhData.loopBlockOffsets ? -1 : bhData.loopPath.findIndex(p => p.col === c && p.row === r));
+                let foundLoopIdx = -1;
+                let foundOffset = 0;
+                for (let hi = 0; hi < holes.length; hi++) {
+                    const h = holes[hi];
+                    const offsetObj = h.loopBlockOffsets
+                        ? h.loopBlockOffsets.find(o => o.col === c && o.row === r)
+                        : null;
+                    if (offsetObj) {
+                        foundLoopIdx = hi;
+                        foundOffset = offsetObj.loopOffset;
+                        break;
+                    } else if (!h.loopBlockOffsets) {
+                        const pi = h.loopPath.findIndex(p => p.col === c && p.row === r);
+                        if (pi !== -1) {
+                            foundLoopIdx = hi;
+                            foundOffset = pi;
+                            break;
+                        }
+                    }
+                }
                 const isCollider = spots.some(sp =>
                     sp.colliders.some(colObj =>
                         (colObj.fromCol === c && colObj.fromRow === r) ||
@@ -3083,8 +3165,9 @@ function startDualSupernovaBlackHole(snData, bhData) {
                 initialPlacedBlocks.push({
                     col: c,
                     row: r,
-                    isLoopBlock: (pathIdx !== -1),
-                    loopOffset: (pathIdx !== -1) ? pathIdx : 0,
+                    isLoopBlock: (foundLoopIdx !== -1),
+                    loopIndex: foundLoopIdx,
+                    loopOffset: foundOffset,
                     isCollider
                 });
             }
@@ -3095,12 +3178,16 @@ function startDualSupernovaBlackHole(snData, bhData) {
     dualEventState = {
         spots: spots,
         sn: spots[0],
+        isMultiBH,
+        holes,
+        midCenterX,
+        midCenterY,
         bh: {
-            loopPath: bhData.loopPath,
-            centerCol: bhData.centerCol,
-            centerRow: bhData.centerRow,
-            centerX: bhData.centerX,
-            centerY: bhData.centerY
+            loopPath: holes[0].loopPath,
+            centerCol: holes[0].centerCol,
+            centerRow: holes[0].centerRow,
+            centerX: midCenterX,
+            centerY: midCenterY
         },
         extraTime: extraTime,
         schedule: schedule,
@@ -3110,7 +3197,7 @@ function startDualSupernovaBlackHole(snData, bhData) {
         landedImpacts: new Set()
     };
 
-    initBlackHoleParticles(bhData.centerX, bhData.centerY);
+    initBlackHoleParticles(midCenterX, midCenterY);
 
     if (statusBar) {
         statusBar.innerHTML = '<span class="status-place">•••••</span>';
@@ -3406,16 +3493,22 @@ function renderDualEventState(elapsed) {
         loopSpeed = Math.exp(k * dtSec);
     }
 
-    const getLoopCoord = (sVal) => {
-        const modS = ((sVal % N) + N) % N;
+    const getHoleLoopCoord = (holeData, sVal) => {
+        const lp = holeData.loopPath;
+        const lN = lp.length;
+        const modS = ((sVal % lN) + lN) % lN;
         const idx = Math.floor(modS);
         const sub = modS - idx;
-        const p0 = loopPath[idx];
-        const p1 = loopPath[(idx + 1) % N];
+        const p0 = lp[idx];
+        const p1 = lp[(idx + 1) % lN];
         return {
             col: p0.col + (p1.col - p0.col) * sub,
             row: p0.row + (p1.row - p0.row) * sub
         };
+    };
+    const getLoopCoord = (sVal, holeIdx = 0) => {
+        const targetHole = (deState.holes && deState.holes[holeIdx]) ? deState.holes[holeIdx] : bh;
+        return getHoleLoopCoord(targetHole, sVal);
     };
 
     // --- レンダリング開始 ---
@@ -3540,14 +3633,15 @@ function renderDualEventState(elapsed) {
         deState.placedBlocks.forEach(b => {
             if (b.isCollider) return;
             if (b.isLoopBlock) {
+                const hIdx = (b.loopIndex !== undefined && b.loopIndex >= 0) ? b.loopIndex : 0;
                 const s_b = loopS + b.loopOffset;
-                const curCoord = getLoopCoord(s_b);
+                const curCoord = getLoopCoord(s_b, hIdx);
 
                 if (elapsed >= T_HALF && loopSpeed > 3) {
                     const trailCount = Math.min(5, Math.floor(loopSpeed * 0.35));
                     for (let t = trailCount; t >= 1; t--) {
                         const trailS = s_b - t * Math.min(0.35, 1.2 / trailCount);
-                        const tc = getLoopCoord(trailS);
+                        const tc = getLoopCoord(trailS, hIdx);
                         ctx.save();
                         ctx.globalAlpha = 0.12 * (1 - t / (trailCount + 1));
                         drawMarioBlock(tc.col, tc.row);
@@ -3591,8 +3685,9 @@ function renderDualEventState(elapsed) {
             let drawRow = b.row;
 
             if (b.isLoopBlock) {
+                const hIdx = (b.loopIndex !== undefined && b.loopIndex >= 0) ? b.loopIndex : 0;
                 const s_b_freeze = loopSAtFreeze + b.loopOffset;
-                const curCoordAtFreeze = getLoopCoord(s_b_freeze);
+                const curCoordAtFreeze = getLoopCoord(s_b_freeze, hIdx);
                 drawCol = curCoordAtFreeze.col;
                 drawRow = curCoordAtFreeze.row;
             }
@@ -3614,7 +3709,20 @@ function renderDualEventState(elapsed) {
     }
 
     // 7. ブラックホール本体（ブロックの上に重なるように描画）
-    if (bhRadius > 0) {
+    if (deState.isMultiBH && deState.holes && deState.holes.length >= 2) {
+        const K = deState.holes.length;
+        const TM_MAPPED = (K <= 2) ? 4000 : 5800;
+        const TM_DUAL = 3300 + extraTime;
+        let mappedElapsed = 0;
+        if (elapsed >= BH_APPEAR_START && elapsed < TM_DUAL) {
+            mappedElapsed = 1000 + ((elapsed - BH_APPEAR_START) / (TM_DUAL - BH_APPEAR_START)) * (TM_MAPPED - 1000);
+        } else if (elapsed >= TM_DUAL) {
+            mappedElapsed = TM_MAPPED + (elapsed - TM_DUAL);
+        }
+        const COLLAPSE_START_MAPPED = TM_MAPPED + (5550 + extraTime - TM_DUAL);
+        const COLLAPSE_END_MAPPED = TM_MAPPED + (5950 + extraTime - TM_DUAL);
+        renderHierarchicalBinaryBlackHoles(ctx, mappedElapsed, deState.holes, bhX, bhY, 1000, TM_MAPPED, COLLAPSE_START_MAPPED, COLLAPSE_END_MAPPED);
+    } else if (bhRadius > 0) {
         const grad = ctx.createRadialGradient(bhX, bhY, bhRadius * 0.25, bhX, bhY, bhRadius * 2.3);
         grad.addColorStop(0, 'rgba(0, 0, 0, 1)');
         grad.addColorStop(0.35, 'rgba(88, 28, 135, 0.92)');
@@ -3906,11 +4014,7 @@ function renderDualEventState(elapsed) {
 
 // MARK: - Drawing Helpers
 function drawBackground() {
-    const g = ctx.createLinearGradient(0, 0, 0, TOTAL_H);
-    g.addColorStop(0, '#5c94fc');
-    g.addColorStop(1, '#8bbcff');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
+    // キャンバスの背景は透明にし、背後の空グラデーションと雲をそのまま透過表示する
 }
 
 function renderGroundSection(startX, width, topY) {
@@ -4486,8 +4590,42 @@ function drawPipe() {
 
 // Flag pole + goal block on right
 let goalPulse = 0;
+function drawGoalUpperWall(st) {
+    const wallTopY = GY;
+    const wallBottomY = GY + (st.goalRow - 1) * CELL;
+    if (wallBottomY <= wallTopY) return;
+
+    const wx = GX + COLS * CELL;
+    const ww = 7;
+    const wh = wallBottomY - wallTopY;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(71, 85, 105, 0.36)';
+    ctx.fillRect(wx, wallTopY, ww, wh);
+
+    // 左端の控えめなハイライトと外枠
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.fillRect(wx + 1, wallTopY + 1, 1.5, Math.max(0, wh - 2));
+
+    ctx.strokeStyle = 'rgba(51, 65, 85, 0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(wx, wallTopY, ww, wh);
+
+    // 1マス間隔のごく薄い目地線
+    ctx.beginPath();
+    for (let y = wallTopY + CELL; y < wallBottomY; y += CELL) {
+        ctx.moveTo(wx + 1, y);
+        ctx.lineTo(wx + ww - 1, y);
+    }
+    ctx.strokeStyle = 'rgba(51, 65, 85, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+}
+
 function drawGoal() {
     const st = getStage();
+    drawGoalUpperWall(st);
     goalPulse = (Date.now() % 1200) / 1200;
     const bx = GX + COLS * CELL;
     const by = GY + st.goalRow * CELL;
