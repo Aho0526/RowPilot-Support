@@ -3077,8 +3077,15 @@ const STAGES = [
         cells: [] // 5x5: { forbidden, dashDir, stepDir, switchData, lasers, purpleBorder, solution }
     };
 
+    function getBuilderArrowSvg(dir, size = 21, color = '#ffffff') {
+        const rotMap = { up: 0, right: 90, down: 180, left: 270 };
+        const deg = rotMap[dir] !== undefined ? rotMap[dir] : 0;
+        return `<svg class="builder-arrow-svg" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"><g transform="rotate(${deg} 12 12)"><path d="M 6.5 11 L 12 5.5 L 17.5 11 M 12 5.5 L 12 19.5" fill="none" stroke="${color}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;
+    }
+
     function resetBuilderCells() {
         builderState.selectedSwitchCell = null;
+        builderState.activeSwitchSlot = 0;
         builderState.cells = Array.from({ length: 5 }, () =>
             Array.from({ length: 5 }, () => ({
                 forbidden: false,
@@ -3096,7 +3103,10 @@ const STAGES = [
         const sel = builderState.selectedSwitchCell;
         if (!sel) return;
         const cell = builderState.cells[sel.row]?.[sel.col];
-        if (!cell || !cell.switchData) return;
+        if (!cell || !cell.switchData) {
+            builderState.selectedSwitchCell = null;
+            return;
+        }
         cell.switchData = {
             dirs: [...builderState.switchDirs],
             moveType: builderState.switchMoveType
@@ -3110,6 +3120,23 @@ const STAGES = [
         const moveBtns = document.getElementById('builder-switch-movetype-btns');
         const previewEl = document.getElementById('builder-switch-preview');
         const slotLabelEl = document.getElementById('builder-switch-slot-label');
+        const targetLabelEl = document.getElementById('builder-switch-target-label');
+        const btnDeselect = document.getElementById('btn-switch-deselect');
+        const btnDelete = document.getElementById('btn-switch-delete');
+
+        const sel = builderState.selectedSwitchCell;
+        const selCell = sel ? builderState.cells[sel.row]?.[sel.col] : null;
+        const hasValidSel = Boolean(sel && selCell && selCell.switchData);
+        if (sel && !hasValidSel) {
+            builderState.selectedSwitchCell = null;
+        }
+        if (targetLabelEl) {
+            targetLabelEl.textContent = hasValidSel
+                ? `編集中のスイッチ: マス (${sel.col}, ${sel.row})`
+                : '新規配置設定（盤面クリックで配置）';
+        }
+        if (btnDeselect) btnDeselect.style.display = hasValidSel ? 'inline-flex' : 'none';
+        if (btnDelete) btnDelete.style.display = hasValidSel ? 'inline-flex' : 'none';
 
         const dirs = builderState.switchDirs;
         if (builderState.activeSwitchSlot >= dirs.length) {
@@ -3136,8 +3163,6 @@ const STAGES = [
             });
         }
         if (previewEl) {
-            const iconMap = { up: '↑', right: '→', down: '↓', left: '←' };
-            const cwNext = { up: 'right', right: 'down', down: 'left', left: 'up' };
             previewEl.innerHTML = '';
             dirs.forEach((d, idx) => {
                 if (idx > 0) {
@@ -3149,24 +3174,108 @@ const STAGES = [
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'preview-slot-btn' + (idx === builderState.activeSwitchSlot ? ' is-selected' : '');
-                btn.title = `${idx + 1}番目の向きを変更（クリックで選択・回転）`;
-                btn.innerHTML = `<span class="slot-num">${idx + 1}</span><span class="slot-arrow">${iconMap[d] || '→'}</span>`;
+                btn.title = `${idx + 1}番目の向きを選択`;
+                btn.innerHTML = `<span class="slot-num">${idx + 1}</span><span class="slot-arrow">${getBuilderArrowSvg(d, 14, 'currentColor')}</span>`;
                 btn.addEventListener('click', () => {
-                    if (builderState.activeSwitchSlot === idx) {
-                        builderState.switchDirs[idx] = cwNext[d] || 'right';
-                        syncSelectedSwitchCellFromPanel();
-                    } else {
-                        builderState.activeSwitchSlot = idx;
-                    }
+                    builderState.activeSwitchSlot = idx;
                     updateSwitchOptionUI();
                 });
                 previewEl.appendChild(btn);
             });
-            const loop = document.createElement('span');
-            loop.className = 'preview-loop';
-            loop.textContent = '↻';
-            previewEl.appendChild(loop);
         }
+    }
+
+    const builderHistory = { undo: [], redo: [] };
+
+    function cloneBuilderSnapshot() {
+        return {
+            cells: builderState.cells.map(row => row.map(cell => ({
+                forbidden: Boolean(cell.forbidden),
+                dashDir: cell.dashDir || null,
+                stepDir: cell.stepDir || null,
+                switchData: cell.switchData
+                    ? { dirs: [...cell.switchData.dirs], moveType: cell.switchData.moveType }
+                    : null,
+                lasers: Array.isArray(cell.lasers) ? [...cell.lasers] : [],
+                purpleBorder: Boolean(cell.purpleBorder),
+                solution: Boolean(cell.solution)
+            }))),
+            startRow: builderState.startRow,
+            goalRow: builderState.goalRow,
+            hasCeiling: Boolean(builderState.hasCeiling),
+            switchDirs: [...builderState.switchDirs],
+            activeSwitchSlot: builderState.activeSwitchSlot,
+            switchMoveType: builderState.switchMoveType,
+            selectedSwitchCell: builderState.selectedSwitchCell ? { ...builderState.selectedSwitchCell } : null
+        };
+    }
+
+    function restoreBuilderSnapshot(snap) {
+        if (!snap) return;
+        builderState.cells = snap.cells.map(row => row.map(cell => ({
+            forbidden: cell.forbidden,
+            dashDir: cell.dashDir,
+            stepDir: cell.stepDir,
+            switchData: cell.switchData
+                ? { dirs: [...cell.switchData.dirs], moveType: cell.switchData.moveType }
+                : null,
+            lasers: [...cell.lasers],
+            purpleBorder: cell.purpleBorder,
+            solution: cell.solution
+        })));
+        builderState.startRow = snap.startRow;
+        builderState.goalRow = snap.goalRow;
+        builderState.hasCeiling = snap.hasCeiling;
+        builderState.switchDirs = [...snap.switchDirs];
+        builderState.activeSwitchSlot = snap.activeSwitchSlot;
+        builderState.switchMoveType = snap.switchMoveType;
+        builderState.selectedSwitchCell = snap.selectedSwitchCell ? { ...snap.selectedSwitchCell } : null;
+        updateBuilderToolOptionPanels();
+        renderBuilderBoard();
+    }
+
+    function updateBuilderUndoButtons() {
+        const undoBtn = document.getElementById('btn-builder-undo');
+        const redoBtn = document.getElementById('btn-builder-redo');
+        if (undoBtn) undoBtn.disabled = builderHistory.undo.length === 0;
+        if (redoBtn) redoBtn.disabled = builderHistory.redo.length === 0;
+    }
+
+    function pushBuilderUndo() {
+        builderHistory.undo.push(cloneBuilderSnapshot());
+        if (builderHistory.undo.length > 50) builderHistory.undo.shift();
+        builderHistory.redo = [];
+        updateBuilderUndoButtons();
+    }
+
+    function clearBuilderHistory() {
+        builderHistory.undo = [];
+        builderHistory.redo = [];
+        updateBuilderUndoButtons();
+    }
+
+    function performBuilderUndo() {
+        if (builderHistory.undo.length === 0) return;
+        builderHistory.redo.push(cloneBuilderSnapshot());
+        const prev = builderHistory.undo.pop();
+        restoreBuilderSnapshot(prev);
+        updateBuilderUndoButtons();
+    }
+
+    function performBuilderRedo() {
+        if (builderHistory.redo.length === 0) return;
+        builderHistory.undo.push(cloneBuilderSnapshot());
+        const next = builderHistory.redo.pop();
+        restoreBuilderSnapshot(next);
+        updateBuilderUndoButtons();
+    }
+
+    function updateBuilderToolOptionPanels() {
+        const swOpts = document.getElementById('builder-switch-options');
+        const lzOpts = document.getElementById('builder-laser-options');
+        if (swOpts) swOpts.style.display = builderState.activeTool === 'switch' ? 'flex' : 'none';
+        if (lzOpts) lzOpts.style.display = builderState.activeTool === 'laser' ? 'flex' : 'none';
+        if (builderState.activeTool === 'switch') updateSwitchOptionUI();
     }
 
     function initStageBuilderModal() {
@@ -3197,26 +3306,65 @@ const STAGES = [
         }
 
         window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && overlay && overlay.classList.contains('is-open')) {
+            if (!overlay || !overlay.classList.contains('is-open')) return;
+            if (e.key === 'Escape') {
                 closeBuilder();
+                return;
+            }
+            const activeTag = document.activeElement?.tagName;
+            const isTextField = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
+            if (isTextField) return;
+            const isMod = e.ctrlKey || e.metaKey;
+            if (isMod && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                if (e.shiftKey) performBuilderRedo();
+                else performBuilderUndo();
+            } else if (isMod && e.key.toLowerCase() === 'y') {
+                e.preventDefault();
+                performBuilderRedo();
             }
         });
 
-        function updateBuilderToolOptionPanels() {
-            const swOpts = document.getElementById('builder-switch-options');
-            const lzOpts = document.getElementById('builder-laser-options');
-            if (swOpts) swOpts.style.display = builderState.activeTool === 'switch' ? 'flex' : 'none';
-            if (lzOpts) lzOpts.style.display = builderState.activeTool === 'laser' ? 'flex' : 'none';
-            if (builderState.activeTool === 'switch') updateSwitchOptionUI();
-        }
+        const btnBuilderUndo = document.getElementById('btn-builder-undo');
+        const btnBuilderRedo = document.getElementById('btn-builder-redo');
+        if (btnBuilderUndo) btnBuilderUndo.addEventListener('click', performBuilderUndo);
+        if (btnBuilderRedo) btnBuilderRedo.addEventListener('click', performBuilderRedo);
 
         if (paletteGrid) {
             paletteGrid.querySelectorAll('.palette-tool-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    builderState.activeTool = btn.getAttribute('data-tool') || 'solution';
+                    const nextTool = btn.getAttribute('data-tool') || 'solution';
+                    builderState.activeTool = nextTool;
+                    if (nextTool !== 'switch' && builderState.selectedSwitchCell) {
+                        builderState.selectedSwitchCell = null;
+                        renderBuilderBoard();
+                    }
                     paletteGrid.querySelectorAll('.palette-tool-btn').forEach(b => b.classList.toggle('active', b === btn));
                     updateBuilderToolOptionPanels();
                 });
+            });
+        }
+
+        const btnSwitchDeselect = document.getElementById('btn-switch-deselect');
+        if (btnSwitchDeselect) {
+            btnSwitchDeselect.addEventListener('click', () => {
+                builderState.selectedSwitchCell = null;
+                updateSwitchOptionUI();
+                renderBuilderBoard();
+            });
+        }
+
+        const btnSwitchDelete = document.getElementById('btn-switch-delete');
+        if (btnSwitchDelete) {
+            btnSwitchDelete.addEventListener('click', () => {
+                const sel = builderState.selectedSwitchCell;
+                if (sel && builderState.cells[sel.row]?.[sel.col]?.switchData) {
+                    pushBuilderUndo();
+                    builderState.cells[sel.row][sel.col].switchData = null;
+                }
+                builderState.selectedSwitchCell = null;
+                updateSwitchOptionUI();
+                renderBuilderBoard();
             });
         }
 
@@ -3226,8 +3374,10 @@ const STAGES = [
                 btn.addEventListener('click', () => {
                     const dir = btn.getAttribute('data-dir') || 'right';
                     const slot = builderState.activeSwitchSlot;
+                    if (builderState.selectedSwitchCell && builderState.switchDirs[slot] !== dir) {
+                        pushBuilderUndo();
+                    }
                     builderState.switchDirs[slot] = dir;
-                    builderState.activeSwitchSlot = (slot + 1) % builderState.switchDirs.length;
                     updateSwitchOptionUI();
                     syncSelectedSwitchCellFromPanel();
                 });
@@ -3239,6 +3389,9 @@ const STAGES = [
             swCountBtns.querySelectorAll('.builder-seg-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const newCount = Math.max(2, Math.min(4, parseInt(btn.getAttribute('data-count'), 10) || 2));
+                    if (builderState.selectedSwitchCell && builderState.switchDirs.length !== newCount) {
+                        pushBuilderUndo();
+                    }
                     const cwNext = { right: 'down', down: 'left', left: 'up', up: 'right' };
                     while (builderState.switchDirs.length < newCount) {
                         const last = builderState.switchDirs[builderState.switchDirs.length - 1] || 'right';
@@ -3260,7 +3413,11 @@ const STAGES = [
         if (swMoveBtns) {
             swMoveBtns.querySelectorAll('.builder-seg-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    builderState.switchMoveType = btn.getAttribute('data-movetype') === 'dash' ? 'dash' : 'step';
+                    const nextType = btn.getAttribute('data-movetype') === 'dash' ? 'dash' : 'step';
+                    if (builderState.selectedSwitchCell && builderState.switchMoveType !== nextType) {
+                        pushBuilderUndo();
+                    }
+                    builderState.switchMoveType = nextType;
                     updateSwitchOptionUI();
                     syncSelectedSwitchCellFromPanel();
                 });
@@ -3286,6 +3443,7 @@ const STAGES = [
 
         if (ceilingBar) {
             ceilingBar.addEventListener('click', () => {
+                pushBuilderUndo();
                 builderState.hasCeiling = !builderState.hasCeiling;
                 renderBuilderBoard();
             });
@@ -3293,7 +3451,9 @@ const STAGES = [
 
         if (btnClearBoard) {
             btnClearBoard.addEventListener('click', () => {
+                pushBuilderUndo();
                 resetBuilderCells();
+                updateBuilderToolOptionPanels();
                 renderBuilderBoard();
             });
         }
@@ -3344,6 +3504,7 @@ const STAGES = [
     function loadStageIntoBuilder(indexOrNew) {
         const parsed = parseStagesSafely() || [];
         resetBuilderCells();
+        clearBuilderHistory();
 
         const stageSelect = document.getElementById('builder-stage-select');
         if (indexOrNew === 'new' || parsed.length === 0) {
@@ -3389,9 +3550,13 @@ const STAGES = [
                         if (g.type === 'dash') cell.dashDir = g.dir || 'right';
                         else if (g.type === 'step') cell.stepDir = g.dir || 'up';
                         else if (g.type === 'switch') {
+                            const validDirs = ['up', 'right', 'down', 'left'];
+                            const customDirs = Array.isArray(g.dirs)
+                                ? g.dirs.slice(0, 4).filter(d => validDirs.includes(d))
+                                : [];
                             let dirs;
-                            if (Array.isArray(g.dirs) && g.dirs.length >= 2) {
-                                dirs = g.dirs.slice(0, 4);
+                            if (customDirs.length >= 2) {
+                                dirs = customDirs;
                             } else {
                                 const cw = ['right', 'down', 'left', 'up'];
                                 const startIdx = Math.max(0, cw.indexOf(g.dir || 'right'));
@@ -3437,6 +3602,7 @@ const STAGES = [
         if (titleInput) titleInput.value = builderState.title;
         if (subInput) subInput.value = builderState.subtitle;
 
+        updateBuilderToolOptionPanels();
         renderBuilderBoard();
     }
 
@@ -3444,6 +3610,15 @@ const STAGES = [
         const cell = builderState.cells[row][col];
         const tool = builderState.activeTool;
         const nextArrowDir = { up: 'right', right: 'down', down: 'left', left: 'up' };
+
+        const isPureSwitchSelect = tool === 'switch' && cell.switchData && !(
+            builderState.selectedSwitchCell &&
+            builderState.selectedSwitchCell.row === row &&
+            builderState.selectedSwitchCell.col === col
+        );
+        if (!isPureSwitchSelect) {
+            pushBuilderUndo();
+        }
 
         if (tool === 'erase') {
             cell.forbidden = false;
@@ -3509,6 +3684,7 @@ const STAGES = [
                     moveType: builderState.switchMoveType
                 };
                 builderState.selectedSwitchCell = { row, col };
+                updateSwitchOptionUI();
             }
             cell.dashDir = null;
             cell.stepDir = null;
@@ -3550,6 +3726,7 @@ const STAGES = [
                 btn.className = 'builder-row-slot' + (builderState.startRow === r ? ' is-start' : '');
                 btn.innerHTML = builderState.startRow === r ? `<span>START</span><span>row:${r}</span>` : `<span>row:${r}</span>`;
                 btn.addEventListener('click', () => {
+                    if (builderState.startRow !== r) pushBuilderUndo();
                     builderState.startRow = r;
                     renderBuilderBoard();
                 });
@@ -3565,6 +3742,7 @@ const STAGES = [
                 btn.className = 'builder-row-slot' + (builderState.goalRow === r ? ' is-goal' : '');
                 btn.innerHTML = builderState.goalRow === r ? `<span>GOAL</span><span>row:${r}</span>` : `<span>row:${r}</span>`;
                 btn.addEventListener('click', () => {
+                    if (builderState.goalRow !== r) pushBuilderUndo();
                     builderState.goalRow = r;
                     renderBuilderBoard();
                 });
@@ -3572,11 +3750,6 @@ const STAGES = [
             }
         }
 
-        function getBuilderArrowSvg(dir, size = 21) {
-            const rotMap = { up: 0, right: 90, down: 180, left: 270 };
-            const deg = rotMap[dir] !== undefined ? rotMap[dir] : 0;
-            return `<svg class="builder-arrow-svg" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"><g transform="rotate(${deg} 12 12)"><path d="M 6.5 11 L 12 5.5 L 17.5 11 M 12 5.5 L 12 19.5" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;
-        }
         let solCount = 0;
 
         if (gridEl) {
@@ -3588,18 +3761,27 @@ const STAGES = [
 
                     const cellEl = document.createElement('div');
                     let cls = 'builder-cell';
+                    const isSelectedSwitch = Boolean(
+                        cellData.switchData &&
+                        builderState.selectedSwitchCell &&
+                        builderState.selectedSwitchCell.row === r &&
+                        builderState.selectedSwitchCell.col === c
+                    );
                     if (cellData.forbidden) cls += ' is-forbidden';
                     if (cellData.dashDir) cls += ' is-dash';
                     if (cellData.stepDir) cls += ' is-step';
                     if (cellData.switchData) {
                         cls += ' is-switch';
-                        cls += cellData.switchData.moveType === 'dash' ? ' is-dash' : ' is-step';
+                        if (isSelectedSwitch) cls += ' is-switch-selected';
                     }
                     if (cellData.purpleBorder) cls += ' is-purple';
                     cellEl.className = cls;
 
                     const arrowDir = cellData.dashDir || cellData.stepDir || (cellData.switchData ? cellData.switchData.dirs[0] : null);
-                    const arrowSvg = arrowDir ? getBuilderArrowSvg(arrowDir, 21) : '';
+                    const arrowColor = cellData.switchData
+                        ? (cellData.switchData.moveType === 'dash' ? '#22d3ee' : '#4ade80')
+                        : '#ffffff';
+                    const arrowSvg = arrowDir ? getBuilderArrowSvg(arrowDir, 21, arrowColor) : '';
                     const dirIconMap = { up: '↑', right: '→', down: '↓', left: '←' };
                     const switchBadge = cellData.switchData
                         ? `<span class="builder-cell-switch-badge" title="${cellData.switchData.dirs.map(d => dirIconMap[d] || d).join(' → ')}">${cellData.switchData.dirs.length}</span>`
@@ -3692,7 +3874,7 @@ const STAGES = [
             legendsList.push(`{ icon: '→', type: 'step', text: '緑矢印：矢印方向に1マス移動' }`);
         }
         if (usedLegendTypes.has('switch')) {
-            legendsList.push(`{ icon: '🔄', type: 'switch', text: '黄枠：ブロックが通るたびに時計回りに向き切替' }`);
+            legendsList.push(`{ icon: '↻', type: 'switch', text: '黄枠：ブロックが通るたびに向き切替' }`);
         }
         if (usedLegendTypes.has('laser')) {
             legendsList.push(`{ icon: '⚡', type: 'laser', text: 'レーザー：スタートで発射（ブロックで遮断可能）' }`);

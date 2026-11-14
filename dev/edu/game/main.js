@@ -393,7 +393,9 @@ function simulateGimmickBlockMoves() {
         const sw = simSwitches.get(key);
         if (!sw) return null;
         const activeDir = sw.seq[sw.index];
-        sw.index = (sw.index + 1) % sw.seq.length;
+        if (sw.index < sw.seq.length - 1) {
+            sw.index++;
+        }
         const nextDir = sw.seq[sw.index];
         switchEvents.push({ tick, col, row, index: sw.index, dir: nextDir });
         return { dir: activeDir, mode: sw.moveType, steps: sw.steps };
@@ -5486,6 +5488,17 @@ function applySolutionToGrid() {
 // MARK: - Main Render
 function render() {
     ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
+
+    // レーザー被弾演出時のカメラズーム適用
+    const now = performance.now();
+    const cam = (phase === 'laser_death') ? getLaserDeathCamera(now) : null;
+    ctx.save();
+    if (cam && cam.zoom > 1.001) {
+        ctx.translate(TOTAL_W / 2, TOTAL_H / 2);
+        ctx.scale(cam.zoom, cam.zoom);
+        ctx.translate(-cam.camX, -cam.camY);
+    }
+
     drawBackground();
     drawGround();
 
@@ -5513,7 +5526,6 @@ function render() {
     drawSolutionOverlay();
 
     // Draw placed blocks
-    const now = performance.now();
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (grid[r][c]) {
@@ -5554,16 +5566,24 @@ function render() {
         }
     }
 
-    // Draw lasers (起動中のみビーム描画、本体は常に描画)
-    drawLasers(phase !== 'place', grid);
+    // Draw lasers (起動中のみビーム描画、レーザー被弾ズーム中はビームを消す)
+    drawLasers(phase !== 'place' && phase !== 'laser_death', grid);
 
-    // Draw pipe & goal
+    // Draw pipe & goal (土管から出てくる演出中は土管の後ろに描画)
+    const pipeEmerging = (phase === 'laser_death') && isLaserDeathPipeEmerging(now);
+    if (pipeEmerging) {
+        drawLaserDeathEffect(now);
+    }
     drawPipe();
     drawGoal();
 
     // Draw character or respawn animation
     if (phase === 'respawning') {
         drawRespawnTrail(now);
+    } else if (phase === 'laser_death') {
+        if (!pipeEmerging) {
+            drawLaserDeathEffect(now);
+        }
     } else if (phase === 'place') {
         drawStickman(-1.5, st.startRow);
     } else {
@@ -5572,6 +5592,7 @@ function render() {
 
     // Draw particles (土煙・スターバースト等)
     updateAndDrawParticles(ctx);
+    ctx.restore();
 }
 
 // MARK: - Route Solver & Simulation (Character moves rightward)
@@ -5714,12 +5735,20 @@ function applyLaserCollisionsToKeyframes(keyframes) {
     const rawBeams = computeLaserBeams(grid);
     const activeBeams = rawBeams
         .filter(b => Math.hypot(b.endX - b.startX, b.endY - b.startY) >= 1)
-        .map(b => ({
-            minX: Math.min(b.startX, b.endX) - 2,
-            maxX: Math.max(b.startX, b.endX) + 2,
-            minY: Math.min(b.startY, b.endY) - 2,
-            maxY: Math.max(b.startY, b.endY) + 2
-        }));
+        .map(b => {
+            const dx = Math.abs(b.endX - b.startX);
+            const dy = Math.abs(b.endY - b.startY);
+            const orientation = dx >= dy ? 'horizontal' : 'vertical';
+            return {
+                minX: Math.min(b.startX, b.endX) - 2,
+                maxX: Math.max(b.startX, b.endX) + 2,
+                minY: Math.min(b.startY, b.endY) - 2,
+                maxY: Math.max(b.startY, b.endY) + 2,
+                orientation,
+                beamX: (b.startX + b.endX) / 2,
+                beamY: (b.startY + b.endY) / 2
+            };
+        });
     if (activeBeams.length === 0 || keyframes.length < 2) return keyframes;
 
     const SUB_STEPS = 24;
@@ -5741,16 +5770,21 @@ function applyLaserCollisionsToKeyframes(keyframes) {
             const charTop = pyBot - 40;
             const charBot = pyBot - 2;
 
-            const hit = activeBeams.some(b =>
+            const hitBeam = activeBeams.find(b =>
                 charRight >= b.minX && charLeft <= b.maxX &&
                 charBot >= b.minY && charTop <= b.maxY
             );
-            if (hit) {
+            if (hitBeam) {
+                const laserHit = {
+                    orientation: hitBeam.orientation,
+                    cutX: hitBeam.orientation === 'vertical' ? hitBeam.beamX : px,
+                    cutY: hitBeam.orientation === 'horizontal' ? hitBeam.beamY : (charTop + charBot) / 2
+                };
                 const truncated = keyframes.slice(0, i + 1);
                 if (s > 0) {
-                    truncated.push({ x, y, type: 'fail', time });
+                    truncated.push({ x, y, type: 'fail', time, laserHit });
                 } else {
-                    truncated[truncated.length - 1] = { ...truncated[truncated.length - 1], type: 'fail' };
+                    truncated[truncated.length - 1] = { ...truncated[truncated.length - 1], type: 'fail', laserHit };
                 }
                 return truncated;
             }
@@ -5807,6 +5841,8 @@ function step(ts) {
             spawnGoalSparkles(man.x, man.y);
             render();
             showClear();
+        } else if (prevKf.laserHit) {
+            triggerLaserDeathAnimation(man.x, man.y, prevKf.laserHit);
         } else {
             // ミス時：即座に「ｼｭｩｲｰﾝ」演出を開始してスタート位置へスムーズに戻る
             triggerRespawnAnimation(man.x, man.y);
@@ -5844,6 +5880,250 @@ function animate() {
 
 // MARK: - Respawn Animation ("ｼｭｩｲｰﾝ" スムーズリスポーン)
 let respawnEffect = null;
+let laserDeathEffect = null;
+
+function getLaserDeathCamera(now) {
+    if (!laserDeathEffect) return { zoom: 1, camX: TOTAL_W / 2, camY: TOTAL_H / 2 };
+    const eff = laserDeathEffect;
+    const elapsed = now - eff.startTime;
+    const maxZoom = 2.4;
+
+    const zoomEnd = eff.zoomDuration;
+    const holdEnd = eff.zoomDuration + eff.cutDuration + eff.pauseDuration + eff.fadeDuration;
+    const zoomOutEnd = holdEnd + eff.zoomOutDuration;
+
+    let zoom = 1;
+    if (elapsed < zoomEnd) {
+        const p = Math.max(0, elapsed / eff.zoomDuration);
+        const ease = 1 - Math.pow(1 - p, 3);
+        zoom = 1 + (maxZoom - 1) * ease;
+    } else if (elapsed < holdEnd) {
+        zoom = maxZoom;
+    } else if (elapsed < zoomOutEnd) {
+        const p = (elapsed - holdEnd) / eff.zoomOutDuration;
+        const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        zoom = maxZoom - (maxZoom - 1) * ease;
+    }
+
+    const focusX = eff.cx;
+    const focusY = eff.bot - 20;
+    const halfW = TOTAL_W / (2 * zoom);
+    const halfH = TOTAL_H / (2 * zoom);
+    const camX = Math.max(halfW, Math.min(TOTAL_W - halfW, focusX));
+    const camY = Math.max(halfH, Math.min(TOTAL_H - halfH, focusY));
+    return { zoom, camX, camY };
+}
+
+function isLaserDeathPipeEmerging(now) {
+    if (!laserDeathEffect) return false;
+    const eff = laserDeathEffect;
+    const elapsed = now - eff.startTime;
+    const emergeStart = eff.zoomDuration + eff.cutDuration + eff.pauseDuration + eff.fadeDuration + eff.zoomOutDuration;
+    return elapsed >= emergeStart && elapsed < emergeStart + eff.emergeDuration;
+}
+
+function triggerLaserDeathAnimation(failX, failY, laserHit) {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    phase = 'laser_death';
+    startBtn.disabled = true;
+    statusBar.innerHTML = '<span class="status-fail">レーザーに当たった！ リトライ</span>';
+
+    const startTime = performance.now();
+    const cx = GX + (failX + 0.5) * CELL;
+    const bot = GY + (failY + 1) * CELL;
+    const orientation = (laserHit && laserHit.orientation) || 'horizontal';
+    const rawCutX = (laserHit && typeof laserHit.cutX === 'number') ? laserHit.cutX : cx;
+    const rawCutY = (laserHit && typeof laserHit.cutY === 'number') ? laserHit.cutY : bot - 20;
+    const cutX = Math.max(cx - 8, Math.min(cx + 8, rawCutX));
+    const cutY = Math.max(bot - 36, Math.min(bot - 4, rawCutY));
+
+    laserDeathEffect = {
+        failX,
+        failY,
+        cx,
+        bot,
+        walkCycle: man.walkCycle || 0,
+        isJump: man.state === 'jump' || man.state === 'fall',
+        orientation,
+        cutX,
+        cutY,
+        startTime,
+        zoomDuration: 380,
+        cutDuration: 560,
+        pauseDuration: 500,
+        fadeDuration: 520,
+        zoomOutDuration: 300,
+        emergeDuration: 420,
+        hopDuration: 240
+    };
+
+    function laserDeathLoop(now) {
+        if (phase !== 'laser_death' || !laserDeathEffect) return;
+
+        const eff = laserDeathEffect;
+        const elapsed = now - eff.startTime;
+        const totalDuration =
+            eff.zoomDuration +
+            eff.cutDuration +
+            eff.pauseDuration +
+            eff.fadeDuration +
+            eff.zoomOutDuration +
+            eff.emergeDuration +
+            eff.hopDuration;
+
+        render();
+
+        if (elapsed < totalDuration) {
+            requestAnimationFrame(laserDeathLoop);
+        } else {
+            completeRespawn();
+        }
+    }
+
+    requestAnimationFrame(laserDeathLoop);
+}
+
+function drawSplitCharacterHalves(eff, fallP, bodyAlpha) {
+    if (bodyAlpha <= 0.01) return;
+
+    const easeFall = 1 - Math.pow(1 - fallP, 2);
+    const gravityP = fallP * fallP;
+
+    if (eff.orientation === 'horizontal') {
+        // 下半身（足）はその場に立ったまま残る
+        ctx.save();
+        ctx.globalAlpha = bodyAlpha;
+        ctx.beginPath();
+        ctx.rect(0, eff.cutY, TOTAL_W, TOTAL_H - eff.cutY);
+        ctx.clip();
+        renderStickmanToContext(ctx, eff.cx, eff.bot, eff.walkCycle, eff.isJump);
+        ctx.restore();
+
+        // 切り離された上半身がズレながら下へ落下して傾く
+        const dropDist = Math.max(12, eff.bot - eff.cutY - 4);
+        const dx = easeFall * 7;
+        const dy = gravityP * dropDist;
+        const rot = easeFall * 0.42;
+
+        ctx.save();
+        ctx.globalAlpha = bodyAlpha;
+        ctx.translate(dx, dy);
+        ctx.translate(eff.cx, eff.cutY);
+        ctx.rotate(rot);
+        ctx.translate(-eff.cx, -eff.cutY);
+        ctx.beginPath();
+        ctx.rect(0, 0, TOTAL_W, eff.cutY);
+        ctx.clip();
+        renderStickmanToContext(ctx, eff.cx, eff.bot, eff.walkCycle, eff.isJump);
+        ctx.restore();
+    } else {
+        // 縦レーザー：左半分はその場に残り、切り離された右半分がズレながら下へ崩れ落ちる
+        ctx.save();
+        ctx.globalAlpha = bodyAlpha;
+        ctx.beginPath();
+        ctx.rect(0, 0, eff.cutX, TOTAL_H);
+        ctx.clip();
+        renderStickmanToContext(ctx, eff.cx, eff.bot, eff.walkCycle, eff.isJump);
+        ctx.restore();
+
+        const dx = easeFall * 9;
+        const dy = gravityP * 14;
+        const rot = easeFall * 0.45;
+
+        ctx.save();
+        ctx.globalAlpha = bodyAlpha;
+        ctx.translate(dx, dy);
+        ctx.translate(eff.cutX, eff.bot - 12);
+        ctx.rotate(rot);
+        ctx.translate(-eff.cutX, -(eff.bot - 12));
+        ctx.beginPath();
+        ctx.rect(eff.cutX, 0, TOTAL_W - eff.cutX, TOTAL_H);
+        ctx.clip();
+        renderStickmanToContext(ctx, eff.cx, eff.bot, eff.walkCycle, eff.isJump);
+        ctx.restore();
+    }
+}
+
+function drawLaserDeathEffect(now) {
+    if (!laserDeathEffect) return;
+    const eff = laserDeathEffect;
+    const elapsed = now - eff.startTime;
+
+    const cutStart = eff.zoomDuration;
+    const pauseStart = cutStart + eff.cutDuration;
+    const fadeStart = pauseStart + eff.pauseDuration;
+    const fadeEnd = fadeStart + eff.fadeDuration;
+    const zoomOutEnd = fadeEnd + eff.zoomOutDuration;
+    const emergeEnd = zoomOutEnd + eff.emergeDuration;
+
+    ctx.save();
+
+    if (elapsed < cutStart) {
+        // ズームイン中：切れる直前のキャラクターを描画
+        renderStickmanToContext(ctx, eff.cx, eff.bot, eff.walkCycle, eff.isJump);
+    } else if (elapsed < pauseStart) {
+        // スパッと切れて切り離された部分が落下
+        const cutElapsed = elapsed - cutStart;
+        const fallP = Math.min(1, cutElapsed / (eff.cutDuration * 0.82));
+        drawSplitCharacterHalves(eff, fallP, 1.0);
+
+        // 切断の瞬間の閃光一閃
+        const flashDuration = 180;
+        if (cutElapsed < flashDuration) {
+            const flashAlpha = 1 - cutElapsed / flashDuration;
+            ctx.save();
+            ctx.globalAlpha = flashAlpha;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2.2;
+            ctx.shadowColor = '#ef4444';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            if (eff.orientation === 'horizontal') {
+                ctx.moveTo(eff.cx - 22, eff.cutY);
+                ctx.lineTo(eff.cx + 22, eff.cutY);
+            } else {
+                ctx.moveTo(eff.cutX, eff.bot - 46);
+                ctx.lineTo(eff.cutX, eff.bot + 4);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+    } else if (elapsed < fadeStart) {
+        // 落下後、0.5秒待機
+        drawSplitCharacterHalves(eff, 1.0, 1.0);
+    } else if (elapsed < fadeEnd) {
+        // 落下した状態でそのままフワーッと消える
+        const fadeP = Math.min(1, (elapsed - fadeStart) / eff.fadeDuration);
+        const bodyAlpha = Math.max(0, 1 - Math.pow(fadeP, 0.85));
+        drawSplitCharacterHalves(eff, 1.0, bodyAlpha);
+    } else if (elapsed >= zoomOutEnd) {
+        // ズームアウト後、土管から出てきてスタート位置へ着地
+        const st = getStage();
+        const pipeCx = GX - 78 + 30;
+        const pipeTopY = GY + st.startRow * CELL + 2;
+        const startCx = GX + (-1.5 + 0.5) * CELL;
+        const startBot = GY + (st.startRow + 1) * CELL;
+
+        if (elapsed < emergeEnd) {
+            const ep = Math.min(1, (elapsed - zoomOutEnd) / eff.emergeDuration);
+            const ease = 1 - Math.pow(1 - ep, 3);
+            const botY = pipeTopY + 42 - ease * 40;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, TOTAL_W, pipeTopY + 2);
+            ctx.clip();
+            renderStickmanToContext(ctx, pipeCx, botY, 0, false);
+            ctx.restore();
+        } else {
+            const hp = Math.min(1, (elapsed - emergeEnd) / eff.hopDuration);
+            const curX = pipeCx + (startCx - pipeCx) * hp;
+            const curBot = (pipeTopY + 2) + (startBot - (pipeTopY + 2)) * hp - Math.sin(hp * Math.PI) * 16;
+            renderStickmanToContext(ctx, curX, curBot, 0, true);
+        }
+    }
+
+    ctx.restore();
+}
 
 function triggerRespawnAnimation(failX, failY) {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
@@ -5927,6 +6207,7 @@ function triggerRespawnAnimation(failX, failY) {
 
 function completeRespawn() {
     respawnEffect = null;
+    laserDeathEffect = null;
 
     // スタート前のブロック配置を自動復元
     if (originalGrid) {
@@ -6834,6 +7115,7 @@ window.addEventListener('DOMContentLoaded', () => {
         slidingBlocks = [];
         blockAnimationRounds = [];
         currentRoundIndex = 0;
+        laserDeathEffect = null;
         pendingSupernova = null;
         supernovaState = null;
         pendingBlackHole = null;

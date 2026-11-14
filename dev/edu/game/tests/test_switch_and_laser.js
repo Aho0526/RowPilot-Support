@@ -79,16 +79,84 @@ function setGrid(sb, coords) {
     }]);
     sb.resetSwitchStates();
     // ブロック1は(1,2)から'right'で(2,2)へ。その後スイッチは'down'になる。
-    // ブロック2は(0,2)から'right'で(1,2)へ進み、'down'を受け取って(1,3)へ。スイッチは'right'に戻る。
+    // ブロック2は(0,2)から'right'で(1,2)へ進み、'down'を受け取って(1,3)へ。スイッチは2回目の'down'のまま固定される。
     setGrid(sb, [[1, 2], [0, 2]]);
     const res = sb.simulateGimmickBlockMoves();
     assert.strictEqual(res.finalGrid[2][2], true, '1つ目のブロックがrightで(2,2)に移動すること');
     assert.strictEqual(res.finalGrid[3][1], true, '2つ目のブロックが切り替わったdownで(1,3)に移動すること');
-    assert.strictEqual(res.finalSwitchDirs.get('1,2'), 'right', '2回通過後に2方向スイッチが初期向きrightに戻ること');
+    assert.strictEqual(res.finalSwitchDirs.get('1,2'), 'down', '2回通過後に2方向スイッチが2回目の向きdownで固定されること');
 
     // リセット時は初期向きに戻ること
     sb.resetSwitchStates();
     assert.strictEqual(sb.getEffectiveGimmickDir({ col: 1, row: 2, type: 'switch', dir: 'right', switchCount: 2 }), 'right');
+}
+
+// ==========================================
+// 1c. スイッチブロック: 3方向で3回通過後に3回目の方向で固定されること
+// ==========================================
+{
+    const sb = createSandbox([{
+        id: 1013,
+        title: 'Switch 3dir Clamp',
+        subtitle: '',
+        maxBlocks: 6,
+        startRow: 4,
+        goalRow: 4,
+        forbidden: [],
+        gimmicks: [
+            { col: 2, row: 2, type: 'switch', dirs: ['up', 'right', 'down'], moveType: 'step' },
+            { col: 1, row: 2, type: 'step', dir: 'right', steps: 1 },
+            { col: 0, row: 2, type: 'step', dir: 'right', steps: 1 }
+        ],
+        solution: [],
+        legends: []
+    }]);
+    sb.resetSwitchStates();
+    // tick1: (2,2)->upで(2,1), (1,2)->(2,2)でright受領, (0,2)->(1,2)
+    // tick2: 2つ目(2,2)->rightで(3,2), (1,2)はstep rightなので(2,2)へ進入し3番目のdown受領
+    // tick3: 3つ目(2,2)->downで(2,3)へ。3回通過後の向きは3番目のdownで固定される。
+    setGrid(sb, [[2, 2], [1, 2], [0, 2]]);
+    const res = sb.simulateGimmickBlockMoves();
+    assert.strictEqual(res.finalGrid[1][2], true, '1つ目がupで(2,1)に移動すること');
+    assert.strictEqual(res.finalGrid[2][3], true, '2つ目がrightで(3,2)に移動すること');
+    assert.strictEqual(res.finalGrid[3][2], true, '3つ目がdownで(2,3)に移動すること');
+    assert.strictEqual(res.finalSwitchDirs.get('2,2'), 'down', '3回通過後に最初の向きへ戻らず3回目のdownで固定されること');
+    assert.strictEqual(res.finalSwitchIndices.get('2,2'), 2, '3回通過後のindexが2で固定されること');
+}
+
+// ==========================================
+// 1b. スイッチブロック: 重複方向を含むカスタム配列のインデックス進行
+// ==========================================
+{
+    const sb = createSandbox([{
+        id: 1012,
+        title: 'Switch Duplicate Dirs',
+        subtitle: '',
+        maxBlocks: 5,
+        startRow: 4,
+        goalRow: 4,
+        forbidden: [],
+        gimmicks: [
+            { col: 1, row: 2, type: 'switch', dirs: ['up', 'right', 'up', 'down'], moveType: 'step' },
+            { col: 0, row: 2, type: 'step', dir: 'right', steps: 1 }
+        ],
+        solution: [],
+        legends: []
+    }]);
+    sb.resetSwitchStates();
+    // ブロック1は(1,2)から'up'(idx 0)で(1,1)へ。スイッチはidx 1('right')へ。
+    // ブロック2は(0,2)から(1,2)へ入り'right'(idx 1)で(2,2)へ。スイッチはidx 2('up')へ。
+    setGrid(sb, [[1, 2], [0, 2]]);
+    const res = sb.simulateGimmickBlockMoves();
+    assert.strictEqual(res.finalGrid[1][1], true, '1つ目がidx0のupで(1,1)へ移動すること');
+    assert.strictEqual(res.finalGrid[2][2], true, '2つ目がidx1のrightで(2,2)へ移動すること');
+    assert.strictEqual(res.finalSwitchIndices.get('1,2'), 2, '2回通過後に重複方向を含む配列のindex 2へ進むこと');
+
+    vm.runInContext('pendingSwitchEvents = ' + JSON.stringify(res.switchEvents) + ';', sb);
+    sb.applySwitchStatesUpToTick(1);
+    const stAfter = vm.runInContext('switchStates.get("1,2")', sb);
+    assert.strictEqual(stAfter.index, 2, 'アニメーション中のtick同期でもindex 2が維持されること');
+    assert.strictEqual(stAfter.currentDir, 'up', 'index 2の向きがupであること');
 }
 
 // ==========================================

@@ -4796,24 +4796,20 @@ body.theme-light .stage-quick-btn.add-btn {
 }
 
 .builder-cell.is-switch {
-    background: rgba(234, 179, 8, 0.45);
-    box-shadow: inset 0 0 0 2px rgba(250, 204, 21, 0.8);
-}
-
-.builder-cell.is-switch.is-dash {
-    background: rgba(234, 179, 8, 0.45);
-    border-color: #22d3ee;
-    box-shadow: inset 0 0 0 2px rgba(34, 211, 238, 0.75);
-}
-
-.builder-cell.is-switch.is-step {
-    background: rgba(234, 179, 8, 0.45);
-    border-color: #4ade80;
-    box-shadow: inset 0 0 0 2px rgba(74, 222, 128, 0.75);
+    background: rgba(234, 179, 8, 0.36);
+    border-color: #eab308;
+    box-shadow: inset 0 0 0 2px #facc15;
 }
 
 .builder-cell.is-switch.is-purple {
-    box-shadow: inset 0 0 0 3px #a855f7, inset 0 0 0 5px rgba(250, 204, 21, 0.8);
+    border-color: #c084fc;
+    box-shadow: inset 0 0 0 3px #a855f7, inset 0 0 0 5px #facc15;
+}
+
+.builder-cell.is-switch.is-switch-selected {
+    outline: 2px solid #ffffff;
+    outline-offset: 1px;
+    z-index: 5;
 }
 
 .builder-cell-switch-badge {
@@ -4893,6 +4889,39 @@ body.theme-light .stage-quick-btn.add-btn {
     border-color: rgba(250, 204, 21, 0.45);
 }
 
+.builder-switch-target-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed rgba(148, 163, 184, 0.25);
+}
+
+.builder-switch-target-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fde047;
+}
+
+.builder-switch-target-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.builder-mini-btn.is-danger {
+    border-color: rgba(239, 68, 68, 0.65);
+    color: #fca5a5;
+}
+
+.builder-mini-btn.is-danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    color: #ffffff;
+}
+
 .builder-opt-row,
 .builder-switch-preview-row {
     display: flex;
@@ -4919,6 +4948,10 @@ body.theme-light .stage-quick-btn.add-btn {
 }
 
 .builder-seg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
     background: #1e293b;
     color: #cbd5e1;
     border: 1px solid #475569;
@@ -4927,6 +4960,15 @@ body.theme-light .stage-quick-btn.add-btn {
     font-size: 11.5px;
     cursor: pointer;
     transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.builder-seg-btn .builder-btn-arrow {
+    width: 13px;
+    height: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .builder-seg-btn:hover {
@@ -4953,9 +4995,10 @@ body.theme-light .stage-quick-btn.add-btn {
 .preview-slot-btn {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    justify-content: center;
+    gap: 4px;
     height: 24px;
-    padding: 0 6px;
+    padding: 0 7px;
     border-radius: 5px;
     background: #1e293b;
     border: 1px solid #475569;
@@ -4978,24 +5021,22 @@ body.theme-light .stage-quick-btn.add-btn {
 }
 
 .preview-slot-btn .slot-num {
-    font-size: 9.5px;
-    opacity: 0.75;
+    font-size: 10px;
+    opacity: 0.85;
 }
 
 .preview-slot-btn .slot-arrow {
-    font-size: 13px;
-    line-height: 1;
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .builder-switch-preview .preview-sep {
     font-size: 9px;
     color: #64748b;
-}
-
-.builder-switch-preview .preview-loop {
-    margin-left: 2px;
-    font-size: 13px;
-    color: #94a3b8;
 }
 
 .builder-opt-guide {
@@ -5038,7 +5079,8 @@ body.theme-light .stage-quick-btn.add-btn {
 
 /* 矢印マス上に正解ブロックが置かれた場合、矢印の方向が完全に判別できるよう箱を透過 */
 .builder-cell.is-dash .builder-cell-sol,
-.builder-cell.is-step .builder-cell-sol {
+.builder-cell.is-step .builder-cell-sol,
+.builder-cell.is-switch .builder-cell-sol {
     background: rgba(245, 158, 11, 0.65);
     color: #ffffff;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
@@ -5054,6 +5096,13 @@ body.theme-light .stage-quick-btn.add-btn {
     margin-top: 8px;
 }
 
+.builder-board-action-btns {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
 .builder-mini-btn {
     padding: 4px 10px;
     font-size: 11px;
@@ -5064,9 +5113,14 @@ body.theme-light .stage-quick-btn.add-btn {
     cursor: pointer;
 }
 
-.builder-mini-btn:hover {
+.builder-mini-btn:hover:not(:disabled) {
     color: #f85149;
     border-color: #f85149;
+}
+
+.builder-mini-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 .builder-board-stats {
