@@ -3073,10 +3073,12 @@ const STAGES = [
         switchDirs: ['right', 'down'],
         activeSwitchSlot: 0,
         switchMoveType: 'step',
+        selectedSwitchCell: null, // { row, col }
         cells: [] // 5x5: { forbidden, dashDir, stepDir, switchData, lasers, purpleBorder, solution }
     };
 
     function resetBuilderCells() {
+        builderState.selectedSwitchCell = null;
         builderState.cells = Array.from({ length: 5 }, () =>
             Array.from({ length: 5 }, () => ({
                 forbidden: false,
@@ -3088,6 +3090,18 @@ const STAGES = [
                 solution: false
             }))
         );
+    }
+
+    function syncSelectedSwitchCellFromPanel() {
+        const sel = builderState.selectedSwitchCell;
+        if (!sel) return;
+        const cell = builderState.cells[sel.row]?.[sel.col];
+        if (!cell || !cell.switchData) return;
+        cell.switchData = {
+            dirs: [...builderState.switchDirs],
+            moveType: builderState.switchMoveType
+        };
+        renderBuilderBoard();
     }
 
     function updateSwitchOptionUI() {
@@ -3140,6 +3154,7 @@ const STAGES = [
                 btn.addEventListener('click', () => {
                     if (builderState.activeSwitchSlot === idx) {
                         builderState.switchDirs[idx] = cwNext[d] || 'right';
+                        syncSelectedSwitchCellFromPanel();
                     } else {
                         builderState.activeSwitchSlot = idx;
                     }
@@ -3214,6 +3229,7 @@ const STAGES = [
                     builderState.switchDirs[slot] = dir;
                     builderState.activeSwitchSlot = (slot + 1) % builderState.switchDirs.length;
                     updateSwitchOptionUI();
+                    syncSelectedSwitchCellFromPanel();
                 });
             });
         }
@@ -3235,6 +3251,7 @@ const STAGES = [
                         builderState.activeSwitchSlot = newCount - 1;
                     }
                     updateSwitchOptionUI();
+                    syncSelectedSwitchCellFromPanel();
                 });
             });
         }
@@ -3245,6 +3262,7 @@ const STAGES = [
                 btn.addEventListener('click', () => {
                     builderState.switchMoveType = btn.getAttribute('data-movetype') === 'dash' ? 'dash' : 'step';
                     updateSwitchOptionUI();
+                    syncSelectedSwitchCellFromPanel();
                 });
             });
         }
@@ -3435,6 +3453,9 @@ const STAGES = [
             cell.lasers = [];
             cell.purpleBorder = false;
             cell.solution = false;
+            if (builderState.selectedSwitchCell && builderState.selectedSwitchCell.row === row && builderState.selectedSwitchCell.col === col) {
+                builderState.selectedSwitchCell = null;
+            }
         } else if (tool === 'solution') {
             cell.solution = !cell.solution;
             if (cell.solution) cell.forbidden = false;
@@ -3451,19 +3472,30 @@ const STAGES = [
             cell.dashDir = cell.dashDir ? (nextArrowDir[cell.dashDir] || 'up') : 'up';
             cell.stepDir = null;
             cell.switchData = null;
+            if (builderState.selectedSwitchCell && builderState.selectedSwitchCell.row === row && builderState.selectedSwitchCell.col === col) {
+                builderState.selectedSwitchCell = null;
+            }
         } else if (tool === 'step' || tool.startsWith('step-')) {
             cell.stepDir = cell.stepDir ? (nextArrowDir[cell.stepDir] || 'up') : 'up';
             cell.dashDir = null;
             cell.switchData = null;
+            if (builderState.selectedSwitchCell && builderState.selectedSwitchCell.row === row && builderState.selectedSwitchCell.col === col) {
+                builderState.selectedSwitchCell = null;
+            }
         } else if (tool === 'switch') {
-            const newDirs = [...builderState.switchDirs];
-            const sameSettings = cell.switchData
-                && cell.switchData.moveType === builderState.switchMoveType
-                && Array.isArray(cell.switchData.dirs)
-                && cell.switchData.dirs.length === newDirs.length
-                && cell.switchData.dirs.every((d, i) => d === newDirs[i]);
-            if (sameSettings) {
-                const rotated = newDirs.map(d => nextArrowDir[d] || 'right');
+            const isSameCellSelected = builderState.selectedSwitchCell
+                && builderState.selectedSwitchCell.row === row
+                && builderState.selectedSwitchCell.col === col;
+            if (cell.switchData && !isSameCellSelected) {
+                // 既存のスイッチセルを選択し、その設定をパネルへ同期する
+                builderState.selectedSwitchCell = { row, col };
+                builderState.switchDirs = [...cell.switchData.dirs];
+                builderState.switchMoveType = cell.switchData.moveType === 'dash' ? 'dash' : 'step';
+                builderState.activeSwitchSlot = 0;
+                updateSwitchOptionUI();
+            } else if (cell.switchData && isSameCellSelected) {
+                // 選択中のスイッチセルを再度クリックしたら全体を時計回りに回転して同期
+                const rotated = cell.switchData.dirs.map(d => nextArrowDir[d] || 'right');
                 cell.switchData = {
                     dirs: rotated,
                     moveType: builderState.switchMoveType
@@ -3471,10 +3503,12 @@ const STAGES = [
                 builderState.switchDirs = rotated;
                 updateSwitchOptionUI();
             } else {
+                // 新規配置: パネルの設定で配置し、選択中にする
                 cell.switchData = {
-                    dirs: newDirs,
+                    dirs: [...builderState.switchDirs],
                     moveType: builderState.switchMoveType
                 };
+                builderState.selectedSwitchCell = { row, col };
             }
             cell.dashDir = null;
             cell.stepDir = null;

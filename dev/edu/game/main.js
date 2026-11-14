@@ -111,8 +111,9 @@ function getGimmick(col, row) {
 // MARK: - Switch Block & Laser Helpers
 const CLOCKWISE_DIRS = ['right', 'down', 'left', 'up'];
 let switchStates = new Map(); // key: "col,row", value: { seq, index, currentDir }
-let pendingSwitchEvents = []; // [{ tick, col, row, dir }]
+let pendingSwitchEvents = []; // [{ tick, col, row, index, dir }]
 let pendingFinalSwitchDirs = null; // Map<"col,row", dir>
+let pendingFinalSwitchIndices = null; // Map<"col,row", number>
 
 function getSwitchDirSequence(gimmick) {
     if (gimmick && Array.isArray(gimmick.dirs) && gimmick.dirs.length >= 2) {
@@ -134,6 +135,7 @@ function resetSwitchStates() {
     switchStates = new Map();
     pendingSwitchEvents = [];
     pendingFinalSwitchDirs = null;
+    pendingFinalSwitchIndices = null;
     const st = getStage();
     if (!st || !Array.isArray(st.gimmicks)) return;
     st.gimmicks.forEach(g => {
@@ -393,7 +395,7 @@ function simulateGimmickBlockMoves() {
         const activeDir = sw.seq[sw.index];
         sw.index = (sw.index + 1) % sw.seq.length;
         const nextDir = sw.seq[sw.index];
-        switchEvents.push({ tick, col, row, dir: nextDir });
+        switchEvents.push({ tick, col, row, index: sw.index, dir: nextDir });
         return { dir: activeDir, mode: sw.moveType, steps: sw.steps };
     }
 
@@ -686,7 +688,8 @@ function simulateGimmickBlockMoves() {
                         hBefore.row === hLater.row &&
                         hBefore.dir === hLater.dir &&
                         hBefore.mode === hLater.mode &&
-                        hBefore.remainingSteps === hLater.remainingSteps
+                        hBefore.remainingSteps === hLater.remainingSteps &&
+                        hBefore.switchKey === hLater.switchKey
                     ) {
                         entryIdx--;
                     } else {
@@ -943,11 +946,43 @@ function simulateGimmickBlockMoves() {
     supernova = supernovas.length > 0 ? supernovas[0] : null;
 
     const finalSwitchDirs = new Map();
+    const finalSwitchIndices = new Map();
     simSwitches.forEach((sw, key) => {
-        finalSwitchDirs.set(key, sw.seq[sw.index]);
+        finalSwitchDirs.set(key, sw.seq[0]);
+        finalSwitchIndices.set(key, 0);
     });
 
-    return { rounds, finalGrid, supernova, supernovas, blackHoleLoop, blackHoleLoops, switchEvents, finalSwitchDirs };
+    const maxActualEndTick = (hasSupernova || hasBlackHole)
+        ? actualMoves.reduce((mx, m) => Math.max(mx, m.path ? m.path.length - 1 : 0), 0)
+        : Infinity;
+    const filteredSwitchEvents = switchEvents.filter(ev => ev.tick <= maxActualEndTick);
+
+    if (hasSupernova || hasBlackHole) {
+        filteredSwitchEvents.forEach(ev => {
+            const key = `${ev.col},${ev.row}`;
+            finalSwitchDirs.set(key, ev.dir);
+            if (typeof ev.index === 'number') {
+                finalSwitchIndices.set(key, ev.index);
+            }
+        });
+    } else {
+        simSwitches.forEach((sw, key) => {
+            finalSwitchDirs.set(key, sw.seq[sw.index]);
+            finalSwitchIndices.set(key, sw.index);
+        });
+    }
+
+    return {
+        rounds,
+        finalGrid,
+        supernova,
+        supernovas,
+        blackHoleLoop,
+        blackHoleLoops,
+        switchEvents: filteredSwitchEvents,
+        finalSwitchDirs,
+        finalSwitchIndices
+    };
 }
 
 function animateBlockMove(ts) {
@@ -1003,9 +1038,9 @@ function applySwitchStatesUpToTick(targetTick) {
             const key = `${ev.col},${ev.row}`;
             const cur = switchStates.get(key);
             if (cur) {
-                const idx = cur.seq.indexOf(ev.dir);
+                const idx = typeof ev.index === 'number' ? ev.index : cur.seq.indexOf(ev.dir);
                 cur.index = idx >= 0 ? idx : cur.index;
-                cur.currentDir = ev.dir;
+                cur.currentDir = cur.seq[cur.index] || ev.dir;
             }
         }
     });
@@ -1016,9 +1051,10 @@ function applyFinalSwitchStates() {
     pendingFinalSwitchDirs.forEach((dir, key) => {
         const cur = switchStates.get(key);
         if (cur) {
-            const idx = cur.seq.indexOf(dir);
+            const idxFromMap = pendingFinalSwitchIndices ? pendingFinalSwitchIndices.get(key) : undefined;
+            const idx = typeof idxFromMap === 'number' ? idxFromMap : cur.seq.indexOf(dir);
             if (idx >= 0) cur.index = idx;
-            cur.currentDir = dir;
+            cur.currentDir = cur.seq[cur.index] || dir;
         }
     });
 }
@@ -4681,12 +4717,12 @@ function drawGimmickTile(gimmick) {
 
         ctx.restore();
     } else if (gimmick.type === 'switch') {
-        // スイッチブロック: 黄色枠 + 現在の向き・移動種別の矢印 + 切替方向数バッジ
+        // スイッチブロック: 黄色固定の枠 + 移動種別を示す矢印 + 切替方向数バッジ
         const curDir = getEffectiveGimmickDir(gimmick);
         const moveType = getEffectiveGimmickMoveType(gimmick);
         const seq = getSwitchDirSequence(gimmick);
 
-        ctx.fillStyle = moveType === 'dash' ? 'rgba(0, 195, 255, 0.16)' : 'rgba(250, 204, 21, 0.22)';
+        ctx.fillStyle = 'rgba(250, 204, 21, 0.34)';
         ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
 
         ctx.save();
@@ -4728,14 +4764,20 @@ function drawGimmickTile(gimmick) {
         }
         ctx.restore();
 
-        // くっきりした黄色の枠
+        // スイッチブロックの枠は常に黄色で固定
         ctx.save();
-        ctx.strokeStyle = '#ca8a04';
-        ctx.lineWidth = 5;
-        ctx.strokeRect(x + 2.5, y + 2.5, CELL - 5, CELL - 5);
-        ctx.strokeStyle = '#facc15';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x + 2.5, y + 2.5, CELL - 5, CELL - 5);
+        if (gimmick.purpleBorder && !isBlockPlacedHere) {
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(x + 5, y + 5, CELL - 10, CELL - 10);
+        } else {
+            ctx.strokeStyle = '#ca8a04';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(x + 2, y + 2, CELL - 4, CELL - 4);
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(x + 2.5, y + 2.5, CELL - 5, CELL - 5);
+        }
         ctx.restore();
 
         // 右上の切替数バッジ（2〜4）
@@ -5032,10 +5074,30 @@ function drawMarioBlock(col, row) {
     ctx.restore();
 
     if (g && g.type === 'switch') {
+        const seq = getSwitchDirSequence(g);
         ctx.save();
-        ctx.strokeStyle = '#facc15';
-        ctx.lineWidth = 3;
+        ctx.fillStyle = 'rgba(250, 204, 21, 0.18)';
+        ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
+        ctx.strokeStyle = '#ca8a04';
+        ctx.lineWidth = 4;
         ctx.strokeRect(x + 2, y + 2, CELL - 4, CELL - 4);
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(x + 2.5, y + 2.5, CELL - 5, CELL - 5);
+
+        // 右上の切替数バッジをブロックの上でも見やすく表示
+        ctx.fillStyle = '#facc15';
+        ctx.strokeStyle = '#854d0e';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x + CELL - 9, y + 9, 6.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#422006';
+        ctx.font = 'bold 8.5px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(seq.length), x + CELL - 9, y + 9.5);
         ctx.restore();
     }
 }
@@ -6367,10 +6429,18 @@ function updateLegendUI() {
     if (hasPurple) {
         items.push({ icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' });
     }
+    const hasSwitch = (st.gimmicks && st.gimmicks.some(g => g.type === 'switch')) || (st.legends && st.legends.some(l => l.type === 'switch'));
+    if (hasSwitch) {
+        items.push({ icon: '↻', type: 'switch', text: '黄枠：ブロックが通るたびに向き切替' });
+    }
+    const hasLaser = (st.lasers && st.lasers.length > 0) || (st.legends && st.legends.some(l => l.type === 'laser'));
+    if (hasLaser) {
+        items.push({ icon: '―', type: 'laser', text: 'レーザー：スタートで発射（ブロックで遮断可能）' });
+    }
 
     if (Array.isArray(st.legends)) {
         st.legends.forEach(l => {
-            if (l.type !== 'forbidden' && l.type !== 'dash' && l.type !== 'step' && l.type !== 'purple') {
+            if (l.type !== 'forbidden' && l.type !== 'dash' && l.type !== 'step' && l.type !== 'purple' && l.type !== 'switch' && l.type !== 'laser') {
                 items.push(l);
             }
         });
@@ -6674,9 +6744,10 @@ window.addEventListener('DOMContentLoaded', () => {
         if (phase !== 'place') return;
 
         // スタート直後のブロック移動・超新星爆発・無限ループの事前シミュレーション
-        const { rounds, supernova, supernovas, blackHoleLoop, blackHoleLoops, switchEvents, finalSwitchDirs } = simulateGimmickBlockMoves();
+        const { rounds, supernova, supernovas, blackHoleLoop, blackHoleLoops, switchEvents, finalSwitchDirs, finalSwitchIndices } = simulateGimmickBlockMoves();
         pendingSwitchEvents = switchEvents || [];
         pendingFinalSwitchDirs = finalSwitchDirs || null;
+        pendingFinalSwitchIndices = finalSwitchIndices || null;
 
         // 紫枠（必須設置）とブロック連結ルールを常にチェック
         const st = getStage();

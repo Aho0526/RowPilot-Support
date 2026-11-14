@@ -1128,6 +1128,8 @@ body {
 .legend-dash { background: #38bdf8; color: #fff; }
 .legend-step { background: #22c55e; color: #fff; }
 .legend-purple { border: 2px solid #a855f7; color: #c084fc; }
+.legend-switch { border: 2px solid #facc15; background: rgba(250, 204, 21, 0.22); color: #fde047; }
+.legend-laser { border: 2px solid #22d3ee; background: rgba(6, 182, 212, 0.22); color: #67e8f9; }
 
 .hint {
     display: none !important;
