@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://rowpilot-api.rowpilot-jp.workers.dev https://api.rowpilot.jp http://localhost:8787 http://127.0.0.1:8787;">
+  <title>Team Web Dashboard — RowPilot</title>
+  <link rel="icon" href="/pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/teams.css">
+</head>
+
+<body>
+  <header class="teams-header">
+    <div class="nav-wrap teams-nav-wrap">
+      <a href="/" class="logo">
+        <img src="/pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+        <span class="logo-text">RowPilot</span>
+        <span class="teams-badge">TEAM WEB</span>
+      </a>
+      <div class="header-actions" id="header-actions" hidden>
+        <span class="viewer-pill" id="viewer-pill"></span>
+        <button type="button" class="btn-ghost btn-sm" id="btn-refresh" title="最新データを取得">更新</button>
+        <button type="button" class="btn-ghost btn-sm btn-danger-ghost" id="btn-logout">ログアウト</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="teams-main">
+    <!-- Loading State -->
+    <section id="view-loading" class="state-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="muted">読み込み中...</p>
+    </section>
+
+    <!-- Error / Not Found State -->
+    <section id="view-not-found" class="state-card" hidden>
+      <div class="state-icon warn">!</div>
+      <h1 id="not-found-title">チームが見つかりません</h1>
+      <p id="not-found-desc" class="muted">URLが正しいか、チームの管理者に確認してください。</p>
+      <div class="state-actions">
+        <a href="/teams/" class="btn-primary-web">Team Web ポータルへ</a>
+        <a href="/" class="btn-secondary-web">RowPilot トップへ</a>
+      </div>
+    </section>
+
+    <!-- Set Password / Reset Password View -->
+    <section id="view-set-password" class="auth-single-shell" hidden>
+      <div class="auth-card">
+        <div class="team-pill" id="setup-team-pill">RowPilot Team</div>
+        <h1 class="auth-title" id="setup-title">Webコーチ パスワード設定</h1>
+        <p class="auth-sub" id="setup-sub">次回以降のログインに使用するパスワードを設定してください（8文字以上）。</p>
+
+        <form id="form-set-password" class="auth-form" novalidate>
+          <div class="field">
+            <label for="setup-password">新しいパスワード</label>
+            <div class="password-wrap">
+              <input type="password" id="setup-password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="8文字以上の英数字・記号" required>
+              <button type="button" class="toggle-pw" data-target="setup-password">表示</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="setup-password-confirm">パスワード（確認）</label>
+            <div class="password-wrap">
+              <input type="password" id="setup-password-confirm" minlength="8" maxlength="128" autocomplete="new-password" placeholder="もう一度入力" required>
+              <button type="button" class="toggle-pw" data-target="setup-password-confirm">表示</button>
+            </div>
+          </div>
+          <p class="form-error" id="setup-error" hidden></p>
+          <button type="submit" class="btn-primary-web btn-block" id="btn-submit-setup">パスワードを設定してログイン</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Portal & Unified Auth View -->
+    <section id="view-auth" class="portal-shell" hidden>
+      <div class="portal-hero-grid">
+        <!-- Left: Portal Intro / Team Info -->
+        <div class="portal-intro">
+          <div class="team-pill" id="auth-team-name">RowPilot Team Web</div>
+          <h1 class="portal-title" id="portal-heading">チームの練習記録を、ブラウザの大画面で。</h1>
+          <p class="portal-desc" id="portal-desc">
+            RowPilot Team・MAXプランの練習データを、PC・タブレット・Android端末から確認できます。ログインすると所属チームの専用ページへ自動で移動します。
+          </p>
+
+          <ul class="portal-points">
+            <li>
+              <strong>コーチ用メールログイン</strong>
+              <span>メールアドレスとパスワードを入れるだけで、自分の担当チームへ自動で入室できます。</span>
+            </li>
+            <li>
+              <strong>RowPilotアプリでワンタップ承認</strong>
+              <span>アプリをお持ちの部員やマネージャーは、下のボタンまたはQRコード・6桁番号でパスワード不要の認証ができます。</span>
+            </li>
+            <li>
+              <strong>PC向けの集計・CSV出力</strong>
+              <span>選手ごとの総距離やベスト500mタイムの比較、MAXプランのCSVエクスポートに対応しています。</span>
+            </li>
+          </ul>
+
+          <!-- Direct Slug Jump (Shown on /teams/ root) -->
+          <form id="form-slug-jump" class="slug-jump-box" hidden>
+            <label for="slug-jump-input">専用URLをお持ちの方</label>
+            <div class="slug-jump-row">
+              <span class="slug-prefix">rowpilot.jp/teams/</span>
+              <input type="text" id="slug-jump-input" placeholder="ritsumeikan" pattern="[a-zA-Z0-9-]+" autocomplete="off">
+              <button type="submit" class="btn-secondary-web btn-sm">開く</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Right: Unified Auth Card -->
+        <div class="auth-card unified-auth-card">
+          <h2 class="auth-card-heading">ログイン</h2>
+          <p class="auth-card-sub">Webコーチ用アカウントでログインするか、下のRowPilotアプリ連携で認証してください。</p>
+
+          <!-- 1. Coach Email + Password Form -->
+          <form id="form-coach-login" class="auth-form" novalidate>
+            <div class="field">
+              <label for="coach-email">メールアドレス</label>
+              <input type="email" id="coach-email" autocomplete="email" placeholder="coach@example.com" required>
+            </div>
+            <div class="field">
+              <label for="coach-password">パスワード</label>
+              <div class="password-wrap">
+                <input type="password" id="coach-password" autocomplete="current-password" placeholder="パスワードを入力" required>
+                <button type="button" class="toggle-pw" data-target="coach-password">表示</button>
+              </div>
+            </div>
+            <p class="form-error" id="coach-login-error" hidden></p>
+            <button type="submit" class="btn-primary-web btn-block" id="btn-coach-login">メールアドレスでログイン</button>
+            <div class="form-footer-links">
+              <button type="button" class="link-btn" id="btn-show-reset">パスワードをお忘れですか？</button>
+            </div>
+          </form>
+
+          <!-- Multiple Teams Selection (Shown if email matches multiple teams) -->
+          <div id="team-select-panel" class="team-select-panel" hidden>
+            <p class="team-select-title">所属するチームを選択してください</p>
+            <div id="team-select-list" class="team-select-list"></div>
+            <button type="button" class="link-btn" id="btn-cancel-team-select">入力画面に戻る</button>
+          </div>
+
+          <!-- Password Reset Request Form -->
+          <form id="form-coach-reset" class="auth-form" hidden novalidate>
+            <p class="helper-note">登録済みのメールアドレス宛に、パスワード再設定用のリンクを送信します。</p>
+            <div class="field">
+              <label for="reset-email">メールアドレス</label>
+              <input type="email" id="reset-email" autocomplete="email" placeholder="coach@example.com" required>
+            </div>
+            <p class="form-error" id="reset-error" hidden></p>
+            <p class="form-success" id="reset-success" hidden></p>
+            <button type="submit" class="btn-primary-web btn-block" id="btn-submit-reset">再設定メールを送信</button>
+            <div class="form-footer-links">
+              <button type="button" class="link-btn" id="btn-back-login">ログイン画面に戻る</button>
+            </div>
+          </form>
+
+          <!-- Divider -->
+          <div class="auth-divider">
+            <span>または RowPilot アプリで認証</span>
+          </div>
+
+          <!-- 2. App Launch Button + QR / One-Time Code -->
+          <div class="app-auth-section">
+            <a id="btn-open-app" href="#" class="btn-secondary-web btn-block btn-app-launch">
+              RowPilot アプリを開いてログイン
+            </a>
+
+            <div class="app-otp-grid">
+              <div class="qr-box" id="qr-box" hidden>
+                <div id="qr-canvas-wrap" aria-label="ログイン用QRコード"></div>
+              </div>
+              <div class="otp-code-side">
+                <span class="app-code-label">ワンタイム認証コード</span>
+                <div class="app-code-value compact" id="app-code-display">--- ---</div>
+                <div class="app-code-meta compact">
+                  <span id="app-code-timer">05:00</span>
+                  <button type="button" class="link-btn" id="btn-regen-code">再発行</button>
+                </div>
+                <p class="otp-guide">アプリ内「チーム管理 → Webログイン承認」から入力するか、スマホカメラでQRを読み取ってください。</p>
+              </div>
+            </div>
+
+            <div class="polling-status">
+              <span class="pulse-dot"></span>
+              <span id="polling-status-text">アプリでの承認を待機しています...</span>
+            </div>
+            <p class="form-error" id="app-auth-error" hidden></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Showcase Section (Shown on /teams/ root portal) -->
+      <section id="portal-showcase" class="portal-showcase" hidden>
+        <div class="showcase-header">
+          <h2>RowPilot Team Web でできること</h2>
+          <p class="muted">艇庫のPCや監督の端末から、チームの練習データをすぐに振り返り・共有できます。</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="feature-tag">FEED</span>
+            <h3>練習記録のリアルタイム一覧</h3>
+            <p>部員がエルゴや水上で記録したデータを日付・選手・種目ごとに検索し、クルー編成やメモまで確認できます。</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-tag">RANKING</span>
+            <h3>選手別の距離・ベスト集計</h3>
+            <p>指定期間内の総漕距離、練習回数、ベスト500mスプリット、平均レートを自動集計して比較できます。</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-tag">CHART</span>
+            <h3>チーム練習量の推移グラフ</h3>
+            <p>日別のチーム総漕距離や選手ごとの距離ランキングをグラフ化し、シーズン中の負荷管理に役立てられます。</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-tag">MAX</span>
+            <h3>Excel対応 CSV エクスポート</h3>
+            <p>MAXプラン以上では、絞り込んだ練習ログを文字化けしないCSVとしてダウンロードし、学内資料や分析に活用できます。</p>
+          </article>
+        </div>
+
+        <div class="guide-banner">
+          <div>
+            <h3>Android 端末やアプリをお持ちでない監督・コーチへ</h3>
+            <p class="muted">
+              チームの管理者（キャプテンなど）が iPhone 版 RowPilot アプリ内の「チーム管理 → Webダッシュボード → Webコーチ管理」から監督のメールアドレスを登録すると、初回設定リンクが届き、メールアドレスとパスワードでログインできるようになります。
+            </p>
+          </div>
+          <a href="/support/index.html" class="btn-secondary-web">サポートを見る</a>
+        </div>
+      </section>
+    </section>
+
+    <!-- Dashboard View -->
+    <section id="view-dashboard" class="dash-container" hidden>
+      <!-- Suspended Banner -->
+      <div id="suspended-banner" class="alert-banner" hidden>
+        <div>
+          <strong>現在このチームのWebダッシュボードは停止中です</strong>
+          <p>チームプランの猶予期間が終了しています。オーナーが Team または MAX プランを再開すると記録の閲覧が復旧します。</p>
+        </div>
+      </div>
+
+      <!-- Team Hero Bar -->
+      <div class="dash-hero">
+        <div>
+          <div class="dash-title-row">
+            <h1 id="dash-team-name">チーム名</h1>
+            <span class="plan-badge" id="dash-plan-badge">TEAM</span>
+          </div>
+          <p class="dash-subtitle" id="dash-subtitle">練習記録とメンバー状況</p>
+        </div>
+        <div class="dash-hero-actions">
+          <button type="button" class="btn-secondary-web" id="btn-print">印刷 / PDF</button>
+          <button type="button" class="btn-primary-web" id="btn-export-csv">CSVエクスポート</button>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-label">直近7日間の総距離</span>
+          <strong class="kpi-value" id="kpi-7d-dist">-</strong>
+          <span class="kpi-sub" id="kpi-7d-count">-</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">直近30日間の総距離</span>
+          <strong class="kpi-value" id="kpi-30d-dist">-</strong>
+          <span class="kpi-sub" id="kpi-30d-count">-</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">アクティブ部員（30日）</span>
+          <strong class="kpi-value" id="kpi-active-athletes">-</strong>
+          <span class="kpi-sub" id="kpi-total-members">-</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">表示中のベスト 500m</span>
+          <strong class="kpi-value accent" id="kpi-best-split">-</strong>
+          <span class="kpi-sub" id="kpi-filtered-count">-</span>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <div class="filter-item filter-search">
+          <label for="filter-q">キーワード</label>
+          <input type="search" id="filter-q" placeholder="選手名・メモ・艇種で検索">
+        </div>
+        <div class="filter-item">
+          <label for="filter-athlete">選手</label>
+          <select id="filter-athlete">
+            <option value="">すべての選手</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="filter-type">種目</label>
+          <select id="filter-type">
+            <option value="">すべて</option>
+            <option value="erg">エルゴ</option>
+            <option value="onwater">水上</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="filter-period">期間</label>
+          <select id="filter-period">
+            <option value="30">直近30日</option>
+            <option value="7">直近7日</option>
+            <option value="90">直近90日</option>
+            <option value="all">すべて</option>
+            <option value="custom">日付指定</option>
+          </select>
+        </div>
+        <div class="filter-item filter-date" id="custom-date-from-wrap" hidden>
+          <label for="filter-from">開始日</label>
+          <input type="date" id="filter-from">
+        </div>
+        <div class="filter-item filter-date" id="custom-date-to-wrap" hidden>
+          <label for="filter-to">終了日</label>
+          <input type="date" id="filter-to">
+        </div>
+      </div>
+
+      <!-- View Switch Tabs -->
+      <div class="view-tabs" role="tablist">
+        <button type="button" class="view-tab active" data-view-tab="feed">記録フィード</button>
+        <button type="button" class="view-tab" data-view-tab="athletes">選手別集計</button>
+        <button type="button" class="view-tab" data-view-tab="analytics">推移・比較グラフ</button>
+      </div>
+
+      <!-- Panel: Workout Feed -->
+      <section id="panel-feed" class="dash-panel">
+        <div class="table-wrap">
+          <table class="data-table" id="workouts-table">
+            <thead>
+              <tr>
+                <th>日時</th>
+                <th>選手名</th>
+                <th>種目 / メニュー</th>
+                <th class="num">距離</th>
+                <th class="num">時間</th>
+                <th class="num">500mペース</th>
+                <th class="num">レート</th>
+                <th class="num">パワー</th>
+                <th>メモ</th>
+              </tr>
+            </thead>
+            <tbody id="workouts-tbody"></tbody>
+          </table>
+        </div>
+        <div id="workouts-empty" class="empty-state" hidden>
+          <p>条件に一致するトレーニング記録がありません。</p>
+        </div>
+      </section>
+
+      <!-- Panel: Athlete Summary -->
+      <section id="panel-athletes" class="dash-panel" hidden>
+        <div class="panel-toolbar">
+          <p class="muted">行をクリックすると、その選手の記録フィードへ絞り込みます。</p>
+          <div class="sort-controls">
+            <label for="athlete-sort">並び替え</label>
+            <select id="athlete-sort">
+              <option value="distance">総距離が長い順</option>
+              <option value="best_split">ベスト500mが速い順</option>
+              <option value="count">回数が多い順</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="athletes-table">
+            <thead>
+              <tr>
+                <th>選手名</th>
+                <th>ロール</th>
+                <th class="num">回数</th>
+                <th class="num">総距離</th>
+                <th class="num">ベスト 500m</th>
+                <th class="num">平均 500m</th>
+                <th class="num">平均レート</th>
+                <th class="num">平均パワー</th>
+              </tr>
+            </thead>
+            <tbody id="athletes-tbody"></tbody>
+          </table>
+        </div>
+        <div id="athletes-empty" class="empty-state" hidden>
+          <p>集計対象の記録がありません。</p>
+        </div>
+      </section>
+
+      <!-- Panel: Analytics / Charts -->
+      <section id="panel-analytics" class="dash-panel" hidden>
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h2>日別 チーム総漕距離</h2>
+              <span class="muted" id="chart-daily-caption">直近の練習推移</span>
+            </div>
+            <div id="chart-daily-wrap" class="svg-chart-wrap"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <h2>選手別 総漕距離ランキング</h2>
+              <span class="muted">表示期間内の比較</span>
+            </div>
+            <div id="chart-athlete-bars" class="bar-list"></div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <!-- Workout Detail Modal -->
+  <div id="detail-modal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="modal-athlete-name">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="modal-badge" id="modal-type-badge">-</span>
+          <h2 id="modal-athlete-name">選手名</h2>
+          <p class="muted" id="modal-date">-</p>
+        </div>
+        <button type="button" class="modal-close" id="modal-close" aria-label="閉じる">✕</button>
+      </div>
+      <div class="modal-metrics" id="modal-metrics"></div>
+      <div class="modal-section" id="modal-notes-section" hidden>
+        <h3>メモ</h3>
+        <p class="modal-notes-box" id="modal-notes-text"></p>
+      </div>
+      <div class="modal-section" id="modal-crew-section" hidden>
+        <h3>クルー編成</h3>
+        <div class="crew-grid" id="modal-crew-grid"></div>
+      </div>
+      <div class="modal-section" id="modal-summary-section" hidden>
+        <h3>詳細データ</h3>
+        <div class="summary-list" id="modal-summary-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" defer></script>
+  <script src="/js/teams-app.js" defer></script>
+</body>
+
+</html>
