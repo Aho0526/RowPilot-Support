@@ -677,6 +677,7 @@
 }
 
 .field input,
+.field textarea,
 .filter-item input,
 .filter-item select,
 .sort-controls select {
@@ -692,7 +693,14 @@
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 
+.field textarea {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.55;
+}
+
 .field input:focus,
+.field textarea:focus,
 .filter-item input:focus,
 .filter-item select:focus,
 .sort-controls select:focus {
@@ -1372,6 +1380,79 @@
   font-size: 0.88rem;
 }
 
+/* ── Contact Modal ── */
+.contact-modal-card {
+  max-width: 540px;
+}
+
+.contact-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.contact-type-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.contact-type-option input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.contact-type-option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.6rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-2);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.contact-type-option input:checked + span {
+  border-color: rgba(77, 203, 255, 0.55);
+  background: rgba(77, 203, 255, 0.14);
+  color: var(--accent);
+}
+
+.contact-type-option input:focus-visible + span {
+  box-shadow: 0 0 0 2px rgba(77, 203, 255, 0.35);
+}
+
+.contact-check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.contact-check-row input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.contact-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+}
+
 /* ── Toast ── */
 .toast {
   position: fixed;
@@ -1408,27 +1489,29 @@
 
 @media (max-width: 600px) {
   .teams-nav-wrap {
-    padding: 0 1rem;
-    height: 58px;
+    padding: 0 0.85rem;
+    height: 56px;
+    gap: 0.5rem;
   }
   .teams-header .logo {
-    font-size: 1.12rem;
-    gap: 0.45rem;
-  }
-  .teams-header .logo img {
-    width: 28px;
-    height: 28px;
-  }
-  .teams-badge {
-    font-size: 0.6rem;
-    padding: 0.15rem 0.45rem;
-  }
-  .header-actions {
+    font-size: 1.05rem;
     gap: 0.4rem;
   }
+  .teams-header .logo img {
+    width: 26px;
+    height: 26px;
+  }
+  .teams-badge {
+    display: none;
+  }
+  .header-actions {
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
   .header-actions .btn-sm {
-    padding: 0.42rem 0.68rem;
-    font-size: 0.78rem;
+    padding: 0.34rem 0.52rem;
+    font-size: 0.74rem;
+    white-space: nowrap;
   }
   .teams-main {
     padding: 1.25rem 1rem 3rem;

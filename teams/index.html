@@ -26,6 +26,7 @@
       </a>
       <div class="header-actions" id="header-actions" hidden>
         <span class="viewer-pill" id="viewer-pill"></span>
+        <button type="button" class="btn-ghost btn-sm" id="btn-contact" title="不具合報告・機能提案・お問い合わせ">メール</button>
         <button type="button" class="btn-ghost btn-sm" id="btn-refresh" title="最新データを取得">更新</button>
         <button type="button" class="btn-ghost btn-sm btn-danger-ghost" id="btn-logout">ログアウト</button>
       </div>
@@ -461,6 +462,67 @@
         <h3>詳細データ</h3>
         <div class="summary-list" id="modal-summary-list"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Contact / Feedback Modal -->
+  <div id="contact-modal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+    <div class="modal-card contact-modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="modal-badge">CONTACT</span>
+          <h2 id="contact-modal-title">開発チームへメール送信</h2>
+          <p class="muted">不具合の報告や機能追加のアイデアなどをお送りいただけます。</p>
+        </div>
+        <button type="button" class="modal-close" id="contact-modal-close" aria-label="閉じる">✕</button>
+      </div>
+
+      <form id="form-contact" class="auth-form" novalidate>
+        <div class="field">
+          <label>種別</label>
+          <div class="contact-type-grid" role="radiogroup" aria-label="お問い合わせ種別">
+            <label class="contact-type-option">
+              <input type="radio" name="contact-category" value="bug" checked>
+              <span>不具合報告</span>
+            </label>
+            <label class="contact-type-option">
+              <input type="radio" name="contact-category" value="feature">
+              <span>機能追加の案</span>
+            </label>
+            <label class="contact-type-option">
+              <input type="radio" name="contact-category" value="other">
+              <span>その他</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="contact-club">クラブ名</label>
+          <input type="text" id="contact-club" maxlength="80" placeholder="例：〇〇大学ボート部" required>
+        </div>
+
+        <div class="field">
+          <label for="contact-message">内容</label>
+          <textarea id="contact-message" rows="5" maxlength="3000" placeholder="発生した画面や操作手順、表示されたエラーなどをご記入ください" required></textarea>
+        </div>
+
+        <label class="contact-check-row" for="contact-needs-reply">
+          <input type="checkbox" id="contact-needs-reply">
+          <span>返信を希望する</span>
+        </label>
+
+        <div class="field" id="contact-reply-wrap" hidden>
+          <label for="contact-email">返信先メールアドレス</label>
+          <input type="email" id="contact-email" autocomplete="email" placeholder="coach@example.com">
+        </div>
+
+        <p class="form-error" id="contact-error" hidden></p>
+
+        <div class="contact-modal-actions">
+          <button type="button" class="btn-ghost" id="btn-contact-cancel">キャンセル</button>
+          <button type="submit" class="btn-primary-web" id="btn-contact-submit">送信する</button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -1317,6 +1317,112 @@
     $("detail-modal").hidden = true;
   }
 
+  // ── Contact / Feedback Modal ──
+  const CONTACT_PLACEHOLDERS = {
+    bug: "発生した画面や操作手順、表示されたエラーなどをご記入ください",
+    feature: "あると嬉しい機能や改善したい点をご記入ください",
+    other: "お問い合わせ内容をご記入ください"
+  };
+
+  function getSelectedContactCategory() {
+    const checked = document.querySelector('input[name="contact-category"]:checked');
+    return checked ? checked.value : "bug";
+  }
+
+  function updateContactPlaceholder() {
+    const msgEl = $("contact-message");
+    if (!msgEl) return;
+    const cat = getSelectedContactCategory();
+    msgEl.placeholder = CONTACT_PLACEHOLDERS[cat] || CONTACT_PLACEHOLDERS.other;
+  }
+
+  function openContactModal() {
+    const modal = $("contact-modal");
+    if (!modal) return;
+    $("contact-error").hidden = true;
+    const teamName = (state.dashboard && state.dashboard.team && state.dashboard.team.name)
+      || (state.publicTeam && state.publicTeam.name)
+      || "";
+    if ($("contact-club") && !$("contact-club").value.trim()) {
+      $("contact-club").value = teamName;
+    }
+    const viewerEmail = state.dashboard && state.dashboard.viewer && state.dashboard.viewer.email
+      ? state.dashboard.viewer.email
+      : "";
+    if ($("contact-email") && !$("contact-email").value.trim() && viewerEmail) {
+      $("contact-email").value = viewerEmail;
+    }
+    updateContactPlaceholder();
+    modal.hidden = false;
+  }
+
+  function closeContactModal() {
+    const modal = $("contact-modal");
+    if (modal) modal.hidden = true;
+  }
+
+  async function handleContactSubmit(e) {
+    e.preventDefault();
+    const errEl = $("contact-error");
+    errEl.hidden = true;
+
+    const category = getSelectedContactCategory();
+    const clubName = $("contact-club").value.trim();
+    const message = $("contact-message").value.trim();
+    const needsReply = $("contact-needs-reply").checked;
+    const replyEmail = $("contact-email").value.trim();
+
+    if (!clubName) {
+      errEl.textContent = "クラブ名を入力してください。";
+      errEl.hidden = false;
+      return;
+    }
+    if (!message) {
+      errEl.textContent = "内容を入力してください。";
+      errEl.hidden = false;
+      return;
+    }
+    if (needsReply && (!replyEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyEmail))) {
+      errEl.textContent = "返信を希望する場合は、有効なメールアドレスを入力してください。";
+      errEl.hidden = false;
+      return;
+    }
+
+    const submitBtn = $("btn-contact-submit");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "送信中...";
+
+    try {
+      const targetKey = state.slugOrId || (state.dashboard && state.dashboard.team && (state.dashboard.team.slug || state.dashboard.team.id));
+      const res = await apiFetch(`/web/teams/${encodeURIComponent(targetKey)}/feedback`, {
+        method: "POST",
+        body: JSON.stringify({
+          category,
+          club_name: clubName,
+          message,
+          needs_reply: needsReply,
+          reply_email: needsReply ? replyEmail : "",
+          page_url: location.href
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "送信に失敗しました");
+      }
+      $("contact-message").value = "";
+      $("contact-needs-reply").checked = false;
+      $("contact-reply-wrap").hidden = true;
+      closeContactModal();
+      showToast("送信しました。ご連絡ありがとうございます");
+    } catch (err) {
+      errEl.textContent = err.message || "送信に失敗しました";
+      errEl.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "送信する";
+    }
+  }
+
   // ── View / Tab Switching ──
   function switchViewTab(tabName) {
     state.activeViewTab = tabName;
@@ -1399,6 +1505,8 @@
     $("form-coach-reset").addEventListener("submit", handleCoachResetRequest);
     $("form-set-password").addEventListener("submit", handleSetPassword);
 
+    $("btn-contact").addEventListener("click", openContactModal);
+
     $("btn-refresh").addEventListener("click", async () => {
       const ok = await tryLoadDashboard();
       if (ok) showToast("最新の記録を取得しました");
@@ -1456,9 +1564,30 @@
     $("detail-modal").addEventListener("click", (e) => {
       if (e.target === $("detail-modal")) closeWorkoutModal();
     });
+
+    if ($("contact-modal")) {
+      $("contact-modal-close").addEventListener("click", closeContactModal);
+      $("btn-contact-cancel").addEventListener("click", closeContactModal);
+      $("contact-modal").addEventListener("click", (e) => {
+        if (e.target === $("contact-modal")) closeContactModal();
+      });
+      $("form-contact").addEventListener("submit", handleContactSubmit);
+      document.querySelectorAll('input[name="contact-category"]').forEach((radio) => {
+        radio.addEventListener("change", updateContactPlaceholder);
+      });
+      $("contact-needs-reply").addEventListener("change", () => {
+        const needsReply = $("contact-needs-reply").checked;
+        $("contact-reply-wrap").hidden = !needsReply;
+        if (needsReply) {
+          $("contact-email").focus();
+        }
+      });
+    }
+
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !$("detail-modal").hidden) {
-        closeWorkoutModal();
+      if (e.key === "Escape") {
+        if (!$("detail-modal").hidden) closeWorkoutModal();
+        if ($("contact-modal") && !$("contact-modal").hidden) closeContactModal();
       }
     });
   }
