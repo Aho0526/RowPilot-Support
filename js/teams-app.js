@@ -680,7 +680,8 @@
       if (f.from && (!w.recorded_on || w.recorded_on.slice(0, 10) < f.from)) return false;
       if (f.to && (!w.recorded_on || w.recorded_on.slice(0, 10) > f.to)) return false;
       if (f.q) {
-        const hay = `${w.athlete_name || ""} ${w.notes || ""} ${w.boat_type || ""} ${w.format || ""}`.toLowerCase();
+        const formatText = isOnWaterType(w.type) ? "" : (w.format || "");
+        const hay = `${w.athlete_name || ""} ${w.notes || ""} ${w.boat_type || ""} ${formatText}`.toLowerCase();
         if (!hay.includes(f.q)) return false;
       }
       return true;
@@ -720,7 +721,9 @@
       const typeTd = document.createElement("td");
       const badge = createEl("span", `type-pill ${workoutTypeClass(w.type)}`, workoutTypeLabel(w.type));
       typeTd.appendChild(badge);
-      typeTd.appendChild(document.createTextNode(w.format || "-"));
+      if (!isOnWaterType(w.type)) {
+        typeTd.appendChild(document.createTextNode(w.format || "-"));
+      }
       tr.appendChild(typeTd);
 
       tr.appendChild(createEl("td", "num", formatDistance(w.distance_m)));
@@ -930,11 +933,300 @@
     }
   }
 
+  // ── Boat Crew Visualization ──
+  const SVG_NS = "http://www.w3.org/2000/svg";
+
+  const BOAT_SPECS = {
+    "1x": { code: "1x", displayName: "シングル", rowerCount: 1, hasCoxswain: false, isScull: true, widthFactor: 0.52, iconKind: "single" },
+    "2x": { code: "2x", displayName: "ダブルスカル", rowerCount: 2, hasCoxswain: false, isScull: true, widthFactor: 0.66, iconKind: "double" },
+    "2-": { code: "2-", displayName: "ペア", rowerCount: 2, hasCoxswain: false, isScull: false, widthFactor: 0.66, iconKind: "double" },
+    "4x+": { code: "4x+", displayName: "舵手付きクォード", rowerCount: 4, hasCoxswain: true, isScull: true, widthFactor: 0.80, iconKind: "group" },
+    "4-": { code: "4-", displayName: "フォア", rowerCount: 4, hasCoxswain: false, isScull: false, widthFactor: 0.80, iconKind: "group" },
+    "8+": { code: "8+", displayName: "エイト", rowerCount: 8, hasCoxswain: true, isScull: false, widthFactor: 0.94, iconKind: "group" }
+  };
+
+  function svgEl(tag, attrs = {}) {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      el.setAttribute(k, String(v));
+    }
+    return el;
+  }
+
+  function getBoatSeatLabels(spec) {
+    const labels = [];
+    for (let i = 1; i <= spec.rowerCount; i++) {
+      if (i === 1) labels.push("Bow");
+      else if (i === spec.rowerCount) labels.push("Stroke");
+      else labels.push(String(i));
+    }
+    if (spec.hasCoxswain) labels.push("Cox");
+    return labels;
+  }
+
+  function createHeaderCrewIcon(iconKind) {
+    const svg = svgEl("svg", {
+      class: "crew-header-icon",
+      viewBox: "0 0 28 20",
+      width: "24",
+      height: "17",
+      "aria-hidden": "true"
+    });
+    const drawPerson = (cx, cy, rHead, bodyW, bodyH, opacity = "1") => {
+      svg.appendChild(svgEl("circle", { cx, cy, r: rHead, fill: "currentColor", opacity }));
+      svg.appendChild(svgEl("path", {
+        d: `M ${cx - bodyW / 2} ${cy + rHead + bodyH} C ${cx - bodyW / 2} ${cy + rHead + 1.5} ${cx + bodyW / 2} ${cy + rHead + 1.5} ${cx + bodyW / 2} ${cy + rHead + bodyH} Z`,
+        fill: "currentColor",
+        opacity
+      }));
+    };
+    if (iconKind === "single") {
+      drawPerson(14, 5.5, 3.2, 11, 7.5);
+    } else if (iconKind === "double") {
+      drawPerson(9.5, 7, 2.5, 8.5, 6, "0.78");
+      drawPerson(18, 5.8, 3, 10.5, 7.2);
+    } else {
+      drawPerson(6.5, 7.2, 2.3, 7.5, 5.5, "0.75");
+      drawPerson(21.5, 7.2, 2.3, 7.5, 5.5, "0.75");
+      drawPerson(14, 5.8, 2.9, 10, 7);
+    }
+    return svg;
+  }
+
+  function appendSeatIcon(svg, cx, cy, isCox, isEmpty) {
+    if (isCox) {
+      svg.appendChild(svgEl("circle", {
+        cx, cy, r: 12,
+        fill: "rgba(249, 115, 22, 0.28)"
+      }));
+      const g = svgEl("g", {
+        transform: `translate(${cx - 6}, ${cy - 5.5})`,
+        fill: "#fb923c"
+      });
+      g.appendChild(svgEl("path", {
+        d: "M10.5 1.5L4.5 4H2a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h.8l.9 2.6a.6.6 0 0 0 .57.4h1a.5.5 0 0 0 .47-.67L5.1 8l5.4 2.5a.5.5 0 0 0 .7-.46V1.96a.5.5 0 0 0-.7-.46z"
+      }));
+      svg.appendChild(g);
+    } else {
+      svg.appendChild(svgEl("circle", {
+        cx, cy, r: 12,
+        fill: "rgba(77, 203, 255, 0.2)"
+      }));
+      const fill = isEmpty ? "rgba(138, 144, 168, 0.55)" : "#4dcbff";
+      svg.appendChild(svgEl("circle", { cx, cy: cy - 2.6, r: 2.6, fill }));
+      svg.appendChild(svgEl("path", {
+        d: `M ${cx - 4.8} ${cy + 5.6} C ${cx - 4.8} ${cy + 1.4} ${cx + 4.8} ${cy + 1.4} ${cx + 4.8} ${cy + 5.6} Z`,
+        fill
+      }));
+    }
+  }
+
+  function buildCrewDiagramCard(boatTypeRaw, members) {
+    const spec = BOAT_SPECS[boatTypeRaw];
+    if (!spec) return null;
+
+    const card = createEl("div", "crew-diagram-card");
+
+    const titleRow = createEl("div", "crew-diagram-title");
+    titleRow.appendChild(createHeaderCrewIcon(spec.iconKind));
+    titleRow.appendChild(createEl("span", "", `${spec.displayName} (${spec.code})`));
+    card.appendChild(titleRow);
+
+    const totalSeats = spec.rowerCount + (spec.hasCoxswain ? 1 : 0);
+    const labels = getBoatSeatLabels(spec);
+    const isSmallBoat = spec.code === "1x" || spec.code === "2x" || spec.code === "2-";
+    const isEight = spec.code === "8+";
+
+    const W = 560;
+    const H = isSmallBoat ? 148 : isEight ? 236 : 190;
+    const centerY = isSmallBoat ? 66 : isEight ? 118 : 95;
+    const boatHeight = 16;
+
+    const boatWidth = W * spec.widthFactor;
+    const boatLeft = (W - boatWidth) / 2;
+    const usableWidth = boatWidth * 0.85;
+    const startX = boatLeft + boatWidth * 0.075;
+    const bowX = boatLeft + boatWidth * 0.03;
+    const sternX = boatLeft + boatWidth * 0.97;
+
+    const svg = svgEl("svg", {
+      class: "crew-diagram-svg",
+      viewBox: `0 0 ${W} ${H}`,
+      role: "img",
+      "aria-label": `${spec.displayName} (${spec.code}) クルー編成図`
+    });
+
+    // Boat hull gradient
+    const defs = svgEl("defs");
+    const grad = svgEl("linearGradient", {
+      id: `hull-grad-${spec.code.replace(/[^a-z0-9]/gi, "")}`,
+      x1: "0%", y1: "0%", x2: "100%", y2: "0%"
+    });
+    grad.appendChild(svgEl("stop", { offset: "0%", "stop-color": "#4dcbff", "stop-opacity": "0.17" }));
+    grad.appendChild(svgEl("stop", { offset: "100%", "stop-color": "#3a8aff", "stop-opacity": "0.10" }));
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+
+    // Boat hull path
+    const hullTop = centerY - boatHeight;
+    const hullBot = centerY + boatHeight;
+    const hullD = [
+      `M ${bowX} ${centerY}`,
+      `Q ${boatLeft + boatWidth * 0.08} ${centerY - boatHeight * 0.3} ${boatLeft + boatWidth * 0.2} ${hullTop}`,
+      `L ${boatLeft + boatWidth * 0.8} ${hullTop}`,
+      `Q ${boatLeft + boatWidth * 0.95} ${centerY - boatHeight * 0.5} ${sternX} ${centerY}`,
+      `Q ${boatLeft + boatWidth * 0.95} ${centerY + boatHeight * 0.5} ${boatLeft + boatWidth * 0.8} ${hullBot}`,
+      `L ${boatLeft + boatWidth * 0.2} ${hullBot}`,
+      `Q ${boatLeft + boatWidth * 0.08} ${centerY + boatHeight * 0.3} ${bowX} ${centerY}`,
+      "Z"
+    ].join(" ");
+    svg.appendChild(svgEl("path", {
+      d: hullD,
+      fill: `url(#${grad.getAttribute("id")})`,
+      stroke: "rgba(77, 203, 255, 0.55)",
+      "stroke-width": "1.5"
+    }));
+
+    // Oars (for 1x, 2x, 2- only)
+    if (isSmallBoat) {
+      for (let i = 0; i < spec.rowerCount; i++) {
+        const seatX = startX + (usableWidth / (totalSeats + 1)) * (i + 1);
+        if (spec.isScull) {
+          svg.appendChild(svgEl("polyline", {
+            points: `${seatX},${centerY} ${seatX - 4},${centerY - 22}`,
+            fill: "none",
+            stroke: "rgba(77, 203, 255, 0.42)",
+            "stroke-width": "1.6",
+            "stroke-linecap": "round"
+          }));
+          svg.appendChild(svgEl("polyline", {
+            points: `${seatX},${centerY} ${seatX - 4},${centerY + 22}`,
+            fill: "none",
+            stroke: "rgba(77, 203, 255, 0.42)",
+            "stroke-width": "1.6",
+            "stroke-linecap": "round"
+          }));
+        } else {
+          const isTopSide = i % 2 === 0;
+          svg.appendChild(svgEl("polyline", {
+            points: `${seatX},${centerY} ${seatX - 6},${isTopSide ? centerY - 24 : centerY + 24}`,
+            fill: "none",
+            stroke: "rgba(77, 203, 255, 0.42)",
+            "stroke-width": "1.6",
+            "stroke-linecap": "round"
+          }));
+        }
+      }
+    }
+
+    // Leader polylines (for 4x+, 4-, 8+)
+    const seatPositions = [];
+    for (let i = 0; i < totalSeats; i++) {
+      const seatX = startX + (usableWidth / (totalSeats + 1)) * (i + 1);
+      const rawName = i < members.length ? String(members[i] || "").trim() : "";
+      const isEmpty = rawName.length === 0;
+      const isCox = spec.hasCoxswain && i === totalSeats - 1;
+
+      let layout;
+      if (isSmallBoat) {
+        layout = {
+          drawLine: false,
+          nameX: seatX,
+          nameY: centerY + 46
+        };
+      } else {
+        const isTop = isEight ? Math.floor(i / 2) % 2 === 0 : i % 2 === 0;
+        const isFurther = isEight && i % 2 !== 0 && i !== totalSeats - 1;
+        const offsetY = isEight ? (isFurther ? 78 : 48) : 52;
+        const lineY = isTop ? centerY - offsetY : centerY + offsetY;
+        const dx = isFurther ? 24 : (isEight ? 12 : 15);
+        const horizLen = isEight ? 26 : 28;
+        const startY = isTop ? centerY - 14 : centerY + 14;
+        const midX = seatX + dx;
+        const endX = midX + horizLen;
+
+        svg.appendChild(svgEl("polyline", {
+          points: `${seatX},${startY} ${midX},${lineY} ${endX},${lineY}`,
+          fill: "none",
+          stroke: "rgba(148, 163, 184, 0.46)",
+          "stroke-width": "1.2",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }));
+
+        layout = {
+          drawLine: true,
+          nameX: midX + horizLen / 2,
+          nameY: isTop ? lineY - 7 : lineY + 15
+        };
+      }
+
+      seatPositions.push({ seatX, label: labels[i], rawName, isEmpty, isCox, layout });
+    }
+
+    // Seat labels & icons inside hull
+    for (const s of seatPositions) {
+      const labelEl = svgEl("text", {
+        x: s.seatX,
+        y: centerY - boatHeight - 7,
+        "text-anchor": "middle",
+        fill: s.isCox ? "#fb923c" : "#4dcbff",
+        "font-size": "10.5",
+        "font-weight": "700"
+      });
+      labelEl.textContent = s.label;
+      svg.appendChild(labelEl);
+
+      appendSeatIcon(svg, s.seatX, centerY, s.isCox, s.isEmpty);
+    }
+
+    // Crew member names
+    for (const s of seatPositions) {
+      const displayText = s.isEmpty ? "—" : (s.rawName.length > 10 ? `${s.rawName.slice(0, 9)}…` : s.rawName);
+      const nameEl = svgEl("text", {
+        x: s.layout.nameX,
+        y: s.layout.nameY,
+        "text-anchor": "middle",
+        fill: s.isEmpty ? "rgba(138, 144, 168, 0.55)" : "#f0f2f8",
+        "font-size": isEight ? "10.5" : "11.5",
+        "font-weight": s.isEmpty ? "400" : "600"
+      });
+      nameEl.textContent = displayText;
+      if (!s.isEmpty && s.rawName.length > 10) {
+        const titleEl = svgEl("title");
+        titleEl.textContent = s.rawName;
+        nameEl.appendChild(titleEl);
+      }
+      svg.appendChild(nameEl);
+    }
+
+    // Bow direction indicator (bottom-left)
+    const bowY = H - 10;
+    const bowGroup = svgEl("g", { fill: "rgba(138, 144, 168, 0.65)" });
+    bowGroup.appendChild(svgEl("polygon", {
+      points: `${bowX},${bowY - 3.5} ${bowX + 6},${bowY - 7} ${bowX + 6},${bowY}`
+    }));
+    const bowText = svgEl("text", {
+      x: bowX + 10,
+      y: bowY,
+      "font-size": "9.5",
+      "font-weight": "600"
+    });
+    bowText.textContent = "Bow";
+    bowGroup.appendChild(bowText);
+    svg.appendChild(bowGroup);
+
+    card.appendChild(svg);
+    return card;
+  }
+
   // ── Detail Modal ──
   function openWorkoutModal(w) {
     const modalBadge = $("modal-type-badge");
     modalBadge.className = `modal-badge ${workoutTypeClass(w.type)}`;
-    modalBadge.textContent = `${workoutTypeLabel(w.type)} / ${w.format || "-"}`;
+    modalBadge.textContent = isOnWaterType(w.type)
+      ? workoutTypeLabel(w.type)
+      : `${workoutTypeLabel(w.type)} / ${w.format || "-"}`;
     $("modal-athlete-name").textContent = w.athlete_name || "不明な選手";
     $("modal-date").textContent = formatDateTime(w.recorded_on);
 
@@ -969,16 +1261,23 @@
     let hasCrew = false;
     if (w.crew_info) {
       try {
-        const crew = JSON.parse(w.crew_info);
+        const crew = typeof w.crew_info === "string" ? JSON.parse(w.crew_info) : w.crew_info;
         if (crew && Array.isArray(crew.members)) {
           hasCrew = true;
-          const seats = crew.members;
-          seats.forEach((name, idx) => {
-            const seatEl = createEl("div", "crew-seat");
-            seatEl.appendChild(createEl("span", "", `Seat ${idx + 1} (${crew.boatType || w.boat_type || ""})`));
-            seatEl.appendChild(createEl("strong", "", name && name.trim() ? name : "未設定"));
-            crewGrid.appendChild(seatEl);
-          });
+          const boatKey = crew.boatType || w.boat_type || "";
+          const diagramCard = buildCrewDiagramCard(boatKey, crew.members);
+          if (diagramCard) {
+            crewGrid.className = "crew-diagram-wrap";
+            crewGrid.appendChild(diagramCard);
+          } else {
+            crewGrid.className = "crew-grid";
+            crew.members.forEach((name, idx) => {
+              const seatEl = createEl("div", "crew-seat");
+              seatEl.appendChild(createEl("span", "", `Seat ${idx + 1}${boatKey ? ` (${boatKey})` : ""}`));
+              seatEl.appendChild(createEl("strong", "", name && name.trim() ? name : "未設定"));
+              crewGrid.appendChild(seatEl);
+            });
+          }
         }
       } catch {
         // JSON不正時は非表示
