@@ -209,7 +209,7 @@
     if (!safeKey || !/^[a-zA-Z0-9_-]+$/.test(safeKey)) {
       return "/teams/";
     }
-    return `/teams/?slug=${encodeURIComponent(safeKey)}`;
+    return `/teams/${encodeURIComponent(safeKey)}/`;
   }
 
   // ── Initialization ──
@@ -1032,7 +1032,7 @@
       btn.type = "button";
       btn.appendChild(createEl("span", "team-select-name", team.name || "RowPilot Team"));
       if (team.slug) {
-        btn.appendChild(createEl("span", "team-select-slug", `/teams/?slug=${team.slug}`));
+        btn.appendChild(createEl("span", "team-select-slug", `/teams/${team.slug}/`));
       }
       btn.addEventListener("click", () => submitCoachLogin(team.id));
       list.appendChild(btn);
@@ -1188,7 +1188,7 @@
       saveFallbackTokenIfNeeded(data.web_token);
       // URLからtokenを消す
       const cleanKey = (state.publicTeam && state.publicTeam.slug) || state.slugOrId;
-      const cleanUrl = `/teams/?slug=${encodeURIComponent(cleanKey)}`;
+      const cleanUrl = `/teams/${encodeURIComponent(cleanKey)}/`;
       history.replaceState(null, "", cleanUrl);
       const ok = await tryLoadDashboard();
       if (!ok) {
