@@ -1223,11 +1223,13 @@ footer {
 }
 
 /* ── RESPONSIVE ──────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 960px) {
     .nav-links { display: none; }
     .nav-toggle { display: flex; }
     .mobile-menu { display: block; }
+}
 
+@media (max-width: 768px) {
     .plans-grid { grid-template-columns: 1fr 1fr; }
     .plan-card--featured { order: -1; }
     .features-grid { grid-template-columns: 1fr; }
