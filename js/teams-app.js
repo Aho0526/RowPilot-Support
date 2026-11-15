@@ -23,7 +23,8 @@
     appExpiresAtMs: 0,
     pollTimer: null,
     countdownTimer: null,
-    activeViewTab: "feed"
+    activeViewTab: "feed",
+    hasAppliedAutoPeriod: false
   };
 
   // ── DOM Helpers ──
@@ -542,6 +543,13 @@
       $("kpi-total-members").textContent = "-";
     }
 
+    if (!state.hasAppliedAutoPeriod) {
+      state.hasAppliedAutoPeriod = true;
+      if ($("filter-period").value === "30" && summary && summary.workouts_30d_count === 0 && workouts.length > 0) {
+        $("filter-period").value = "all";
+      }
+    }
+
     applyFiltersAndRender();
   }
 
@@ -568,8 +576,60 @@
     };
   }
 
+  function updateFilterSummaryUi() {
+    const q = $("filter-q") ? $("filter-q").value.trim() : "";
+    const athleteId = $("filter-athlete") ? $("filter-athlete").value : "";
+    const type = $("filter-type") ? $("filter-type").value : "";
+    const period = $("filter-period") ? $("filter-period").value : "all";
+
+    let activeCount = 0;
+    if (q) activeCount += 1;
+    if (athleteId) activeCount += 1;
+    if (type) activeCount += 1;
+    if (period && period !== "all") activeCount += 1;
+
+    const badge = $("filter-active-badge");
+    const toggleBtn = $("btn-toggle-filters");
+    const quickResetBtn = $("btn-reset-filters-quick");
+    const resetBtn = $("btn-reset-filters");
+
+    if (badge) {
+      badge.hidden = activeCount === 0;
+      badge.textContent = activeCount > 0 ? `${activeCount}件適用中` : "";
+    }
+    if (toggleBtn) {
+      toggleBtn.classList.toggle("has-active", activeCount > 0);
+    }
+    if (quickResetBtn) {
+      quickResetBtn.hidden = activeCount === 0;
+    }
+    if (resetBtn) {
+      resetBtn.disabled = activeCount === 0;
+    }
+  }
+
+  function setFiltersOpen(isOpen) {
+    const section = $("filter-section");
+    const toggleBtn = $("btn-toggle-filters");
+    if (section) section.classList.toggle("is-open", isOpen);
+    if (toggleBtn) toggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  }
+
+  function resetAllFilters() {
+    if ($("filter-q")) $("filter-q").value = "";
+    if ($("filter-athlete")) $("filter-athlete").value = "";
+    if ($("filter-type")) $("filter-type").value = "";
+    if ($("filter-period")) $("filter-period").value = "all";
+    if ($("filter-from")) $("filter-from").value = "";
+    if ($("filter-to")) $("filter-to").value = "";
+    if ($("custom-date-from-wrap")) $("custom-date-from-wrap").hidden = true;
+    if ($("custom-date-to-wrap")) $("custom-date-to-wrap").hidden = true;
+    applyFiltersAndRender();
+  }
+
   function applyFiltersAndRender() {
     if (!state.dashboard) return;
+    updateFilterSummaryUi();
     const workouts = state.dashboard.workouts || [];
     const f = getFilterState();
 
@@ -1009,6 +1069,24 @@
       $("custom-date-to-wrap").hidden = !isCustom;
       applyFiltersAndRender();
     });
+
+    if ($("btn-toggle-filters")) {
+      $("btn-toggle-filters").addEventListener("click", () => {
+        const section = $("filter-section");
+        const nextOpen = !(section && section.classList.contains("is-open"));
+        setFiltersOpen(nextOpen);
+      });
+    }
+    if ($("btn-close-filters")) {
+      $("btn-close-filters").addEventListener("click", () => setFiltersOpen(false));
+    }
+    if ($("btn-reset-filters")) {
+      $("btn-reset-filters").addEventListener("click", resetAllFilters);
+    }
+    if ($("btn-reset-filters-quick")) {
+      $("btn-reset-filters-quick").addEventListener("click", resetAllFilters);
+    }
+    updateFilterSummaryUi();
 
     $("athlete-sort").addEventListener("change", renderAthleteSummary);
 

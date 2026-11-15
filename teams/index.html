@@ -289,42 +289,62 @@
       </div>
 
       <!-- Filters -->
-      <div class="filter-bar">
-        <div class="filter-item filter-search">
-          <label for="filter-q">キーワード</label>
-          <input type="search" id="filter-q" placeholder="選手名・メモ・艇種で検索">
+      <div class="filter-section" id="filter-section">
+        <div class="filter-mobile-bar">
+          <button type="button" class="filter-toggle-btn" id="btn-toggle-filters" aria-expanded="false" aria-controls="filter-bar">
+            <span class="filter-toggle-left">
+              <svg class="filter-toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+              <span class="filter-toggle-label">絞り込み</span>
+              <span class="filter-active-badge" id="filter-active-badge" hidden></span>
+            </span>
+            <span class="filter-toggle-chevron" aria-hidden="true">▾</span>
+          </button>
+          <button type="button" class="filter-reset-chip" id="btn-reset-filters-quick" hidden>解除</button>
         </div>
-        <div class="filter-item">
-          <label for="filter-athlete">選手</label>
-          <select id="filter-athlete">
-            <option value="">すべての選手</option>
-          </select>
-        </div>
-        <div class="filter-item">
-          <label for="filter-type">種目</label>
-          <select id="filter-type">
-            <option value="">すべて</option>
-            <option value="erg">エルゴ</option>
-            <option value="onwater">水上</option>
-          </select>
-        </div>
-        <div class="filter-item">
-          <label for="filter-period">期間</label>
-          <select id="filter-period">
-            <option value="30">直近30日</option>
-            <option value="7">直近7日</option>
-            <option value="90">直近90日</option>
-            <option value="all">すべて</option>
-            <option value="custom">日付指定</option>
-          </select>
-        </div>
-        <div class="filter-item filter-date" id="custom-date-from-wrap" hidden>
-          <label for="filter-from">開始日</label>
-          <input type="date" id="filter-from">
-        </div>
-        <div class="filter-item filter-date" id="custom-date-to-wrap" hidden>
-          <label for="filter-to">終了日</label>
-          <input type="date" id="filter-to">
+
+        <div class="filter-bar" id="filter-bar">
+          <div class="filter-item filter-search">
+            <label for="filter-q">キーワード</label>
+            <input type="search" id="filter-q" placeholder="選手名・メモ・艇種で検索">
+          </div>
+          <div class="filter-item">
+            <label for="filter-athlete">選手</label>
+            <select id="filter-athlete">
+              <option value="">すべての選手</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="filter-type">種目</label>
+            <select id="filter-type">
+              <option value="">すべて</option>
+              <option value="erg">エルゴ</option>
+              <option value="onwater">水上</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="filter-period">期間</label>
+            <select id="filter-period">
+              <option value="all" selected>すべて</option>
+              <option value="30">直近30日</option>
+              <option value="7">直近7日</option>
+              <option value="90">直近90日</option>
+              <option value="custom">日付指定</option>
+            </select>
+          </div>
+          <div class="filter-item filter-date" id="custom-date-from-wrap" hidden>
+            <label for="filter-from">開始日</label>
+            <input type="date" id="filter-from">
+          </div>
+          <div class="filter-item filter-date" id="custom-date-to-wrap" hidden>
+            <label for="filter-to">終了日</label>
+            <input type="date" id="filter-to">
+          </div>
+          <div class="filter-mobile-actions" id="filter-mobile-actions">
+            <button type="button" class="btn-ghost btn-sm" id="btn-reset-filters">条件をリセット</button>
+            <button type="button" class="btn-primary-web btn-sm" id="btn-close-filters">結果を見る</button>
+          </div>
         </div>
       </div>
 
