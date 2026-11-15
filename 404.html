@@ -3,6 +3,10 @@
 <head>
   <script>
     (function () {
+      if (location.pathname === "/teams-portal" || location.pathname === "/teams-portal/") {
+        location.replace("/teams/" + location.search);
+        return;
+      }
       var m = location.pathname.match(/^\/teams\/([^\/]+)\/?$/);
       if (m && m[1]) {
         var params = new URLSearchParams(location.search);

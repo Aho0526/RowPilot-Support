@@ -105,11 +105,11 @@
           </ul>
 
           <!-- Direct Slug Jump (Shown on /teams/ root) -->
-          <form id="form-slug-jump" class="slug-jump-box" hidden>
-            <label for="slug-jump-input">専用URLをお持ちの方</label>
+          <form id="form-slug-jump" class="slug-jump-box" hidden novalidate>
+            <label for="slug-jump-input">専用URLをお持ちの方（チーム別のログイン画面へ移動）</label>
             <div class="slug-jump-row">
               <span class="slug-prefix">rowpilot.jp/teams/</span>
-              <input type="text" id="slug-jump-input" placeholder="your-team" pattern="[a-zA-Z0-9-]+" autocomplete="off">
+              <input type="text" id="slug-jump-input" placeholder="your-team" autocomplete="off">
               <button type="submit" class="btn-secondary-web btn-sm">開く</button>
             </div>
           </form>

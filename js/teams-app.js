@@ -166,7 +166,11 @@
     if (!isoStr) return "-";
     const d = new Date(isoStr);
     if (Number.isNaN(d.getTime())) return isoStr;
-    return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const mins = String(d.getMinutes()).padStart(2, "0");
+    return `${month}/${day} ${hours}:${mins}`;
   }
 
   function roleLabel(role) {
@@ -181,15 +185,30 @@
     }
   }
 
-  function workoutTypeLabel(type) {
-    const t = (type || "").toLowerCase();
-    if (t === "erg") return "エルゴ";
-    if (t === "onwater" || t === "water" || t === "gps") return "水上";
-    return type || "その他";
+  function normalizeWorkoutType(type) {
+    return (type || "").trim().toLowerCase();
   }
 
   function isErgType(type) {
-    return (type || "").toLowerCase() === "erg";
+    const t = normalizeWorkoutType(type);
+    return t === "erg" || t === "indoor";
+  }
+
+  function isOnWaterType(type) {
+    const t = normalizeWorkoutType(type);
+    return t === "onwater" || t === "water" || t === "gps" || t === "outdoor";
+  }
+
+  function workoutTypeClass(type) {
+    if (isErgType(type)) return "erg";
+    if (isOnWaterType(type)) return "onwater";
+    return "other";
+  }
+
+  function workoutTypeLabel(type) {
+    if (isErgType(type)) return "エルゴ";
+    if (isOnWaterType(type)) return "水上";
+    return type || "その他";
   }
 
   // ── Route Extraction ──
@@ -211,6 +230,24 @@
       return "/teams/";
     }
     return `/teams/${encodeURIComponent(safeKey)}/`;
+  }
+
+  function extractSlugInput(value) {
+    let raw = String(value || "").trim();
+    if (!raw) return "";
+    if (/^https?:\/\//i.test(raw) || raw.includes("rowpilot.jp/")) {
+      try {
+        const normalizedUrl = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+        raw = new URL(normalizedUrl).pathname;
+      } catch {
+        // URL解析に失敗した場合はそのまま扱う
+      }
+    }
+    const teamsMatch = raw.match(/\/teams\/([^\/?#]+)/i);
+    if (teamsMatch && teamsMatch[1]) {
+      raw = decodeURIComponent(teamsMatch[1]);
+    }
+    return raw.replace(/^\/+|\/+$/g, "");
   }
 
   // ── Initialization ──
@@ -635,7 +672,11 @@
 
     const filtered = workouts.filter((w) => {
       if (f.athleteId && w.athlete_id !== f.athleteId) return false;
-      if (f.type && (w.type || "").toLowerCase() !== f.type) return false;
+      if (f.type) {
+        if (f.type === "erg" && !isErgType(w.type)) return false;
+        if (f.type === "onwater" && !isOnWaterType(w.type)) return false;
+        if (f.type !== "erg" && f.type !== "onwater" && normalizeWorkoutType(w.type) !== f.type) return false;
+      }
       if (f.from && (!w.recorded_on || w.recorded_on.slice(0, 10) < f.from)) return false;
       if (f.to && (!w.recorded_on || w.recorded_on.slice(0, 10) > f.to)) return false;
       if (f.q) {
@@ -673,11 +714,11 @@
       const tr = document.createElement("tr");
       tr.addEventListener("click", () => openWorkoutModal(w));
 
-      tr.appendChild(createEl("td", "", formatShortDate(w.recorded_on)));
+      tr.appendChild(createEl("td", "date-cell", formatShortDate(w.recorded_on)));
       tr.appendChild(createEl("td", "", w.athlete_name || "不明"));
 
       const typeTd = document.createElement("td");
-      const badge = createEl("span", `type-pill ${isErgType(w.type) ? "erg" : "onwater"}`, workoutTypeLabel(w.type));
+      const badge = createEl("span", `type-pill ${workoutTypeClass(w.type)}`, workoutTypeLabel(w.type));
       typeTd.appendChild(badge);
       typeTd.appendChild(document.createTextNode(w.format || "-"));
       tr.appendChild(typeTd);
@@ -891,7 +932,9 @@
 
   // ── Detail Modal ──
   function openWorkoutModal(w) {
-    $("modal-type-badge").textContent = `${workoutTypeLabel(w.type)} / ${w.format || "-"}`;
+    const modalBadge = $("modal-type-badge");
+    modalBadge.className = `modal-badge ${workoutTypeClass(w.type)}`;
+    modalBadge.textContent = `${workoutTypeLabel(w.type)} / ${w.format || "-"}`;
     $("modal-athlete-name").textContent = w.athlete_name || "不明な選手";
     $("modal-date").textContent = formatDateTime(w.recorded_on);
 
@@ -1004,14 +1047,32 @@
 
     $("btn-regen-code").addEventListener("click", startNewAppSession);
 
-    $("form-slug-jump").addEventListener("submit", (e) => {
+    $("form-slug-jump").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const raw = $("slug-jump-input").value.trim().toLowerCase();
-      if (!raw || !/^[a-z0-9-]+$/.test(raw)) {
-        showToast("専用URLは半角英数字とハイフンのみ入力してください");
+      const key = extractSlugInput($("slug-jump-input").value);
+      if (!key || !/^[a-zA-Z0-9_-]+$/.test(key)) {
+        showToast("専用URLのチーム識別子（半角英数字・ハイフン・アンダースコア）を入力してください");
         return;
       }
-      location.assign(buildTeamUrl(raw));
+      const submitBtn = $("form-slug-jump").querySelector("button[type='submit']");
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        const res = await apiFetch(`/web/teams/${encodeURIComponent(key)}/public`);
+        if (res.status === 404) {
+          showToast("指定された専用URLのチームが見つかりません");
+          return;
+        }
+        if (res.ok) {
+          const team = await res.json();
+          location.assign(buildTeamUrl(team.slug || team.id || key));
+          return;
+        }
+      } catch {
+        // 通信エラー時はそのまま遷移を試みる
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+      location.assign(buildTeamUrl(key));
     });
 
     $("btn-show-reset").addEventListener("click", () => {
@@ -1052,7 +1113,9 @@
       }
       clearFallbackToken();
       state.dashboard = null;
-      enterAuthView();
+      state.slugOrId = null;
+      state.publicTeam = null;
+      location.assign("/teams-portal");
     });
 
     $("btn-print").addEventListener("click", () => window.print());
