@@ -43,6 +43,14 @@
     for (const id of ids) {
       $(id).hidden = id !== viewId;
     }
+    const showPortalNav = viewId === "view-auth" || viewId === "view-not-found" || viewId === "view-set-password";
+    document.body.classList.toggle("show-portal-nav", showPortalNav);
+    if (!showPortalNav) {
+      const mobileMenu = $("mobile-menu");
+      const navToggle = $("nav-toggle");
+      if (mobileMenu) mobileMenu.classList.remove("open");
+      if (navToggle) navToggle.classList.remove("open");
+    }
   }
 
   function showToast(message) {

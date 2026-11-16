@@ -31,6 +31,12 @@
   white-space: nowrap;
 }
 
+body:not(.show-portal-nav) .teams-nav-links,
+body:not(.show-portal-nav) .nav-toggle,
+body:not(.show-portal-nav) .mobile-menu {
+  display: none !important;
+}
+
 .teams-badge {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.68rem;
@@ -1490,18 +1496,6 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 1220px) {
-  body.is-authenticated .teams-nav-links {
-    display: none;
-  }
-  body.is-authenticated .nav-toggle {
-    display: flex;
-  }
-  body.is-authenticated .mobile-menu {
-    display: block;
-  }
-}
-
 @media (max-width: 960px) {
   .header-actions {
     gap: 0.4rem;
