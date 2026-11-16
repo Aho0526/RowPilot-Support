@@ -4,18 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upcoming v1.0.1 Update Details & Pro Plan Feature Expansion — RowPilot</title>
+    <title>v1.0.1 Update Released &amp; Pro Plan Feature Expansion — RowPilot</title>
     <meta name="description"
-        content="Notice on the upcoming RowPilot v1.0.1 update. Includes multilingual support, screen improvements, Pro plan price kept at ¥200 JPY/month, and new Pro features (nationwide tide station selection, PM5 sync up to 4 machines).">
+        content="RowPilot v1.0.1 is now available on the App Store. Features 6 new languages, Team Web Dashboard integration, RowMode/PM5/Tide improvements, and Pro plan feature expansion at ¥200 JPY/month.">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
     <style>
+        .policy-wrap {
+            max-width: 1160px;
+            width: calc(100% - 2rem);
+        }
+
+        .policy-lead {
+            max-width: 880px;
+        }
+
         .flow-card {
             background: var(--bg-2);
             border: 1px solid var(--border);
             border-radius: 18px;
             padding: 2rem;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             position: relative;
             overflow: hidden;
@@ -26,10 +35,11 @@
             font-size: 1.35rem;
             font-weight: 800;
             margin-top: 0;
-            margin-bottom: 1.25rem;
+            margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            gap: 0.6rem;
+            justify-content: space-between;
+            gap: 0.75rem;
             color: var(--text);
             border-bottom: 1px solid var(--border);
             padding-bottom: 0.75rem;
@@ -39,35 +49,141 @@
             color: var(--text-2);
             font-size: 0.95rem;
             line-height: 1.7;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.35rem;
         }
 
         .feat-highlight-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 1.25rem;
-            margin: 1.5rem 0;
+            margin: 1.25rem 0 0.25rem;
         }
 
         .feat-highlight-item {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 1.25rem;
+            padding: 1.35rem;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .feat-highlight-item:hover {
+            border-color: rgba(77, 203, 255, 0.3);
+            background: rgba(255, 255, 255, 0.045);
         }
 
         .feat-highlight-item h3 {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             color: var(--accent);
             margin-top: 0;
             margin-bottom: 0.6rem;
+            line-height: 1.45;
         }
 
         .feat-highlight-item p {
             color: var(--text-2);
             font-size: 0.9rem;
-            line-height: 1.6;
+            line-height: 1.65;
             margin: 0;
+        }
+
+        .pro-summary-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem 2rem;
+            margin-top: 1rem;
+            margin-bottom: 0;
+        }
+
+        .toggle-all-btn {
+            display: none;
+            background: none;
+            border: none;
+            padding: 0.25rem 0;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .feat-highlight-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .policy-wrap {
+                width: calc(100% - 1rem);
+                margin: 5.5rem auto 3rem;
+                padding: 1.5rem 1rem;
+                border-radius: 16px;
+            }
+
+            .flow-card {
+                padding: 1.25rem;
+                margin-bottom: 1.5rem;
+                border-radius: 14px;
+            }
+
+            .flow-card h2 {
+                font-size: 1.15rem;
+            }
+
+            .toggle-all-btn {
+                display: inline-block;
+            }
+
+            .feat-highlight-grid {
+                grid-template-columns: 1fr;
+                gap: 0.65rem;
+                margin-top: 1rem;
+            }
+
+            .feat-highlight-item {
+                padding: 0.95rem 1.05rem;
+                cursor: pointer;
+            }
+
+            .feat-highlight-item h3 {
+                font-size: 0.98rem;
+                margin-bottom: 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+            }
+
+            .feat-highlight-item h3::after {
+                content: '▾';
+                font-size: 0.85rem;
+                color: var(--text-2);
+                transition: transform 0.2s ease;
+                flex-shrink: 0;
+            }
+
+            .feat-highlight-item.is-open h3 {
+                margin-bottom: 0.55rem;
+            }
+
+            .feat-highlight-item.is-open h3::after {
+                transform: rotate(180deg);
+                color: var(--accent);
+            }
+
+            .feat-highlight-item p {
+                display: none;
+                font-size: 0.88rem;
+            }
+
+            .feat-highlight-item.is-open p {
+                display: block;
+            }
+
+            .pro-summary-list {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -82,10 +198,11 @@
             </a>
             <ul class="nav-links">
                 <li><a href="../index.html">Home</a></li>
-                <li><a href="index.html" class="active">News</a></li>
+                <li><a href="index.html" class="active">Updates</a></li>
                 <li><a href="../support/index.html">Support</a></li>
                 <li><a href="../privacy-policy/index.html">Privacy</a></li>
                 <li><a href="../terms/index.html">Terms</a></li>
+                <li><a href="/dev/">Dev</a></li>
                 <li><a href="/teams/">Teams</a></li>
                 <li class="lang-dropdown-wrapper">
                     <button class="lang-btn" type="button" aria-label="Select Language">
@@ -94,7 +211,7 @@
                         <span class="lang-arrow">▾</span>
                     </button>
                     <div class="lang-dropdown-menu">
-                        <a href="../../news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="v1-0-1-update.html" class="lang-dropdown-item active" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/index.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/index.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/index.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/index.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/index.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/index.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                        <a href="../../news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="v1-0-1-update.html" class="lang-dropdown-item active" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
                     </div>
                 </li>
             </ul>
@@ -107,16 +224,17 @@
     <nav class="mobile-menu" id="mobile-menu">
         <div class="mobile-menu-inner">
             <a href="../index.html">Home</a>
-            <a href="index.html" class="active">News</a>
+            <a href="index.html" class="active">Updates</a>
             <a href="../support/index.html">Support</a>
             <a href="../privacy-policy/index.html">Privacy</a>
             <a href="../terms/index.html">Terms</a>
+            <a href="/dev/">Dev</a>
             <a href="/teams/">Teams</a>
             <div class="mobile-menu-divider"></div>
             <div class="mobile-lang-sec">
                 <div class="mobile-lang-title">🌐 Language</div>
                 <div class="mobile-lang-grid">
-                    <a href="../../news/v1-0-1-update.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="v1-0-1-update.html" class="mobile-lang-item active" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/index.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/index.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/index.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/index.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/index.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/index.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                    <a href="../../news/v1-0-1-update.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="v1-0-1-update.html" class="mobile-lang-item active" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
                 </div>
             </div>
         </div>
@@ -124,62 +242,112 @@
 
     <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
         <div class="policy-hero">
-            <div class="policy-badge">Upcoming Update</div>
-            <h1>Upcoming v1.0.1 Update Details & Pro Plan Feature Expansion</h1>
+            <div class="policy-badge">Version 1.0.1 Released</div>
+            <h1>v1.0.1 Update Released &amp; Pro Plan Feature Expansion</h1>
             <p class="policy-lead">
-                Announcing the upcoming update details for RowPilot v1.0.1. Includes multilingual support, interface refinements, Pro plan price kept at ¥200 JPY/month, and new Pro features upon release.
+                RowPilot v1.0.1 is now live on the App Store. Alongside major new features and refinements across measurement, PM5 sync, and team management, the Pro plan gains new capabilities at the unchanged ¥200 JPY/month price.
             </p>
-            <p class="policy-updated">Published: November 5, 2026</p>
+            <p class="policy-updated">Published: November 5, 2026 / Released: November 16, 2026</p>
         </div>
 
         <div class="policy-content">
-            <p>Thank you for using RowPilot. We are pleased to share the details of our upcoming version v1.0.1. These updates will become available as soon as v1.0.1 is released and updated on your device.</p>
+            <p>Thank you for using RowPilot. Version v1.0.1 has been approved and released on the App Store. Update your app to start using all of the new features and improvements detailed below.</p>
 
-            <!-- App wide updates -->
+            <!-- Added -->
             <div class="flow-card">
-                <h2>Key Updates in v1.0.1</h2>
-                <p>The following enhancements and improvements are included in v1.0.1:</p>
+                <h2><span>1. New Features Added</span><button type="button" class="toggle-all-btn" data-expand="Expand all" data-collapse="Collapse all">Expand all</button></h2>
+                <p>The following capabilities have been newly introduced in v1.0.1:</p>
 
                 <div class="feat-highlight-grid">
                     <div class="feat-highlight-item">
-                        <h3>Multilingual Support</h3>
+                        <h3>Multilingual Support (6 New Languages)</h3>
                         <p>
-                            Added support for 6 new languages: German, French, Spanish, Italian, Simplified Chinese, and Korean, allowing rowers and teams worldwide to use RowPilot in their native languages.
+                            Added support for German, French, Spanish, Italian, Simplified Chinese, and Korean, bringing total supported languages to 8 alongside Japanese and English.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>Rigging 3D View Fine-Tuning</h3>
+                        <h3>Team Web Dashboard Integration</h3>
                         <p>
-                            Refined the 3D vector diagram rendering and touch controls in the rigging settings screen for smoother, millimeter-accurate visualization.
+                            Connect with the PC/browser Team Web Portal to review team workouts, aggregate stats, and export CSV files. Supports custom team URL slugs, Web coach invitations, and one-tap app login approval via rowpilot://web-auth.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>Tide Screen Refinements</h3>
+                        <h3>Team Workout Filtering &amp; Batch Upload</h3>
                         <p>
-                            Improved layout and precision of tide forecast curves and water information, making pre-practice condition checks even clearer.
+                            Added keyword search (athlete name, notes, boat type) as well as athlete, type, and date-range filters for team workouts. Also added batch uploading to share past unuploaded local records all at once.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>Team Management Edge Case Handling</h3>
+                        <h3>RowMode Motion Sensitivity &amp; Portrait Battery</h3>
                         <p>
-                            Handled previously unhandled edge cases in team features, greatly improving member management and permission stability.
+                            Added a Motion Sensitivity slider (0.03 G to 0.30 G) inside RowMode display settings to fine-tune stroke catch detection, plus a toggle to display battery status in portrait orientation.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>PM5 Communication & Variable Interval Reliability</h3>
+                        <h3>Nationwide Tide Map &amp; Water Threshold Line</h3>
                         <p>
-                            Optimized BLE command queue timeout handling and state-aware polling for PM5 synchronization. Upgraded 20-byte chunked CSAFE framing for Variable Interval programming to ensure rock-solid workout delivery across all connected machines.
+                            Added an interactive map view to browse and preview tide curves across 239 observation stations nationwide, along with a configurable reference water-level threshold line on the tide chart.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>Accurate Workout Averages across All Modes</h3>
+                        <h3>Device Lock Reset &amp; Guided Inquiry Form</h3>
                         <p>
-                            Workout records now save true session averages (average 500m pace, average stroke rate, and average wattage) rather than instantaneous readings at the moment of saving. Supported across on-water RowMode, individual Practice, and multi-erg Manager Mode.
+                            Added admin tools to unlock device authentication for members switching devices, automatic approval polling for pending requests, and a confirmation-backed inquiry screen specifying the target page and element.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Changed & Improved -->
+            <div class="flow-card">
+                <h2><span>2. Changes &amp; Improvements</span><button type="button" class="toggle-all-btn" data-expand="Expand all" data-collapse="Collapse all">Expand all</button></h2>
+                <p>Measurement accuracy, Bluetooth reliability, team infrastructure, and data sync have been significantly refined:</p>
+
+                <div class="feat-highlight-grid">
+                    <div class="feat-highlight-item">
+                        <h3>Unified Cloudflare D1 Team Backend</h3>
+                        <p>
+                            Retired legacy CloudKit team management in favor of Cloudflare D1. Organized advanced team settings, invite code regeneration, ownership transfer, team workout deletion, duplicate join-request prevention, offline retry queues, and edge-case handling.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>PM5 Sync &amp; Interval Progress Display</h3>
+                        <p>
+                            Optimized BLE command queue timeouts, polling resilience, and 20-byte CSAFE framing for Variable Intervals. Fixed fixed-interval command framing, prevented stale post-reset notifications, and added per-interval remaining distance/time and interval count indicators.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>RowMode Detection, GPS &amp; End Flow</h3>
+                        <p>
+                            Improved dynamic axis selection and auto-start conditions, decoupled real-time GPS accuracy display from distance filtering, renamed Stop to End, enabled save prompts for sessions under 10 seconds, and removed post-exit landscape lock.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Accurate Averages &amp; Ghost Race Fixes</h3>
+                        <p>
+                            Saved records now compute true session averages (500m pace, SPM, and watts) instead of instantaneous end-of-session values across RowMode, Practice, and Manager Mode. Ghost Race timeline interpolation and finish detection were also fixed.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Rigging 2D / 3D View &amp; Presets</h3>
+                        <p>
+                            Refined the 3D rigging diagram and touch controls, added bow-mounted wing and straight rigger selection with improved 2D/3D rendering accuracy, and standardized blade presets.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>CSV Export, iCloud Sync &amp; StoreKit Sync</h3>
+                        <p>
+                            Ensured lazily-loaded chart points, crew info, and GPS routes are resolved before CSV export and coordinated iCloud sync. Added JWS verification, foreground subscription status refresh, updated pricing, and Organization plan deprecation.
                         </p>
                     </div>
                 </div>
@@ -187,23 +355,30 @@
 
             <!-- Pro plan expansion -->
             <div class="flow-card">
-                <h2>Pro Plan Feature Expansion & Price Kept Unchanged</h2>
+                <h2><span>3. Pro Plan Feature Expansion &amp; Unchanged Price</span><button type="button" class="toggle-all-btn" data-expand="Expand all" data-collapse="Collapse all">Expand all</button></h2>
                 <p>
-                    Starting with v1.0.1, new features will be added to the Pro plan. The price remains at <strong>¥200 JPY / month</strong> at no additional cost.
+                    Starting with v1.0.1, the following features have been added to the Pro plan while keeping the price unchanged at <strong>¥200 JPY / month</strong>.
                 </p>
 
                 <div class="feat-highlight-grid">
                     <div class="feat-highlight-item">
-                        <h3>Choose and Preview Tide Observation Points Nationwide</h3>
+                        <h3>Choose Tide Observation Points Nationwide</h3>
                         <p>
-                            In addition to auto-detecting the nearest station via GPS, you will be able to select and view tide curves from 239 observation stations nationwide.
+                            In addition to auto-detecting the nearest station via GPS, select and preview tide curves across 239 observation stations nationwide via map or list.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>PM5 Workout Synchronization for up to 4 Machines</h3>
+                        <h3>PM5 Workout Sync for up to 4 Machines</h3>
                         <p>
-                            Pro users can connect up to 4 Concept2 PM5 rowing ergometers simultaneously via Bluetooth and batch-send workout menus for synchronized crew training.
+                            Connect up to 4 Concept2 PM5 rowing ergometers simultaneously via Bluetooth and batch-send workout menus for synchronized crew training.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Multi-Seat Crew Management</h3>
+                        <p>
+                            In addition to single sculls, create and manage multi-seat crew lineups from doubles to eights.
                         </p>
                     </div>
                 </div>
@@ -211,14 +386,15 @@
 
             <!-- Feature summary -->
             <div class="flow-card">
-                <h2>Pro Plan Feature Summary (from v1.0.1)</h2>
+                <h2>4. Pro Plan Feature Summary (v1.0.1)</h2>
                 <p>All features included in RowPilot Pro after updating to v1.0.1:</p>
-                <ul class="modal-list" style="margin-top: 1rem;">
-                    <li>All Free features (GPS rate meter, SPM real-time display, unlimited session history, two-way communication with 1 PM5, emergency SOS)</li>
+                <ul class="modal-list pro-summary-list">
+                    <li>All Free features (GPS rate meter, SPM real-time display, unlimited session history, emergency SOS)</li>
+                    <li>PM5 connection up to 4 machines (expanded from 1-on-1 connection in Free; workout sync)</li>
                     <li>ForceCurve graph display (visualize stroke force curve)</li>
-                    <li>Choose and preview tide observation points nationwide</li>
-                    <li>PM5 connection up to 4 machines (workout sync)</li>
-                    <li>Crew management</li>
+                    <li>Ghost Race mode (real-time racing against past records)</li>
+                    <li>Choose and preview tide observation points nationwide via map</li>
+                    <li>Multi-seat crew management (Double through Eight)</li>
                 </ul>
             </div>
 
@@ -256,6 +432,35 @@
         mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
             mMenu.classList.remove('open'); toggle.classList.remove('open');
         }));
+
+        document.querySelectorAll('.flow-card').forEach(card => {
+            const items = card.querySelectorAll('.feat-highlight-item');
+            const toggleAllBtn = card.querySelector('.toggle-all-btn');
+            if (!items.length) return;
+
+            const syncToggleAllLabel = () => {
+                if (!toggleAllBtn) return;
+                const allOpen = Array.from(items).every(el => el.classList.contains('is-open'));
+                toggleAllBtn.textContent = allOpen ? toggleAllBtn.dataset.collapse : toggleAllBtn.dataset.expand;
+            };
+
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    if (window.innerWidth > 768) return;
+                    item.classList.toggle('is-open');
+                    syncToggleAllLabel();
+                });
+            });
+
+            if (toggleAllBtn) {
+                toggleAllBtn.addEventListener('click', () => {
+                    const allOpen = Array.from(items).every(el => el.classList.contains('is-open'));
+                    items.forEach(item => item.classList.toggle('is-open', !allOpen));
+                    syncToggleAllLabel();
+                });
+                syncToggleAllLabel();
+            }
+        });
     </script>
     <script src="../../js/lang-dropdown.js"></script>
 </body>

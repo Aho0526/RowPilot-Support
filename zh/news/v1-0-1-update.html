@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>v1.0.1 更新正式发布与 Pro 方案功能扩展公告 — RowPilot</title>
+    <meta name="description"
+        content="RowPilot v1.0.1 现已在 App Store 正式上线。新增6种语言支持、Team Web 网页仪表盘联动、RowMode/PM5/潮汐改进，以及维持每月200日元不变的 Pro 方案功能扩展。">
+    <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <style>
+        .policy-wrap {
+            max-width: 1160px;
+            width: calc(100% - 2rem);
+        }
+
+        .policy-lead {
+            max-width: 880px;
+        }
+
+        .flow-card {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flow-card h2 {
+            font-family: var(--font-h);
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+        }
+
+        .flow-card>p {
+            color: var(--text-2);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1.35rem;
+        }
+
+        .feat-highlight-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1.25rem;
+            margin: 1.25rem 0 0.25rem;
+        }
+
+        .feat-highlight-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.35rem;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .feat-highlight-item:hover {
+            border-color: rgba(77, 203, 255, 0.3);
+            background: rgba(255, 255, 255, 0.045);
+        }
+
+        .feat-highlight-item h3 {
+            font-size: 1.05rem;
+            color: var(--accent);
+            margin-top: 0;
+            margin-bottom: 0.6rem;
+            line-height: 1.45;
+        }
+
+        .feat-highlight-item p {
+            color: var(--text-2);
+            font-size: 0.9rem;
+            line-height: 1.65;
+            margin: 0;
+        }
+
+        .pro-summary-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem 2rem;
+            margin-top: 1rem;
+            margin-bottom: 0;
+        }
+
+        .toggle-all-btn {
+            display: none;
+            background: none;
+            border: none;
+            padding: 0.25rem 0;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .feat-highlight-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .policy-wrap {
+                width: calc(100% - 1rem);
+                margin: 5.5rem auto 3rem;
+                padding: 1.5rem 1rem;
+                border-radius: 16px;
+            }
+
+            .flow-card {
+                padding: 1.25rem;
+                margin-bottom: 1.5rem;
+                border-radius: 14px;
+            }
+
+            .flow-card h2 {
+                font-size: 1.15rem;
+            }
+
+            .toggle-all-btn {
+                display: inline-block;
+            }
+
+            .feat-highlight-grid {
+                grid-template-columns: 1fr;
+                gap: 0.65rem;
+                margin-top: 1rem;
+            }
+
+            .feat-highlight-item {
+                padding: 0.95rem 1.05rem;
+                cursor: pointer;
+            }
+
+            .feat-highlight-item h3 {
+                font-size: 0.98rem;
+                margin-bottom: 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+            }
+
+            .feat-highlight-item h3::after {
+                content: '▾';
+                font-size: 0.85rem;
+                color: var(--text-2);
+                transition: transform 0.2s ease;
+                flex-shrink: 0;
+            }
+
+            .feat-highlight-item.is-open h3 {
+                margin-bottom: 0.55rem;
+            }
+
+            .feat-highlight-item.is-open h3::after {
+                transform: rotate(180deg);
+                color: var(--accent);
+            }
+
+            .feat-highlight-item p {
+                display: none;
+                font-size: 0.88rem;
+            }
+
+            .feat-highlight-item.is-open p {
+                display: block;
+            }
+
+            .pro-summary-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="nav-wrap">
+            <a href="../index.html" class="logo" id="nav-logo">
+                <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                <span class="logo-text">RowPilot</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="index.html" class="active">动态</a></li>
+                <li><a href="../support/index.html">技术支持</a></li>
+                <li><a href="../privacy-policy/index.html">隐私政策</a></li>
+                <li><a href="../terms/index.html">用户条款</a></li>
+                <li><a href="/dev/">开发</a></li>
+                <li><a href="/teams/">团队</a></li>
+                <li class="lang-dropdown-wrapper">
+                    <button class="lang-btn" type="button" aria-label="Select Language">
+                        <span class="lang-globe">🌐</span>
+                        <span>ZH</span>
+                        <span class="lang-arrow">▾</span>
+                    </button>
+                    <div class="lang-dropdown-menu">
+                        <a href="../../news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="v1-0-1-update.html" class="lang-dropdown-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                    </div>
+                </li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <nav class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-inner">
+            <a href="../index.html">首页</a>
+            <a href="index.html" class="active">动态</a>
+            <a href="../support/index.html">技术支持</a>
+            <a href="../privacy-policy/index.html">隐私政策</a>
+            <a href="../terms/index.html">用户条款</a>
+            <a href="/dev/">开发</a>
+            <a href="/teams/">团队</a>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-lang-sec">
+                <div class="mobile-lang-title">🌐 Language / 言語</div>
+                <div class="mobile-lang-grid">
+                    <a href="../../news/v1-0-1-update.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="v1-0-1-update.html" class="mobile-lang-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
+        <div class="policy-hero">
+            <div class="policy-badge">Version 1.0.1 已发布</div>
+            <h1>v1.0.1 更新正式发布与 Pro 方案功能扩展公告</h1>
+            <p class="policy-lead">
+                RowPilot v1.0.1 现已通过审核并在 App Store 上线。本次更新带来了多项新功能以及测量、PM5 同步、团队管理的全面改进，同时 Pro 方案保持每月 200 日元不变并扩展更多核心功能。
+            </p>
+            <p class="policy-updated">发布日期：2026年11月5日 / 正式上线：2026年11月16日</p>
+        </div>
+
+        <div class="policy-content">
+            <p>感谢您一直以来对 RowPilot 的支持。最新版本 v1.0.1 已正式发布，请在 App Store 更新应用以体验以下全部新功能与改进内容。</p>
+
+            <!-- Added -->
+            <div class="flow-card">
+                <h2><span>1. 新增功能</span><button type="button" class="toggle-all-btn" data-expand="全部展开" data-collapse="全部收起">全部展开</button></h2>
+                <p>v1.0.1 新增了以下功能特性：</p>
+
+                <div class="feat-highlight-grid">
+                    <div class="feat-highlight-item">
+                        <h3>多语言支持（新增6种语言）</h3>
+                        <p>
+                            新增德语、法语、西班牙语、意大利语、简体中文和韩语支持，加上日语和英语，现已支持共8种语言。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Team Web 网页仪表盘联动</h3>
+                        <p>
+                            可通过电脑或浏览器访问团队网页端查看训练记录、数据汇总及导出 CSV。支持自定义团队专属 URL 后缀、Web 教练邀请管理及通过 rowpilot://web-auth 一键审批登录。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>团队记录筛选与批量上传</h3>
+                        <p>
+                            团队训练列表中新增关键词搜索（选手姓名、备注、艇型）以及按选手、类型和日期筛选功能，同时支持将本地未同步的历史记录一键批量上传至团队。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>RowMode 动作灵敏度与竖屏电量显示</h3>
+                        <p>
+                            在 RowMode 显示设置中新增动作灵敏度滑块（0.03 G 至 0.30 G）以微调抓水检测阈值，并新增竖屏模式显示电池状态的开关选项。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>全国潮汐地图选择与参考水位线</h3>
+                        <p>
+                            新增交互式地图界面，可在日本全国239个潮汐观测站中直观选点并预览潮汐曲线，同时支持在图表中显示自定义参考水位线。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>设备锁解除与引导式反馈表单</h3>
+                        <p>
+                            新增管理员解除换机导致的设备认证锁定功能、入队申请自动轮询检查，以及可指定页面和组件并附确认界面的反馈表单。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Changed & Improved -->
+            <div class="flow-card">
+                <h2><span>2. 变更与改进</span><button type="button" class="toggle-all-btn" data-expand="全部展开" data-collapse="全部收起">全部展开</button></h2>
+                <p>我们在测量精度、蓝牙稳定性、团队后端与数据同步方面进行了大幅优化：</p>
+
+                <div class="feat-highlight-grid">
+                    <div class="feat-highlight-item">
+                        <h3>团队后端统一迁移至 Cloudflare D1</h3>
+                        <p>
+                            全面移除旧版 CloudKit 团队管理并统一至 Cloudflare D1。重构高级团队设置页面，完善邀请码重置、队长权限移交、团队记录删除、防重复申请与离线自动重传队列。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>PM5 通信与间歇训练进度显示优化</h3>
+                        <p>
+                            优化 BLE 发送队列超时与状态轮询机制，完善可变间歇的 20 字节 CSAFE 分片帧。修正固定间歇指令、拦截重置后的旧状态通知，并新增当前间歇剩余距离/时间与完成组数显示。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>RowMode 检测、GPS 精度与结束流程</h3>
+                        <p>
+                            优化动态轴选择与自动开始判定，将实时 GPS 精度显示与距离过滤解耦；结束按钮文字统一改为“End”，10秒以内的记录也会弹出保存确认，并取消退出后的横屏锁定。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>全程平均值计算与幽灵赛修复</h3>
+                        <p>
+                            在 RowMode、个人练习与 Manager 模式下，保存记录均改为计算整场训练的真实平均值（平均500米配速、平均桨频、平均功率）而非结束瞬间读数，同时修复了幽灵赛插值与终点判定。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>2D / 3D 桨架视图与预设刷新</h3>
+                        <p>
+                            微调 3D 桨架视图操作，新增船首翼形桨架与直式桨架选择并提升 2D/3D 绘图精度，统一了桨叶预设规格。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>CSV 导出、iCloud 同步与订阅刷新</h3>
+                        <p>
+                            确保在 CSV 导出及 iCloud 同步前补全延迟加载的图表点、艇员信息与 GPS 路线。新增 JWS 验证、回到前台自动刷新订阅状态，并完成新价格及取消 Organization 方案的应用内适配。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pro plan expansion -->
+            <div class="flow-card">
+                <h2><span>3. Pro 方案功能扩展与价格不变</span><button type="button" class="toggle-all-btn" data-expand="全部展开" data-collapse="全部收起">全部展开</button></h2>
+                <p>
+                    自 v1.0.1 起，Pro 方案在维持<strong>每月 200 日元不变</strong>的基础上新增以下功能：
+                </p>
+
+                <div class="feat-highlight-grid">
+                    <div class="feat-highlight-item">
+                        <h3>自选全国239个潮汐观测站</h3>
+                        <p>
+                            除基于 GPS 自动匹配最近站点外，还可通过地图或列表自由查看全国239个气象厅潮汐观测站的涨落潮时间与曲线。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>最多4台 PM5 同时同步发送菜单</h3>
+                        <p>
+                            支持通过蓝牙同时连接最多4台 Concept2 PM5 测功仪并批量发送训练计划，助力四人艇同步训练。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>多人艇编组管理</h3>
+                        <p>
+                            除单人艇外，新增支持双人艇至八人艇的多人艇员编组与管理功能。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature summary -->
+            <div class="flow-card">
+                <h2>4. Pro 方案完整功能列表 (v1.0.1)</h2>
+                <p>升级至 v1.0.1 后，RowPilot Pro 包含以下全部功能：</p>
+                <ul class="modal-list pro-summary-list">
+                    <li>Free 方案全部功能（GPS 测速、实时桨频、无限历史记录、紧急 SOS）</li>
+                    <li>最多连接4台 PM5 测功仪（由 Free 版的单台扩展；支持训练菜单同步收发）</li>
+                    <li>ForceCurve 功率曲线图表（可视化每一桨发力曲线）</li>
+                    <li>幽灵赛竞速模式（与历史记录实时竞速）</li>
+                    <li>通过地图自选并提前查看全国潮汐观测站</li>
+                    <li>多人艇编组管理（双人艇至八人艇）</li>
+                </ul>
+            </div>
+
+            <h2 style="margin-top: 3rem;">联系支持</h2>
+            <p>如果您对本次更新有任何疑问或建议，欢迎发送邮件至 <a href="mailto:rowpilot.jp@gmail.com"
+                    style="color: #7dd3fc; text-decoration: underline;">rowpilot.jp@gmail.com</a> 联系我们。</p>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-inner">
+            <a href="../index.html" class="footer-logo">
+                <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                RowPilot
+            </a>
+            <div class="footer-links">
+                <a href="../index.html">首页</a>
+                <a href="../index.html#features">功能</a>
+                <a href="../index.html#premium">方案</a>
+                <a href="../support/index.html">技术支持</a>
+                <a href="../privacy-policy/index.html">隐私政策</a>
+                <a href="../terms/index.html">用户条款</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        const toggle = document.getElementById('nav-toggle');
+        const mMenu = document.getElementById('mobile-menu');
+        toggle.addEventListener('click', () => {
+            const open = mMenu.classList.toggle('open');
+            toggle.classList.toggle('open', open);
+        });
+        mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            mMenu.classList.remove('open'); toggle.classList.remove('open');
+        }));
+
+        document.querySelectorAll('.flow-card').forEach(card => {
+            const items = card.querySelectorAll('.feat-highlight-item');
+            const toggleAllBtn = card.querySelector('.toggle-all-btn');
+            if (!items.length) return;
+
+            const syncToggleAllLabel = () => {
+                if (!toggleAllBtn) return;
+                const allOpen = Array.from(items).every(el => el.classList.contains('is-open'));
+                toggleAllBtn.textContent = allOpen ? toggleAllBtn.dataset.collapse : toggleAllBtn.dataset.expand;
+            };
+
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    if (window.innerWidth > 768) return;
+                    item.classList.toggle('is-open');
+                    syncToggleAllLabel();
+                });
+            });
+
+            if (toggleAllBtn) {
+                toggleAllBtn.addEventListener('click', () => {
+                    const allOpen = Array.from(items).every(el => el.classList.contains('is-open'));
+                    items.forEach(item => item.classList.toggle('is-open', !allOpen));
+                    syncToggleAllLabel();
+                });
+                syncToggleAllLabel();
+            }
+        });
+    </script>
+    <script src="../../js/lang-dropdown.js"></script>
+</body>
+
+</html>

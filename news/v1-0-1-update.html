@@ -4,18 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>近日公開のv1.0.1アップデート内容とProプラン機能拡充のお知らせ — RowPilot</title>
+    <title>v1.0.1アップデート配信のお知らせとProプラン機能拡充について — RowPilot</title>
     <meta name="description"
-        content="近日公開予定のRowPilot v1.0.1アップデートに関するお知らせ。多言語対応や各画面の改善に加え、Proプランの月額200円据え置きと新機能追加（全国潮位任意選択、最大4台PM5同時送信）を実施します。">
+        content="RowPilot v1.0.1アップデート配信のお知らせ。6言語対応やTeam Webダッシュボード連携、RowMode・PM5・潮位機能の追加と改善に加え、Proプランの月額200円据え置きと機能拡充を実施しました。">
     <link rel="icon" href="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../css/style.css">
     <style>
+        .policy-wrap {
+            max-width: 1160px;
+            width: calc(100% - 2rem);
+        }
+
+        .policy-lead {
+            max-width: 880px;
+        }
+
         .flow-card {
             background: var(--bg-2);
             border: 1px solid var(--border);
             border-radius: 18px;
             padding: 2rem;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             position: relative;
             overflow: hidden;
@@ -26,10 +35,11 @@
             font-size: 1.35rem;
             font-weight: 800;
             margin-top: 0;
-            margin-bottom: 1.25rem;
+            margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            gap: 0.6rem;
+            justify-content: space-between;
+            gap: 0.75rem;
             color: var(--text);
             border-bottom: 1px solid var(--border);
             padding-bottom: 0.75rem;
@@ -39,35 +49,141 @@
             color: var(--text-2);
             font-size: 0.95rem;
             line-height: 1.7;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.35rem;
         }
 
         .feat-highlight-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 1.25rem;
-            margin: 1.5rem 0;
+            margin: 1.25rem 0 0.25rem;
         }
 
         .feat-highlight-item {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 1.25rem;
+            padding: 1.35rem;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .feat-highlight-item:hover {
+            border-color: rgba(77, 203, 255, 0.3);
+            background: rgba(255, 255, 255, 0.045);
         }
 
         .feat-highlight-item h3 {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             color: var(--accent);
             margin-top: 0;
             margin-bottom: 0.6rem;
+            line-height: 1.45;
         }
 
         .feat-highlight-item p {
             color: var(--text-2);
             font-size: 0.9rem;
-            line-height: 1.6;
+            line-height: 1.65;
             margin: 0;
+        }
+
+        .pro-summary-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem 2rem;
+            margin-top: 1rem;
+            margin-bottom: 0;
+        }
+
+        .toggle-all-btn {
+            display: none;
+            background: none;
+            border: none;
+            padding: 0.25rem 0;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .feat-highlight-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .policy-wrap {
+                width: calc(100% - 1rem);
+                margin: 5.5rem auto 3rem;
+                padding: 1.5rem 1rem;
+                border-radius: 16px;
+            }
+
+            .flow-card {
+                padding: 1.25rem;
+                margin-bottom: 1.5rem;
+                border-radius: 14px;
+            }
+
+            .flow-card h2 {
+                font-size: 1.15rem;
+            }
+
+            .toggle-all-btn {
+                display: inline-block;
+            }
+
+            .feat-highlight-grid {
+                grid-template-columns: 1fr;
+                gap: 0.65rem;
+                margin-top: 1rem;
+            }
+
+            .feat-highlight-item {
+                padding: 0.95rem 1.05rem;
+                cursor: pointer;
+            }
+
+            .feat-highlight-item h3 {
+                font-size: 0.98rem;
+                margin-bottom: 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+            }
+
+            .feat-highlight-item h3::after {
+                content: '▾';
+                font-size: 0.85rem;
+                color: var(--text-2);
+                transition: transform 0.2s ease;
+                flex-shrink: 0;
+            }
+
+            .feat-highlight-item.is-open h3 {
+                margin-bottom: 0.55rem;
+            }
+
+            .feat-highlight-item.is-open h3::after {
+                transform: rotate(180deg);
+                color: var(--accent);
+            }
+
+            .feat-highlight-item p {
+                display: none;
+                font-size: 0.88rem;
+            }
+
+            .feat-highlight-item.is-open p {
+                display: block;
+            }
+
+            .pro-summary-list {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -95,7 +211,7 @@
                         <span class="lang-arrow">▾</span>
                     </button>
                     <div class="lang-dropdown-menu">
-                        <a href="v1-0-1-update.html" class="lang-dropdown-item active" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../en/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../de/news/index.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../fr/news/index.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../es/news/index.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../it/news/index.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../zh/news/index.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../ko/news/index.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                        <a href="v1-0-1-update.html" class="lang-dropdown-item active" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../en/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../de/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../fr/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../es/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../it/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../zh/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../ko/news/v1-0-1-update.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
                     </div>
                 </li>
             </ul>
@@ -118,7 +234,7 @@
             <div class="mobile-lang-sec">
                 <div class="mobile-lang-title">🌐 Language / 言語</div>
                 <div class="mobile-lang-grid">
-                    <a href="v1-0-1-update.html" class="mobile-lang-item active" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../en/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../de/news/index.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../fr/news/index.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../es/news/index.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../it/news/index.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../zh/news/index.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../ko/news/index.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                    <a href="v1-0-1-update.html" class="mobile-lang-item active" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../en/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../de/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../fr/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../es/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../it/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../zh/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../ko/news/v1-0-1-update.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
                 </div>
             </div>
         </div>
@@ -126,62 +242,112 @@
 
     <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
         <div class="policy-hero">
-            <div class="policy-badge">Upcoming Update</div>
-            <h1>近日公開のv1.0.1アップデート内容とProプラン機能拡充のお知らせ</h1>
+            <div class="policy-badge">Version 1.0.1 Released</div>
+            <h1>v1.0.1アップデート配信のお知らせとProプラン機能拡充について</h1>
             <p class="policy-lead">
-                近日公開予定の RowPilot v1.0.1 におけるアップデート内容をお知らせいたします。多言語対応や画面改善に加え、Proプランの月額200円据え置きと新機能追加を実施いたします。
+                RowPilot v1.0.1 が App Store にて公開されました。新機能の追加および各機能の大幅な改善に加え、Proプランの月額200円据え置きと機能拡充を実施しています。
             </p>
-            <p class="policy-updated">公開日: 2026年11月5日</p>
+            <p class="policy-updated">公開日: 2026年11月5日　/　配信開始: 2026年11月16日</p>
         </div>
 
         <div class="policy-content">
-            <p>日頃よりRowPilotをご利用いただきありがとうございます。このたび、近日配信を予定している最新バージョン v1.0.1 の更新内容をお知らせいたします。各機能はv1.0.1のリリース後、アプリをアップデートいただくことでご利用可能となります。</p>
+            <p>日頃よりRowPilotをご利用いただきありがとうございます。このたび、最新バージョン v1.0.1 の配信を開始いたしました。App Store よりアップデートいただくことで、以下の新機能および各種改善をご利用いただけます。</p>
 
-            <!-- アプリ全体のアップデート内容 -->
+            <!-- 新たに追加された機能 -->
             <div class="flow-card">
-                <h2>v1.0.1 主なアップデート内容</h2>
-                <p>アプリ全体の利便性と安定性向上のため、以下の機能追加および改善を実施します。</p>
+                <h2><span>1. 新たに追加された機能</span><button type="button" class="toggle-all-btn" data-expand="すべて開く" data-collapse="すべて閉じる">すべて開く</button></h2>
+                <p>多言語対応やPCブラウザ連携、チーム運用機能を中心に、以下の機能を追加しました。</p>
 
                 <div class="feat-highlight-grid">
                     <div class="feat-highlight-item">
-                        <h3>多言語対応の追加</h3>
+                        <h3>6言語の多言語対応</h3>
                         <p>
-                            新たに6言語（ドイツ語、フランス語、スペイン語、イタリア語、中国語〈簡体字〉、韓国語）に対応し、世界各国のローイング選手・チームにご利用いただけるようになります。
+                            ドイツ語、フランス語、スペイン語、イタリア語、簡体字中国語、韓国語に新たに対応し、日本語・英語を含む計8言語でアプリをご利用いただけます。
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>リギング管理 3Dビューの微調整</h3>
+                        <h3>Team Web ダッシュボード連携</h3>
                         <p>
-                            リギング設定画面内の3Dビュー表示を微調整し、ミリ単位の設定値の視覚化や操作性をより精密で快適なものへとブラッシュアップします。
+                            PCやタブレットのブラウザからチーム記録の確認・集計・CSV出力が行えるWebポータルに対応しました。専用URLスラッグの設定、Webコーチの招待管理、アプリからのワンタップログイン承認が可能です。
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>潮位画面のアップデート</h3>
+                        <h3>チーム記録の絞り込みと一括送信</h3>
                         <p>
-                            潮位予測およびグラフ表示画面のレイアウトや情報表示を見直し、日々の練習前における水上状況の把握がよりスムーズに行えるよう改善します。
+                            チームワークアウト一覧に選手名・メモ・艇種でのキーワード検索や種別・期間フィルタを追加しました。端末内に保存された過去の未共有ワークアウトをまとめてチームへ送信する一括アップロードにも対応しています。
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>チーム管理の例外処理・安定性向上</h3>
+                        <h3>RowMode モーション感度と表示設定</h3>
                         <p>
-                            チーム機能における未処理だったケース外の処理を整備し、メンバー管理や権限設定における挙動の安定性を大幅に向上させます。
+                            RowModeの表示設定内にモーション感度調整スライダーを追加し、検知閾値を0.03 G〜0.30 Gの範囲で調整できるようになりました。縦画面でのバッテリー残量表示の切り替えにも対応しています。
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>PM5通信・Variable Interval送信の信頼性向上</h3>
+                        <h3>全国潮位マップ選択と基準水位ライン</h3>
                         <p>
-                            Concept2 PM5との通信において、送信キューのタイムアウト処理および通信状態ポーリングを最適化しました。Variable Interval（可変インターバル）設定時のCSAFE分割送信プロトコルを仕様に完全適合させ、複数台への一括メニュー送信の堅牢性を強化します。
+                            全国239地点の潮位観測所を日本地図のピンから選択し、グラフプレビューを確認できるマップ画面を追加しました。設定した基準水位を潮位グラフ上にライン表示する機能も追加しています。
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>ワークアウト記録の平均値データ高精度化</h3>
+                        <h3>端末認証ロック解除と確認付き問い合わせ</h3>
                         <p>
-                            ワークアウト保存時、終了直前の瞬間値ではなく、セッション全体の正確な平均値（平均500mペース、平均ストロークレート、平均ワット数）が自動算出され記録されるよう改善しました。水上RowMode、個別Practice、複数台ManagerModeの全モードで正確なログが保持されます。
+                            機種変更時などに発生する端末認証ロックをチーム管理者が解除できる機能や、参加申請中の自動承認チェック、対象画面や要素を指定して確認できるお問い合わせフォームを追加しました。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 変更・改善された点 -->
+            <div class="flow-card">
+                <h2><span>2. 変更・改善された点</span><button type="button" class="toggle-all-btn" data-expand="すべて開く" data-collapse="すべて閉じる">すべて開く</button></h2>
+                <p>計測精度やBluetooth通信、チーム基盤、データ同期の安定性を大幅に向上させました。</p>
+
+                <div class="feat-highlight-grid">
+                    <div class="feat-highlight-item">
+                        <h3>チーム管理基盤の刷新と安定性向上</h3>
+                        <p>
+                            旧CloudKitベースのチーム管理を廃止し、Cloudflare D1へ完全一本化しました。詳細設定シートの整理、招待コード再生成、オーナー権限移譲、チーム記録削除、参加申請の二重送信防止、オフライン時の自動再送を整備し、プラン移行や権限管理の例外処理も安定化しています。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>PM5 通信・インターバル表示の改善</h3>
+                        <p>
+                            送信キューのタイムアウト処理や状態ポーリングを最適化し、Variable Interval送信のCSAFE分割フレームを仕様に完全適合させました。固定インターバル設定の修正やリセット直後の旧通知遮断に加え、実行中の区間別残り距離・残り時間・完了インターバル数表示に対応しています。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>RowMode 計測・GPS表示・終了フロー見直し</h3>
+                        <p>
+                            動的軸選択と自動スタート判定を見直し、距離フィルタから独立したリアルタイムGPS精度表示に対応しました。終了ボタン表記を「End」へ変更し、10秒以下の計測でも保存確認を表示するよう改善するとともに、終了時の横画面ロックを廃止しています。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>ワークアウト平均値とゴーストレース修正</h3>
+                        <p>
+                            ワークアウト保存時に終了直前の瞬間値ではなく、水上RowMode・Practice・ManagerModeの全モードでセッション全体の正確な平均500mペース・平均SPM・平均ワットが記録されるよう改善しました。ゴーストレースでも開始時の補間とゴール判定を修正しています。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>リギング 2D / 3D ビューと設定の刷新</h3>
+                        <p>
+                            リギング設定画面の3Dビュー微調整に加え、ボウマウント・ウイングリガーとストレートリガーの選択対応、2D/3D図面の描画位置や精度の改善、ブレードプリセットの整理を実施しました。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>CSV書き出し・iCloud同期・課金状態同期</h3>
+                        <p>
+                            CSV書き出しやiCloud同期時に遅延ロード分のグラフデータ・クルー情報・GPSルートを確実に補完して安全に保存するよう修正しました。またStoreKit 2のJWS検証連携、アプリ復帰時の契約状態自動更新、料金改定およびOrganizationプラン廃止をアプリ内へ反映しています。
                         </p>
                     </div>
                 </div>
@@ -189,23 +355,30 @@
 
             <!-- Proプラン機能拡充と据え置き -->
             <div class="flow-card">
-                <h2>Proプランの機能拡充と価格据え置き</h2>
+                <h2><span>3. Proプランの機能拡充と価格据え置き</span><button type="button" class="toggle-all-btn" data-expand="すべて開く" data-collapse="すべて閉じる">すべて開く</button></h2>
                 <p>
-                    v1.0.1より、Proプランに以下の新機能を追加します。月額料金は10月1日の改定後価格である<strong>月額200円のまま据え置き</strong>とし、追加料金なしでご利用いただけます。
+                    v1.0.1より、Proプランに以下の機能を追加・拡充しました。月額料金は10月1日の改定後価格である<strong>月額200円のまま据え置き</strong>とし、追加料金なしでご利用いただけます。
                 </p>
 
                 <div class="feat-highlight-grid">
                     <div class="feat-highlight-item">
-                        <h3>全国の潮位観測所から任意選択・事前確認</h3>
+                        <h3>全国239地点の潮位観測所を任意選択</h3>
                         <p>
-                            GPSによる最寄り観測所の自動表示に加え、全国239地点の気象庁潮位観測所から任意の地点を自由に選択可能になります。遠征先や大会遠征地の干満時刻や潮位グラフを事前に確認できます。
+                            GPSによる最寄り観測所の自動表示に加え、全国239地点の気象庁潮位観測所からマップや一覧で任意の地点を自由に選択し、遠征先や大会会場の干満時刻と潮位グラフを事前に確認できます。
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
                         <h3>最大4台までのPM5同時メニュー送信</h3>
                         <p>
-                            Concept2 PM5ローイングエルゴとの接続において、最大4台までの同時接続およびトレーニングメニューの一括送信に対応します。4人乗りクルーの同時同期トレーニングがProプラン単体で実現します。
+                            Concept2 PM5ローイングエルゴとの接続において、最大4台までの同時接続およびトレーニングメニューの一括送信に対応します。4人乗りクルーの同期トレーニングがProプラン単体で実現します。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>複数人クルー編成・管理</h3>
+                        <p>
+                            シングルスカルに加えて、ダブルスカルからエイトまでの複数人クルー編成・管理機能をご利用いただけるようになりました。
                         </p>
                     </div>
                 </div>
@@ -213,14 +386,15 @@
 
             <!-- Proプラン機能一覧 -->
             <div class="flow-card">
-                <h2>v1.0.1リリース後のProプラン機能一覧</h2>
-                <p>v1.0.1リリース後、アップデートを行うことで以下の機能がProプランでご利用いただけます。</p>
-                <ul class="modal-list" style="margin-top: 1rem;">
-                    <li>Free の全機能（GPS計測、SPMリアルタイム表示、セッション履歴、1台のPM5と双方向通信、緊急SOSなど）</li>
+                <h2>4. v1.0.1アップデート後のProプラン機能一覧</h2>
+                <p>v1.0.1へアップデートすることで、以下の機能がすべてProプランでご利用いただけます。</p>
+                <ul class="modal-list pro-summary-list">
+                    <li>Free の全機能（GPS計測、SPMリアルタイム表示、無制限セッション履歴、緊急SOSなど）</li>
+                    <li>最大4台までのPM5接続（Freeの1台接続から拡張・メニュー送受信）</li>
                     <li>ForceCurveグラフ表示（ストロークの力曲線可視化）</li>
-                    <li>全国の潮位観測所から任意選択・事前確認</li>
-                    <li>最大4台までのPM5接続（メニュー送受信）</li>
-                    <li>クルー管理</li>
+                    <li>ゴーストレース機能（過去記録とのリアルタイム対戦）</li>
+                    <li>全国の潮位観測所から任意選択・マップ事前確認</li>
+                    <li>複数人クルー編成・管理（ダブル〜エイト対応）</li>
                 </ul>
             </div>
 
@@ -258,6 +432,35 @@
         mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
             mMenu.classList.remove('open'); toggle.classList.remove('open');
         }));
+
+        document.querySelectorAll('.flow-card').forEach(card => {
+            const items = card.querySelectorAll('.feat-highlight-item');
+            const toggleAllBtn = card.querySelector('.toggle-all-btn');
+            if (!items.length) return;
+
+            const syncToggleAllLabel = () => {
+                if (!toggleAllBtn) return;
+                const allOpen = Array.from(items).every(el => el.classList.contains('is-open'));
+                toggleAllBtn.textContent = allOpen ? toggleAllBtn.dataset.collapse : toggleAllBtn.dataset.expand;
+            };
+
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    if (window.innerWidth > 768) return;
+                    item.classList.toggle('is-open');
+                    syncToggleAllLabel();
+                });
+            });
+
+            if (toggleAllBtn) {
+                toggleAllBtn.addEventListener('click', () => {
+                    const allOpen = Array.from(items).every(el => el.classList.contains('is-open'));
+                    items.forEach(item => item.classList.toggle('is-open', !allOpen));
+                    syncToggleAllLabel();
+                });
+                syncToggleAllLabel();
+            }
+        });
     </script>
     <script src="../js/lang-dropdown.js"></script>
 </body>
