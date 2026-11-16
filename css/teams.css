@@ -10,6 +10,25 @@
 
 .teams-nav-wrap {
   max-width: 1280px;
+  gap: 1rem;
+}
+
+.teams-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.teams-nav-links {
+  gap: 0.15rem;
+}
+
+.teams-nav-links a {
+  padding: 0.4rem 0.65rem;
+  font-size: 0.84rem;
+  white-space: nowrap;
 }
 
 .teams-badge {
@@ -1471,7 +1490,26 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 1220px) {
+  body.is-authenticated .teams-nav-links {
+    display: none;
+  }
+  body.is-authenticated .nav-toggle {
+    display: flex;
+  }
+  body.is-authenticated .mobile-menu {
+    display: block;
+  }
+}
+
 @media (max-width: 960px) {
+  .header-actions {
+    gap: 0.4rem;
+  }
+  .header-actions .btn-sm {
+    padding: 0.36rem 0.6rem;
+    font-size: 0.76rem;
+  }
   .portal-hero-grid {
     grid-template-columns: 1fr;
     gap: 1.75rem;

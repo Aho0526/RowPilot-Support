@@ -202,6 +202,55 @@
             </div>
         </div>
 
+        <!-- Category: Team & Team Web -->
+        <div class="faq-category-label">Team Management &amp; Team Web</div>
+
+        <div class="faq-item" id="faq-team-web">
+            <div class="faq-q">
+                <span>How do I log in to Team Web (PC / browser dashboard)?</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>Teams on the Team or MAX plan can view, aggregate, and export team workouts from a PC, tablet, or Android browser via the <a href="/teams/" style="color: var(--accent); text-decoration: none; font-weight: 600;">Team Web Portal</a>. There are two ways to log in:</p>
+                <p><strong>1. Web Coach Email Login (for coaches without the iOS app):</strong><br>
+                When a team owner or admin registers a coach email in the iPhone app under Team Advanced Settings → Web Dashboard → Web Coach Management, an invite link is sent to set a password and log in with email and password.</p>
+                <p><strong>2. One-Tap App Approval (for members and managers with RowPilot iOS):</strong><br>
+                Use the open-app button, QR code, or 6-digit code shown on Team Web and approve it inside the iPhone app under Web Login Approval without needing a password.</p>
+            </div>
+        </div>
+
+        <div class="faq-item" id="faq-team-slug">
+            <div class="faq-q">
+                <span>What is a team custom URL (slug)?</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>Team owners or admins can configure a custom team URL such as <code>rowpilot.jp/teams/your-team/</code> in the iPhone app under Team Advanced Settings → Web Dashboard.</p>
+                <p>Entering the slug on the Team Web Portal or opening the custom URL directly will take you straight to your team dashboard if you are already signed in.</p>
+            </div>
+        </div>
+
+        <div class="faq-item" id="faq-team-device-lock">
+            <div class="faq-q">
+                <span>I changed my iPhone and see a device authentication lock error.</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>Team accounts are bound to your device to prevent unauthorized access using the same user ID.</p>
+                <p>If you switch devices or reinstall the app and get locked out, please ask your team owner or admin to run "Reset Device Auth Lock" for your account in member management, then try again.</p>
+            </div>
+        </div>
+
+        <div class="faq-item" id="faq-team-batch-upload">
+            <div class="faq-q">
+                <span>Can I upload past workouts recorded before joining a team?</span>
+                <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-a">
+                <p>Yes. Starting in v1.0.1, you can use the Batch Upload feature on the team screen inside the app to send all unshared local workouts to your team at once.</p>
+            </div>
+        </div>
+
         <!-- Category: Billing -->
         <div class="faq-category-label">Subscription</div>
 
@@ -316,13 +365,30 @@ document.querySelectorAll('.faq-item').forEach(item => {
         ans.style.opacity = isOpen ? '1' : '0';
     });
 });
-// init: all closed
+// init: all closed (except hash target)
 document.querySelectorAll('.faq-a').forEach(a => {
     a.style.maxHeight = '0';
     a.style.opacity = '0';
     a.style.overflow = 'hidden';
     a.style.transition = 'max-height 0.35s ease, opacity 0.25s ease';
 });
+
+const openFaqFromHash = () => {
+    if (!location.hash) return;
+    const target = document.querySelector(location.hash);
+    if (!target || !target.classList.contains('faq-item')) return;
+    target.classList.add('open');
+    const ans = target.querySelector('.faq-a');
+    if (ans) {
+        ans.style.maxHeight = ans.scrollHeight + 'px';
+        ans.style.opacity = '1';
+    }
+    setTimeout(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+};
+openFaqFromHash();
+window.addEventListener('hashchange', openFaqFromHash);
 </script>
   <script src="../../js/lang-dropdown.js"></script>
 </body>

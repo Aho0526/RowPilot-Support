@@ -24,20 +24,46 @@
         <span class="logo-text">RowPilot</span>
         <span class="teams-badge">TEAM WEB</span>
       </a>
-      <div class="header-actions" id="header-actions" hidden>
-        <span class="viewer-pill" id="viewer-pill"></span>
-        <button type="button" class="btn-ghost btn-sm" id="btn-contact" title="不具合報告・機能提案・お問い合わせ">メール</button>
-        <button type="button" class="btn-ghost btn-sm" id="btn-refresh" title="最新データを取得">更新</button>
-        <button type="button" class="btn-ghost btn-sm btn-danger-ghost" id="btn-logout">ログアウト</button>
+      <div class="teams-header-right">
+        <ul class="nav-links teams-nav-links" id="teams-nav-links">
+          <li><a href="/index.html">ホーム</a></li>
+          <li><a href="/news/index.html">お知らせ</a></li>
+          <li><a href="/support/index.html">サポート</a></li>
+          <li><a href="/privacy-policy/index.html">プライバシー</a></li>
+          <li><a href="/terms/index.html">利用規約</a></li>
+          <li><a href="/dev/">開発</a></li>
+          <li><a href="/teams/" class="active">チーム</a></li>
+        </ul>
+        <div class="header-actions" id="header-actions" hidden>
+          <span class="viewer-pill" id="viewer-pill"></span>
+          <button type="button" class="btn-ghost btn-sm" id="btn-contact" title="不具合報告・機能提案・お問い合わせ">メール</button>
+          <button type="button" class="btn-ghost btn-sm" id="btn-refresh" title="最新データを取得">更新</button>
+          <button type="button" class="btn-ghost btn-sm btn-danger-ghost" id="btn-logout">ログアウト</button>
+        </div>
+        <button class="nav-toggle" id="nav-toggle" type="button" aria-label="メニュー">
+          <span></span><span></span><span></span>
+        </button>
       </div>
     </div>
   </header>
+
+  <nav class="mobile-menu" id="mobile-menu">
+    <div class="mobile-menu-inner">
+      <a href="/index.html">ホーム</a>
+      <a href="/news/index.html">お知らせ</a>
+      <a href="/support/index.html">サポート</a>
+      <a href="/privacy-policy/index.html">プライバシー</a>
+      <a href="/terms/index.html">利用規約</a>
+      <a href="/dev/">開発</a>
+      <a href="/teams/" class="active">チーム</a>
+    </div>
+  </nav>
 
   <main class="teams-main">
     <!-- Loading State -->
     <section id="view-loading" class="state-card">
       <div class="spinner" aria-hidden="true"></div>
-      <p class="muted">読み込み中...</p>
+      <p class="muted" id="loading-status-text">読み込み中...</p>
     </section>
 
     <!-- Error / Not Found State -->
@@ -47,6 +73,7 @@
       <p id="not-found-desc" class="muted">URLが正しいか、チームの管理者に確認してください。</p>
       <div class="state-actions">
         <a href="/teams/" class="btn-primary-web">Team Web ポータルへ</a>
+        <a href="/support/index.html#faq-team-web" class="btn-secondary-web">サポートを見る</a>
         <a href="/" class="btn-secondary-web">RowPilot トップへ</a>
       </div>
     </section>
@@ -235,7 +262,7 @@
               チームの管理者（キャプテンなど）が iPhone 版 RowPilot アプリ内の「チーム管理 → Webダッシュボード → Webコーチ管理」から監督のメールアドレスを登録すると、初回設定リンクが届き、メールアドレスとパスワードでログインできるようになります。
             </p>
           </div>
-          <a href="/support/index.html" class="btn-secondary-web">サポートを見る</a>
+          <a href="/support/index.html#faq-team-web" class="btn-secondary-web">サポートを見る</a>
         </div>
       </section>
     </section>

@@ -253,6 +253,55 @@
                 </div>
             </div>
 
+            <!-- カテゴリ: チーム & Team Web -->
+            <div class="faq-category-label">チーム管理 &amp; Team Web</div>
+
+            <div class="faq-item" id="faq-team-web">
+                <div class="faq-q">
+                    <span>Team Web（PC・ブラウザ版ダッシュボード）にログインするには？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>Team・MAX プランに所属するチームでは、<a href="/teams/" style="color: var(--accent); text-decoration: none; font-weight: 600;">Team Web ポータル</a>から PC・タブレット・Android 端末のブラウザで練習記録を閲覧・集計できます。ログイン方法は2通りあります。</p>
+                    <p><strong>1. Webコーチ用メールログイン（アプリをお持ちでない監督・コーチ向け）：</strong><br>
+                    チームのオーナーまたは管理者が iPhone 版 RowPilot アプリ内の「チーム詳細設定 → Webダッシュボード → Webコーチ管理」からメールアドレスを登録すると、初回パスワード設定用の招待リンクが届きます。パスワード設定後はメールアドレスとパスワードでログインできます。</p>
+                    <p><strong>2. RowPilot アプリでワンタップ承認（アプリをお持ちの部員・マネージャー向け）：</strong><br>
+                    Team Web 画面に表示されるボタン、QRコード、または6桁の認証コードを、iPhone 版アプリ内の「Webログイン承認」で承認するとパスワード不要でログインできます。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-team-slug">
+                <div class="faq-q">
+                    <span>チームの専用URL（slug）とは何ですか？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>チームのオーナーまたは管理者が、iPhone 版アプリ内の「チーム詳細設定 → Webダッシュボード」から <code>rowpilot.jp/teams/任意の識別子/</code> の形式で覚えやすい専用 URL を設定できます。</p>
+                    <p>Team Web ポータルで識別子を入力するか専用 URL を直接開くと、ログイン中であればそのままチームのダッシュボードへ移動します。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-team-device-lock">
+                <div class="faq-q">
+                    <span>機種変更後に「端末認証ロック」と表示されてチームに入れません</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>同一のユーザー ID による不正アクセスを防ぐため、チームアカウントは端末と紐付けられています。</p>
+                    <p>機種変更や再インストールなどで認証ロックがかかった場合は、所属チームのオーナーまたは管理者にアプリ内のメンバー管理から「端末認証ロックを解除」を操作してもらったうえで再度お試しください。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-team-batch-upload">
+                <div class="faq-q">
+                    <span>チーム加入前の過去の記録をまとめてチームに共有できますか？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>はい。v1.0.1 より、アプリ内のチーム画面にある「記録を一括アップロード」機能を使って、端末内に保存されている未共有のワークアウトをまとめてチームへ送信できるようになりました。</p>
+                </div>
+            </div>
+
             <!-- カテゴリ: 課金 -->
             <div class="faq-category-label">サブスクリプション</div>
 
@@ -375,13 +424,30 @@
                 ans.style.opacity = isOpen ? '1' : '0';
             });
         });
-        // init: all closed
+        // init: all closed (except hash target)
         document.querySelectorAll('.faq-a').forEach(a => {
             a.style.maxHeight = '0';
             a.style.opacity = '0';
             a.style.overflow = 'hidden';
             a.style.transition = 'max-height 0.35s ease, opacity 0.25s ease';
         });
+
+        const openFaqFromHash = () => {
+            if (!location.hash) return;
+            const target = document.querySelector(location.hash);
+            if (!target || !target.classList.contains('faq-item')) return;
+            target.classList.add('open');
+            const ans = target.querySelector('.faq-a');
+            if (ans) {
+                ans.style.maxHeight = ans.scrollHeight + 'px';
+                ans.style.opacity = '1';
+            }
+            setTimeout(() => {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 80);
+        };
+        openFaqFromHash();
+        window.addEventListener('hashchange', openFaqFromHash);
     </script>
     <script src="../js/lang-dropdown.js"></script>
 </body>

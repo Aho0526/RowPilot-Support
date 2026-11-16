@@ -18,6 +18,7 @@
     publicTeam: null,
     dashboard: null,
     filteredWorkouts: [],
+    webToken: null,
     appSessionId: null,
     appCode: null,
     appExpiresAtMs: 0,
@@ -29,6 +30,13 @@
 
   // ── DOM Helpers ──
   const $ = (id) => document.getElementById(id);
+
+  function setLoadingMessage(message) {
+    const el = $("loading-status-text");
+    if (el) {
+      el.textContent = message || "読み込み中...";
+    }
+  }
 
   function showOnlyView(viewId) {
     const ids = ["view-loading", "view-not-found", "view-set-password", "view-auth", "view-dashboard"];
@@ -60,6 +68,39 @@
     return el;
   }
 
+  function formatUserErrorMessage(err, fallback) {
+    const raw = err && typeof err.message === "string" ? err.message.trim() : "";
+    const lower = raw.toLowerCase();
+
+    if (
+      (err && err.name === "TypeError") ||
+      lower.includes("failed to fetch") ||
+      lower.includes("load failed") ||
+      lower.includes("networkerror") ||
+      lower.includes("network request failed")
+    ) {
+      return "通信エラーが発生しました。通信環境をご確認のうえ、時間をおいて再度お試しください。";
+    }
+
+    if (/\bunauthorized\b|\bforbidden\b/.test(lower)) {
+      return "認証が無効になっているか、この操作を行う権限がありません。再ログインしても解決しない場合は、サポートページからお問い合わせください。";
+    }
+
+    if (
+      lower.includes("internal server error") ||
+      lower.includes("unexpected token") ||
+      lower.includes("json")
+    ) {
+      return "サーバーとの通信中にエラーが発生しました。時間をおいて再度お試しいただくか、解決しない場合はサポートページからお問い合わせください。";
+    }
+
+    if (raw && !/^[A-Za-z0-9\s.,:;!?\-_()]+$/.test(raw)) {
+      return raw;
+    }
+
+    return fallback || "エラーが発生しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。";
+  }
+
   // ── Token / API Fetch Helper ──
   function isCrossSiteApi() {
     try {
@@ -75,9 +116,15 @@
 
   function saveFallbackTokenIfNeeded(token) {
     if (!token) return;
+    state.webToken = token;
     if (isCrossSiteApi()) {
       try {
         sessionStorage.setItem(SESSION_STORAGE_KEY, token);
+      } catch {
+        // ストレージ無効時は無視
+      }
+      try {
+        localStorage.setItem(SESSION_STORAGE_KEY, token);
       } catch {
         // ストレージ無効時は無視
       }
@@ -85,20 +132,46 @@
   }
 
   function clearFallbackToken() {
+    state.webToken = null;
     try {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch {
+      // 無視
+    }
+    try {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
     } catch {
       // 無視
     }
   }
 
   function getFallbackToken() {
+    if (state.webToken) return state.webToken;
     if (!isCrossSiteApi()) return null;
     try {
-      return sessionStorage.getItem(SESSION_STORAGE_KEY);
+      const fromSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (fromSession) {
+        state.webToken = fromSession;
+        return fromSession;
+      }
     } catch {
-      return null;
+      // 無視
     }
+    try {
+      const fromLocal = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (fromLocal) {
+        state.webToken = fromLocal;
+        try {
+          sessionStorage.setItem(SESSION_STORAGE_KEY, fromLocal);
+        } catch {
+          // 無視
+        }
+        return fromLocal;
+      }
+    } catch {
+      // 無視
+    }
+    return null;
   }
 
   async function apiFetch(path, options = {}) {
@@ -262,13 +335,18 @@
     // ルートポータル (/teams/) の場合
     if (!state.slugOrId) {
       document.title = "Team Web — RowPilot";
+      setLoadingMessage("認証中...");
       try {
         const meRes = await apiFetch("/web/me");
         if (meRes.ok) {
           const me = await meRes.json();
           if (me.authenticated && (me.team_slug || me.team_id)) {
+            setLoadingMessage("認証中... チームページへ移動しています");
             location.assign(buildTeamUrl(me.team_slug || me.team_id));
             return;
+          }
+          if (me.authenticated === false) {
+            clearFallbackToken();
           }
         }
       } catch {
@@ -279,6 +357,7 @@
     }
 
     // チーム指定あり: 公開情報取得
+    setLoadingMessage("読み込み中...");
     try {
       const pubRes = await apiFetch(`/web/teams/${encodeURIComponent(state.slugOrId)}/public`);
       if (!pubRes.ok) {
@@ -289,7 +368,7 @@
       document.title = `${state.publicTeam.name} — RowPilot Team Web`;
     } catch {
       $("not-found-title").textContent = "サーバーに接続できません";
-      $("not-found-desc").textContent = "通信環境をご確認の上、再度ページを読み込んでください。";
+      $("not-found-desc").textContent = "通信環境をご確認のうえ、再度ページを読み込んでください。解決しない場合はサポートページからお問い合わせください。";
       showOnlyView("view-not-found");
       return;
     }
@@ -303,6 +382,7 @@
     }
 
     // 既存セッションでダッシュボード取得を試みる
+    setLoadingMessage("認証中...");
     const loaded = await tryLoadDashboard();
     if (!loaded) {
       enterAuthView();
@@ -313,10 +393,11 @@
     if (!state.slugOrId) return false;
     try {
       const res = await apiFetch(`/web/teams/${encodeURIComponent(state.slugOrId)}/dashboard`);
-      if (res.status === 401 || res.status === 403) {
+      if (res.status === 401) {
+        clearFallbackToken();
         return false;
       }
-      if (!res.ok) {
+      if (res.status === 403 || !res.ok) {
         return false;
       }
       const data = await res.json();
@@ -332,6 +413,7 @@
 
   // ── Auth View & App Polling ──
   function enterAuthView() {
+    document.body.classList.remove("is-authenticated");
     $("header-actions").hidden = true;
     $("form-coach-login").hidden = false;
     $("team-select-panel").hidden = true;
@@ -382,9 +464,12 @@
         method: "POST",
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "認証コードの発行に失敗しました");
+        if (res.status === 401 || res.status === 403) {
+          throw new Error(data.error || "Unauthorized");
+        }
+        throw new Error(data.error || "認証コードの発行に失敗しました。時間をおいて再度お試しください。");
       }
 
       state.appSessionId = data.session_id;
@@ -401,7 +486,10 @@
       startCountdown();
       startPollingLoop();
     } catch (err) {
-      $("app-auth-error").textContent = err.message || "エラーが発生しました";
+      $("app-auth-error").textContent = formatUserErrorMessage(
+        err,
+        "認証コードの発行に失敗しました。通信環境をご確認のうえ再度お試しください。"
+      );
       $("app-auth-error").hidden = false;
       $("polling-status-text").textContent = "コードを再発行してください";
     }
@@ -507,6 +595,7 @@
   function renderDashboard() {
     const { team, viewer, members, workouts, summary } = state.dashboard;
 
+    document.body.classList.add("is-authenticated");
     $("header-actions").hidden = false;
     $("viewer-pill").textContent = `${viewer.display_name} (${roleLabel(viewer.role)})`;
 
@@ -1407,7 +1496,10 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "送信に失敗しました");
+        if (res.status === 401 || res.status === 403) {
+          throw new Error(data.error || "Unauthorized");
+        }
+        throw new Error(data.error || "送信に失敗しました。時間をおいて再度お試しください。");
       }
       $("contact-message").value = "";
       $("contact-needs-reply").checked = false;
@@ -1415,7 +1507,10 @@
       closeContactModal();
       showToast("送信しました。ご連絡ありがとうございます");
     } catch (err) {
-      errEl.textContent = err.message || "送信に失敗しました";
+      errEl.textContent = formatUserErrorMessage(
+        err,
+        "送信に失敗しました。通信環境をご確認のうえ再度お試しください。"
+      );
       errEl.hidden = false;
     } finally {
       submitBtn.disabled = false;
@@ -1436,6 +1531,25 @@
 
   // ── Event Binding ──
   function bindUIEvents() {
+    const navToggle = $("nav-toggle");
+    const mobileMenu = $("mobile-menu");
+    if (navToggle && mobileMenu) {
+      navToggle.addEventListener("click", () => {
+        const open = mobileMenu.classList.toggle("open");
+        navToggle.classList.toggle("open", open);
+      });
+      mobileMenu.querySelectorAll("a").forEach((a) => {
+        a.addEventListener("click", () => {
+          mobileMenu.classList.remove("open");
+          navToggle.classList.remove("open");
+        });
+      });
+    }
+
+    window.addEventListener("popstate", () => {
+      location.reload();
+    });
+
     document.querySelectorAll("[data-view-tab]").forEach((btn) => {
       btn.addEventListener("click", () => switchViewTab(btn.getAttribute("data-view-tab")));
     });
@@ -1461,23 +1575,49 @@
       }
       const submitBtn = $("form-slug-jump").querySelector("button[type='submit']");
       if (submitBtn) submitBtn.disabled = true;
+
+      setLoadingMessage("認証中...");
+      showOnlyView("view-loading");
+
+      let resolvedKey = key;
       try {
         const res = await apiFetch(`/web/teams/${encodeURIComponent(key)}/public`);
         if (res.status === 404) {
+          showOnlyView("view-auth");
           showToast("指定された専用URLのチームが見つかりません");
           return;
         }
         if (res.ok) {
           const team = await res.json();
-          location.assign(buildTeamUrl(team.slug || team.id || key));
+          resolvedKey = team.slug || team.id || key;
+          state.publicTeam = team;
+          state.slugOrId = resolvedKey;
+          document.title = `${team.name} — RowPilot Team Web`;
+
+          const loaded = await tryLoadDashboard();
+          if (loaded) {
+            history.pushState(null, "", buildTeamUrl(resolvedKey));
+            return;
+          }
+
+          history.pushState(null, "", buildTeamUrl(resolvedKey));
+          enterAuthView();
           return;
         }
-      } catch {
-        // 通信エラー時はそのまま遷移を試みる
+      } catch (err) {
+        showOnlyView("view-auth");
+        showToast(
+          formatUserErrorMessage(
+            err,
+            "通信エラーが発生しました。通信環境をご確認のうえ再度お試しください。"
+          )
+        );
+        return;
       } finally {
         if (submitBtn) submitBtn.disabled = false;
       }
-      location.assign(buildTeamUrl(key));
+      showOnlyView("view-auth");
+      showToast("チーム情報の取得に失敗しました。通信環境をご確認のうえ再度お試しください。");
     });
 
     $("btn-show-reset").addEventListener("click", () => {
@@ -1509,7 +1649,11 @@
 
     $("btn-refresh").addEventListener("click", async () => {
       const ok = await tryLoadDashboard();
-      if (ok) showToast("最新の記録を取得しました");
+      if (ok) {
+        showToast("最新の記録を取得しました");
+      } else {
+        showToast("最新の記録を取得できませんでした。通信環境をご確認のうえ再度お試しください。");
+      }
     });
 
     $("btn-logout").addEventListener("click", async () => {
@@ -1519,10 +1663,11 @@
         // 無視
       }
       clearFallbackToken();
+      document.body.classList.remove("is-authenticated");
       state.dashboard = null;
       state.slugOrId = null;
       state.publicTeam = null;
-      location.assign("/teams-portal");
+      location.assign("/teams/");
     });
 
     $("btn-print").addEventListener("click", () => window.print());
@@ -1640,9 +1785,12 @@
         method: "POST",
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "ログインに失敗しました");
+        if (res.status === 401 || res.status === 403) {
+          throw new Error(data.error || "認証に失敗しました。入力内容をご確認のうえ、解決しない場合はサポートページからお問い合わせください。");
+        }
+        throw new Error(data.error || "ログインに失敗しました。時間をおいて再度お試しください。");
       }
 
       if (data.requires_team_selection && Array.isArray(data.teams)) {
@@ -1665,12 +1813,15 @@
       $("form-coach-login").hidden = false;
       const ok = await tryLoadDashboard();
       if (!ok) {
-        throw new Error("ダッシュボードの読み込みに失敗しました");
+        throw new Error("ダッシュボードの読み込みに失敗しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。");
       }
     } catch (err) {
       $("team-select-panel").hidden = true;
       $("form-coach-login").hidden = false;
-      errEl.textContent = err.message;
+      errEl.textContent = formatUserErrorMessage(
+        err,
+        "ログインに失敗しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。"
+      );
       errEl.hidden = false;
     } finally {
       btn.disabled = false;
@@ -1709,14 +1860,20 @@
         method: "POST",
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "送信に失敗しました");
+        if (res.status === 401 || res.status === 403) {
+          throw new Error(data.error || "Unauthorized");
+        }
+        throw new Error(data.error || "送信に失敗しました。時間をおいて再度お試しください。");
       }
       okEl.textContent = data.message || "再設定メールを送信しました。";
       okEl.hidden = false;
     } catch (err) {
-      errEl.textContent = err.message;
+      errEl.textContent = formatUserErrorMessage(
+        err,
+        "送信に失敗しました。通信環境をご確認のうえ再度お試しください。"
+      );
       errEl.hidden = false;
     } finally {
       btn.disabled = false;
@@ -1750,9 +1907,12 @@
         method: "POST",
         body: JSON.stringify({ token, password: pw })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "設定に失敗しました");
+        if (res.status === 401 || res.status === 403) {
+          throw new Error(data.error || "設定リンクが無効または期限切れです。チームの管理者に再招待を依頼するか、サポートページからお問い合わせください。");
+        }
+        throw new Error(data.error || "設定に失敗しました。時間をおいて再度お試しください。");
       }
       saveFallbackTokenIfNeeded(data.web_token);
       // URLからtokenを消す
@@ -1766,7 +1926,10 @@
         showToast("パスワードを設定してログインしました");
       }
     } catch (err) {
-      errEl.textContent = err.message;
+      errEl.textContent = formatUserErrorMessage(
+        err,
+        "設定に失敗しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。"
+      );
       errEl.hidden = false;
     } finally {
       btn.disabled = false;
@@ -1792,6 +1955,9 @@
       const res = await apiFetch(`/web/teams/${encodeURIComponent(state.slugOrId)}/export.csv?${qs.toString()}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        if (res.status === 401 || res.status === 403) {
+          throw new Error(err.error || "Unauthorized");
+        }
         throw new Error(err.error || "CSVのダウンロードに失敗しました");
       }
       const blob = await res.blob();
@@ -1805,7 +1971,12 @@
       URL.revokeObjectURL(url);
       showToast("CSVをダウンロードしました");
     } catch (err) {
-      showToast(err.message);
+      showToast(
+        formatUserErrorMessage(
+          err,
+          "CSVのダウンロードに失敗しました。通信環境をご確認のうえ再度お試しください。"
+        )
+      );
     }
   }
 
