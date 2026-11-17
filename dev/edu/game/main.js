@@ -114,6 +114,51 @@ let switchStates = new Map(); // key: "col,row", value: { seq, index, currentDir
 let pendingSwitchEvents = []; // [{ tick, col, row, index, dir }]
 let pendingFinalSwitchDirs = null; // Map<"col,row", dir>
 let pendingFinalSwitchIndices = null; // Map<"col,row", number>
+let switchPreviewStartTime = 0;
+
+function getSwitchPreviewNowMs() {
+    return (typeof performance !== 'undefined' && typeof performance.now === 'function')
+        ? performance.now()
+        : Date.now();
+}
+
+function getSwitchStepScale(stepIndex, totalSteps) {
+    if (totalSteps <= 1) return 1;
+    const clampedIdx = Math.max(0, Math.min(totalSteps - 1, stepIndex));
+    // 2段階なら 1.0 -> 0.7、3段階なら 1.0 -> 0.8 -> 0.6、4段階なら 1.0 -> 0.83 -> 0.67 -> 0.5
+    const minScale = Math.max(0.5, 0.7 - (totalSteps - 2) * 0.1);
+    return 1 - ((1 - minScale) * clampedIdx) / (totalSteps - 1);
+}
+
+function getSwitchPreviewStepIndex(seqLength, nowMs = getSwitchPreviewNowMs()) {
+    if (seqLength <= 1) return 0;
+    const firstDurationMs = 2000;
+    const stepDurationMs = 1000;
+    const cycleMs = firstDurationMs + (seqLength - 1) * stepDurationMs;
+    const elapsed = Math.max(0, nowMs - switchPreviewStartTime);
+    const t = elapsed % cycleMs;
+    if (t < firstDurationMs) return 0;
+    return Math.min(seqLength - 1, 1 + Math.floor((t - firstDurationMs) / stepDurationMs));
+}
+
+function getSwitchDisplayInfo(gimmick, nowMs = getSwitchPreviewNowMs()) {
+    const seq = getSwitchDirSequence(gimmick);
+    if (phase !== 'place' || seq.length <= 1) {
+        return {
+            seq,
+            stepIndex: 0,
+            dir: getEffectiveGimmickDir(gimmick),
+            scale: 1
+        };
+    }
+    const stepIndex = getSwitchPreviewStepIndex(seq.length, nowMs);
+    return {
+        seq,
+        stepIndex,
+        dir: seq[stepIndex],
+        scale: getSwitchStepScale(stepIndex, seq.length)
+    };
+}
 
 function getSwitchDirSequence(gimmick) {
     if (gimmick && Array.isArray(gimmick.dirs) && gimmick.dirs.length >= 2) {
@@ -136,6 +181,7 @@ function resetSwitchStates() {
     pendingSwitchEvents = [];
     pendingFinalSwitchDirs = null;
     pendingFinalSwitchIndices = null;
+    switchPreviewStartTime = getSwitchPreviewNowMs();
     const st = getStage();
     if (!st || !Array.isArray(st.gimmicks)) return;
     st.gimmicks.forEach(g => {
@@ -825,16 +871,14 @@ function simulateGimmickBlockMoves() {
     if (hasSupernova || hasBlackHole) {
         const activeEndTicks = new Map();
         const snColliderIds = new Set();
-        let firstExplosionTick = 0;
+        let maxExplosionTick = 0;
 
         if (hasSupernova) {
-            // 最初の爆発 tick 以外の超新星は除外（同時に起きたもののみ残す）
-            firstExplosionTick = supernovas[0].tick;
-            supernovas = supernovas.filter(s => s.tick === firstExplosionTick);
-            const snPreMoveEndTick = firstExplosionTick - 1;
+            maxExplosionTick = supernovas.reduce((mx, s) => Math.max(mx, s.tick), 0);
 
-            // 超新星爆発に関係するブロック（2つ以上）のIDを収集
+            // 全爆発スポットに関係するブロックのIDと衝突直前ティックを収集
             supernovas.forEach(s => {
+                const snPreMoveEndTick = Math.max(0, s.tick - 1);
                 s.colliders.forEach(c => {
                     snColliderIds.add(c.id);
                     const prev = activeEndTicks.get(c.id);
@@ -860,7 +904,7 @@ function simulateGimmickBlockMoves() {
         }
 
         // 道を空けるなど、特殊演出ブロックの移動に間接的に関与するブロックを連鎖的に収集
-        // 超新星爆発時の間接関与ブロックは爆発発生ティックまで進めて爆発地点上から退避させる
+        // 超新星爆発時の間接関与ブロックは最大爆発ティックまで進めて全爆発地点上から退避させる
         const originMap = new Map();
         const blockById = new Map();
         blocks.forEach(b => {
@@ -879,9 +923,10 @@ function simulateGimmickBlockMoves() {
                     const pos = b.path[t];
                     const blocker = originMap.get(`${pos.col},${pos.row}`);
                     if (blocker && blocker.id !== b.id) {
+                        if (snColliderIds.has(blocker.id)) continue;
                         let reqTick = endTick;
-                        if (hasSupernova && !snColliderIds.has(blocker.id)) {
-                            reqTick = Math.max(reqTick, Math.min(firstExplosionTick, blocker.path.length - 1));
+                        if (hasSupernova) {
+                            reqTick = Math.max(reqTick, Math.min(maxExplosionTick, blocker.path.length - 1));
                         }
                         const prevTick = activeEndTicks.get(blocker.id);
                         if (prevTick === undefined || reqTick > prevTick) {
@@ -1259,9 +1304,11 @@ function startSupernova(supernovaData) {
         colliders: spots[0].colliders,
         timeline: { APPROACH_MOVE_END, APPROACH_END, FUSION_END, PULL_START, TOTAL_END, schedule },
         startTime: performance.now(),
+        lastFrameTime: performance.now(),
         exploded: false,
         particles: [],
         debris: [],
+        shatteredPieces: [],
         landed: false
     };
 
@@ -1305,6 +1352,93 @@ function spawnSupernovaExplosionParticles(cx, cy, targetState) {
             rot: Math.random() * Math.PI * 2,
             vRot: (Math.random() - 0.5) * 0.35,
             alpha: 1.0
+        });
+    }
+}
+
+function spawnSupernovaBlockShatter(col, row, spots, isColliderBlock = false, targetState = null) {
+    const stObj = targetState || supernovaState;
+    if (!stObj || !Array.isArray(spots) || spots.length === 0) return;
+
+    const blockCx = GX + (col + 0.5) * CELL;
+    const blockCy = GY + (row + 0.5) * CELL;
+
+    // 一番近い爆発スポットから爆風方向を算出
+    let nearestSpot = spots[0];
+    let minDist = Infinity;
+    spots.forEach(sp => {
+        const d = Math.hypot(blockCx - sp.focusX, blockCy - sp.focusY);
+        if (d < minDist) {
+            minDist = d;
+            nearestSpot = sp;
+        }
+    });
+
+    const p = 2;
+    const innerSize = CELL - p * 2;
+    const divisions = isColliderBlock ? 3 : 4;
+    const subSize = innerSize / divisions;
+    const startX = GX + col * CELL + p;
+    const startY = GY + row * CELL + p;
+
+    for (let gy = 0; gy < divisions; gy++) {
+        for (let gx = 0; gx < divisions; gx++) {
+            const px = startX + (gx + 0.5) * subSize;
+            const py = startY + (gy + 0.5) * subSize;
+
+            const dx = px - nearestSpot.focusX;
+            const dy = py - nearestSpot.focusY;
+            const dist = Math.hypot(dx, dy);
+            const fallbackAngle = Math.random() * Math.PI * 2;
+            const nx = dist > 1 ? dx / dist : Math.cos(fallbackAngle);
+            const ny = dist > 1 ? dy / dist : Math.sin(fallbackAngle);
+
+            const blastBase = isColliderBlock
+                ? 8.5 + Math.random() * 9.5
+                : 7.0 + (260 / (dist + 45)) * 5.2 + Math.random() * 4.2;
+
+            let fillColor = '#e8a020';
+            let borderColor = '#c06010';
+            if (isColliderBlock) {
+                const hotColors = ['#ffffff', '#fde047', '#f8c860', '#fb923c'];
+                fillColor = hotColors[Math.floor(Math.random() * hotColors.length)];
+                borderColor = '#f59e0b';
+            } else if (gy === 0 || gx === 0) {
+                fillColor = '#f8c860';
+            } else if (gy === 2 || (gy < 2 && gx === 2)) {
+                fillColor = '#d47e18';
+            }
+
+            stObj.shatteredPieces.push({
+                x: px,
+                y: py,
+                vx: nx * blastBase + (Math.random() - 0.5) * 3.8,
+                vy: ny * blastBase - 2.4 + (Math.random() - 0.5) * 3.8,
+                gravity: 0.24 + Math.random() * 0.08,
+                size: subSize * (0.86 + Math.random() * 0.24),
+                rot: (Math.random() - 0.5) * 0.3,
+                vRot: (Math.random() - 0.5) * 0.45,
+                fillColor,
+                borderColor,
+                alpha: 1.0
+            });
+        }
+    }
+
+    // ブロック破砕時の火花・煙パーティクルを少量添える
+    const sparkCount = isColliderBlock ? 6 : 4;
+    for (let i = 0; i < sparkCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2.0 + Math.random() * 6.0;
+        stObj.particles.push({
+            x: blockCx + (Math.random() - 0.5) * (CELL * 0.4),
+            y: blockCy + (Math.random() - 0.5) * (CELL * 0.4),
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 1.0,
+            size: 2.0 + Math.random() * 3.5,
+            color: isColliderBlock ? '#fde047' : '#fb923c',
+            alpha: 0.95,
+            decay: 0.02 + Math.random() * 0.02
         });
     }
 }
@@ -1365,11 +1499,36 @@ function animateSupernova(ts) {
     if (phase !== 'supernova' || !supernovaState) return;
 
     const now = ts || performance.now();
+    const prevFrame = supernovaState.lastFrameTime || now;
+    const dtScale = Math.min(2.5, Math.max(0.25, (now - prevFrame) / 16.667));
+    supernovaState.lastFrameTime = now;
     const elapsed = Math.max(0, now - supernovaState.startTime);
     const { APPROACH_END, FUSION_END, TOTAL_END } = supernovaState.timeline;
 
     if (elapsed >= FUSION_END && !supernovaState.exploded) {
         supernovaState.exploded = true;
+
+        // 爆発前の盤面ブロックを細分化して爆風で吹っ飛ばす
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (grid[r][c]) {
+                    const isCollider = supernovaState.spots.some(sp =>
+                        sp.colliders.some(colObj => colObj.fromCol === c && colObj.fromRow === r)
+                    );
+                    if (!isCollider) {
+                        spawnSupernovaBlockShatter(c, r, supernovaState.spots, false);
+                    }
+                }
+            }
+        }
+        // 爆発中心のブロック群からも高温細分化破片を吹っ飛ばす
+        supernovaState.spots.forEach(sp => {
+            sp.colliders.forEach(() => {
+                spawnSupernovaBlockShatter(sp.col, sp.row, [sp], true);
+            });
+            spawnSupernovaExplosionParticles(sp.focusX, sp.focusY);
+        });
+
         // ステージ上のブロックを全て消去
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
@@ -1377,12 +1536,9 @@ function animateSupernova(ts) {
             }
         }
         updateBlockBadge(true);
-        supernovaState.spots.forEach(sp => {
-            spawnSupernovaExplosionParticles(sp.focusX, sp.focusY);
-        });
     }
 
-    renderSupernovaState(elapsed);
+    renderSupernovaState(elapsed, dtScale);
 
     if (elapsed >= TOTAL_END) {
         finishSupernova();
@@ -1507,7 +1663,7 @@ function drawSupernovaStickmanFront(elapsed, APPROACH_END, FUSION_END) {
     }
 }
 
-function renderSupernovaState(elapsed) {
+function renderSupernovaState(elapsed, dtScale = 1) {
     if (!supernovaState) return;
     const { APPROACH_MOVE_END, APPROACH_END, FUSION_END, PULL_START, TOTAL_END } = supernovaState.timeline;
     const spotCount = supernovaState.spots.length;
@@ -1648,10 +1804,7 @@ function renderSupernovaState(elapsed) {
             for (let c = 0; c < COLS; c++) {
                 if (grid[r][c]) {
                     const isCollider = supernovaState.spots.some(sp =>
-                        sp.colliders.some(colObj =>
-                            (colObj.fromCol === c && colObj.fromRow === r) ||
-                            (colObj.originCol === c && colObj.originRow === r)
-                        )
+                        sp.colliders.some(colObj => colObj.fromCol === c && colObj.fromRow === r)
                     );
                     if (!isCollider) {
                         drawMarioBlock(c, r);
@@ -1778,10 +1931,10 @@ function renderSupernovaState(elapsed) {
 
         // 3. 吹き飛ぶブロックの破片（デブリ）
         supernovaState.debris.forEach(d => {
-            d.x += d.vx;
-            d.y += d.vy;
-            d.vy += 0.18;
-            d.rot += d.vRot;
+            d.x += d.vx * dtScale;
+            d.y += d.vy * dtScale;
+            d.vy += 0.18 * dtScale;
+            d.rot += d.vRot * dtScale;
             d.alpha = Math.max(0, 1 - t3 * 1.15);
             if (d.alpha > 0) {
                 ctx.save();
@@ -1797,13 +1950,39 @@ function renderSupernovaState(elapsed) {
             }
         });
 
+        // 3-B. 盤面上のハコが細分化されて爆風で吹っ飛ぶ破片
+        const shatterT = Math.min(1, (elapsed - FUSION_END) / 1900);
+        const shatterFade = shatterT < 0.62 ? 1.0 : Math.max(0, 1 - (shatterT - 0.62) / 0.38);
+        if (Array.isArray(supernovaState.shatteredPieces) && shatterFade > 0) {
+            const drag = Math.pow(0.992, dtScale);
+            supernovaState.shatteredPieces.forEach(piece => {
+                piece.x += piece.vx * dtScale;
+                piece.y += piece.vy * dtScale;
+                piece.vx *= drag;
+                piece.vy = piece.vy * drag + piece.gravity * dtScale;
+                piece.rot += piece.vRot * dtScale;
+                piece.alpha = shatterFade;
+
+                ctx.save();
+                ctx.translate(piece.x, piece.y);
+                ctx.rotate(piece.rot);
+                ctx.globalAlpha = piece.alpha;
+                ctx.fillStyle = piece.fillColor;
+                ctx.fillRect(-piece.size / 2, -piece.size / 2, piece.size, piece.size);
+                ctx.strokeStyle = piece.borderColor;
+                ctx.lineWidth = 1.4;
+                ctx.strokeRect(-piece.size / 2, -piece.size / 2, piece.size, piece.size);
+                ctx.restore();
+            });
+        }
+
         // 4. 超新星エネルギー粒子
         supernovaState.particles.forEach(p => {
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vx *= 0.96;
-            p.vy *= 0.96;
-            p.alpha = Math.max(0, p.alpha - p.decay);
+            p.x += p.vx * dtScale;
+            p.y += p.vy * dtScale;
+            p.vx *= Math.pow(0.96, dtScale);
+            p.vy *= Math.pow(0.96, dtScale);
+            p.alpha = Math.max(0, p.alpha - p.decay * dtScale);
             if (p.alpha > 0) {
                 ctx.save();
                 ctx.globalAlpha = p.alpha;
@@ -3400,7 +3579,7 @@ function startDualSupernovaBlackHole(snData, bhData) {
                 curTime = panEnd;
             }
         }
-        extraTime = Math.max(0, curTime - 2220);
+        extraTime = Math.max(0, curTime - 1850);
     }
 
     const rawLoops = Array.isArray(bhData) ? bhData : [bhData];
@@ -3457,10 +3636,7 @@ function startDualSupernovaBlackHole(snData, bhData) {
                     }
                 }
                 const isCollider = spots.some(sp =>
-                    sp.colliders.some(colObj =>
-                        (colObj.fromCol === c && colObj.fromRow === r) ||
-                        (colObj.originCol === c && colObj.originRow === r)
-                    )
+                    sp.colliders.some(colObj => colObj.fromCol === c && colObj.fromRow === r)
                 );
                 initialPlacedBlocks.push({
                     col: c,
@@ -3511,6 +3687,7 @@ function startDualSupernovaBlackHole(snData, bhData) {
 
 function finishDualEvent() {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
+    resetBlackHoleUiStyles();
     dualEventState = null;
     pendingSupernova = null;
     pendingBlackHole = null;
@@ -4720,9 +4897,11 @@ function drawGimmickTile(gimmick) {
         ctx.restore();
     } else if (gimmick.type === 'switch') {
         // スイッチブロック: 黄色固定の枠 + 移動種別を示す矢印 + 切替方向数バッジ
-        const curDir = getEffectiveGimmickDir(gimmick);
+        const display = getSwitchDisplayInfo(gimmick);
+        const curDir = display.dir;
+        const arrowScale = display.scale;
         const moveType = getEffectiveGimmickMoveType(gimmick);
-        const seq = getSwitchDirSequence(gimmick);
+        const seq = display.seq;
 
         ctx.fillStyle = 'rgba(250, 204, 21, 0.34)';
         ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
@@ -4730,6 +4909,9 @@ function drawGimmickTile(gimmick) {
         ctx.save();
         ctx.translate(x + CELL / 2, y + CELL / 2);
         ctx.rotate(getDirAngle(curDir));
+        if (arrowScale !== 1) {
+            ctx.scale(arrowScale, arrowScale);
+        }
 
         if (moveType === 'dash') {
             ctx.fillStyle = '#00c0ff';
@@ -5009,7 +5191,9 @@ function drawMarioBlock(col, row) {
     if (hasArrow) {
         // 矢印の上のブロックは、矢印の形状をくり抜いて下地本来の色（水色・緑色）を100%忠実に露出させる
         const arrowType = g.type === 'switch' ? getEffectiveGimmickMoveType(g) : g.type;
-        const arrowDir = getEffectiveGimmickDir(g);
+        const switchDisplay = g.type === 'switch' ? getSwitchDisplayInfo(g) : null;
+        const arrowDir = switchDisplay ? switchDisplay.dir : getEffectiveGimmickDir(g);
+        const arrowScale = switchDisplay ? switchDisplay.scale : 1;
         const pulse = (Math.sin(Date.now() / 200) + 1) / 2;
         const shift = (arrowType === 'dash') ? pulse * 3 : pulse * 2;
 
@@ -5028,6 +5212,9 @@ function drawMarioBlock(col, row) {
         ctx.save();
         ctx.translate(x + CELL / 2, y + CELL / 2);
         ctx.rotate(getDirAngle(arrowDir));
+        if (arrowScale !== 1) {
+            ctx.scale(arrowScale, arrowScale);
+        }
 
         if (arrowType === 'dash') {
             ctx.moveTo(-17 + shift, -7);
@@ -5100,6 +5287,24 @@ function drawMarioBlock(col, row) {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(String(seq.length), x + CELL - 9, y + 9.5);
+        ctx.restore();
+    }
+
+    if (g && g.purpleBorder) {
+        // 必須マスのブロックは配置後も少し薄めの紫枠を表示し、置き直しなしで判別可能にする
+        ctx.save();
+        if (g.type === 'switch') {
+            ctx.strokeStyle = 'rgba(192, 132, 252, 0.78)';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(x + 5.5, y + 5.5, CELL - 11, CELL - 11);
+        } else {
+            ctx.strokeStyle = 'rgba(192, 132, 252, 0.78)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x + 2.5, y + 2.5, CELL - 5, CELL - 5);
+            ctx.strokeStyle = 'rgba(233, 213, 255, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x + 4, y + 4, CELL - 8, CELL - 8);
+        }
         ctx.restore();
     }
 }
@@ -6273,7 +6478,43 @@ function drawRespawnTrail(now) {
 // MARK: - View & Screen Management
 let currentView = 'home'; // 'home' | 'select' | 'game'
 
+function cancelActiveGameSequenceOnLeave() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    if (explosionMessageTimer) {
+        clearTimeout(explosionMessageTimer);
+        explosionMessageTimer = null;
+    }
+    resetBlackHoleUiStyles();
+    if (phase !== 'place' || blackHoleState || dualEventState || supernovaState) {
+        slidingBlocks = [];
+        blockAnimationRounds = [];
+        currentRoundIndex = 0;
+        laserDeathEffect = null;
+        pendingSupernova = null;
+        supernovaState = null;
+        pendingBlackHole = null;
+        blackHoleState = null;
+        dualEventState = null;
+        if (originalGrid) {
+            grid = originalGrid.map(r => [...r]);
+            originalGrid = null;
+        }
+        resetSwitchStates();
+        phase = 'place';
+        man = makeMan();
+        if (startBtn) startBtn.disabled = false;
+        if (statusBar) statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
+        if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
+        updateBlockBadge(true);
+    }
+}
+
 function switchView(viewName) {
+    if (viewName !== 'game') {
+        cancelActiveGameSequenceOnLeave();
+    } else {
+        resetBlackHoleUiStyles();
+    }
     currentView = viewName;
     const views = {
         home: document.getElementById('homeScreen'),
@@ -6292,6 +6533,9 @@ function switchView(viewName) {
     });
 
     if (viewName === 'game') {
+        if (phase === 'place') {
+            switchPreviewStartTime = getSwitchPreviewNowMs();
+        }
         render();
     } else if (viewName === 'select') {
         updateSelectScreenUI();
@@ -6708,7 +6952,7 @@ function updateLegendUI() {
     }
     const hasPurple = (st.gimmicks && st.gimmicks.some(g => g.purpleBorder)) || (st.legends && st.legends.some(l => l.type === 'purple'));
     if (hasPurple) {
-        items.push({ icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' });
+        items.push({ icon: '', type: 'purple', text: '紫枠：必ずブロックを設置' });
     }
     const hasSwitch = (st.gimmicks && st.gimmicks.some(g => g.type === 'switch')) || (st.legends && st.legends.some(l => l.type === 'switch'));
     if (hasSwitch) {
@@ -6730,8 +6974,9 @@ function updateLegendUI() {
     items.forEach(l => {
         const item = document.createElement('div');
         item.className = 'legend-item';
+        const iconText = (l.type === 'purple') ? '' : (l.icon || '');
         item.innerHTML = `
-            <span class="legend-icon legend-${l.type}">${l.icon}</span>
+            <span class="legend-icon legend-${l.type}">${iconText}</span>
             <span>${l.text}</span>
         `;
         legendWrap.appendChild(item);
@@ -6760,6 +7005,7 @@ function selectStage(idx) {
     }
     currentStageIndex = idx;
     if (animId) { cancelAnimationFrame(animId); animId = null; }
+    resetBlackHoleUiStyles();
     grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
     actionHistory = [];
     slidingBlocks = [];
@@ -6769,6 +7015,7 @@ function selectStage(idx) {
     supernovaState = null;
     pendingBlackHole = null;
     blackHoleState = null;
+    dualEventState = null;
     originalGrid = null;
     showSolution = false;
     usedHintInStage = false;

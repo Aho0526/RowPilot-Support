@@ -275,7 +275,7 @@
         if (hasForbidden) legends.push({ icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' });
         if (dash.length) legends.push({ icon: '→', type: 'dash', text: '青矢印：矢印方向に端まで移動' });
         if (step.length) legends.push({ icon: '→', type: 'step', text: '緑矢印：矢印方向に1マス移動' });
-        if (hasPurple) legends.push({ icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' });
+        if (hasPurple) legends.push({ icon: '', type: 'purple', text: '紫枠：必ずブロックを設置' });
         return legends;
     }
 

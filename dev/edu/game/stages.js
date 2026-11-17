@@ -1,5 +1,5 @@
 // ==========================================
-// ハコゲーム - stages.js (ステージ 1 〜 23 定義)
+// ハコゲーム - stages.js (ステージ 1 〜 27 定義)
 // ==========================================
 
 const STAGES = [
@@ -814,6 +814,192 @@ const STAGES = [
             { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
             { icon: '↓', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
             { icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }
+        ]
+    },
+
+    // ------------------------------------------
+    // ステージ 24
+    // ------------------------------------------
+    {
+        id: 24,
+        title: 'ステージ 24',
+        subtitle: '光線を防ぐ足場',
+        maxBlocks: 6,
+        targetBlocks: 6,
+        startRow: 1,
+        goalRow: 1,
+        forbidden: [
+            { col: 1, row: 2 },
+            { col: 4, row: 2 }
+        ],
+        gimmicks: [
+            { col: 2, row: 0, type: 'dash', dir: 'right', purpleBorder: false },
+            { col: 4, row: 0, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 1, row: 1, type: 'step', dir: 'left', steps: 1, purpleBorder: true },
+            { col: 2, row: 1, type: 'step', dir: 'right', steps: 1 },
+            { col: 3, row: 1, type: 'step', dir: 'down', steps: 1 },
+            { col: 2, row: 2, type: 'step', dir: 'right', steps: 1 },
+            { col: 3, row: 2, type: 'step', dir: 'left', steps: 1 },
+            { col: 1, row: 3, type: 'dash', dir: 'up', purpleBorder: false },
+            { col: 4, row: 3, type: 'step', dir: 'up', steps: 1 }
+        ],
+        lasers: [
+            { col: 4, row: 0, side: 'right' }
+        ],
+        solution: [
+            { col: 3, row: 0 }, { col: 4, row: 0 },
+            { col: 1, row: 1 }, { col: 2, row: 1 },
+            { col: 2, row: 2 },
+            { col: 1, row: 3 }
+        ],
+        legends: [
+            { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
+            { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
+            { icon: '', type: 'purple', text: '紫枠：必ずブロックを設置' },
+            { icon: '―', type: 'laser', text: 'レーザー：スタートで発射（ブロックで遮断可能）' }
+        ]
+    },
+
+    // ------------------------------------------
+    // ステージ 25
+    // ------------------------------------------
+    {
+        id: 25,
+        title: 'ステージ 25',
+        subtitle: '切り替わる道と光線',
+        maxBlocks: 6,
+        targetBlocks: 6,
+        startRow: 3,
+        goalRow: 1,
+        forbidden: [
+            { col: 0, row: 3 }
+        ],
+        gimmicks: [
+            { col: 1, row: 0, type: 'step', dir: 'down', steps: 1 },
+            { col: 4, row: 0, type: 'dash', dir: 'left', purpleBorder: false },
+            { col: 3, row: 1, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 1, row: 2, type: 'step', dir: 'right', steps: 1 },
+            { col: 2, row: 2, type: 'switch', dir: 'down', switchCount: 2, moveType: 'step' },
+            { col: 3, row: 3, type: 'switch', dir: 'right', switchCount: 2, moveType: 'step' },
+            { col: 0, row: 4, type: 'switch', dir: 'up', switchCount: 2, moveType: 'step' },
+            { col: 2, row: 4, type: 'dash', dir: 'left', purpleBorder: false },
+            { col: 4, row: 4, type: 'dash', dir: 'left', purpleBorder: false }
+        ],
+        lasers: [
+            { col: 1, row: 0, side: 'top' }
+        ],
+        solution: [
+            { col: 4, row: 0 },
+            { col: 3, row: 1 },
+            { col: 2, row: 2 },
+            { col: 3, row: 3 },
+            { col: 2, row: 4 }, { col: 4, row: 4 }
+        ],
+        legends: [
+            { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
+            { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
+            { icon: '↻', type: 'switch', text: '黄枠：ブロックが通るたびに向き切替' },
+            { icon: '―', type: 'laser', text: 'レーザー：スタートで発射（ブロックで遮断可能）' }
+        ]
+    },
+
+    // ------------------------------------------
+    // ステージ 26
+    // ------------------------------------------
+    {
+        id: 26,
+        title: 'ステージ 26',
+        subtitle: '交差レーザーと連続スイッチ',
+        maxBlocks: 7,
+        targetBlocks: 7,
+        startRow: 3,
+        goalRow: 1,
+        forbidden: [
+            { col: 0, row: 1 },
+            { col: 1, row: 1 }
+        ],
+        gimmicks: [
+            { col: 0, row: 0, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 1, row: 0, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 4, row: 0, type: 'dash', dir: 'left', purpleBorder: false },
+            { col: 2, row: 1, type: 'switch', dirs: ['right', 'left'], moveType: 'step', purpleBorder: true },
+            { col: 3, row: 1, type: 'dash', dir: 'left', purpleBorder: false },
+            { col: 2, row: 2, type: 'switch', dirs: ['left', 'right'], moveType: 'dash' },
+            { col: 4, row: 2, type: 'switch', dirs: ['left', 'right'], moveType: 'dash' },
+            { col: 0, row: 3, type: 'step', dir: 'down', steps: 1 },
+            { col: 1, row: 3, type: 'switch', dir: 'right', switchCount: 2, moveType: 'step' },
+            { col: 2, row: 4, type: 'step', dir: 'up', steps: 1 },
+            { col: 4, row: 4, type: 'dash', dir: 'up', purpleBorder: false }
+        ],
+        lasers: [
+            { col: 0, row: 0, side: 'top' },
+            { col: 1, row: 0, side: 'top' },
+            { col: 0, row: 1, side: 'left' },
+            { col: 4, row: 2, side: 'right' }
+        ],
+        solution: [
+            { col: 1, row: 0 },
+            { col: 2, row: 1 },
+            { col: 2, row: 2 },
+            { col: 0, row: 3 }, { col: 1, row: 3 }, { col: 3, row: 3 },
+            { col: 4, row: 4 }
+        ],
+        legends: [
+            { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
+            { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' },
+            { icon: '', type: 'purple', text: '紫枠：必ずブロックを設置' },
+            { icon: '↻', type: 'switch', text: '黄枠：ブロックが通るたびに向き切替' },
+            { icon: '―', type: 'laser', text: 'レーザー：スタートで発射（ブロックで遮断可能）' }
+        ]
+    },
+
+    // ------------------------------------------
+    // ステージ 27
+    // ------------------------------------------
+    {
+        id: 27,
+        title: 'ステージ 27',
+        subtitle: '高台からの落下と跳躍',
+        maxBlocks: 6,
+        targetBlocks: 6,
+        startRow: 0,
+        goalRow: 2,
+        forbidden: [
+            { col: 2, row: 0 }, { col: 4, row: 0 },
+            { col: 1, row: 1 },
+            { col: 2, row: 2 },
+            { col: 0, row: 3 }, { col: 4, row: 3 },
+            { col: 0, row: 4 }, { col: 2, row: 4 }, { col: 3, row: 4 }
+        ],
+        gimmicks: [
+            { col: 0, row: 0, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 1, row: 0, type: 'dash', dir: 'right', purpleBorder: false },
+            { col: 4, row: 0, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 2, row: 1, type: 'step', dir: 'right', steps: 1 },
+            { col: 0, row: 2, type: 'dash', dir: 'down', purpleBorder: false },
+            { col: 1, row: 2, type: 'step', dir: 'left', steps: 1 },
+            { col: 3, row: 2, type: 'step', dir: 'left', steps: 1 },
+            { col: 4, row: 2, type: 'step', dir: 'right', steps: 1 },
+            { col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: false },
+            { col: 3, row: 3, type: 'step', dir: 'up', steps: 1 },
+            { col: 4, row: 3, type: 'step', dir: 'up', steps: 1 },
+            { col: 0, row: 4, type: 'dash', dir: 'right', purpleBorder: false },
+            { col: 2, row: 4, type: 'step', dir: 'up', steps: 1 },
+            { col: 4, row: 4, type: 'dash', dir: 'left', purpleBorder: false }
+        ],
+        solution: [
+            { col: 1, row: 0 },
+            { col: 0, row: 1 }, { col: 2, row: 1 },
+            { col: 3, row: 2 },
+            { col: 1, row: 3 }, { col: 2, row: 3 }
+        ],
+        legends: [
+            { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
+            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
+            { icon: '→', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' }
         ]
     }
 ];

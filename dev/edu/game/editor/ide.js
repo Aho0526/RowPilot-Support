@@ -3880,7 +3880,7 @@ const STAGES = [
             legendsList.push(`{ icon: '⚡', type: 'laser', text: 'レーザー：スタートで発射（ブロックで遮断可能）' }`);
         }
         if (usedLegendTypes.has('purple')) {
-            legendsList.push(`{ icon: '▢', type: 'purple', text: '紫枠：必ずブロックを設置' }`);
+            legendsList.push(`{ icon: '', type: 'purple', text: '紫枠：必ずブロックを設置' }`);
         }
 
         const safeTitle = String(builderState.title).replace(/\x27/g, "\\\x27");

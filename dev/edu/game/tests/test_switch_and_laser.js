@@ -311,4 +311,79 @@ function setGrid(sb, coords) {
     assert.ok(invalidIssues.length >= 3, 'switchCount:5, moveType:jump, side:center がエラーとして検知されること');
 }
 
+// ==========================================
+// 6. 配置フェーズのスイッチブロックプレビュー表示検証
+// ==========================================
+{
+    const sb = createSandbox([{
+        id: 105,
+        title: 'Switch Preview Timing & Scale',
+        subtitle: '',
+        maxBlocks: 5,
+        startRow: 4,
+        goalRow: 4,
+        forbidden: [],
+        gimmicks: [
+            { col: 1, row: 2, type: 'switch', dirs: ['up', 'down', 'right'], moveType: 'step' },
+            { col: 2, row: 2, type: 'switch', dirs: ['right', 'left'], moveType: 'dash' },
+            { col: 3, row: 2, type: 'switch', dirs: ['up', 'right', 'down', 'left'], moveType: 'step' }
+        ],
+        solution: [],
+        legends: []
+    }]);
+
+    vm.runInContext('phase = "place"; switchPreviewStartTime = 1000;', sb);
+
+    // 3方向: 0-2000ms(1.0) -> 2000-3000ms(0.8) -> 3000-4000ms(0.6) -> 4000ms~(1.0)
+    const sw3 = { col: 1, row: 2, type: 'switch', dirs: ['up', 'down', 'right'], moveType: 'step' };
+    let d = sb.getSwitchDisplayInfo(sw3, 1000);
+    assert.strictEqual(d.dir, 'up');
+    assert.ok(Math.abs(d.scale - 1.0) < 1e-6);
+
+    d = sb.getSwitchDisplayInfo(sw3, 2999);
+    assert.strictEqual(d.dir, 'up', '最初の方向は2秒間維持されること');
+    assert.ok(Math.abs(d.scale - 1.0) < 1e-6);
+
+    d = sb.getSwitchDisplayInfo(sw3, 3000);
+    assert.strictEqual(d.dir, 'down');
+    assert.ok(Math.abs(d.scale - 0.8) < 1e-6);
+
+    d = sb.getSwitchDisplayInfo(sw3, 4000);
+    assert.strictEqual(d.dir, 'right');
+    assert.ok(Math.abs(d.scale - 0.6) < 1e-6);
+
+    d = sb.getSwitchDisplayInfo(sw3, 5000);
+    assert.strictEqual(d.dir, 'up', '1周後は再び最初の方向(2秒, 100%)に戻ること');
+    assert.ok(Math.abs(d.scale - 1.0) < 1e-6);
+
+    // 2方向: 100% -> 70%
+    const sw2 = { col: 2, row: 2, type: 'switch', dirs: ['right', 'left'], moveType: 'dash' };
+    d = sb.getSwitchDisplayInfo(sw2, 1000);
+    assert.strictEqual(d.dir, 'right');
+    assert.ok(Math.abs(d.scale - 1.0) < 1e-6);
+
+    d = sb.getSwitchDisplayInfo(sw2, 3000);
+    assert.strictEqual(d.dir, 'left');
+    assert.ok(Math.abs(d.scale - 0.7) < 1e-6);
+
+    d = sb.getSwitchDisplayInfo(sw2, 4000);
+    assert.strictEqual(d.dir, 'right');
+    assert.ok(Math.abs(d.scale - 1.0) < 1e-6);
+
+    // 4方向: 100% -> ~83.3% -> ~66.7% -> 50%
+    const sw4 = { col: 3, row: 2, type: 'switch', dirs: ['up', 'right', 'down', 'left'], moveType: 'step' };
+    assert.ok(Math.abs(sb.getSwitchDisplayInfo(sw4, 1000).scale - 1.0) < 1e-6);
+    assert.ok(sb.getSwitchDisplayInfo(sw4, 3000).scale < 1.0 && sb.getSwitchDisplayInfo(sw4, 3000).scale > 0.7);
+    assert.ok(sb.getSwitchDisplayInfo(sw4, 4000).scale < sb.getSwitchDisplayInfo(sw4, 3000).scale);
+    assert.ok(Math.abs(sb.getSwitchDisplayInfo(sw4, 5000).scale - 0.5) < 1e-6);
+    assert.ok(Math.abs(sb.getSwitchDisplayInfo(sw4, 6000).scale - 1.0) < 1e-6);
+
+    // 配置シーン以外ではプレビュー回転せず現在スイッチ状態・100%サイズになること
+    sb.resetSwitchStates();
+    vm.runInContext('phase = "run";', sb);
+    d = sb.getSwitchDisplayInfo(sw3, 3500);
+    assert.strictEqual(d.dir, 'up');
+    assert.strictEqual(d.scale, 1);
+}
+
 console.log('ALL SWITCH & LASER TESTS PASSED');
