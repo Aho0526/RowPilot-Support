@@ -11,12 +11,14 @@
   <link rel="icon" href="/pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@500;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/teams.css">
 </head>
 
-<body>
+<body class="teams-page">
   <header class="teams-header">
     <div class="nav-wrap teams-nav-wrap">
       <a href="/" class="logo">
@@ -33,6 +35,31 @@
           <li><a href="/terms/index.html">利用規約</a></li>
           <li><a href="/dev/">開発</a></li>
           <li><a href="/teams/" class="active">チーム</a></li>
+          <li class="lang-dropdown-wrapper">
+            <button class="lang-btn" id="teams-lang-btn" type="button" aria-label="言語を選択">
+              <span class="lang-globe">🌐</span>
+              <span id="teams-lang-code">JP</span>
+              <span class="lang-arrow">▾</span>
+            </button>
+            <div class="lang-dropdown-menu">
+              <a href="/teams/" class="lang-dropdown-item active" data-teams-lang="ja"><span>日本語</span><span
+                  class="lang-code-badge">🇯🇵</span></a>
+              <a href="/teams/?lang=en" class="lang-dropdown-item" data-teams-lang="en"><span>English</span><span
+                  class="lang-code-badge">🇺🇸</span></a>
+              <a href="/teams/?lang=de" class="lang-dropdown-item" data-teams-lang="de"><span>Deutsch</span><span
+                  class="lang-code-badge">🇩🇪</span></a>
+              <a href="/teams/?lang=fr" class="lang-dropdown-item" data-teams-lang="fr"><span>Français</span><span
+                  class="lang-code-badge">🇫🇷</span></a>
+              <a href="/teams/?lang=es" class="lang-dropdown-item" data-teams-lang="es"><span>Español</span><span
+                  class="lang-code-badge">🇪🇸</span></a>
+              <a href="/teams/?lang=it" class="lang-dropdown-item" data-teams-lang="it"><span>Italiano</span><span
+                  class="lang-code-badge">🇮🇹</span></a>
+              <a href="/teams/?lang=zh" class="lang-dropdown-item" data-teams-lang="zh"><span>简体中文</span><span
+                  class="lang-code-badge">🇨🇳</span></a>
+              <a href="/teams/?lang=ko" class="lang-dropdown-item" data-teams-lang="ko"><span>한국어</span><span
+                  class="lang-code-badge">🇰🇷</span></a>
+            </div>
+          </li>
         </ul>
         <div class="header-actions" id="header-actions" hidden>
           <span class="viewer-pill" id="viewer-pill"></span>
@@ -56,6 +83,28 @@
       <a href="/terms/index.html">利用規約</a>
       <a href="/dev/">開発</a>
       <a href="/teams/" class="active">チーム</a>
+      <div class="mobile-menu-divider"></div>
+      <div class="mobile-lang-sec">
+        <div class="mobile-lang-title" id="teams-mobile-lang-title">🌐 Language / 言語</div>
+        <div class="mobile-lang-grid">
+          <a href="/teams/" class="mobile-lang-item active" data-teams-lang="ja"><span>日本語</span><span
+              class="lang-code-badge">🇯🇵</span></a>
+          <a href="/teams/?lang=en" class="mobile-lang-item" data-teams-lang="en"><span>English</span><span
+              class="lang-code-badge">🇺🇸</span></a>
+          <a href="/teams/?lang=de" class="mobile-lang-item" data-teams-lang="de"><span>Deutsch</span><span
+              class="lang-code-badge">🇩🇪</span></a>
+          <a href="/teams/?lang=fr" class="mobile-lang-item" data-teams-lang="fr"><span>Français</span><span
+              class="lang-code-badge">🇫🇷</span></a>
+          <a href="/teams/?lang=es" class="mobile-lang-item" data-teams-lang="es"><span>Español</span><span
+              class="lang-code-badge">🇪🇸</span></a>
+          <a href="/teams/?lang=it" class="mobile-lang-item" data-teams-lang="it"><span>Italiano</span><span
+              class="lang-code-badge">🇮🇹</span></a>
+          <a href="/teams/?lang=zh" class="mobile-lang-item" data-teams-lang="zh"><span>简体中文</span><span
+              class="lang-code-badge">🇨🇳</span></a>
+          <a href="/teams/?lang=ko" class="mobile-lang-item" data-teams-lang="ko"><span>한국어</span><span
+              class="lang-code-badge">🇰🇷</span></a>
+        </div>
+      </div>
     </div>
   </nav>
 
@@ -89,14 +138,16 @@
           <div class="field">
             <label for="setup-password">新しいパスワード</label>
             <div class="password-wrap">
-              <input type="password" id="setup-password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="8文字以上の英数字・記号" required>
+              <input type="password" id="setup-password" minlength="8" maxlength="128" autocomplete="new-password"
+                placeholder="8文字以上の英数字・記号" required>
               <button type="button" class="toggle-pw" data-target="setup-password">表示</button>
             </div>
           </div>
           <div class="field">
             <label for="setup-password-confirm">パスワード（確認）</label>
             <div class="password-wrap">
-              <input type="password" id="setup-password-confirm" minlength="8" maxlength="128" autocomplete="new-password" placeholder="もう一度入力" required>
+              <input type="password" id="setup-password-confirm" minlength="8" maxlength="128"
+                autocomplete="new-password" placeholder="もう一度入力" required>
               <button type="button" class="toggle-pw" data-target="setup-password-confirm">表示</button>
             </div>
           </div>
@@ -157,7 +208,8 @@
             <div class="field">
               <label for="coach-password">パスワード</label>
               <div class="password-wrap">
-                <input type="password" id="coach-password" autocomplete="current-password" placeholder="パスワードを入力" required>
+                <input type="password" id="coach-password" autocomplete="current-password" placeholder="パスワードを入力"
+                  required>
                 <button type="button" class="toggle-pw" data-target="coach-password">表示</button>
               </div>
             </div>
@@ -259,7 +311,8 @@
           <div>
             <h3>Android 端末やアプリをお持ちでない監督・コーチへ</h3>
             <p class="muted">
-              チームの管理者（キャプテンなど）が iPhone 版 RowPilot アプリ内の「チーム管理 → Webダッシュボード → Webコーチ管理」から監督のメールアドレスを登録すると、初回設定リンクが届き、メールアドレスとパスワードでログインできるようになります。
+              チームの管理者（キャプテンなど）が iPhone 版 RowPilot アプリ内の「チーム管理 → Webダッシュボード →
+              Webコーチ管理」から監督のメールアドレスを登録すると、初回設定リンクが届き、メールアドレスとパスワードでログインできるようになります。
             </p>
           </div>
           <a href="/support/index.html#faq-team-web" class="btn-secondary-web">サポートを見る</a>
@@ -319,9 +372,12 @@
       <!-- Filters -->
       <div class="filter-section" id="filter-section">
         <div class="filter-mobile-bar">
-          <button type="button" class="filter-toggle-btn" id="btn-toggle-filters" aria-expanded="false" aria-controls="filter-bar">
+          <button type="button" class="filter-toggle-btn" id="btn-toggle-filters" aria-expanded="false"
+            aria-controls="filter-bar">
             <span class="filter-toggle-left">
-              <svg class="filter-toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="filter-toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
               </svg>
               <span class="filter-toggle-label">絞り込み</span>
@@ -466,7 +522,8 @@
   </main>
 
   <!-- Workout Detail Modal -->
-  <div id="detail-modal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="modal-athlete-name">
+  <div id="detail-modal" class="modal-backdrop" hidden role="dialog" aria-modal="true"
+    aria-labelledby="modal-athlete-name">
     <div class="modal-card">
       <div class="modal-header">
         <div>
@@ -493,7 +550,8 @@
   </div>
 
   <!-- Contact / Feedback Modal -->
-  <div id="contact-modal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+  <div id="contact-modal" class="modal-backdrop" hidden role="dialog" aria-modal="true"
+    aria-labelledby="contact-modal-title">
     <div class="modal-card contact-modal-card">
       <div class="modal-header">
         <div>
@@ -530,7 +588,8 @@
 
         <div class="field">
           <label for="contact-message">内容</label>
-          <textarea id="contact-message" rows="5" maxlength="3000" placeholder="発生した画面や操作手順、表示されたエラーなどをご記入ください" required></textarea>
+          <textarea id="contact-message" rows="5" maxlength="3000" placeholder="発生した画面や操作手順、表示されたエラーなどをご記入ください"
+            required></textarea>
         </div>
 
         <label class="contact-check-row" for="contact-needs-reply">
@@ -557,6 +616,8 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" defer></script>
+  <script src="/js/lang-dropdown.js" defer></script>
+  <script src="/js/teams-i18n.js" defer></script>
   <script src="/js/teams-app.js" defer></script>
 </body>
 

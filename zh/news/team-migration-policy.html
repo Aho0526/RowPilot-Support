@@ -1,15 +1,14 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Plan Migration Policy — RowPilot</title>
-    <meta name="description" content="Detailed information regarding functional restrictions and auto-cleanup policies when migrating or changing team plans on RowPilot.">
+    <title>关于团队方案变更时的自动清理与功能限制说明 — RowPilot</title>
+    <meta name="description" content="详细说明 RowPilot 团队订阅方案升降级或到期失效时的功能限制与超额成员自动清理规则。">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
     <style>
-        /* Team Policy Specific Styles */
         .flow-card {
             background: var(--bg-2);
             border: 1px solid var(--border);
@@ -20,6 +19,7 @@
             position: relative;
             overflow: hidden;
         }
+
         .flow-card h2 {
             font-family: var(--font-h);
             font-size: 1.35rem;
@@ -33,22 +33,24 @@
             border-bottom: 1px solid var(--border);
             padding-bottom: 0.75rem;
         }
+
         .flow-card h2 .icon {
             font-size: 1.5rem;
         }
-        .flow-card > p {
+
+        .flow-card>p {
             color: var(--text-2);
             font-size: 0.95rem;
             line-height: 1.7;
             margin-bottom: 1.5rem;
         }
 
-        /* Timeline UI */
         .timeline {
             position: relative;
             padding-left: 2rem;
             margin: 1.5rem 0 0.5rem 0.5rem;
         }
+
         .timeline::before {
             content: '';
             position: absolute;
@@ -59,14 +61,17 @@
             background: linear-gradient(to bottom, var(--accent) 0%, var(--accent-2) 100%);
             opacity: 0.25;
         }
+
         .timeline-item {
             position: relative;
             margin-bottom: 2rem;
         }
+
         .timeline-item:last-child {
             margin-bottom: 0;
             background: none;
         }
+
         .timeline-dot {
             position: absolute;
             left: -2rem;
@@ -79,9 +84,11 @@
             border: 3px solid var(--bg-2);
             transition: transform var(--t);
         }
+
         .timeline-item:hover .timeline-dot {
             transform: scale(1.2);
         }
+
         .timeline-badge {
             display: inline-block;
             padding: 0.25rem 0.65rem;
@@ -94,6 +101,7 @@
             border: 1px solid rgba(77, 203, 255, 0.2);
             margin-bottom: 0.6rem;
         }
+
         .timeline-item h3 {
             font-family: var(--font-h);
             font-size: 1.05rem;
@@ -101,11 +109,29 @@
             margin-bottom: 0.4rem;
             color: var(--text);
         }
+
         .timeline-item p {
             color: var(--text-2);
             font-size: 0.9rem;
             line-height: 1.6;
             margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .flow-card {
+                padding: 1.25rem 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .flow-card h2 {
+                font-size: 1.15rem;
+            }
+            .timeline {
+                padding-left: 1.45rem;
+                margin-left: 0.15rem;
+            }
+            .timeline-dot {
+                left: -1.55rem;
+            }
         }
     </style>
 </head>
@@ -119,25 +145,25 @@
                 <span class="logo-text">RowPilot</span>
             </a>
             <ul class="nav-links">
-        <li><a href="../index.html">首页</a></li>
-        <li><a href="index.html" class="active">动态</a></li>
-        <li><a href="../support/index.html">技术支持</a></li>
-        <li><a href="../privacy-policy/index.html">隐私政策</a></li>
-        <li><a href="../terms/index.html">用户条款</a></li>
-        <li><a href="/dev/">开发</a></li>
-        <li><a href="/teams/">团队</a></li>
-        <li class="lang-dropdown-wrapper">
-          <button class="lang-btn" type="button" aria-label="Select Language">
-            <span class="lang-globe">🌐</span>
-            <span>ZH</span>
-            <span class="lang-arrow">▾</span>
-          </button>
-          <div class="lang-dropdown-menu">
-            <a href="../../news/team-migration-policy.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="team-migration-policy.html" class="lang-dropdown-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
-          </div>
-        </li>
-      </ul>
-            <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="index.html" class="active">最新动态</a></li>
+                <li><a href="../support/index.html">支持</a></li>
+                <li><a href="../privacy-policy/index.html">隐私政策</a></li>
+                <li><a href="../terms/index.html">服务条款</a></li>
+                <li><a href="/dev/">开发者</a></li>
+                <li><a href="/teams/?lang=zh">团队</a></li>
+                <li class="lang-dropdown-wrapper">
+                    <button class="lang-btn" type="button" aria-label="选择语言">
+                        <span class="lang-globe">🌐</span>
+                        <span>ZH</span>
+                        <span class="lang-arrow">▾</span>
+                    </button>
+                    <div class="lang-dropdown-menu">
+                        <a href="../../news/team-migration-policy.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="team-migration-policy.html" class="lang-dropdown-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                    </div>
+                </li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="菜单">
                 <span></span><span></span><span></span>
             </button>
         </div>
@@ -145,125 +171,138 @@
 
     <nav class="mobile-menu" id="mobile-menu">
         <div class="mobile-menu-inner">
-      <a href="../index.html">首页</a>
-      <a href="index.html" class="active">动态</a>
-      <a href="../support/index.html">技术支持</a>
-      <a href="../privacy-policy/index.html">隐私政策</a>
-      <a href="../terms/index.html">用户条款</a>
-      <a href="/dev/">开发</a>
-      <a href="/teams/">团队</a>
-      <div class="mobile-menu-divider"></div>
-      <div class="mobile-lang-sec">
-        <div class="mobile-lang-title">🌐 Language / 言語</div>
-        <div class="mobile-lang-grid">
-          <a href="../../news/team-migration-policy.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/team-migration-policy.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/team-migration-policy.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/team-migration-policy.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/team-migration-policy.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/team-migration-policy.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="team-migration-policy.html" class="mobile-lang-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/team-migration-policy.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+            <a href="../index.html">首页</a>
+            <a href="index.html" class="active">最新动态</a>
+            <a href="../support/index.html">支持</a>
+            <a href="../privacy-policy/index.html">隐私政策</a>
+            <a href="../terms/index.html">服务条款</a>
+            <a href="/dev/">开发者</a>
+            <a href="/teams/?lang=zh">团队</a>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-lang-sec">
+                <div class="mobile-lang-title">🌐 语言</div>
+                <div class="mobile-lang-grid">
+                    <a href="../../news/team-migration-policy.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/team-migration-policy.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/team-migration-policy.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/team-migration-policy.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/team-migration-policy.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/team-migration-policy.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="team-migration-policy.html" class="mobile-lang-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/team-migration-policy.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </nav>
+    </nav>
 
     <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
         <div class="policy-hero">
-            <div class="policy-badge">Important Notice</div>
-            <h1>Functional Restrictions &amp; Auto-Cleanup<br>on Team Plan Migration</h1>
+            <div class="policy-badge">重要公告</div>
+            <h1>关于团队方案变更后的功能限制<br>与自动清理规则说明</h1>
             <p class="policy-lead">
-                Starting from v1.0.1, the behavior when a subscription plan is changed after creating a team (such as a downgrade or expiration due to non-renewal), which was previously undefined, has been clarified.<br>A control flow has been officially introduced to prevent unauthorized continuation of use and to properly manage service resources.
+                自 v1.0.1 起，针对此前尚未明确的“创建团队后变更订阅方案（如方案降级或未续费到期失效）”处理逻辑进行了全面规范。<br>现已正式引入控制流程，以防止超限违规使用并合理管理服务器配额资源。
             </p>
-            <p class="policy-updated">Effective Date: July 4, 2026</p>
-            <p class="policy-updated">Implementation Date: July 7, 2026 (v1.0.1 (Build 1))</p>
+            <p class="policy-updated">生效日期：2026年7月4日</p>
+            <p class="policy-updated">实装日期：2026年7月20日（v1.0.1（Build 2））</p>
         </div>
 
         <div class="policy-content">
-            <p>On RowPilot, when a change is made to your subscription plan (such as Team, MAX, or Organization), the following synchronization, restriction, and auto-cleanup flow will apply. Please check the details according to your migration type.</p>
+            <p>在 RowPilot 中，当包含团队功能的订阅方案（Team、MAX、Organization）发生变更时，系统将自动执行如下同步、功能限制与超额清理流程。不同目标方案对应的操作要求与宽限期有所不同，敬请仔细确认。</p>
 
-            <!-- 1. Migration to a Higher Team Plan -->
             <div class="flow-card">
-                <h2>1. Migration to a Higher Team Plan (e.g., Team → MAX / Org)</h2>
-                <p>When migrating to a plan that supports more members, the plan change is automatically reflected as follows:</p>
-                
+                <h2>1. 升级至更高等级的团队方案（例：Team → MAX / Org）</h2>
+                <p>升级至可容纳更多成员的高阶方案时，系统将按如下方式自动应用新方案权益：</p>
+
                 <div class="timeline">
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">Immediate Sync</div>
-                        <h3>Plan Synchronization &amp; Limit Expansion</h3>
-                        <p>The team's subscription status will automatically synchronize in the background, and the maximum limit for member additions will expand based on the new plan immediately.</p>
+                        <div class="timeline-badge">即时同步</div>
+                        <h3>方案配额自动同步与人数上限扩容</h3>
+                        <p>团队订阅状态将在后台自动完成同步，可添加成员的人数上限会立即扩容至新方案规定的最高额度。</p>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. Migration to a Lower Team Plan -->
             <div class="flow-card">
-                <h2>2. Migration to a Lower Team Plan (e.g., Org → MAX / Team)</h2>
-                <p>If you change to a team plan with a lower member limit, and the number of existing members at the time of migration exceeds the new plan's limit, the following adjustment flow applies:</p>
-                
+                <h2>2. 降级至较低等级的团队方案（例：Org → MAX / Team）</h2>
+                <p>变更为人数上限更低的团队方案时，若在方案切换生效时刻现有成员人数超出了新方案上限，将触发以下调整与自动清理流程：</p>
+
                 <div class="timeline">
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">Day 1 〜 Day 30</div>
-                        <h3>1-Month (30-Day) Grace Period &amp; Warnings</h3>
-                        <p>A 30-day grace period starts immediately after migration. During this period, a warning banner will be displayed at the top of the team management screen, and a <strong>"Deletion Scheduled"</strong> warning label will be shown next to the members targeted for auto-deletion (surplus members with newer creation times, <code>created_at</code>).</p>
-                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">* "Day 1" is not the day you requested the plan change, but the day your <strong>current plan's subscription period ends and the new plan officially takes effect</strong>. Your current member limit applies until the end of the subscription period.</p>
+                        <div class="timeline-badge">第 1 天至第 30 天</div>
+                        <h3>1 个月（30 天）宽限期与警告提示</h3>
+                        <p>方案切换生效的同时即开启为期 30 天的宽限期。宽限期内，团队管理页面顶部会显示警告横幅，并在被列为自动清理候选对象的成员（加入时间较晚的超额成员）旁标注<strong>“预定移除”</strong>警告标签。</p>
+                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">※ “第 1 天”并非您提交更改申请的当天，而是指<strong>当前订阅计费周期结束并正式切换至新方案的当天</strong>。在原计费周期结束前，仍继续适用原方案的成员人数上限。</p>
                     </div>
-                    
+
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">During Grace Period</div>
-                        <h3>Manual Adjustment by Administrator</h3>
-                        <p>The admin (owner) can adjust the target members by manually kicking unnecessary members. Once the member count is within the new limit, the warning and scheduled auto-deletion will be cancelled automatically.</p>
+                        <div class="timeline-badge">宽限期内</div>
+                        <h3>由管理员手动调整（精简成员）</h3>
+                        <p>团队管理员（创建者）可在宽限期内手动移出不再需要的成员以缩减人数。一旦团队总人数降至新方案上限以内，警告横幅与自动清理计划将立即自动解除。</p>
                     </div>
-                    
+
                     <div class="timeline-item">
-                        <div class="timeline-dot" style="background: var(--gold); box-shadow: 0 0 12px var(--gold);"></div>
-                        <div class="timeline-badge" style="background: rgba(255, 179, 71, 0.1); color: var(--gold); border: 1px solid rgba(255, 179, 71, 0.2);">After Day 30 (Upon Access)</div>
-                        <h3>Auto-Removal of Exceeding Members</h3>
-                        <p>If the member count is not reduced to the limit by the deadline, surplus members (starting from the newest accounts) will be automatically removed (deleted) from the team upon the next access after the deadline.</p>
+                        <div class="timeline-dot" style="background: var(--gold); box-shadow: 0 0 12px var(--gold);">
+                        </div>
+                        <div class="timeline-badge"
+                            style="background: rgba(255, 179, 71, 0.1); color: var(--gold); border: 1px solid rgba(255, 179, 71, 0.2);">
+                            第 30 天后首次访问时</div>
+                        <h3>自动移除超额成员</h3>
+                        <p>若在宽限期截止前成员人数仍未降至上限以内，则在期满后首次访问团队时，系统会自动将超额部分的成员（按加入时间由新到旧）移出团队。</p>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. Migration to a Non-Team Plan -->
             <div class="flow-card">
-                <h2>3. Migration to a Non-Team Plan (e.g., Org → Pro / Free)</h2>
-                <p>If you change to an individual plan (Pro) or a free plan (Free) that does not support team creation, or if your subscription expires, the following archival and data protection measures apply:</p>
-                
+                <h2>3. 变更至不含团队功能的方案（例：Org → Pro / Free）</h2>
+                <p>若转入不支持创建团队的个人方案（Pro）、免费方案（Free），或因未续订导致订阅失效，系统将执行以下数据保护与归档过渡措施：</p>
+
                 <div class="timeline">
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">Day 1 〜 Day 30</div>
-                        <h3>30-Day Archival Grace Period</h3>
-                        <p>A 30-day grace period is set upon plan change detection. During this period, all team features (including uploading workouts) remain fully accessible without restrictions.</p>
-                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">* "Day 1" is not the day you requested the plan change, but the day your <strong>current plan's subscription period ends and the downgrade or expiration officially takes effect</strong>. You can continue using team features until the end of the subscription period.</p>
+                        <div class="timeline-badge">第 1 天至第 30 天</div>
+                        <h3>30 天归档宽限期</h3>
+                        <p>检测到方案切换后将进入 30 天归档宽限期。在此期间，包括上传新训练记录在内的所有团队功能均可继续无限制正常使用。</p>
+                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">※ “第 1 天”并非发起变更操作的日期，而是指<strong>原团队方案有效期届满并实际切换为新方案（或正式失效）的日期</strong>。原订阅周期届满前仍可照常使用原方案全部功能。</p>
                     </div>
-                    
+
                     <div class="timeline-item">
                         <div class="timeline-dot" style="background: #ff7f7f; box-shadow: 0 0 12px #ff7f7f;"></div>
-                        <div class="timeline-badge" style="background: rgba(255, 127, 127, 0.1); color: #ff7f7f; border: 1px solid rgba(255, 127, 127, 0.2);">After Day 30</div>
-                        <h3>"Archived (Read-Only)" State Applied</h3>
-                        <p>After the 30-day grace period, the team enters an "Archived (Read-Only)" state.</p>
-                        <p>Along with this, the entire team will be frozen, and everyone (including the owner) will be restricted to view-only access.</p>
-                        
-                        <div class="policy-callout" style="background: rgba(255, 127, 127, 0.03); border: 1px solid rgba(255, 127, 127, 0.15); color: #ff7f7f; margin: 1rem 0 0 0; padding: 1rem;">
+                        <div class="timeline-badge"
+                            style="background: rgba(255, 127, 127, 0.1); color: #ff7f7f; border: 1px solid rgba(255, 127, 127, 0.2);">
+                            第 30 天之后</div>
+                        <h3>转为“归档（只读）”状态</h3>
+                        <p>30 天宽限期结束后，团队将正式进入“归档（只读）”状态。</p>
+                        <p>届时整个团队将被冻结，全体成员（含团队创建者）均调整为仅可浏览查看的状态。</p>
+
+                        <div class="policy-callout"
+                            style="background: rgba(255, 127, 127, 0.03); border: 1px solid rgba(255, 127, 127, 0.15); color: #ff7f7f; margin: 1rem 0 0 0; padding: 1rem;">
                             <span class="policy-callout-icon" style="color: #ff7f7f; margin-top: 0.1rem;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-alert-triangle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="feather feather-alert-triangle">
+                                    <path
+                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                    </path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
                             </span>
                             <span style="font-size: 0.85rem; line-height: 1.5; display: block;">
-                                <strong>Archived Restrictions:</strong><br>
-                                • Team members are blocked from uploading new workouts. A message: "This team is archived. Please contact the team administrator." will be displayed.<br>
-                                • Team management controls (e.g., name changes, code regeneration, member approvals, role changes) are locked (disabled).<br>
-                                • <strong>Team data is NOT deleted:</strong> Unlike the previous policy, team data and workout records will not be deleted, and you can access and browse past records at any time.
+                                <strong>归档期间的具体限制：</strong><br>
+                                • 禁止上传新的训练记录，界面将提示：“该团队已归档（暂停使用），请联系团队管理员确认。”<br>
+                                • 修改队名、重置邀请码、审批新成员、调整成员角色等全部管理操作均被锁定禁用。<br>
+                                • <strong>团队历史数据不会被删除：</strong> 与旧版规则不同，即使订阅到期，团队与历史记录也不会被清除，成员仍可随时查阅过往训练数据。
                             </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <p style="margin-top: 2rem; padding: 1.25rem; background: rgba(77, 203, 255, 0.05); border: 1px solid rgba(77, 203, 255, 0.15); border-radius: 12px; font-size: 0.925rem; line-height: 1.6; color: var(--text);">
-                <strong>Cancelling the Archived State:</strong><br>
-                If you re-register or migrate to a plan that supports team creation during the 30-day grace period or after archiving, the archived state will be cancelled automatically, returning the team to normal operation.
+            <p
+                style="margin-top: 2rem; padding: 1.25rem; background: rgba(77, 203, 255, 0.05); border: 1px solid rgba(77, 203, 255, 0.15); border-radius: 12px; font-size: 0.925rem; line-height: 1.6; color: var(--text);">
+                <strong>如何解除归档状态：</strong><br>
+                无论是在 30 天宽限期内还是已进入归档状态后，只要重新订阅或升级至具备团队创建功能的方案（Team 或 MAX），团队的归档状态便会自动解除，立即恢复正常使用。
             </p>
 
-            <h2 style="margin-top: 3rem;">Inquiries</h2>
-            <p>If you have any questions regarding this policy change or the handling of data after plan migration, please feel free to contact our support desk at <a href="mailto:rowpilot.jp@gmail.com">rowpilot.jp@gmail.com</a>.</p>
+            <h2 style="margin-top: 3rem;">联系我们</h2>
+            <p>如对本次规则调整或方案变更后的数据处理方式有任何疑问，欢迎随时联系支持窗口（<a
+                    href="mailto:rowpilot.jp@gmail.com">rowpilot.jp@gmail.com</a>）。</p>
         </div>
     </div>
 
@@ -275,13 +314,14 @@
             </a>
             <div class="footer-links">
                 <a href="../index.html">首页</a>
-                <a href="../index.html#features">功能</a>
-                <a href="../index.html#premium">方案</a>
-                <a href="../support/index.html">技术支持</a>
+                <a href="index.html">最新动态</a>
+                <a href="../support/index.html">支持</a>
                 <a href="../privacy-policy/index.html">隐私政策</a>
-                <a href="../terms/index.html">用户条款</a>
+                <a href="../terms/index.html">服务条款</a>
+                <a href="/dev/">开发者</a>
+                <a href="/teams/?lang=zh">团队</a>
             </div>
-            <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+            <div class="footer-copy">&copy; 2026 RowPilot. 保留所有权利。</div>
         </div>
     </footer>
 
@@ -296,7 +336,7 @@
             mMenu.classList.remove('open'); toggle.classList.remove('open');
         }));
     </script>
-  <script src="../../js/lang-dropdown.js"></script>
+    <script src="../../js/lang-dropdown.js"></script>
 </body>
 
 </html>

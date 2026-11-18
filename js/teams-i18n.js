@@ -1,0 +1,1495 @@
+/**
+ * teams-i18n.js
+ * RowPilot Team Web ポータル & ダッシュボード 8言語ローカライズ (ja, en, de, fr, es, it, zh, ko)
+ */
+(function () {
+  "use strict";
+
+  const SUPPORTED = ["ja", "en", "de", "fr", "es", "it", "zh", "ko"];
+  const STORAGE_KEY = "rowpilot_teams_lang";
+
+  const DICT = {
+    ja: {
+      htmlLang: "ja",
+      codeLabel: "JP",
+      langMenuTitle: "🌐 Language / 言語",
+      menuAria: "メニュー",
+      selectLangAria: "言語を選択",
+      nav: ["ホーム", "お知らせ", "サポート", "プライバシー", "利用規約", "開発", "チーム"],
+      headerContact: "メール",
+      headerContactTitle: "不具合報告・機能提案・お問い合わせ",
+      headerRefresh: "更新",
+      headerRefreshTitle: "最新データを取得",
+      headerLogout: "ログアウト",
+      loading: "読み込み中...",
+      authenticating: "認証中...",
+      authenticatingRedirect: "認証中... チームページへ移動しています",
+      notFoundTitle: "チームが見つかりません",
+      notFoundDesc: "URLが正しいか、チームの管理者に確認してください。",
+      serverConnErrTitle: "サーバーに接続できません",
+      serverConnErrDesc: "通信環境をご確認のうえ、再度ページを読み込んでください。解決しない場合はサポートページからお問い合わせください。",
+      btnPortalRoot: "Team Web ポータルへ",
+      btnViewSupport: "サポートを見る",
+      btnBackTop: "RowPilot トップへ",
+      setupTitle: "Webコーチ パスワード設定",
+      resetPwTitle: "新しいパスワードの設定",
+      setupSub: "次回以降のログインに使用するパスワードを設定してください（8文字以上）。",
+      lblNewPw: "新しいパスワード",
+      phNewPw: "8文字以上の英数字・記号",
+      lblConfirmPw: "パスワード（確認）",
+      phConfirmPw: "もう一度入力",
+      btnShow: "表示",
+      btnHide: "隠す",
+      btnSubmitSetup: "パスワードを設定してログイン",
+      portalHeading: "チームの練習記録を、ブラウザの大画面で。",
+      portalTeamHeading: "{team} の練習記録へログイン",
+      portalDesc: "RowPilot Team・MAXプランの練習データを、PC・タブレット・Android端末から確認できます。ログインすると所属チームの専用ページへ自動で移動します。",
+      portalTeamDesc: "Webコーチ用アカウントのメールアドレス・パスワード、または RowPilot アプリのワンタップ・QR・6桁コードでログインできます。",
+      pt1Title: "コーチ用メールログイン",
+      pt1Desc: "メールアドレスとパスワードを入れるだけで、自分の担当チームへ自動で入室できます。",
+      pt2Title: "RowPilotアプリでワンタップ承認",
+      pt2Desc: "アプリをお持ちの部員やマネージャーは、下のボタンまたはQRコード・6桁番号でパスワード不要の認証ができます。",
+      pt3Title: "PC向けの集計・CSV出力",
+      pt3Desc: "選手ごとの総距離やベスト500mタイムの比較、MAXプランのCSVエクスポートに対応しています。",
+      slugLabel: "専用URLをお持ちの方（チーム別のログイン画面へ移動）",
+      btnOpenSlug: "開く",
+      slugToastInvalid: "専用URLのチーム識別子（半角英数字・ハイフン・アンダースコア）を入力してください",
+      loginHeading: "ログイン",
+      loginSub: "Webコーチ用アカウントでログインするか、下のRowPilotアプリ連携で認証してください。",
+      lblEmail: "メールアドレス",
+      lblPassword: "パスワード",
+      phPassword: "パスワードを入力",
+      btnEmailLogin: "メールアドレスでログイン",
+      btnForgotPw: "パスワードをお忘れですか？",
+      teamSelectTitle: "所属するチームを選択してください",
+      btnBackInput: "入力画面に戻る",
+      resetHelper: "登録済みのメールアドレス宛に、パスワード再設定用のリンクを送信します。",
+      btnSendReset: "再設定メールを送信",
+      btnBackLogin: "ログイン画面に戻る",
+      dividerOrApp: "または RowPilot アプリで認証",
+      btnOpenApp: "RowPilot アプリを開いてログイン",
+      qrAria: "ログイン用QRコード",
+      otpLabel: "ワンタイム認証コード",
+      btnRegen: "再発行",
+      otpGuide: "アプリ内「チーム管理 → Webログイン承認」から入力するか、スマホカメラでQRを読み取ってください。",
+      pollingIssuing: "認証コードを発行しています...",
+      pollingWaiting: "アプリでの承認を待機しています...",
+      pollingReissue: "コードを再発行してください",
+      expiresPrefix: "有効期限",
+      expired: "期限切れ",
+      showcaseHeading: "RowPilot Team Web でできること",
+      showcaseSub: "艇庫のPCや監督の端末から、チームの練習データをすぐに振り返り・共有できます。",
+      sc1Title: "練習記録のリアルタイム一覧",
+      sc1Desc: "部員がエルゴや水上で記録したデータを日付・選手・種目ごとに検索し、クルー編成やメモまで確認できます。",
+      sc2Title: "選手別の距離・ベスト集計",
+      sc2Desc: "指定期間内の総漕距離、練習回数、ベスト500mスプリット、平均レートを自動集計して比較できます。",
+      sc3Title: "チーム練習量の推移グラフ",
+      sc3Desc: "日別のチーム総漕距離や選手ごとの距離ランキングをグラフ化し、シーズン中の負荷管理に役立てられます。",
+      sc4Title: "Excel対応 CSV エクスポート",
+      sc4Desc: "MAXプラン以上では、絞り込んだ練習ログを文字化けしないCSVとしてダウンロードし、学内資料や分析に活用できます。",
+      guideHeading: "Android 端末やアプリをお持ちでない監督・コーチへ",
+      guideDesc: "チームの管理者が iPhone 版 RowPilot アプリ内の「チーム管理 → Webダッシュボード → Webコーチ管理」から監督のメールアドレスを登録すると、初回設定リンクが届き、メールアドレスとパスワードでログインできるようになります。",
+      suspendedTitle: "現在このチームのWebダッシュボードは停止中です",
+      suspendedDesc: "チームプランの猶予期間が終了しています。オーナーが Team または MAX プランを再開すると記録の閲覧が復旧します。",
+      dashSubtitle: "練習記録とメンバー状況",
+      btnPrint: "印刷 / PDF",
+      btnExportCsv: "CSVエクスポート",
+      kpi7d: "直近7日間の総距離",
+      kpi30d: "直近30日間の総距離",
+      kpiActive: "アクティブ部員（30日）",
+      kpiBest: "表示中のベスト 500m",
+      filterLabel: "絞り込み",
+      filterClearQuick: "解除",
+      lblKeyword: "キーワード",
+      phKeyword: "選手名・メモ・艇種で検索",
+      lblAthlete: "選手",
+      optAllAthletes: "すべての選手",
+      lblType: "種目",
+      optAll: "すべて",
+      optErg: "エルゴ",
+      optWater: "水上",
+      lblPeriod: "期間",
+      opt30d: "直近30日",
+      opt7d: "直近7日",
+      opt90d: "直近90日",
+      optCustom: "日付指定",
+      lblFrom: "開始日",
+      lblTo: "終了日",
+      btnResetFilters: "条件をリセット",
+      btnShowResults: "結果を見る",
+      tabFeed: "記録フィード",
+      tabAthletes: "選手別集計",
+      tabAnalytics: "推移・比較グラフ",
+      thFeed: ["日時", "選手名", "種目 / メニュー", "距離", "時間", "500mペース", "レート", "パワー", "メモ"],
+      emptyFeed: "条件に一致するトレーニング記録がありません。",
+      athletesHint: "行をクリックすると、その選手の記録フィードへ絞り込みます。",
+      lblSort: "並び替え",
+      sortDist: "総距離が長い順",
+      sortSplit: "ベスト500mが速い順",
+      sortCount: "回数が多い順",
+      thAthletes: ["選手名", "ロール", "回数", "総距離", "ベスト 500m", "平均 500m", "平均レート", "平均パワー"],
+      emptyAthletes: "集計対象の記録がありません。",
+      chartDailyTitle: "日別 チーム総漕距離",
+      chartDailySub: "直近の練習推移",
+      chartRankTitle: "選手別 総漕距離ランキング",
+      chartRankSub: "表示期間内の比較",
+      modalNotes: "メモ",
+      modalCrew: "クルー編成",
+      modalSummary: "詳細データ",
+      closeAria: "閉じる",
+      contactTitle: "開発チームへメール送信",
+      contactSub: "不具合の報告や機能追加のアイデアなどをお送りいただけます。",
+      lblCategory: "種別",
+      catBug: "不具合報告",
+      catFeature: "機能追加の案",
+      catOther: "その他",
+      lblClub: "クラブ名",
+      phClub: "例：〇〇大学ボート部",
+      lblMessage: "内容",
+      phMessage: "発生した画面や操作手順、表示されたエラーなどをご記入ください",
+      lblNeedsReply: "返信を希望する",
+      lblReplyEmail: "返信先メールアドレス",
+      btnCancel: "キャンセル",
+      btnSend: "送信する",
+      errNetwork: "通信エラーが発生しました。通信環境をご確認のうえ、時間をおいて再度お試しください。",
+      errAuth: "認証が無効になっているか、この操作を行う権限がありません。再ログインしても解決しない場合は、サポートページからお問い合わせください。",
+      errServer: "サーバーとの通信中にエラーが発生しました。時間をおいて再度お試しいただくか、解決しない場合はサポートページからお問い合わせください。",
+      errGeneric: "エラーが発生しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。"
+    },
+    en: {
+      htmlLang: "en",
+      codeLabel: "EN",
+      langMenuTitle: "🌐 Language",
+      menuAria: "Menu",
+      selectLangAria: "Select Language",
+      nav: ["Home", "News", "Support", "Privacy", "Terms", "Dev", "Teams"],
+      headerContact: "Contact",
+      headerContactTitle: "Bug reports, feature requests, and inquiries",
+      headerRefresh: "Refresh",
+      headerRefreshTitle: "Fetch latest data",
+      headerLogout: "Log Out",
+      loading: "Loading...",
+      authenticating: "Authenticating...",
+      authenticatingRedirect: "Authenticating... Redirecting to team dashboard",
+      notFoundTitle: "Team Not Found",
+      notFoundDesc: "Please check the URL or contact your team administrator.",
+      serverConnErrTitle: "Unable to Connect to Server",
+      serverConnErrDesc: "Please check your internet connection and reload the page. If the issue persists, contact Support.",
+      btnPortalRoot: "Team Web Portal",
+      btnViewSupport: "View Support",
+      btnBackTop: "RowPilot Home",
+      setupTitle: "Set Web Coach Password",
+      resetPwTitle: "Set New Password",
+      setupSub: "Set a password (at least 8 characters) for future sign-ins.",
+      lblNewPw: "New Password",
+      phNewPw: "At least 8 characters",
+      lblConfirmPw: "Confirm Password",
+      phConfirmPw: "Enter password again",
+      btnShow: "Show",
+      btnHide: "Hide",
+      btnSubmitSetup: "Set Password & Sign In",
+      portalHeading: "Your Team's Training Logs on the Big Screen.",
+      portalTeamHeading: "Sign in to {team}",
+      portalDesc: "View and analyze RowPilot Team & MAX workout data from any PC, tablet, or Android browser. Signing in automatically opens your team's dedicated dashboard.",
+      portalTeamDesc: "Sign in with your Web Coach email and password, or authenticate via one-tap approval, QR code, or 6-digit code in the RowPilot iOS app.",
+      pt1Title: "Web Coach Email Sign-In",
+      pt1Desc: "Coaches and advisors can access their assigned team directly with an email address and password.",
+      pt2Title: "One-Tap Approval via RowPilot App",
+      pt2Desc: "Athletes and managers with the iOS app can sign in without a password using the button below, QR code, or 6-digit code.",
+      pt3Title: "Desktop Analytics & CSV Export",
+      pt3Desc: "Compare total distance and best 500m splits per athlete, and export UTF-8 CSV logs on the MAX plan.",
+      slugLabel: "Have a dedicated team URL? Jump to your team sign-in page",
+      btnOpenSlug: "Open",
+      slugToastInvalid: "Please enter a valid team slug (letters, numbers, hyphens, or underscores).",
+      loginHeading: "Sign In",
+      loginSub: "Sign in with your Web Coach account or authenticate with the RowPilot app below.",
+      lblEmail: "Email Address",
+      lblPassword: "Password",
+      phPassword: "Enter password",
+      btnEmailLogin: "Sign In with Email",
+      btnForgotPw: "Forgot your password?",
+      teamSelectTitle: "Select your team",
+      btnBackInput: "Back to sign-in",
+      resetHelper: "We will send a password reset link to your registered email address.",
+      btnSendReset: "Send Reset Link",
+      btnBackLogin: "Back to Sign In",
+      dividerOrApp: "or authenticate with RowPilot App",
+      btnOpenApp: "Open RowPilot App to Sign In",
+      qrAria: "Sign-in QR Code",
+      otpLabel: "One-Time Auth Code",
+      btnRegen: "Regenerate",
+      otpGuide: "Enter this code in the app under Team Management → Approve Web Login, or scan the QR code.",
+      pollingIssuing: "Generating authentication code...",
+      pollingWaiting: "Waiting for approval in the app...",
+      pollingReissue: "Please regenerate the code",
+      expiresPrefix: "Expires in",
+      expired: "Expired",
+      showcaseHeading: "What You Can Do with RowPilot Team Web",
+      showcaseSub: "Review and share team training logs right from the boathouse PC or coach's tablet.",
+      sc1Title: "Real-Time Workout Feed",
+      sc1Desc: "Filter ergometer and on-water sessions by date, athlete, or modality, including crew lineups and notes.",
+      sc2Title: "Per-Athlete Distance & Best Splits",
+      sc2Desc: "Automatically aggregate total meters, session count, best 500m split, and average stroke rate.",
+      sc3Title: "Team Volume Trend Charts",
+      sc3Desc: "Visualize daily team mileage and athlete distance rankings to manage training load across the season.",
+      sc4Title: "Excel-Ready CSV Export",
+      sc4Desc: "On the MAX plan, download filtered workout logs as clean CSV files for team sheets and analysis.",
+      guideHeading: "For Coaches Using Android or PC Without the iOS App",
+      guideDesc: "Have your team owner or admin register your email in the iPhone app under Team Settings → Web Dashboard → Manage Web Coaches to receive an invitation link.",
+      suspendedTitle: "This Team's Web Dashboard Is Currently Paused",
+      suspendedDesc: "The team plan grace period has ended. Viewing will resume automatically once the owner renews a Team or MAX plan.",
+      dashSubtitle: "Workout Logs & Squad Overview",
+      btnPrint: "Print / PDF",
+      btnExportCsv: "Export CSV",
+      kpi7d: "Last 7 Days Distance",
+      kpi30d: "Last 30 Days Distance",
+      kpiActive: "Active Athletes (30d)",
+      kpiBest: "Best 500m Split (Filtered)",
+      filterLabel: "Filters",
+      filterClearQuick: "Clear",
+      lblKeyword: "Keyword",
+      phKeyword: "Search athlete, notes, boat class",
+      lblAthlete: "Athlete",
+      optAllAthletes: "All Athletes",
+      lblType: "Type",
+      optAll: "All",
+      optErg: "Ergometer",
+      optWater: "On-Water",
+      lblPeriod: "Period",
+      opt30d: "Last 30 Days",
+      opt7d: "Last 7 Days",
+      opt90d: "Last 90 Days",
+      optCustom: "Custom Dates",
+      lblFrom: "Start Date",
+      lblTo: "End Date",
+      btnResetFilters: "Reset Filters",
+      btnShowResults: "Apply",
+      tabFeed: "Workout Feed",
+      tabAthletes: "Athlete Summary",
+      tabAnalytics: "Trends & Charts",
+      thFeed: ["Date", "Athlete", "Type / Workout", "Distance", "Time", "500m Split", "Rate", "Power", "Notes"],
+      emptyFeed: "No workouts match the current filters.",
+      athletesHint: "Click an athlete row to filter their workout feed.",
+      lblSort: "Sort by",
+      sortDist: "Longest Total Distance",
+      sortSplit: "Fastest Best 500m",
+      sortCount: "Most Sessions",
+      thAthletes: ["Athlete", "Role", "Sessions", "Total Dist.", "Best 500m", "Avg 500m", "Avg Rate", "Avg Power"],
+      emptyAthletes: "No athlete records available for aggregation.",
+      chartDailyTitle: "Daily Team Total Distance",
+      chartDailySub: "Recent volume trend",
+      chartRankTitle: "Total Distance Ranking by Athlete",
+      chartRankSub: "Comparison within selected period",
+      modalNotes: "Notes",
+      modalCrew: "Crew Lineup",
+      modalSummary: "Detailed Metrics",
+      closeAria: "Close",
+      contactTitle: "Contact Development Team",
+      contactSub: "Send bug reports, feature suggestions, or questions.",
+      lblCategory: "Category",
+      catBug: "Bug Report",
+      catFeature: "Feature Idea",
+      catOther: "Other",
+      lblClub: "Club / Team Name",
+      phClub: "e.g. University Rowing Club",
+      lblMessage: "Message",
+      phMessage: "Describe the screen, steps to reproduce, or any error message",
+      lblNeedsReply: "Request a reply",
+      lblReplyEmail: "Reply-To Email",
+      btnCancel: "Cancel",
+      btnSend: "Send",
+      errNetwork: "A network error occurred. Please check your connection and try again.",
+      errAuth: "Your session has expired or you do not have permission. Please sign in again.",
+      errServer: "A server communication error occurred. Please try again later.",
+      errGeneric: "An error occurred. Please check your connection or contact Support."
+    },
+    de: {
+      htmlLang: "de",
+      codeLabel: "DE",
+      langMenuTitle: "🌐 Sprache",
+      menuAria: "Menü",
+      selectLangAria: "Sprache wählen",
+      nav: ["Startseite", "Neuigkeiten", "Support", "Datenschutz", "Nutzungsbedingungen", "Entwicklung", "Teams"],
+      headerContact: "Kontakt",
+      headerContactTitle: "Fehler melden oder Funktion vorschlagen",
+      headerRefresh: "Aktualisieren",
+      headerRefreshTitle: "Neueste Daten laden",
+      headerLogout: "Abmelden",
+      loading: "Wird geladen...",
+      authenticating: "Authentifizierung...",
+      authenticatingRedirect: "Authentifizierung... Weiterleitung zum Team-Dashboard",
+      notFoundTitle: "Team nicht gefunden",
+      notFoundDesc: "Bitte überprüfen Sie die URL oder wenden Sie sich an Ihren Team-Administrator.",
+      serverConnErrTitle: "Verbindung zum Server fehlgeschlagen",
+      serverConnErrDesc: "Bitte prüfen Sie Ihre Internetverbindung und laden Sie die Seite neu.",
+      btnPortalRoot: "Zum Team-Web-Portal",
+      btnViewSupport: "Support öffnen",
+      btnBackTop: "Zur RowPilot-Startseite",
+      setupTitle: "Web-Coach-Passwort festlegen",
+      resetPwTitle: "Neues Passwort festlegen",
+      setupSub: "Legen Sie ein Passwort (mindestens 8 Zeichen) für zukünftige Anmeldungen fest.",
+      lblNewPw: "Neues Passwort",
+      phNewPw: "Mindestens 8 Zeichen",
+      lblConfirmPw: "Passwort bestätigen",
+      phConfirmPw: "Erneut eingeben",
+      btnShow: "Zeigen",
+      btnHide: "Verbergen",
+      btnSubmitSetup: "Passwort speichern & anmelden",
+      portalHeading: "Trainingsdaten Ihres Teams auf dem großen Bildschirm.",
+      portalTeamHeading: "Anmelden bei {team}",
+      portalDesc: "Greifen Sie über PC, Tablet oder Android-Browser auf Trainingsdaten der Tarife RowPilot Team & MAX zu.",
+      portalTeamDesc: "Melden Sie sich mit Ihrem Web-Coach-Konto oder per Ein-Tipp-Freigabe, QR-Code bzw. 6-stelligem Code in der RowPilot-App an.",
+      pt1Title: "E-Mail-Login für Trainer",
+      pt1Desc: "Direkter Zugriff auf Ihr betreutes Team mit E-Mail-Adresse und Passwort.",
+      pt2Title: "Ein-Tipp-Freigabe per RowPilot-App",
+      pt2Desc: "Athleten und Manager mit iOS-App melden sich passwortlos per Button, QR-Code oder 6-stelligem Code an.",
+      pt3Title: "Auswertung & CSV-Export am PC",
+      pt3Desc: "Vergleichen Sie Gesamtkilometer und beste 500m-Splits und exportieren Sie CSV-Dateien im MAX-Tarif.",
+      slugLabel: "Eigene Team-URL vorhanden? Direkt zum Team-Login wechseln",
+      btnOpenSlug: "Öffnen",
+      slugToastInvalid: "Bitte geben Sie eine gültige Team-Kennung ein.",
+      loginHeading: "Anmelden",
+      loginSub: "Mit Web-Coach-Konto anmelden oder unten per RowPilot-App authentifizieren.",
+      lblEmail: "E-Mail-Adresse",
+      lblPassword: "Passwort",
+      phPassword: "Passwort eingeben",
+      btnEmailLogin: "Mit E-Mail anmelden",
+      btnForgotPw: "Passwort vergessen?",
+      teamSelectTitle: "Team auswählen",
+      btnBackInput: "Zurück",
+      resetHelper: "Wir senden einen Link zum Zurücksetzen an Ihre registrierte E-Mail-Adresse.",
+      btnSendReset: "Link senden",
+      btnBackLogin: "Zurück zum Login",
+      dividerOrApp: "oder mit RowPilot-App authentifizieren",
+      btnOpenApp: "RowPilot-App zum Anmelden öffnen",
+      qrAria: "Anmelde-QR-Code",
+      otpLabel: "Einmal-Authentifizierungscode",
+      btnRegen: "Neu erstellen",
+      otpGuide: "In der App unter Teamverwaltung → Web-Login bestätigen eingeben oder QR-Code scannen.",
+      pollingIssuing: "Code wird erstellt...",
+      pollingWaiting: "Warte auf Bestätigung in der App...",
+      pollingReissue: "Bitte Code neu erstellen",
+      expiresPrefix: "Gültig",
+      expired: "Abgelaufen",
+      showcaseHeading: "Funktionen von RowPilot Team Web",
+      showcaseSub: "Trainingsdaten direkt am Bootshaus-PC oder Trainer-Tablet auswerten.",
+      sc1Title: "Echtzeit-Trainingsübersicht",
+      sc1Desc: "Ergometer- und Wassereinheiten nach Datum, Athlet oder Typ durchsuchen, inklusive Mannschaftsbesetzung.",
+      sc2Title: "Distanz- & Bestzeiten-Übersicht",
+      sc2Desc: "Gesamtmeter, Einheiten, bester 500m-Split und durchschnittliche Schlagzahl pro Athlet im Vergleich.",
+      sc3Title: "Belastungs- & Umfangsdiagramme",
+      sc3Desc: "Tägliche Teamkilometer und Athleten-Rankings anschaulich als Diagramm darstellen.",
+      sc4Title: "Excel-kompatibler CSV-Export",
+      sc4Desc: "Im MAX-Tarif gefilterte Trainingsprotokolle als saubere CSV-Datei herunterladen.",
+      guideHeading: "Für Trainer mit Android oder PC ohne iOS-App",
+      guideDesc: "Lassen Sie Ihre E-Mail-Adresse vom Team-Administrator in der iPhone-App unter Teameinstellungen → Web-Dashboard → Web-Coaches registrieren.",
+      suspendedTitle: "Das Web-Dashboard dieses Teams ist derzeit pausiert",
+      suspendedDesc: "Die Kulanzfrist des Team-Tarifs ist abgelaufen. Nach Verlängerung von Team oder MAX wird der Zugriff wiederhergestellt.",
+      dashSubtitle: "Trainingsprotokolle & Kaderübersicht",
+      btnPrint: "Drucken / PDF",
+      btnExportCsv: "CSV exportieren",
+      kpi7d: "Distanz letzte 7 Tage",
+      kpi30d: "Distanz letzte 30 Tage",
+      kpiActive: "Aktive Athleten (30T)",
+      kpiBest: "Bester 500m-Split",
+      filterLabel: "Filter",
+      filterClearQuick: "Zurücksetzen",
+      lblKeyword: "Suchbegriff",
+      phKeyword: "Athlet, Notiz, Bootsklasse",
+      lblAthlete: "Athlet",
+      optAllAthletes: "Alle Athleten",
+      lblType: "Kategorie",
+      optAll: "Alle",
+      optErg: "Ergometer",
+      optWater: "Auf dem Wasser",
+      lblPeriod: "Zeitraum",
+      opt30d: "Letzte 30 Tage",
+      opt7d: "Letzte 7 Tage",
+      opt90d: "Letzte 90 Tage",
+      optCustom: "Zeitraum wählen",
+      lblFrom: "Von",
+      lblTo: "Bis",
+      btnResetFilters: "Filter zurücksetzen",
+      btnShowResults: "Anwenden",
+      tabFeed: "Trainings-Feed",
+      tabAthletes: "Athleten-Statistik",
+      tabAnalytics: "Diagramme",
+      thFeed: ["Datum", "Athlet", "Typ / Einheit", "Distanz", "Zeit", "500m-Split", "SPM", "Watt", "Notiz"],
+      emptyFeed: "Keine passenden Trainingseinheiten gefunden.",
+      athletesHint: "Klicken Sie auf eine Zeile, um den Feed nach diesem Athleten zu filtern.",
+      lblSort: "Sortierung",
+      sortDist: "Größte Gesamtdistanz",
+      sortSplit: "Schnellster 500m-Split",
+      sortCount: "Meiste Einheiten",
+      thAthletes: ["Athlet", "Rolle", "Einheiten", "Gesamtstrecke", "Bester 500m", "Ø 500m", "Ø SPM", "Ø Watt"],
+      emptyAthletes: "Keine Daten für die Auswertung vorhanden.",
+      chartDailyTitle: "Tägliche Team-Gesamtstrecke",
+      chartDailySub: "Aktueller Trainingsverlauf",
+      chartRankTitle: "Gesamtstrecken-Ranking nach Athlet",
+      chartRankSub: "Vergleich im gewählten Zeitraum",
+      modalNotes: "Notizen",
+      modalCrew: "Mannschaftsbesetzung",
+      modalSummary: "Detaildaten",
+      closeAria: "Schließen",
+      contactTitle: "Nachricht an das Entwicklerteam",
+      contactSub: "Senden Sie uns Fehlermeldungen oder Funktionswünsche.",
+      lblCategory: "Kategorie",
+      catBug: "Fehlerbericht",
+      catFeature: "Funktionswunsch",
+      catOther: "Sonstiges",
+      lblClub: "Vereins- / Teamname",
+      phClub: "z. B. Universitäts-Ruderclub",
+      lblMessage: "Nachricht",
+      phMessage: "Bitte beschreiben Sie das Verhalten oder die Fehlermeldung",
+      lblNeedsReply: "Antwort gewünscht",
+      lblReplyEmail: "Antwort-E-Mail",
+      btnCancel: "Abbrechen",
+      btnSend: "Senden",
+      errNetwork: "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      errAuth: "Sitzung abgelaufen oder keine Berechtigung. Bitte melden Sie sich erneut an.",
+      errServer: "Serverfehler bei der Kommunikation. Bitte versuchen Sie es später erneut.",
+      errGeneric: "Ein Fehler ist aufgetreten. Bitte prüfen Sie Ihre Verbindung."
+    },
+    fr: {
+      htmlLang: "fr",
+      codeLabel: "FR",
+      langMenuTitle: "🌐 Langue",
+      menuAria: "Menu",
+      selectLangAria: "Choisir la langue",
+      nav: ["Accueil", "Actualités", "Support", "Confidentialité", "Conditions", "Dév.", "Équipes"],
+      headerContact: "Contact",
+      headerContactTitle: "Signaler un bug ou suggérer une fonctionnalité",
+      headerRefresh: "Actualiser",
+      headerRefreshTitle: "Actualiser les données",
+      headerLogout: "Déconnexion",
+      loading: "Chargement...",
+      authenticating: "Authentification...",
+      authenticatingRedirect: "Authentification... Redirection vers l’espace équipe",
+      notFoundTitle: "Équipe introuvable",
+      notFoundDesc: "Vérifiez l’URL ou contactez l’administrateur de votre équipe.",
+      serverConnErrTitle: "Connexion au serveur impossible",
+      serverConnErrDesc: "Veuillez vérifier votre connexion Internet et recharger la page.",
+      btnPortalRoot: "Portail Team Web",
+      btnViewSupport: "Voir le support",
+      btnBackTop: "Accueil RowPilot",
+      setupTitle: "Définir le mot de passe Coach Web",
+      resetPwTitle: "Nouveau mot de passe",
+      setupSub: "Choisissez un mot de passe (8 caractères minimum) pour vos prochaines connexions.",
+      lblNewPw: "Nouveau mot de passe",
+      phNewPw: "8 caractères minimum",
+      lblConfirmPw: "Confirmer le mot de passe",
+      phConfirmPw: "Saisir à nouveau",
+      btnShow: "Afficher",
+      btnHide: "Masquer",
+      btnSubmitSetup: "Enregistrer et se connecter",
+      portalHeading: "Les séances de votre équipe sur grand écran.",
+      portalTeamHeading: "Connexion à {team}",
+      portalDesc: "Consultez les données d’entraînement RowPilot Team & MAX depuis un PC, une tablette ou Android.",
+      portalTeamDesc: "Connectez-vous avec votre compte Coach Web ou validez en un geste via l’application RowPilot.",
+      pt1Title: "Connexion e-mail pour les entraîneurs",
+      pt1Desc: "Accédez directement à votre équipe avec votre adresse e-mail et votre mot de passe.",
+      pt2Title: "Validation instantanée via l’app RowPilot",
+      pt2Desc: "Les rameurs et managers sur iOS se connectent sans mot de passe via le bouton, le QR code ou le code à 6 chiffres.",
+      pt3Title: "Analyses PC & export CSV",
+      pt3Desc: "Comparez le kilométrage total et les meilleurs temps au 500 m, avec export CSV sur l’offre MAX.",
+      slugLabel: "Vous avez une URL dédiée ? Accéder à l’espace de votre équipe",
+      btnOpenSlug: "Ouvrir",
+      slugToastInvalid: "Veuillez saisir un identifiant d’équipe valide.",
+      loginHeading: "Connexion",
+      loginSub: "Connectez-vous avec votre compte Coach Web ou via l’application RowPilot ci-dessous.",
+      lblEmail: "Adresse e-mail",
+      lblPassword: "Mot de passe",
+      phPassword: "Saisir le mot de passe",
+      btnEmailLogin: "Se connecter par e-mail",
+      btnForgotPw: "Mot de passe oublié ?",
+      teamSelectTitle: "Sélectionnez votre équipe",
+      btnBackInput: "Retour",
+      resetHelper: "Un lien de réinitialisation sera envoyé à votre adresse e-mail enregistrée.",
+      btnSendReset: "Envoyer le lien",
+      btnBackLogin: "Retour à la connexion",
+      dividerOrApp: "ou s’authentifier avec l’app RowPilot",
+      btnOpenApp: "Ouvrir l’app RowPilot pour se connecter",
+      qrAria: "QR code de connexion",
+      otpLabel: "Code à usage unique",
+      btnRegen: "Régénérer",
+      otpGuide: "Saisissez ce code dans Gestion d’équipe → Approuver la connexion Web, ou scannez le QR code.",
+      pollingIssuing: "Génération du code...",
+      pollingWaiting: "En attente d’approbation dans l’application...",
+      pollingReissue: "Veuillez régénérer le code",
+      expiresPrefix: "Expire dans",
+      expired: "Expiré",
+      showcaseHeading: "Tout ce que permet RowPilot Team Web",
+      showcaseSub: "Analysez et partagez les séances de l’équipe depuis le hangar à bateaux ou votre ordinateur.",
+      sc1Title: "Flux des séances en temps réel",
+      sc1Desc: "Filtrez les séances ergomètre et bateau par date, rameur ou type, avec équipages et notes.",
+      sc2Title: "Bilans par rameur et records",
+      sc2Desc: "Cumul automatique des mètres parcourus, nombre de sorties, meilleur 500 m et cadence moyenne.",
+      sc3Title: "Graphiques de volume d’entraînement",
+      sc3Desc: "Visualisez le kilométrage quotidien de l’équipe et le classement des rameurs.",
+      sc4Title: "Export CSV compatible Excel",
+      sc4Desc: "Avec l’offre MAX, téléchargez les journaux filtrés au format CSV.",
+      guideHeading: "Pour les entraîneurs sur Android ou PC sans iOS",
+      guideDesc: "Demandez à l’administrateur d’équipe d’enregistrer votre e-mail dans l’app iPhone sous Paramètres d’équipe → Tableau de bord Web → Coachs Web.",
+      suspendedTitle: "Le tableau de bord Web de cette équipe est suspendu",
+      suspendedDesc: "La période de grâce est terminée. La consultation reprendra dès le renouvellement d’une offre Team ou MAX.",
+      dashSubtitle: "Séances & effectif de l’équipe",
+      btnPrint: "Imprimer / PDF",
+      btnExportCsv: "Exporter CSV",
+      kpi7d: "Distance (7 derniers jours)",
+      kpi30d: "Distance (30 derniers jours)",
+      kpiActive: "Rameurs actifs (30j)",
+      kpiBest: "Meilleur 500m affiché",
+      filterLabel: "Filtres",
+      filterClearQuick: "Effacer",
+      lblKeyword: "Mot-clé",
+      phKeyword: "Rameur, note, catégorie de bateau",
+      lblAthlete: "Rameur",
+      optAllAthletes: "Tous les rameurs",
+      lblType: "Type",
+      optAll: "Tout",
+      optErg: "Ergomètre",
+      optWater: "Sur l’eau",
+      lblPeriod: "Période",
+      opt30d: "30 derniers jours",
+      opt7d: "7 derniers jours",
+      opt90d: "90 derniers jours",
+      optCustom: "Dates personnalisées",
+      lblFrom: "Début",
+      lblTo: "Fin",
+      btnResetFilters: "Réinitialiser",
+      btnShowResults: "Voir les résultats",
+      tabFeed: "Flux des séances",
+      tabAthletes: "Bilan par rameur",
+      tabAnalytics: "Graphiques",
+      thFeed: ["Date", "Rameur", "Type / Séance", "Distance", "Temps", "Allure 500m", "Cadence", "Puissance", "Notes"],
+      emptyFeed: "Aucune séance ne correspond aux filtres sélectionnés.",
+      athletesHint: "Cliquez sur une ligne pour filtrer les séances de ce rameur.",
+      lblSort: "Trier par",
+      sortDist: "Distance totale décroissante",
+      sortSplit: "Meilleur 500m",
+      sortCount: "Nombre de séances",
+      thAthletes: ["Rameur", "Rôle", "Séances", "Distance tot.", "Meilleur 500m", "Moy. 500m", "Cad. moy.", "Puiss. moy."],
+      emptyAthletes: "Aucune donnée disponible.",
+      chartDailyTitle: "Distance quotidienne de l’équipe",
+      chartDailySub: "Évolution récente",
+      chartRankTitle: "Classement par distance totale",
+      chartRankSub: "Comparaison sur la période",
+      modalNotes: "Notes",
+      modalCrew: "Composition d’équipage",
+      modalSummary: "Données détaillées",
+      closeAria: "Fermer",
+      contactTitle: "Contacter l’équipe de développement",
+      contactSub: "Envoyez un rapport de bug ou une suggestion d’amélioration.",
+      lblCategory: "Catégorie",
+      catBug: "Bug",
+      catFeature: "Suggestion",
+      catOther: "Autre",
+      lblClub: "Nom du club",
+      phClub: "ex. Club d’aviron universitaire",
+      lblMessage: "Message",
+      phMessage: "Décrivez l’écran concerné, les étapes et le message d’erreur",
+      lblNeedsReply: "Je souhaite une réponse",
+      lblReplyEmail: "E-mail de réponse",
+      btnCancel: "Annuler",
+      btnSend: "Envoyer",
+      errNetwork: "Erreur réseau. Vérifiez votre connexion et réessayez.",
+      errAuth: "Session expirée ou accès non autorisé. Veuillez vous reconnecter.",
+      errServer: "Erreur de communication avec le serveur. Réessayez plus tard.",
+      errGeneric: "Une erreur est survenue. Vérifiez votre connexion."
+    },
+    es: {
+      htmlLang: "es",
+      codeLabel: "ES",
+      langMenuTitle: "🌐 Idioma",
+      menuAria: "Menú",
+      selectLangAria: "Seleccionar idioma",
+      nav: ["Inicio", "Noticias", "Soporte", "Privacidad", "Términos", "Desarrollo", "Equipos"],
+      headerContact: "Contacto",
+      headerContactTitle: "Informar de un error o sugerir funciones",
+      headerRefresh: "Actualizar",
+      headerRefreshTitle: "Obtener los datos más recientes",
+      headerLogout: "Cerrar sesión",
+      loading: "Cargando...",
+      authenticating: "Autenticando...",
+      authenticatingRedirect: "Autenticando... Redirigiendo al panel del equipo",
+      notFoundTitle: "Equipo no encontrado",
+      notFoundDesc: "Verifique la URL o consulte al administrador de su equipo.",
+      serverConnErrTitle: "No se puede conectar al servidor",
+      serverConnErrDesc: "Compruebe su conexión a Internet y vuelva a cargar la página.",
+      btnPortalRoot: "Portal Team Web",
+      btnViewSupport: "Ver soporte",
+      btnBackTop: "Inicio de RowPilot",
+      setupTitle: "Configurar contraseña de Entrenador Web",
+      resetPwTitle: "Establecer nueva contraseña",
+      setupSub: "Defina una contraseña (mínimo 8 caracteres) para futuros inicios de sesión.",
+      lblNewPw: "Nueva contraseña",
+      phNewPw: "Mínimo 8 caracteres",
+      lblConfirmPw: "Confirmar contraseña",
+      phConfirmPw: "Introducir de nuevo",
+      btnShow: "Mostrar",
+      btnHide: "Ocultar",
+      btnSubmitSetup: "Guardar contraseña e iniciar sesión",
+      portalHeading: "Los entrenamientos de tu equipo en pantalla grande.",
+      portalTeamHeading: "Iniciar sesión en {team}",
+      portalDesc: "Consulta los datos de los planes RowPilot Team y MAX desde cualquier PC, tablet o Android.",
+      portalTeamDesc: "Inicia sesión con tu cuenta de Entrenador Web o aprueba el acceso desde la app RowPilot con un toque, código QR o código de 6 dígitos.",
+      pt1Title: "Acceso con correo para entrenadores",
+      pt1Desc: "Entra directamente al panel de tu equipo con tu correo electrónico y contraseña.",
+      pt2Title: "Aprobación instantánea con la app RowPilot",
+      pt2Desc: "Los remeros y mánagers con iOS acceden sin contraseña mediante el botón inferior, QR o código de 6 dígitos.",
+      pt3Title: "Estadísticas en PC y exportación CSV",
+      pt3Desc: "Compara metros totales y mejores parciales de 500 m, con descarga CSV en el plan MAX.",
+      slugLabel: "¿Tienes una URL de equipo dedicada? Ir a la página de tu equipo",
+      btnOpenSlug: "Abrir",
+      slugToastInvalid: "Introduce un identificador de equipo válido.",
+      loginHeading: "Iniciar sesión",
+      loginSub: "Accede con tu cuenta de Entrenador Web o autentícate con la app RowPilot abajo.",
+      lblEmail: "Correo electrónico",
+      lblPassword: "Contraseña",
+      phPassword: "Introducir contraseña",
+      btnEmailLogin: "Iniciar sesión con correo",
+      btnForgotPw: "¿Olvidaste tu contraseña?",
+      teamSelectTitle: "Selecciona tu equipo",
+      btnBackInput: "Volver",
+      resetHelper: "Enviaremos un enlace para restablecer la contraseña a tu correo registrado.",
+      btnSendReset: "Enviar enlace",
+      btnBackLogin: "Volver al inicio de sesión",
+      dividerOrApp: "o autentícate con la app RowPilot",
+      btnOpenApp: "Abrir la app RowPilot para entrar",
+      qrAria: "Código QR de acceso",
+      otpLabel: "Código de un solo uso",
+      btnRegen: "Regenerar",
+      otpGuide: "Introdúcelo en Gestión de equipo → Aprobar acceso Web en la app, o escanea el QR.",
+      pollingIssuing: "Generando código...",
+      pollingWaiting: "Esperando aprobación en la app...",
+      pollingReissue: "Regenera el código",
+      expiresPrefix: "Caduca en",
+      expired: "Caducado",
+      showcaseHeading: "Qué puedes hacer con RowPilot Team Web",
+      showcaseSub: "Revisa y comparte las sesiones del club desde el ordenador del hangar o la tablet del entrenador.",
+      sc1Title: "Listado de sesiones en tiempo real",
+      sc1Desc: "Filtra entrenamientos en ergómetro y agua por fecha, remero o modalidad, con tripulaciones y notas.",
+      sc2Title: "Totales y mejores marcas por remero",
+      sc2Desc: "Calcula automáticamente metros totales, sesiones, mejor parcial de 500 m y ritmo medio.",
+      sc3Title: "Gráficos de evolución del volumen",
+      sc3Desc: "Visualiza la distancia diaria del equipo y el ranking por remero durante la temporada.",
+      sc4Title: "Exportación CSV compatible con Excel",
+      sc4Desc: "En el plan MAX, descarga los registros filtrados en CSV sin problemas de codificación.",
+      guideHeading: "Para entrenadores con Android o PC sin la app iOS",
+      guideDesc: "Pide al administrador del equipo que registre tu correo en la app de iPhone en Ajustes del equipo → Panel Web → Entrenadores Web.",
+      suspendedTitle: "El panel Web de este equipo está pausado temporalmente",
+      suspendedDesc: "El periodo de gracia del plan de equipo ha finalizado. Se reactivará al renovar un plan Team o MAX.",
+      dashSubtitle: "Registros de entrenamiento y plantilla",
+      btnPrint: "Imprimir / PDF",
+      btnExportCsv: "Exportar CSV",
+      kpi7d: "Distancia últimos 7 días",
+      kpi30d: "Distancia últimos 30 días",
+      kpiActive: "Remeros activos (30d)",
+      kpiBest: "Mejor 500m mostrado",
+      filterLabel: "Filtros",
+      filterClearQuick: "Limpiar",
+      lblKeyword: "Palabra clave",
+      phKeyword: "Buscar remero, nota o bote",
+      lblAthlete: "Remero",
+      optAllAthletes: "Todos los remeros",
+      lblType: "Modalidad",
+      optAll: "Todas",
+      optErg: "Ergómetro",
+      optWater: "En el agua",
+      lblPeriod: "Periodo",
+      opt30d: "Últimos 30 días",
+      opt7d: "Últimos 7 días",
+      opt90d: "Últimos 90 días",
+      optCustom: "Fechas personalizadas",
+      lblFrom: "Desde",
+      lblTo: "Hasta",
+      btnResetFilters: "Restablecer",
+      btnShowResults: "Ver resultados",
+      tabFeed: "Historial",
+      tabAthletes: "Resumen por remero",
+      tabAnalytics: "Gráficos",
+      thFeed: ["Fecha", "Remero", "Tipo / Sesión", "Distancia", "Tiempo", "Parcial 500m", "SPM", "Potencia", "Notas"],
+      emptyFeed: "No hay entrenamientos que coincidan con los filtros.",
+      athletesHint: "Haz clic en una fila para filtrar el historial de ese remero.",
+      lblSort: "Ordenar por",
+      sortDist: "Mayor distancia total",
+      sortSplit: "Mejor parcial de 500m",
+      sortCount: "Más sesiones",
+      thAthletes: ["Remero", "Rol", "Sesiones", "Dist. total", "Mejor 500m", "Media 500m", "SPM med.", "Pot. med."],
+      emptyAthletes: "No hay registros disponibles.",
+      chartDailyTitle: "Distancia total diaria del equipo",
+      chartDailySub: "Evolución reciente",
+      chartRankTitle: "Ranking de distancia por remero",
+      chartRankSub: "Comparativa del periodo",
+      modalNotes: "Notas",
+      modalCrew: "Tripulación",
+      modalSummary: "Datos detallados",
+      closeAria: "Cerrar",
+      contactTitle: "Enviar mensaje al equipo de desarrollo",
+      contactSub: "Envíanos reportes de fallos o ideas de nuevas funciones.",
+      lblCategory: "Categoría",
+      catBug: "Error",
+      catFeature: "Sugerencia",
+      catOther: "Otro",
+      lblClub: "Nombre del club",
+      phClub: "Ej. Club de Remo Universitario",
+      lblMessage: "Mensaje",
+      phMessage: "Describe la pantalla, los pasos seguidos o el error mostrado",
+      lblNeedsReply: "Solicitar respuesta",
+      lblReplyEmail: "Correo de respuesta",
+      btnCancel: "Cancelar",
+      btnSend: "Enviar",
+      errNetwork: "Error de red. Comprueba tu conexión e inténtalo de nuevo.",
+      errAuth: "La sesión ha caducado o no tienes permisos. Vuelve a iniciar sesión.",
+      errServer: "Error de comunicación con el servidor. Inténtalo más tarde.",
+      errGeneric: "Se ha producido un error. Comprueba tu conexión."
+    },
+    it: {
+      htmlLang: "it",
+      codeLabel: "IT",
+      langMenuTitle: "🌐 Lingua",
+      menuAria: "Menu",
+      selectLangAria: "Seleziona lingua",
+      nav: ["Home", "Novità", "Supporto", "Privacy", "Termini", "Sviluppo", "Team"],
+      headerContact: "Contatta",
+      headerContactTitle: "Segnala un problema o proponi una funzione",
+      headerRefresh: "Aggiorna",
+      headerRefreshTitle: "Aggiorna i dati",
+      headerLogout: "Esci",
+      loading: "Caricamento...",
+      authenticating: "Autenticazione...",
+      authenticatingRedirect: "Autenticazione... Reindirizzamento alla dashboard del team",
+      notFoundTitle: "Team non trovato",
+      notFoundDesc: "Verifica l’URL o contatta l’amministratore del tuo team.",
+      serverConnErrTitle: "Impossibile connettersi al server",
+      serverConnErrDesc: "Controlla la connessione Internet e ricarica la pagina.",
+      btnPortalRoot: "Portale Team Web",
+      btnViewSupport: "Vai al supporto",
+      btnBackTop: "Home di RowPilot",
+      setupTitle: "Imposta password Coach Web",
+      resetPwTitle: "Imposta nuova password",
+      setupSub: "Scegli una password (almeno 8 caratteri) per i prossimi accessi.",
+      lblNewPw: "Nuova password",
+      phNewPw: "Almeno 8 caratteri",
+      lblConfirmPw: "Conferma password",
+      phConfirmPw: "Inserisci di nuovo",
+      btnShow: "Mostra",
+      btnHide: "Nascondi",
+      btnSubmitSetup: "Imposta password e accedi",
+      portalHeading: "Gli allenamenti della tua squadra su grande schermo.",
+      portalTeamHeading: "Accedi a {team}",
+      portalDesc: "Consulta i dati dei piani RowPilot Team e MAX da PC, tablet o dispositivi Android.",
+      portalTeamDesc: "Accedi con e-mail e password Coach Web oppure approva con un tocco, QR code o codice a 6 cifre dall’app RowPilot.",
+      pt1Title: "Accesso e-mail per allenatori",
+      pt1Desc: "Entra subito nella tua squadra con indirizzo e-mail e password.",
+      pt2Title: "Approvazione rapida con l’app RowPilot",
+      pt2Desc: "Atleti e manager con iOS accedono senza password tramite pulsante, QR code o codice a 6 cifre.",
+      pt3Title: "Riepiloghi su PC ed esportazione CSV",
+      pt3Desc: "Confronta metri totali e migliori 500m per atleta, con esportazione CSV nel piano MAX.",
+      slugLabel: "Hai un URL dedicato del team? Vai al login della squadra",
+      btnOpenSlug: "Apri",
+      slugToastInvalid: "Inserisci un identificativo team valido.",
+      loginHeading: "Accedi",
+      loginSub: "Accedi con l’account Coach Web o autenticati con l’app RowPilot qui sotto.",
+      lblEmail: "Indirizzo e-mail",
+      lblPassword: "Password",
+      phPassword: "Inserisci password",
+      btnEmailLogin: "Accedi con e-mail",
+      btnForgotPw: "Password dimenticata?",
+      teamSelectTitle: "Seleziona la tua squadra",
+      btnBackInput: "Indietro",
+      resetHelper: "Invieremo un link di reimpostazione all’indirizzo e-mail registrato.",
+      btnSendReset: "Invia link",
+      btnBackLogin: "Torna al login",
+      dividerOrApp: "oppure autenticati con l’app RowPilot",
+      btnOpenApp: "Apri l’app RowPilot per accedere",
+      qrAria: "QR code di accesso",
+      otpLabel: "Codice monouso",
+      btnRegen: "Rigenera",
+      otpGuide: "Inserisci il codice nell’app in Gestione Team → Approva login Web o inquadra il QR.",
+      pollingIssuing: "Generazione codice...",
+      pollingWaiting: "In attesa di approvazione nell’app...",
+      pollingReissue: "Rigenera il codice",
+      expiresPrefix: "Scade tra",
+      expired: "Scaduto",
+      showcaseHeading: "Cosa offre RowPilot Team Web",
+      showcaseSub: "Analizza e condividi i dati della squadra dal PC della rimessa barche o dal tablet dell’allenatore.",
+      sc1Title: "Elenco allenamenti in tempo reale",
+      sc1Desc: "Filtra sessioni al remoergometro e in barca per data, atleta o tipo, inclusi equipaggi e note.",
+      sc2Title: "Totali e record per atleta",
+      sc2Desc: "Calcolo automatico di distanza totale, numero di uscite, miglior passo sui 500m e colpi al minuto medi.",
+      sc3Title: "Grafici sull’andamento dei volumi",
+      sc3Desc: "Visualizza i metri giornalieri del team e la classifica per atleta.",
+      sc4Title: "Esportazione CSV compatibile con Excel",
+      sc4Desc: "Nel piano MAX scarica i log filtrati in formato CSV pronto per l’analisi.",
+      guideHeading: "Per allenatori con Android o PC senza app iOS",
+      guideDesc: "Chiedi all’amministratore del team di registrare la tua e-mail nell’app iPhone in Impostazioni Team → Web Dashboard → Gestione Coach Web.",
+      suspendedTitle: "La Web Dashboard di questo team è attualmente sospesa",
+      suspendedDesc: "Il periodo di tolleranza è terminato. La consultazione riprenderà al rinnovo di un piano Team o MAX.",
+      dashSubtitle: "Allenamenti e panoramica squadra",
+      btnPrint: "Stampa / PDF",
+      btnExportCsv: "Esporta CSV",
+      kpi7d: "Distanza ultimi 7 giorni",
+      kpi30d: "Distanza ultimi 30 giorni",
+      kpiActive: "Atleti attivi (30g)",
+      kpiBest: "Miglior 500m filtrato",
+      filterLabel: "Filtri",
+      filterClearQuick: "Azzera",
+      lblKeyword: "Parola chiave",
+      phKeyword: "Cerca atleta, nota, specialità",
+      lblAthlete: "Atleta",
+      optAllAthletes: "Tutti gli atleti",
+      lblType: "Tipo",
+      optAll: "Tutti",
+      optErg: "Remoergometro",
+      optWater: "In barca",
+      lblPeriod: "Periodo",
+      opt30d: "Ultimi 30 giorni",
+      opt7d: "Ultimi 7 giorni",
+      opt90d: "Ultimi 90 giorni",
+      optCustom: "Date personalizzate",
+      lblFrom: "Dal",
+      lblTo: "Al",
+      btnResetFilters: "Reimposta filtri",
+      btnShowResults: "Mostra risultati",
+      tabFeed: "Feed allenamenti",
+      tabAthletes: "Riepilogo atleti",
+      tabAnalytics: "Grafici",
+      thFeed: ["Data", "Atleta", "Tipo / Sessione", "Distanza", "Tempo", "Passo 500m", "Colpi/m", "Watt", "Note"],
+      emptyFeed: "Nessun allenamento corrisponde ai filtri selezionati.",
+      athletesHint: "Fai clic su una riga per filtrare gli allenamenti di quell’atleta.",
+      lblSort: "Ordina per",
+      sortDist: "Distanza totale maggiore",
+      sortSplit: "Miglior passo 500m",
+      sortCount: "Più sessioni",
+      thAthletes: ["Atleta", "Ruolo", "Sessioni", "Dist. totale", "Miglior 500m", "Media 500m", "Colpi medi", "Watt medi"],
+      emptyAthletes: "Nessun dato disponibile.",
+      chartDailyTitle: "Distanza giornaliera del team",
+      chartDailySub: "Andamento recente",
+      chartRankTitle: "Classifica distanza per atleta",
+      chartRankSub: "Confronto nel periodo",
+      modalNotes: "Note",
+      modalCrew: "Equipaggio",
+      modalSummary: "Metriche dettagliate",
+      closeAria: "Chiudi",
+      contactTitle: "Invia messaggio al team di sviluppo",
+      contactSub: "Segnala bug o invia suggerimenti.",
+      lblCategory: "Categoria",
+      catBug: "Segnalazione bug",
+      catFeature: "Nuova funzione",
+      catOther: "Altro",
+      lblClub: "Nome società / club",
+      phClub: "es. Canottieri Universitaria",
+      lblMessage: "Messaggio",
+      phMessage: "Descrivi la schermata, i passaggi e l’eventuale errore",
+      lblNeedsReply: "Desidero ricevere risposta",
+      lblReplyEmail: "E-mail per la risposta",
+      btnCancel: "Annulla",
+      btnSend: "Invia",
+      errNetwork: "Errore di rete. Controlla la connessione e riprova.",
+      errAuth: "Sessione scaduta o permessi insufficienti. Effettua di nuovo l’accesso.",
+      errServer: "Errore di comunicazione con il server. Riprova più tardi.",
+      errGeneric: "Si è verificato un errore. Controlla la connessione."
+    },
+    zh: {
+      htmlLang: "zh-CN",
+      codeLabel: "ZH",
+      langMenuTitle: "🌐 语言",
+      menuAria: "菜单",
+      selectLangAria: "选择语言",
+      nav: ["首页", "最新动态", "支持", "隐私政策", "服务条款", "开发者", "团队"],
+      headerContact: "反馈",
+      headerContactTitle: "问题反馈、功能建议与咨询",
+      headerRefresh: "刷新",
+      headerRefreshTitle: "获取最新数据",
+      headerLogout: "退出登录",
+      loading: "加载中...",
+      authenticating: "正在验证身份...",
+      authenticatingRedirect: "正在验证... 即将跳转至团队面板",
+      notFoundTitle: "未找到该团队",
+      notFoundDesc: "请确认网址是否正确，或联系您的团队管理员。",
+      serverConnErrTitle: "无法连接服务器",
+      serverConnErrDesc: "请检查网络连接后刷新页面；若仍无法解决，请联系支持页面。",
+      btnPortalRoot: "前往 Team Web 门户",
+      btnViewSupport: "查看支持",
+      btnBackTop: "返回 RowPilot 首页",
+      setupTitle: "设置 Web 教练登录密码",
+      resetPwTitle: "设置新密码",
+      setupSub: "请设置用于今后登录的密码（至少 8 位字符）。",
+      lblNewPw: "新密码",
+      phNewPw: "8 位以上字母、数字或符号",
+      lblConfirmPw: "确认密码",
+      phConfirmPw: "再次输入密码",
+      btnShow: "显示",
+      btnHide: "隐藏",
+      btnSubmitSetup: "保存密码并登录",
+      portalHeading: "在电脑大屏上浏览全队训练记录。",
+      portalTeamHeading: "登录至 {team} 训练面板",
+      portalDesc: "可通过电脑、平板或 Android 设备查看 RowPilot Team 与 MAX 方案的训练数据。登录后将自动进入所属团队专属页面。",
+      portalTeamDesc: "可使用 Web 教练邮箱密码登录，或通过 RowPilot 应用一键批准、扫码、输入 6 位验证码登录。",
+      pt1Title: "教练邮箱直接登录",
+      pt1Desc: "只需输入已注册的邮箱与密码，即可直达所负责的团队面板。",
+      pt2Title: "RowPilot 应用一键授权",
+      pt2Desc: "已安装 iOS 应用的队员或领队可通过下方按钮、二维码或 6 位验证码免密登录。",
+      pt3Title: "大屏汇总与 CSV 导出",
+      pt3Desc: "支持按队员对比总划行距离与最佳 500m 分段成绩，MAX 方案可导出防乱码 CSV 表格。",
+      slugLabel: "已有团队专属链接？直接前往对应团队登录页",
+      btnOpenSlug: "打开",
+      slugToastInvalid: "请输入有效的团队标识（字母、数字、连字符或下划线）",
+      loginHeading: "登录",
+      loginSub: "请使用 Web 教练账号登录，或通过下方 RowPilot 应用授权认证。",
+      lblEmail: "电子邮箱",
+      lblPassword: "密码",
+      phPassword: "请输入密码",
+      btnEmailLogin: "使用邮箱登录",
+      btnForgotPw: "忘记密码？",
+      teamSelectTitle: "请选择所属团队",
+      btnBackInput: "返回输入界面",
+      resetHelper: "我们将向您注册的邮箱发送密码重置链接。",
+      btnSendReset: "发送重置邮件",
+      btnBackLogin: "返回登录界面",
+      dividerOrApp: "或通过 RowPilot 应用认证",
+      btnOpenApp: "打开 RowPilot 应用登录",
+      qrAria: "登录二维码",
+      otpLabel: "一次性验证码",
+      btnRegen: "重新生成",
+      otpGuide: "请在应用内“团队管理 → Web 登录授权”中输入验证码，或用手机相机扫描二维码。",
+      pollingIssuing: "正在生成验证码...",
+      pollingWaiting: "正在等待应用端确认授权...",
+      pollingReissue: "请重新生成验证码",
+      expiresPrefix: "有效期",
+      expired: "已过期",
+      showcaseHeading: "RowPilot Team Web 核心功能",
+      showcaseSub: "在艇库电脑或教练终端上随时复盘并共享全队训练表现。",
+      sc1Title: "实时训练动态列表",
+      sc1Desc: "按日期、队员、测功仪或水上项目检索训练记录，并查看艇位编排与备注。",
+      sc2Title: "队员里程与最佳成绩汇总",
+      sc2Desc: "自动统计所选时间段内的总划行距离、训练次数、最佳 500m 配速与平均桨频。",
+      sc3Title: "团队训练量趋势图表",
+      sc3Desc: "以图表呈现每日团队总里程与队员里程排行，辅助赛季负荷管理。",
+      sc4Title: "兼容 Excel 的 CSV 导出",
+      sc4Desc: "MAX 方案支持将筛选后的训练日志导出为无乱码 CSV 文件，便于归档分析。",
+      guideHeading: "致使用 Android 或未持有 iOS 应用的教练",
+      guideDesc: "请由团队管理员在 iPhone 版 RowPilot 应用内打开“团队管理 → Web 仪表盘 → Web 教练管理”登记您的邮箱，即可收到初始设置链接。",
+      suspendedTitle: "该团队的 Web 仪表盘当前已暂停",
+      suspendedDesc: "团队方案宽限期已结束。团队所有者重新订阅 Team 或 MAX 方案后即可恢复访问。",
+      dashSubtitle: "训练记录与成员概况",
+      btnPrint: "打印 / PDF",
+      btnExportCsv: "导出 CSV",
+      kpi7d: "近 7 天总距离",
+      kpi30d: "近 30 天总距离",
+      kpiActive: "活跃队员（30天）",
+      kpiBest: "当前筛选最佳 500m",
+      filterLabel: "筛选",
+      filterClearQuick: "清除",
+      lblKeyword: "关键词",
+      phKeyword: "按队员姓名、备注、艇型搜索",
+      lblAthlete: "队员",
+      optAllAthletes: "全部队员",
+      lblType: "项目",
+      optAll: "全部",
+      optErg: "测功仪",
+      optWater: "水上",
+      lblPeriod: "时间范围",
+      opt30d: "近 30 天",
+      opt7d: "近 7 天",
+      opt90d: "近 90 天",
+      optCustom: "自定义日期",
+      lblFrom: "开始日期",
+      lblTo: "结束日期",
+      btnResetFilters: "重置筛选",
+      btnShowResults: "查看结果",
+      tabFeed: "训练记录",
+      tabAthletes: "队员汇总",
+      tabAnalytics: "趋势与对比图",
+      thFeed: ["日期时间", "队员", "项目 / 计划", "距离", "用时", "500m配速", "桨频", "功率", "备注"],
+      emptyFeed: "没有符合筛选条件的训练记录。",
+      athletesHint: "点击任意一行可筛选该队员的训练记录。",
+      lblSort: "排序方式",
+      sortDist: "总距离从高到低",
+      sortSplit: "最佳 500m 从快到慢",
+      sortCount: "训练次数从多到少",
+      thAthletes: ["队员", "角色", "次数", "总距离", "最佳 500m", "平均 500m", "平均桨频", "平均功率"],
+      emptyAthletes: "暂无可汇总的训练记录。",
+      chartDailyTitle: "每日团队总划行距离",
+      chartDailySub: "近期训练趋势",
+      chartRankTitle: "队员总划行距离排行",
+      chartRankSub: "所选时段对比",
+      modalNotes: "备注",
+      modalCrew: "船艇阵容",
+      modalSummary: "详细数据",
+      closeAria: "关闭",
+      contactTitle: "发送邮件至开发团队",
+      contactSub: "欢迎反馈问题或提交新功能建议。",
+      lblCategory: "类别",
+      catBug: "问题反馈",
+      catFeature: "功能建议",
+      catOther: "其他",
+      lblClub: "俱乐部 / 队伍名称",
+      phClub: "例：某某大学赛艇队",
+      lblMessage: "详细内容",
+      phMessage: "请描述出现的界面、操作步骤或错误提示",
+      lblNeedsReply: "希望收到回复",
+      lblReplyEmail: "回复邮箱",
+      btnCancel: "取消",
+      btnSend: "发送",
+      errNetwork: "发生网络错误，请检查网络连接后重试。",
+      errAuth: "登录已失效或无权执行此操作，请重新登录。",
+      errServer: "与服务器通信时出错，请稍后重试。",
+      errGeneric: "发生错误，请检查网络连接或联系支持页面。"
+    },
+    ko: {
+      htmlLang: "ko",
+      codeLabel: "KO",
+      langMenuTitle: "🌐 언어",
+      menuAria: "메뉴",
+      selectLangAria: "언어 선택",
+      nav: ["홈", "공지사항", "고객지원", "개인정보처리방침", "이용약관", "개발", "팀"],
+      headerContact: "문의",
+      headerContactTitle: "버그 제보 및 기능 제안",
+      headerRefresh: "새로고침",
+      headerRefreshTitle: "최신 데이터 불러오기",
+      headerLogout: "로그아웃",
+      loading: "불러오는 중...",
+      authenticating: "인증 중...",
+      authenticatingRedirect: "인증 중... 팀 페이지로 이동합니다",
+      notFoundTitle: "팀을 찾을 수 없습니다",
+      notFoundDesc: "URL이 올바른지 확인하거나 팀 관리자에게 문의해 주세요.",
+      serverConnErrTitle: "서버에 연결할 수 없습니다",
+      serverConnErrDesc: "네트워크 연결을 확인한 뒤 페이지를 다시 새로고침해 주세요.",
+      btnPortalRoot: "Team Web 포털로",
+      btnViewSupport: "고객지원 보기",
+      btnBackTop: "RowPilot 홈으로",
+      setupTitle: "Web 코치 비밀번호 설정",
+      resetPwTitle: "새 비밀번호 설정",
+      setupSub: "다음 로그인부터 사용할 비밀번호를 설정해 주세요 (8자 이상).",
+      lblNewPw: "새 비밀번호",
+      phNewPw: "8자 이상의 영문·숫자·기호",
+      lblConfirmPw: "비밀번호 확인",
+      phConfirmPw: "다시 입력",
+      btnShow: "표시",
+      btnHide: "숨기기",
+      btnSubmitSetup: "비밀번호 설정 후 로그인",
+      portalHeading: "팀의 훈련 기록을 브라우저 큰 화면에서.",
+      portalTeamHeading: "{team} 훈련 기록 로그인",
+      portalDesc: "RowPilot Team·MAX 플랜의 훈련 데이터를 PC·태블릿·Android 기기에서 확인할 수 있습니다. 로그인하면 소속 팀 전용 페이지로 자동 이동합니다.",
+      portalTeamDesc: "Web 코치 계정 이메일·비밀번호로 로그인하거나 RowPilot 앱의 원탭 승인·QR 코드·6자리 코드로 로그인할 수 있습니다.",
+      pt1Title: "코치용 이메일 로그인",
+      pt1Desc: "이메일과 비밀번호만 입력하면 담당 팀 대시보드로 바로 입장할 수 있습니다.",
+      pt2Title: "RowPilot 앱 원탭 승인",
+      pt2Desc: "iOS 앱을 사용하는 부원과 매니저는 아래 버튼, QR 코드 또는 6자리 번호로 비밀번호 없이 인증할 수 있습니다.",
+      pt3Title: "PC용 집계 및 CSV 내보내기",
+      pt3Desc: "선수별 총 거리와 최고 500m 기록 비교 및 MAX 플랜 CSV 다운로드를 지원합니다.",
+      slugLabel: "전용 팀 URL이 있으신가요? 팀별 로그인 화면으로 이동",
+      btnOpenSlug: "열기",
+      slugToastInvalid: "올바른 팀 식별자(영문, 숫자, 하이픈, 언더바)를 입력해 주세요.",
+      loginHeading: "로그인",
+      loginSub: "Web 코치 계정으로 로그인하거나 아래 RowPilot 앱 연동으로 인증해 주세요.",
+      lblEmail: "이메일 주소",
+      lblPassword: "비밀번호",
+      phPassword: "비밀번호 입력",
+      btnEmailLogin: "이메일로 로그인",
+      btnForgotPw: "비밀번호를 잊으셨나요?",
+      teamSelectTitle: "소속 팀을 선택해 주세요",
+      btnBackInput: "입력 화면으로 돌아가기",
+      resetHelper: "등록된 이메일 주소로 비밀번호 재설정 링크를 보내드립니다.",
+      btnSendReset: "재설정 메일 보내기",
+      btnBackLogin: "로그인 화면으로 돌아가기",
+      dividerOrApp: "또는 RowPilot 앱으로 인증",
+      btnOpenApp: "RowPilot 앱을 열어 로그인",
+      qrAria: "로그인용 QR 코드",
+      otpLabel: "일회용 인증 코드",
+      btnRegen: "재발급",
+      otpGuide: "앱 내 ‘팀 관리 → Web 로그인 승인’에서 입력하거나 카메라로 QR 코드를 스캔해 주세요.",
+      pollingIssuing: "인증 코드를 발급하는 중...",
+      pollingWaiting: "앱에서 승인을 대기하는 중...",
+      pollingReissue: "코드를 재발급해 주세요",
+      expiresPrefix: "유효시간",
+      expired: "만료됨",
+      showcaseHeading: "RowPilot Team Web 주요 기능",
+      showcaseSub: "보트하우스 PC나 감독님 기기에서 팀 훈련 데이터를 바로 돌아보고 공유할 수 있습니다.",
+      sc1Title: "실시간 훈련 기록 피드",
+      sc1Desc: "에르고미터와 수상 훈련 데이터를 날짜·선수·종목별로 검색하고 크루 편성과 메모까지 확인합니다.",
+      sc2Title: "선수별 거리·최고 기록 집계",
+      sc2Desc: "기간 내 총 거리, 훈련 횟수, 최고 500m 스플릿, 평균 스트로크 레이트를 자동 비교합니다.",
+      sc3Title: "팀 훈련량 추이 그래프",
+      sc3Desc: "일별 팀 총 거리와 선수별 거리 랭킹을 시각화하여 시즌 중 훈련 부하를 관리합니다.",
+      sc4Title: "Excel 호환 CSV 내보내기",
+      sc4Desc: "MAX 플랜에서는 필터링한 훈련 로그를 글자 깨짐 없는 CSV 파일로 다운로드할 수 있습니다.",
+      guideHeading: "Android 기기 또는 앱이 없는 감독·코치님께",
+      guideDesc: "팀 관리자가 iPhone용 RowPilot 앱의 ‘팀 관리 → Web 대시보드 → Web 코치 관리’에서 이메일을 등록하면 초대 링크가 발송됩니다.",
+      suspendedTitle: "현재 이 팀의 Web 대시보드가 일시 중지되었습니다",
+      suspendedDesc: "팀 플랜 유예 기간이 종료되었습니다. 소유자가 Team 또는 MAX 플랜을 재개하면 열람이 복구됩니다.",
+      dashSubtitle: "훈련 기록 및 멤버 현황",
+      btnPrint: "인쇄 / PDF",
+      btnExportCsv: "CSV 내보내기",
+      kpi7d: "최근 7일 총 거리",
+      kpi30d: "최근 30일 총 거리",
+      kpiActive: "활동 선수 (30일)",
+      kpiBest: "표시 중 최고 500m",
+      filterLabel: "필터",
+      filterClearQuick: "해제",
+      lblKeyword: "키워드",
+      phKeyword: "선수명·메모·배 종류 검색",
+      lblAthlete: "선수",
+      optAllAthletes: "모든 선수",
+      lblType: "종목",
+      optAll: "전체",
+      optErg: "에르고미터",
+      optWater: "수상",
+      lblPeriod: "기간",
+      opt30d: "최근 30일",
+      opt7d: "최근 7일",
+      opt90d: "최근 90일",
+      optCustom: "날짜 지정",
+      lblFrom: "시작일",
+      lblTo: "종료일",
+      btnResetFilters: "조건 초기화",
+      btnShowResults: "결과 보기",
+      tabFeed: "기록 피드",
+      tabAthletes: "선수별 집계",
+      tabAnalytics: "추이·비교 그래프",
+      thFeed: ["일시", "선수명", "종목 / 메뉴", "거리", "시간", "500m 페이스", "레이트", "파워", "메모"],
+      emptyFeed: "조건에 일치하는 훈련 기록이 없습니다.",
+      athletesHint: "행을 클릭하면 해당 선수의 기록 피드로 필터링됩니다.",
+      lblSort: "정렬",
+      sortDist: "총 거리 긴 순",
+      sortSplit: "최고 500m 빠른 순",
+      sortCount: "훈련 횟수 많은 순",
+      thAthletes: ["선수명", "역할", "횟수", "총 거리", "최고 500m", "평균 500m", "평균 레이트", "평균 파워"],
+      emptyAthletes: "집계할 기록이 없습니다.",
+      chartDailyTitle: "일별 팀 총 거리",
+      chartDailySub: "최근 훈련 추이",
+      chartRankTitle: "선수별 총 거리 랭킹",
+      chartRankSub: "선택 기간 비교",
+      modalNotes: "메모",
+      modalCrew: "크루 편성",
+      modalSummary: "상세 데이터",
+      closeAria: "닫기",
+      contactTitle: "개발팀에 메일 보내기",
+      contactSub: "버그 제보나 기능 추가 아이디어를 보내주실 수 있습니다.",
+      lblCategory: "유형",
+      catBug: "버그 제보",
+      catFeature: "기능 제안",
+      catOther: "기타",
+      lblClub: "클럽 / 팀명",
+      phClub: "예: OO대학교 조정부",
+      lblMessage: "내용",
+      phMessage: "발생 화면, 재현 순서, 표시된 오류 등을 적어 주세요",
+      lblNeedsReply: "답변 희망",
+      lblReplyEmail: "회신받을 이메일",
+      btnCancel: "취소",
+      btnSend: "보내기",
+      errNetwork: "네트워크 오류가 발생했습니다. 연결 상태를 확인한 후 다시 시도해 주세요.",
+      errAuth: "인증이 만료되었거나 권한이 없습니다. 다시 로그인해 주세요.",
+      errServer: "서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+      errGeneric: "오류가 발생했습니다. 연결 상태를 확인하거나 고객지원으로 문의해 주세요."
+    }
+  };
+
+  function detectLang() {
+    try {
+      const q = new URLSearchParams(location.search).get("lang");
+      if (q && SUPPORTED.includes(q.toLowerCase())) {
+        return q.toLowerCase();
+      }
+    } catch { /* ignore */ }
+
+    const segs = location.pathname.split("/").filter(Boolean);
+    if (segs.length >= 1 && SUPPORTED.includes(segs[0].toLowerCase())) {
+      return segs[0].toLowerCase();
+    }
+
+    try {
+      if (document.referrer) {
+        const refUrl = new URL(document.referrer);
+        if (refUrl.origin === location.origin) {
+          const rSegs = refUrl.pathname.split("/").filter(Boolean);
+          if (rSegs.length >= 1 && SUPPORTED.includes(rSegs[0].toLowerCase())) {
+            return rSegs[0].toLowerCase();
+          }
+          if (refUrl.pathname === "/" || refUrl.pathname === "/index.html" || refUrl.pathname.startsWith("/news/") || refUrl.pathname.startsWith("/support/")) {
+            return "ja";
+          }
+        }
+      }
+    } catch { /* ignore */ }
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved && SUPPORTED.includes(saved)) return saved;
+    } catch { /* ignore */ }
+
+    return "ja";
+  }
+
+  let currentLang = detectLang();
+  try {
+    localStorage.setItem(STORAGE_KEY, currentLang);
+  } catch { /* ignore */ }
+
+  function t(key, vars) {
+    const table = DICT[currentLang] || DICT.ja;
+    let str = table[key] !== undefined ? table[key] : DICT.ja[key];
+    if (typeof str === "string" && vars) {
+      Object.keys(vars).forEach((k) => {
+        str = str.replace(new RegExp("\\{" + k + "\\}", "g"), String(vars[k]));
+      });
+    }
+    return str;
+  }
+
+  function setText(sel, text, root) {
+    const el = (root || document).querySelector(sel);
+    if (el && text !== undefined) el.textContent = text;
+  }
+
+  function setAttr(sel, attr, val, root) {
+    const el = (root || document).querySelector(sel);
+    if (el && val !== undefined) el.setAttribute(attr, val);
+  }
+
+  function buildSitePaths(lang) {
+    const prefix = lang === "ja" ? "" : "/" + lang;
+    const teamsHref = lang === "ja" ? "/teams/" : "/teams/?lang=" + lang;
+    return {
+      home: prefix + "/index.html",
+      rootHome: lang === "ja" ? "/" : "/" + lang + "/index.html",
+      news: prefix + "/news/index.html",
+      support: prefix + "/support/index.html",
+      supportFaq: prefix + "/support/index.html#faq-team-web",
+      privacy: prefix + "/privacy-policy/index.html",
+      terms: prefix + "/terms/index.html",
+      dev: "/dev/",
+      teams: teamsHref
+    };
+  }
+
+  function buildLangSwitchHref(targetLang) {
+    const u = new URL(location.href);
+    if (targetLang === "ja") {
+      u.searchParams.delete("lang");
+    } else {
+      u.searchParams.set("lang", targetLang);
+    }
+    // /{lang}/teams/... パスだった場合は /teams/... に正規化
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (parts.length >= 2 && SUPPORTED.includes(parts[0]) && parts[1] === "teams") {
+      u.pathname = "/" + parts.slice(1).join("/") + (u.pathname.endsWith("/") ? "/" : "");
+    }
+    return u.pathname + u.search + u.hash;
+  }
+
+  function applyStaticDomTranslations() {
+    const d = DICT[currentLang] || DICT.ja;
+    const paths = buildSitePaths(currentLang);
+    document.documentElement.lang = d.htmlLang;
+
+    // ロゴ・ナビゲーション更新
+    setAttr(".teams-header .logo", "href", paths.rootHome);
+    const desktopLinks = document.querySelectorAll("#teams-nav-links > li:not(.lang-dropdown-wrapper) > a");
+    const hrefOrder = [paths.home, paths.news, paths.support, paths.privacy, paths.terms, paths.dev, paths.teams];
+    desktopLinks.forEach((a, i) => {
+      if (d.nav[i]) a.textContent = d.nav[i];
+      if (hrefOrder[i]) a.setAttribute("href", hrefOrder[i]);
+    });
+
+    const mobileLinks = document.querySelectorAll("#mobile-menu .mobile-menu-inner > a");
+    mobileLinks.forEach((a, i) => {
+      if (d.nav[i]) a.textContent = d.nav[i];
+      if (hrefOrder[i]) a.setAttribute("href", hrefOrder[i]);
+    });
+
+    // 言語切替UI更新
+    setText("#teams-lang-code", d.codeLabel);
+    setAttr("#teams-lang-btn", "aria-label", d.selectLangAria);
+    setText("#teams-mobile-lang-title", d.langMenuTitle);
+    setAttr("#nav-toggle", "aria-label", d.menuAria);
+
+    document.querySelectorAll("[data-teams-lang]").forEach((a) => {
+      const code = a.getAttribute("data-teams-lang");
+      a.classList.toggle("active", code === currentLang);
+      a.setAttribute("href", buildLangSwitchHref(code));
+      if (!a._boundTeamsLang) {
+        a._boundTeamsLang = true;
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          try {
+            localStorage.setItem(STORAGE_KEY, code);
+          } catch { /* ignore */ }
+          location.assign(buildLangSwitchHref(code));
+        });
+      }
+    });
+
+    // ヘッダーアクション
+    setText("#btn-contact", d.headerContact);
+    setAttr("#btn-contact", "title", d.headerContactTitle);
+    setText("#btn-refresh", d.headerRefresh);
+    setAttr("#btn-refresh", "title", d.headerRefreshTitle);
+    setText("#btn-logout", d.headerLogout);
+
+    // Loading & Not Found
+    setText("#loading-status-text", d.loading);
+    setText("#not-found-title", d.notFoundTitle);
+    setText("#not-found-desc", d.notFoundDesc);
+    const nfLinks = document.querySelectorAll("#view-not-found .state-actions a");
+    if (nfLinks[0]) { nfLinks[0].textContent = d.btnPortalRoot; nfLinks[0].setAttribute("href", paths.teams); }
+    if (nfLinks[1]) { nfLinks[1].textContent = d.btnViewSupport; nfLinks[1].setAttribute("href", paths.supportFaq); }
+    if (nfLinks[2]) { nfLinks[2].textContent = d.btnBackTop; nfLinks[2].setAttribute("href", paths.rootHome); }
+
+    // Set Password
+    setText("#setup-title", d.setupTitle);
+    setText("#setup-sub", d.setupSub);
+    setText('label[for="setup-password"]', d.lblNewPw);
+    setAttr("#setup-password", "placeholder", d.phNewPw);
+    setText('label[for="setup-password-confirm"]', d.lblConfirmPw);
+    setAttr("#setup-password-confirm", "placeholder", d.phConfirmPw);
+    setText("#btn-submit-setup", d.btnSubmitSetup);
+
+    document.querySelectorAll(".toggle-pw").forEach((btn) => {
+      const target = document.getElementById(btn.getAttribute("data-target"));
+      btn.textContent = target && target.type === "text" ? d.btnHide : d.btnShow;
+    });
+
+    // Portal & Auth
+    setText("#portal-heading", d.portalHeading);
+    setText("#portal-desc", d.portalDesc);
+    const pts = document.querySelectorAll(".portal-points li");
+    if (pts[0]) { setText("strong", d.pt1Title, pts[0]); setText("span", d.pt1Desc, pts[0]); }
+    if (pts[1]) { setText("strong", d.pt2Title, pts[1]); setText("span", d.pt2Desc, pts[1]); }
+    if (pts[2]) { setText("strong", d.pt3Title, pts[2]); setText("span", d.pt3Desc, pts[2]); }
+    setText('label[for="slug-jump-input"]', d.slugLabel);
+    setText('#form-slug-jump button[type="submit"]', d.btnOpenSlug);
+
+    setText(".auth-card-heading", d.loginHeading);
+    setText(".auth-card-sub", d.loginSub);
+    setText('label[for="coach-email"]', d.lblEmail);
+    setText('label[for="coach-password"]', d.lblPassword);
+    setAttr("#coach-password", "placeholder", d.phPassword);
+    setText("#btn-coach-login", d.btnEmailLogin);
+    setText("#btn-show-reset", d.btnForgotPw);
+    setText(".team-select-title", d.teamSelectTitle);
+    setText("#btn-cancel-team-select", d.btnBackInput);
+    setText("#form-coach-reset .helper-note", d.resetHelper);
+    setText('label[for="reset-email"]', d.lblEmail);
+    setText("#btn-submit-reset", d.btnSendReset);
+    setText("#btn-back-login", d.btnBackLogin);
+    setText(".auth-divider span", d.dividerOrApp);
+    setText("#btn-open-app", d.btnOpenApp);
+    setAttr("#qr-canvas-wrap", "aria-label", d.qrAria);
+    setText(".app-code-label", d.otpLabel);
+    setText("#btn-regen-code", d.btnRegen);
+    setText(".otp-guide", d.otpGuide);
+    setText("#polling-status-text", d.pollingWaiting);
+
+    // Showcase
+    setText("#portal-showcase .showcase-header h2", d.showcaseHeading);
+    setText("#portal-showcase .showcase-header p", d.showcaseSub);
+    const fCards = document.querySelectorAll("#portal-showcase .feature-card");
+    if (fCards[0]) { setText("h3", d.sc1Title, fCards[0]); setText("p", d.sc1Desc, fCards[0]); }
+    if (fCards[1]) { setText("h3", d.sc2Title, fCards[1]); setText("p", d.sc2Desc, fCards[1]); }
+    if (fCards[2]) { setText("h3", d.sc3Title, fCards[2]); setText("p", d.sc3Desc, fCards[2]); }
+    if (fCards[3]) { setText("h3", d.sc4Title, fCards[3]); setText("p", d.sc4Desc, fCards[3]); }
+    setText("#portal-showcase .guide-banner h3", d.guideHeading);
+    setText("#portal-showcase .guide-banner p", d.guideDesc);
+    const guideBtn = document.querySelector("#portal-showcase .guide-banner a");
+    if (guideBtn) {
+      guideBtn.textContent = d.btnViewSupport;
+      guideBtn.setAttribute("href", paths.supportFaq);
+    }
+
+    // Dashboard
+    setText("#suspended-banner strong", d.suspendedTitle);
+    setText("#suspended-banner p", d.suspendedDesc);
+    setText("#dash-subtitle", d.dashSubtitle);
+    setText("#btn-print", d.btnPrint);
+    setText("#btn-export-csv", d.btnExportCsv);
+    const kpiLabels = document.querySelectorAll("#kpi-grid .kpi-label");
+    if (kpiLabels[0]) kpiLabels[0].textContent = d.kpi7d;
+    if (kpiLabels[1]) kpiLabels[1].textContent = d.kpi30d;
+    if (kpiLabels[2]) kpiLabels[2].textContent = d.kpiActive;
+    if (kpiLabels[3]) kpiLabels[3].textContent = d.kpiBest;
+
+    // Filters
+    setText(".filter-toggle-label", d.filterLabel);
+    setText("#btn-reset-filters-quick", d.filterClearQuick);
+    setText('label[for="filter-q"]', d.lblKeyword);
+    setAttr("#filter-q", "placeholder", d.phKeyword);
+    setText('label[for="filter-athlete"]', d.lblAthlete);
+    setText('#filter-athlete option[value=""]', d.optAllAthletes);
+    setText('label[for="filter-type"]', d.lblType);
+    setText('#filter-type option[value=""]', d.optAll);
+    setText('#filter-type option[value="erg"]', d.optErg);
+    setText('#filter-type option[value="onwater"]', d.optWater);
+    setText('label[for="filter-period"]', d.lblPeriod);
+    setText('#filter-period option[value="all"]', d.optAll);
+    setText('#filter-period option[value="30"]', d.opt30d);
+    setText('#filter-period option[value="7"]', d.opt7d);
+    setText('#filter-period option[value="90"]', d.opt90d);
+    setText('#filter-period option[value="custom"]', d.optCustom);
+    setText('label[for="filter-from"]', d.lblFrom);
+    setText('label[for="filter-to"]', d.lblTo);
+    setText("#btn-reset-filters", d.btnResetFilters);
+    setText("#btn-close-filters", d.btnShowResults);
+
+    // Tabs & Tables
+    setText('[data-view-tab="feed"]', d.tabFeed);
+    setText('[data-view-tab="athletes"]', d.tabAthletes);
+    setText('[data-view-tab="analytics"]', d.tabAnalytics);
+    const feedThs = document.querySelectorAll("#workouts-table thead th");
+    feedThs.forEach((th, i) => { if (d.thFeed[i]) th.textContent = d.thFeed[i]; });
+    setText("#workouts-empty p", d.emptyFeed);
+
+    setText("#panel-athletes .panel-toolbar > p", d.athletesHint);
+    setText('label[for="athlete-sort"]', d.lblSort);
+    setText('#athlete-sort option[value="distance"]', d.sortDist);
+    setText('#athlete-sort option[value="best_split"]', d.sortSplit);
+    setText('#athlete-sort option[value="count"]', d.sortCount);
+    const athThs = document.querySelectorAll("#athletes-table thead th");
+    athThs.forEach((th, i) => { if (d.thAthletes[i]) th.textContent = d.thAthletes[i]; });
+    setText("#athletes-empty p", d.emptyAthletes);
+
+    const chartCards = document.querySelectorAll("#panel-analytics .chart-card");
+    if (chartCards[0]) { setText("h2", d.chartDailyTitle, chartCards[0]); setText("#chart-daily-caption", d.chartDailySub, chartCards[0]); }
+    if (chartCards[1]) { setText("h2", d.chartRankTitle, chartCards[1]); setText(".muted", d.chartRankSub, chartCards[1]); }
+
+    // Modals
+    setAttr("#modal-close", "aria-label", d.closeAria);
+    setText("#modal-notes-section h3", d.modalNotes);
+    setText("#modal-crew-section h3", d.modalCrew);
+    setText("#modal-summary-section h3", d.modalSummary);
+
+    setAttr("#contact-modal-close", "aria-label", d.closeAria);
+    setText("#contact-modal-title", d.contactTitle);
+    setText("#contact-modal .modal-header p.muted", d.contactSub);
+    const contactFields = document.querySelectorAll("#form-contact > .field");
+    if (contactFields[0]) setText("label", d.lblCategory, contactFields[0]);
+    setAttr(".contact-type-grid", "aria-label", d.lblCategory);
+    const catSpans = document.querySelectorAll(".contact-type-option span");
+    if (catSpans[0]) catSpans[0].textContent = d.catBug;
+    if (catSpans[1]) catSpans[1].textContent = d.catFeature;
+    if (catSpans[2]) catSpans[2].textContent = d.catOther;
+    setText('label[for="contact-club"]', d.lblClub);
+    setAttr("#contact-club", "placeholder", d.phClub);
+    setText('label[for="contact-message"]', d.lblMessage);
+    setAttr("#contact-message", "placeholder", d.phMessage);
+    setText(".contact-check-row span", d.lblNeedsReply);
+    setText('label[for="contact-email"]', d.lblReplyEmail);
+    setText("#btn-contact-cancel", d.btnCancel);
+    setText("#btn-contact-submit", d.btnSend);
+  }
+
+  window.TeamsI18n = {
+    getLang: () => currentLang,
+    t,
+    applyStaticDomTranslations
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", applyStaticDomTranslations);
+  } else {
+    applyStaticDomTranslations();
+  }
+})();
+

@@ -1,12 +1,27 @@
+const SUPPORTED_LANGS = new Set(["en", "de", "fr", "es", "it", "zh", "ko"]);
+const STATIC_ASSET_EXT_RE = /\.(?:css|js|mjs|json|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|mp4|webm|pdf|txt|xml|map)$/i;
+
+function isTeamsSpaRoute(pathname) {
+  if (STATIC_ASSET_EXT_RE.test(pathname)) return false;
+  if (
+    pathname === "/teams" ||
+    pathname.startsWith("/teams/") ||
+    pathname === "/teams-portal" ||
+    pathname === "/teams-portal/"
+  ) {
+    return true;
+  }
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts.length >= 2 && SUPPORTED_LANGS.has(parts[0]) && parts[1] === "teams") {
+    return true;
+  }
+  return false;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (
-      url.pathname === "/teams" ||
-      url.pathname.startsWith("/teams/") ||
-      url.pathname === "/teams-portal" ||
-      url.pathname === "/teams-portal/"
-    ) {
+    if (isTeamsSpaRoute(url.pathname)) {
       const target = new URL("/teams/", url.origin);
       const assetRes = await env.ASSETS.fetch(target);
       const headers = new Headers(assetRes.headers);

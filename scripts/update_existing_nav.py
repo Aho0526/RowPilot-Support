@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import glob
+import sys
 from nav_helper import update_entire_navbar
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +17,13 @@ PAGES = [
 ]
 
 def main():
+    if '--force-legacy-overwrite' not in sys.argv:
+        sys.stderr.write(
+            "[ABORTED] Navigation bars and footers across all 8 languages now include /dev/ and /teams/ links.\n"
+            "Running this legacy navbar updater would strip newer navigation items.\n"
+            "Pass --force-legacy-overwrite only if you intentionally want to run the legacy updater.\n"
+        )
+        sys.exit(1)
     # Update ja pages
     for p in PAGES:
         fpath = os.path.join(REPO_ROOT, p)

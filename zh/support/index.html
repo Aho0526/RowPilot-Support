@@ -1,395 +1,434 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>技术支持与帮助中心 | RowPilot</title>
-    <meta name="description" content="RowPilot 赛艇App帮助中心。包含常见问题解答 (FAQ)、Concept2 PM5 蓝牙连接指南及开发团队联络方式。">
+    <title>支持与常见问题 — RowPilot</title>
+    <meta name="description"
+        content="RowPilot 支持与帮助中心。解答 Concept2 PM5 蓝牙连接故障排查、云端同步、紧急 SOS 功能、订阅取消与恢复购买等常见问题。">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
 </head>
+
 <body>
 
-<header>
-    <div class="nav-wrap">
-        <a href="../index.html" class="logo" id="nav-logo">
-            <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
-            <span class="logo-text">RowPilot</span>
-        </a>
-        <ul class="nav-links">
-        <li><a href="../index.html">首页</a></li>
-        <li><a href="../news/index.html">动态</a></li>
-        <li><a href="#" class="active">技术支持</a></li>
-        <li><a href="../privacy-policy/index.html">隐私政策</a></li>
-        <li><a href="../terms/index.html">用户条款</a></li>
-        <li><a href="/dev/">开发</a></li>
-        <li><a href="/teams/">团队</a></li>
-        <li class="lang-dropdown-wrapper">
-          <button class="lang-btn" type="button" aria-label="Select Language">
-            <span class="lang-globe">🌐</span>
-            <span>ZH</span>
-            <span class="lang-arrow">▾</span>
-          </button>
-          <div class="lang-dropdown-menu">
-            <a href="../../support/index.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/support/index.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/support/index.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/support/index.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/support/index.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/support/index.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="index.html" class="lang-dropdown-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/support/index.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
-          </div>
-        </li>
-      </ul>
-        <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
-            <span></span><span></span><span></span>
-        </button>
-    </div>
-</header>
-
-<nav class="mobile-menu" id="mobile-menu">
-    <div class="mobile-menu-inner">
-      <a href="../index.html">首页</a>
-      <a href="../news/index.html">动态</a>
-      <a href="#" class="active">技术支持</a>
-      <a href="../privacy-policy/index.html">隐私政策</a>
-      <a href="../terms/index.html">用户条款</a>
-      <a href="/dev/">开发</a>
-      <a href="/teams/">团队</a>
-      <div class="mobile-menu-divider"></div>
-      <div class="mobile-lang-sec">
-        <div class="mobile-lang-title">🌐 Language / 言語</div>
-        <div class="mobile-lang-grid">
-          <a href="../../support/index.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/support/index.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/support/index.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/support/index.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/support/index.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/support/index.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="index.html" class="mobile-lang-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/support/index.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+    <header>
+        <div class="nav-wrap">
+            <a href="../index.html" class="logo" id="nav-logo">
+                <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                <span class="logo-text">RowPilot</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="../news/index.html">最新动态</a></li>
+                <li><a href="#" class="active">支持</a></li>
+                <li><a href="../privacy-policy/index.html">隐私政策</a></li>
+                <li><a href="../terms/index.html">服务条款</a></li>
+                <li><a href="/dev/">开发者</a></li>
+                <li><a href="/teams/?lang=zh">团队</a></li>
+                <li class="lang-dropdown-wrapper">
+                    <button class="lang-btn" type="button" aria-label="选择语言">
+                        <span class="lang-globe">🌐</span>
+                        <span>ZH</span>
+                        <span class="lang-arrow">▾</span>
+                    </button>
+                    <div class="lang-dropdown-menu">
+                        <a href="../../support/index.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span
+                                class="lang-code-badge">🇯🇵</span></a><a href="../../en/support/index.html"
+                            class="lang-dropdown-item" data-lang="en"><span>English</span><span
+                                class="lang-code-badge">🇺🇸</span></a><a href="../../de/support/index.html"
+                            class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span
+                                class="lang-code-badge">🇩🇪</span></a><a href="../../fr/support/index.html"
+                            class="lang-dropdown-item" data-lang="fr"><span>Français</span><span
+                                class="lang-code-badge">🇫🇷</span></a><a href="../../es/support/index.html"
+                            class="lang-dropdown-item" data-lang="es"><span>Español</span><span
+                                class="lang-code-badge">🇪🇸</span></a><a href="../../it/support/index.html"
+                            class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span
+                                class="lang-code-badge">🇮🇹</span></a><a href="index.html"
+                            class="lang-dropdown-item active" data-lang="zh"><span>简体中文</span><span
+                                class="lang-code-badge">🇨🇳</span></a><a href="../../ko/support/index.html"
+                            class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span
+                                class="lang-code-badge">🇰🇷</span></a>
+                    </div>
+                </li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="菜单">
+                <span></span><span></span><span></span>
+            </button>
         </div>
-      </div>
-    </div>
-  </nav>
+    </header>
 
-<!-- Early Access Banner -->
-<div class="early-access-banner" id="early-access-banner">
-    <div class="early-access-inner">
-        <div class="early-access-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-        </div>
-        <div class="early-access-text">
-            <strong>The current build is under development</strong>
-            <span>There might be unexpected behaviors or bugs. If you notice anything, please let us know immediately via email. Your feedback helps make the app better.</span>
-        </div>
-        <a href="mailto:rowpilot.jp@gmail.com" class="early-access-btn" id="banner-report-btn">Report a Bug</a>
-    </div>
-</div>
-
-<!-- Contact -->
-<div class="contact-wrap animate-fade-up" style="animation: fadeUp 0.7s both;">
-    <div class="contact-icon-wrap">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-mail"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-    </div>
-    <h1>服务与技术支持</h1>
-    <p>如果您在使用中遇到问题、希望提出功能建议或反馈 Bug，<br>请随时与我们联系，我们将尽快为您解答。</p>
-    <a href="mailto:rowpilot.jp@gmail.com" class="contact-email-link" id="contact-email">rowpilot.jp@gmail.com</a>
-    <p class="contact-note">关于赛艇俱乐部合作或赞助事宜，亦欢迎随时来信垂询。</p>
-</div>
-
-<!-- FAQ -->
-<div class="container">
-    <div class="faq-sec">
-        <div class="sec-header">
-            <span class="sec-label">FAQ</span>
-            <h2>常见问题解答 (FAQ)</h2>
-            <p>遇到使用疑问？请先在此查阅快速解决方案。</p>
-        </div>
-
-        <!-- Category: Connection -->
-        <div class="faq-category-label">蓝牙与设备连接</div>
-
-        <div class="faq-item" id="faq-pm5">
-            <div class="faq-q">
-                <span>I cannot connect to Concept2 PM5 via Bluetooth.</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Please try the following steps in order:</p>
-                <ol>
-                    <li>Go to **"Connect" -> "Wireless"** on your PM5 monitor menu to turn on wireless communication.</li>
-                    <li>Ensure RowPilot has Bluetooth permission enabled in iOS Settings -> Privacy & Security -> Bluetooth.</li>
-                    <li>Start Bluetooth scanning in the Practice tab, and the PM5 should appear in the device list.</li>
-                    <li>If the connection is unstable, temporarily turn off or move away from other nearby Bluetooth devices.</li>
-                    <li>Make sure your PM5 monitor is updated to the latest firmware (accessible from the PM5 menu).</li>
-                </ol>
-                <p>If the issue persists, please contact us via email.</p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-multi-pm5">
-            <div class="faq-q">
-                <span>How do I connect multiple ergs simultaneously?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Connecting multiple ergs simultaneously is available on the Manager, Team, and MAX plans (up to 10 ergs). Note that Free offers 1-on-1 PM5 connection, and Pro supports up to 4 PM5 machines.</p>
-                <p>After turning on Bluetooth on each PM5 individually, start scanning in the Practice tab of RowPilot to see them in the list. Tap each device to connect sequentially. You can also batch-transmit the same menu to all connected ergs.</p>
-            </div>
-        </div>
-
-        <!-- Category: Data & Backup -->
-        <div class="faq-category-label">数据管理与备份</div>
-
-        <div class="faq-item" id="faq-icloud">
-            <div class="faq-q">
-                <span>Where is my data saved?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>RowPilot data is primarily saved in your local device storage. If you enable team synchronization on the Team plan or above, your team's training statistics will also be saved on our secure external database (Cloudflare D1).</p>
-                <p>Uninstalling the app will delete local device data. We highly recommend exporting your valuable records regularly using the app's built-in export feature.</p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-restore">
-            <div class="faq-q">
-                <span>How do I transfer data after changing devices?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>RowPilot primarily uses local device storage for data, so reinstalling or changing devices will not automatically restore your records. Please make sure to export your records before switching devices.</p>
-                <p>If you are using team synchronization on the Team plan or above, logging in with the same Apple ID will automatically sync your team data.</p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-data-delete">
-            <div class="faq-q">
-                <span>I want to delete my recorded data.</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Individual training sessions can be deleted from the History tab in the app by swiping or long-pressing.</p>
-                <p>If you wish to delete all data completely, simply uninstall the app. (To delete team data uploaded to the sync server, please use the team data deletion feature inside the app's settings.)</p>
-            </div>
-        </div>
-
-        <!-- Category: Features -->
-        <div class="faq-category-label">Features &amp; Usage</div>
-
-        <div class="faq-item" id="faq-sos">
-            <div class="faq-q">
-                <span>How do I setup and use the SOS feature?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p><strong>Preparation:</strong> Go to the "Settings" tab -> "SOS Contacts" and pre-register the email addresses or phone numbers of your emergency contacts.</p>
-                <p><strong>Usage:</strong> Tap the SOS button on the RowMode screen (GPS rate meter) to instantly send a message containing your current GPS coordinates to your registered contacts. We highly recommend setting this up before heading out on the water.</p>
-                <p><strong>Note:</strong> SOS sending uses the native iOS Mail or Messages app. Location permissions must be granted to RowPilot to retrieve coordinates.</p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-tide">
-            <div class="faq-q">
-                <span>How do I change the location on TideView?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Tap the location name at the top of the TideView screen to open the list. You can search and select from 239 ports/prefectures across Japan. The tide graph will update instantly. You can bookmark frequently used training spots.</p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-rowmode">
-            <div class="faq-q">
-                <span>RowMode's stroke detection is not working properly.</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Adjust the motion detection threshold in the "Settings" tab -> "Sensor Sensitivity". The optimal values vary depending on the force of your strokes and the mounting direction of your iPhone.</p>
-                <ul>
-                    <li>If sensitivity is too high: Raise the threshold (reduces false detections from noise).</li>
-                    <li>If sensitivity is too low: Lower the threshold (detects weaker strokes).</li>
-                </ul>
-                <p>Securing the iPhone directly to the boat rack or hull will significantly improve accuracy.</p>
-            </div>
-        </div>
-
-        <!-- Category: Team & Team Web -->
-        <div class="faq-category-label">Team Management &amp; Team Web</div>
-
-        <div class="faq-item" id="faq-team-web">
-            <div class="faq-q">
-                <span>How do I log in to Team Web (PC / browser dashboard)?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Teams on the Team or MAX plan can view, aggregate, and export team workouts from a PC, tablet, or Android browser via the <a href="/teams/" style="color: var(--accent); text-decoration: none; font-weight: 600;">Team Web Portal</a>. There are two ways to log in:</p>
-                <p><strong>1. Web Coach Email Login (for coaches without the iOS app):</strong><br>
-                When a team owner or admin registers a coach email in the iPhone app under Team Advanced Settings → Web Dashboard → Web Coach Management, an invite link is sent to set a password and log in with email and password.</p>
-                <p><strong>2. One-Tap App Approval (for members and managers with RowPilot iOS):</strong><br>
-                Use the open-app button, QR code, or 6-digit code shown on Team Web and approve it inside the iPhone app under Web Login Approval without needing a password.</p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-team-slug">
-            <div class="faq-q">
-                <span>What is a team custom URL (slug)?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Team owners or admins can configure a custom team URL such as <code>rowpilot.jp/teams/your-team/</code> in the iPhone app under Team Advanced Settings → Web Dashboard.</p>
-                <p>Entering the slug on the Team Web Portal or opening the custom URL directly will take you straight to your team dashboard if you are already signed in.</p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-team-device-lock">
-            <div class="faq-q">
-                <span>I changed my iPhone and see a device authentication lock error.</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Team accounts are bound to your device to prevent unauthorized access using the same user ID.</p>
-                <p>If you switch devices or reinstall the app and get locked out, please ask your team owner or admin to run "Reset Device Auth Lock" for your account in member management, then try again.</p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-team-batch-upload">
-            <div class="faq-q">
-                <span>Can I upload past workouts recorded before joining a team?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Yes. Starting in v1.0.1, you can use the Batch Upload feature on the team screen inside the app to send all unshared local workouts to your team at once.</p>
-            </div>
-        </div>
-
-        <!-- Category: Billing -->
-        <div class="faq-category-label">Subscription</div>
-
-        <div class="faq-item" id="faq-team-migration">
-            <div class="faq-q">
-                <span>What happens to my data if I change or cancel (downgrade) my team plan?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Upon plan migration, an auto-cleanup flow and functional restrictions will apply to prevent unauthorized data usage and manage team resources properly.</p>
-                <p>If the number of members exceeds the limit of your new plan, a 30-day grace period will be applied and excess members will be automatically organized. If you migrate to a non-team plan (Pro/Free) or your subscription expires, the team will enter an "Archived (Read-Only)" state after a 30-day grace period (past team data is preserved and will not be deleted).</p>
-                <p>For detailed restrictions and cancellation options, please refer to our notice page:</p>
-                <p><a href="../news/team-migration-policy.html" style="color: var(--accent); text-decoration: none; font-weight: 600;">Team Plan Migration Policy (Details) →</a></p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-cancel">
-            <div class="faq-q">
-                <span>How do I cancel the Premium plan?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Open iOS Settings -> tap your Apple ID at the top -> Subscriptions -> RowPilot -> Cancel Subscription.</p>
-                <p>If you cancel before the billing cycle ends, you can continue using the premium features for the remainder of the month. Your data will not be lost.</p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-restore-purchase">
-            <div class="faq-q">
-                <span>How do I restore my purchase? (After changing devices or reinstalling)</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Go to Settings -> Subscriptions -> tap "Restore Purchase" inside the app. As long as you are signed in with the same Apple ID used for purchase, your subscription will be recognized automatically.</p>
-                <p>If you cannot restore, please verify that you are signed in with the correct Apple ID in iOS Settings -> App Store.</p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-family">
-            <div class="faq-q">
-                <span>Can I share my plan via Family Sharing?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Currently, App Store Family Sharing is not supported. If you want to use the app with a team, please use the manager sharing feature available in the Team and MAX plans. One coach/club can purchase the plan and share manager mode access with crew members.</p>
-            </div>
-        </div>
-
-        <!-- Category: Others -->
-        <div class="faq-category-label">Others</div>
-
-        <div class="faq-item" id="faq-donation">
-            <div class="faq-q">
-                <span>How are the revenues donated to the Kochi Rowing Association?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>Once a year, the developer officially donates the revenue—excluding the App Store fees (30% or 15%), taxes, and minimal server maintenance costs—to the Kochi Rowing Association. The funds are used to maintain rowing equipment and support junior and youth athletes.</p>
-            </div>
-        </div>
-
-        <div class="faq-item" id="faq-opensource">
-            <div class="faq-q">
-                <span>Where can I see the open-source code?</span>
-                <span class="faq-arrow">▼</span>
-            </div>
-            <div class="faq-a">
-                <p>The source code is publicly available on GitHub: <a href="https://github.com/Aho0526/RowPilot" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: none;">github.com/Aho0526/RowPilot</a></p>
-                <p>We publish it to ensure data management transparency. Note that all copyrights belong to the developer, and unauthorized secondary usage is strictly prohibited.</p>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<footer>
-    <div class="footer-inner">
-        <a href="../index.html" class="footer-logo">
-            <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
-            RowPilot
-        </a>
-        <div class="footer-links">
+    <nav class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-inner">
             <a href="../index.html">首页</a>
-            <a href="../index.html#features">功能</a>
-            <a href="../index.html#premium">方案</a>
-            <a href="#">技术支持</a>
+            <a href="../news/index.html">最新动态</a>
+            <a href="#" class="active">支持</a>
             <a href="../privacy-policy/index.html">隐私政策</a>
-            <a href="../terms/index.html">用户条款</a>
+            <a href="../terms/index.html">服务条款</a>
+            <a href="/dev/">开发者</a>
+            <a href="/teams/?lang=zh">团队</a>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-lang-sec">
+                <div class="mobile-lang-title">🌐 语言</div>
+                <div class="mobile-lang-grid">
+                    <a href="../../support/index.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span
+                            class="lang-code-badge">🇯🇵</span></a><a href="../../en/support/index.html"
+                        class="mobile-lang-item" data-lang="en"><span>English</span><span
+                            class="lang-code-badge">🇺🇸</span></a><a href="../../de/support/index.html"
+                        class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span
+                            class="lang-code-badge">🇩🇪</span></a><a href="../../fr/support/index.html"
+                        class="mobile-lang-item" data-lang="fr"><span>Français</span><span
+                            class="lang-code-badge">🇫🇷</span></a><a href="../../es/support/index.html"
+                        class="mobile-lang-item" data-lang="es"><span>Español</span><span
+                            class="lang-code-badge">🇪🇸</span></a><a href="../../it/support/index.html"
+                        class="mobile-lang-item" data-lang="it"><span>Italiano</span><span
+                            class="lang-code-badge">🇮🇹</span></a><a href="index.html"
+                        class="mobile-lang-item active" data-lang="zh"><span>简体中文</span><span
+                            class="lang-code-badge">🇨🇳</span></a><a href="../../ko/support/index.html"
+                        class="mobile-lang-item" data-lang="ko"><span>한국어</span><span
+                            class="lang-code-badge">🇰🇷</span></a>
+                </div>
+            </div>
         </div>
-        <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+    </nav>
+
+    <div class="early-access-banner" id="early-access-banner">
+        <div class="early-access-inner">
+            <div class="early-access-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                    </path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <div class="early-access-text">
+                <strong>当前版本仍处于持续完善阶段</strong>
+                <span>使用过程中仍可能遇到未预期的表现或缺陷。若您发现任何异常，欢迎随时通过邮件告知我们，您的反馈将直接帮助应用不断改进。</span>
+            </div>
+            <a href="mailto:rowpilot.jp@gmail.com" class="early-access-btn" id="banner-report-btn">反馈问题</a>
+        </div>
     </div>
-</footer>
 
-<script>
-// Hamburger
-const toggle = document.getElementById('nav-toggle');
-const mMenu  = document.getElementById('mobile-menu');
-toggle.addEventListener('click', () => {
-    const open = mMenu.classList.toggle('open');
-    toggle.classList.toggle('open', open);
-});
-mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-    mMenu.classList.remove('open'); toggle.classList.remove('open');
-}));
+    <div class="contact-wrap animate-fade-up" style="animation: fadeUp 0.7s both;">
+        <div class="contact-icon-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="feather feather-mail">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+        </div>
+        <h1>支持与联系窗口</h1>
+        <p>无论是缺陷报告、新功能建议还是日常使用疑问，都欢迎随时来信。<br>我们将尽快为您回复。</p>
+        <a href="mailto:rowpilot.jp@gmail.com" class="contact-email-link" id="contact-email">rowpilot.jp@gmail.com</a>
+        <p class="contact-note">有关向高知县赛艇协会捐赠或赞助合作等事宜，也可通过此邮箱联系洽谈。</p>
+    </div>
 
-// FAQ accordion
-document.querySelectorAll('.faq-item').forEach(item => {
-    item.querySelector('.faq-q').addEventListener('click', () => {
-        const isOpen = item.classList.toggle('open');
-        const ans = item.querySelector('.faq-a');
-        ans.style.maxHeight = isOpen ? ans.scrollHeight + 'px' : '0';
-        ans.style.opacity = isOpen ? '1' : '0';
-    });
-});
-// init: all closed (except hash target)
-document.querySelectorAll('.faq-a').forEach(a => {
-    a.style.maxHeight = '0';
-    a.style.opacity = '0';
-    a.style.overflow = 'hidden';
-    a.style.transition = 'max-height 0.35s ease, opacity 0.25s ease';
-});
+    <div class="container">
+        <div class="faq-sec">
+            <div class="sec-header">
+                <span class="sec-label">常见问题</span>
+                <h2>常见问题解答（FAQ）</h2>
+                <p>遇到疑问时，建议您先在此查阅相应的解决办法。</p>
+            </div>
 
-const openFaqFromHash = () => {
-    if (!location.hash) return;
-    const target = document.querySelector(location.hash);
-    if (!target || !target.classList.contains('faq-item')) return;
-    target.classList.add('open');
-    const ans = target.querySelector('.faq-a');
-    if (ans) {
-        ans.style.maxHeight = ans.scrollHeight + 'px';
-        ans.style.opacity = '1';
-    }
-    setTimeout(() => {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
-};
-openFaqFromHash();
-window.addEventListener('hashchange', openFaqFromHash);
-</script>
-  <script src="../../js/lang-dropdown.js"></script>
+            <div class="faq-category-label">蓝牙与设备连接</div>
+
+            <div class="faq-item" id="faq-pm5">
+                <div class="faq-q">
+                    <span>无法通过蓝牙连接 Concept2 PM5 测功仪</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>请按顺序尝试以下步骤：</p>
+                    <ol>
+                        <li>在 PM5 显示器菜单中选择 <strong>“Connect”</strong>，开启蓝牙无线通信状态。</li>
+                        <li>前往 iPhone 的“设置” → “隐私与安全性” → “蓝牙”，确认已为 RowPilot 开启蓝牙权限。</li>
+                        <li>在应用的训练标签页中启动蓝牙扫描，PM5 将会出现在设备列表中。</li>
+                        <li>如果连接不稳定，请暂时关闭周围其他蓝牙设备或拉开一定距离后再试。</li>
+                        <li>请确认 PM5 固件已更新至最新版本（目前仅在 v178.037 及以上固件版本中验证通过）。</li>
+                    </ol>
+                    <p>若按上述步骤操作后仍无法解决，请发送邮件联系我们。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-multi-pm5">
+                <div class="faq-q">
+                    <span>如何同时连接多台划船测功仪？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>多台设备同时连接（最多 10 台）适用于个人订阅 Manager 方案的用户，或在教练、领队订阅的 Team / MAX 方案中被管理员授予“Manager（领队）”角色的成员。<br>此外，Free 方案支持 1 对 1 单台连接，Pro 方案支持最多同时连接 4 台 PM5 测功仪。</p>
+                    <p>请先在每台 PM5 上分别开启蓝牙连接，随后进入 RowPilot 的“训练”标签页 → “领队模式”并开始扫描，附近的 PM5 即会显示在列表中。</p>
+                    <p>依次点击需要连接的各台设备即可完成配对连接。</p>
+                </div>
+            </div>
+
+            <div class="faq-category-label">数据与备份</div>
+
+            <div class="faq-item" id="faq-icloud">
+                <div class="faq-q">
+                    <span>我的训练数据保存在哪里？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>RowPilot 的数据会自动保存在手机本地存储以及您个人的 iCloud 账户中。若您加入了 Team 及以上方案的团队并开启团队同步，团队的训练数值统计数据也会同步保存至外部服务器（Cloudflare D1）。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-restore">
+                <div class="faq-q">
+                    <span>更换手机后如何迁移原有数据？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>RowPilot 主要使用设备本地存储保存数据；若在关闭 iCloud 同步的情况下卸载应用，本地数据将会被清除。只要您保持 iCloud 同步处于开启状态，在新手机上使用同一个 Apple ID 登录即可自动恢复并继承历史数据。</p>
+                    <p>目前暂不支持 iPhone 与 Android 之间的数据跨平台迁移。</p>
+                    <p>未来推出 Android 版本时，我们将同步上线跨平台数据迁移功能。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-data-delete">
+                <div class="faq-q">
+                    <span>我想删除已记录的训练数据</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>单次训练记录可在应用内的“历史记录”页面通过左滑操作删除。</p>
+                    <p>如果您希望彻底清空全部本地数据，请前往应用内的“设置” → 点击“清除所有训练记录”。</p>
+                    <p>（若需删除已上传至同步服务器的团队记录，请在团队页面中选择对应的训练记录并执行删除。）</p>
+                </div>
+            </div>
+
+            <div class="faq-category-label">功能使用方法</div>
+
+            <div class="faq-item" id="faq-sos">
+                <div class="faq-q">
+                    <span>请介绍紧急 SOS 功能的设置与使用方法</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p><strong>预先设置：</strong>进入“设置（Settings）”标签页 → “SOS 联系人设置”，提前登记接收人的手机号码以及使用者姓名。</p>
+                    <p><strong>使用方法：</strong>在 RowMode（水上 GPS 桨频表界面）点击 SOS 按钮，即可立即向预设联系人发送包含当前 GPS 位置信息的求助短信。为防万一，强烈建议每次下水训练前提前完成配置。</p>
+                    <p><strong>注意：</strong>SOS 发送将调用 iPhone 自带的“信息（SMS）”应用，且需要授予 RowPilot 定位权限方可获取当前位置。</p><br>
+                    <p><strong>⚠️ 免责声明：</strong>SOS 功能仅作为辅助性求助手段，不能替代拨打报警、消防或水上救援等官方紧急电话。对于因本功能触发延迟、未能触发或短信未送达等原因造成的任何损失，开发者概不承担责任。详情请参阅<a href="../terms/index.html#section-8" style="color: var(--accent); text-decoration: none; font-weight: 600;">《服务条款》第 8 条第 1 款</a>。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-tide">
+                <div class="faq-q">
+                    <span>如何切换潮汐数据的显示地点？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>在 Free 方案中，应用会根据当前 GPS 定位自动获取并显示距离最近的日本气象厅观测站数据。</p>
+                    <p>如果您希望在日本全国观测站中自由选择任意地点，以便提前查看外训营地或比赛场地的水位与潮汐时间，请升级使用 Pro 方案。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-rowmode">
+                <div class="faq-q">
+                    <span>RowMode 的划桨桨频检测不太灵敏怎么办？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>建议您先尝试对比其他桨频计应用。如果同样无法正常识别，可能是设备加速度传感器存在异常，或者划桨发力幅度较小所致。</p>
+                    <p>若检测依旧明显不灵敏，欢迎随时发邮件与我们联系。</p>
+                </div>
+            </div>
+
+            <div class="faq-category-label">团队管理与 Team Web</div>
+
+            <div class="faq-item" id="faq-team-web">
+                <div class="faq-q">
+                    <span>如何登录 Team Web（电脑与网页版仪表盘）？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>所属团队订阅 Team 或 MAX 方案后，成员与教练可通过 <a href="/teams/?lang=zh" style="color: var(--accent); text-decoration: none; font-weight: 600;">Team Web 门户网站</a>在电脑、平板或 Android 设备浏览器上查阅并汇总训练数据。支持以下两种登录方式：</p>
+                    <p><strong>1. Web 教练邮箱登录（适合未安装 iOS 应用的教练或领队）：</strong><br>
+                    由团队创建者或管理员在 iPhone 版 RowPilot 应用内依次进入“团队高级设置 → Web 仪表盘 → Web 教练管理”登记邮箱地址，系统将发送初始密码设置邀请链接。设置完成后即可使用邮箱与密码直接登录。</p>
+                    <p><strong>2. RowPilot 应用一键批准登录（适合已安装应用的队员与领队）：</strong><br>
+                    在 iPhone 版应用的“Web 登录审批”中，通过点击 Team Web 页面上的快捷按钮、扫描二维码或输入 6 位验证码即可免密一键登录。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-team-slug">
+                <div class="faq-q">
+                    <span>什么是团队专属链接（slug）？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>团队创建者或管理员可在 iPhone 版应用的“团队高级设置 → Web 仪表盘”中设置形如 <code>rowpilot.jp/teams/自定义标识/</code> 的易记专属网址。</p>
+                    <p>在 Team Web 门户输入该标识或直接打开专属链接时，若当前已处于登录状态，将直接跳转至所属团队的数据仪表盘。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-team-device-lock">
+                <div class="faq-q">
+                    <span>更换手机后提示“设备认证锁定”导致无法进入团队怎么办？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>为防止他人冒用同一用户 ID 非法访问，团队账号会与您的设备进行安全绑定。</p>
+                    <p>若因更换新手机或重新安装应用触发设备认证锁定，请联系您所在团队的创建者或管理员，在应用内“成员管理”中为您执行“解除设备认证锁定”后再重新尝试。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-team-batch-upload">
+                <div class="faq-q">
+                    <span>加入团队前记录的历史训练数据可以一次性同步到团队吗？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>可以。自 v1.0.1 版本起，您可以使用应用内团队页面的“批量上传记录”功能，将保存在手机本地尚未分享的历史训练记录一键批量发送至团队。</p>
+                </div>
+            </div>
+
+            <div class="faq-category-label">订阅与付费</div>
+
+            <div class="faq-item" id="faq-team-migration">
+                <div class="faq-q">
+                    <span>更改或取消（降级）团队方案后，原有团队数据会怎样？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>变更订阅方案时，为防止违规占用名额并合理管理服务器资源，系统将执行相应的功能限制与自动清理流程。</p>
+                    <p>若当前成员人数超出新方案上限，系统将提供 30 天宽限期，期满后自动清理超额成员；若降级至不含团队功能的方案（Pro / Free）或订阅到期失效，则在 30 天宽限期结束后转为“归档（只读）”状态，历史团队数据不会被删除，仍可随时查阅。</p>
+                    <p>有关具体限制规则与解除归档的方法，请查阅以下公告页面：</p>
+                    <p><a href="../news/team-migration-policy.html"
+                            style="color: var(--accent); text-decoration: none; font-weight: 600;">关于团队方案变更后的自动清理与功能限制说明（详情） →</a></p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-cancel">
+                <div class="faq-q">
+                    <span>如何取消付费订阅方案？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>请依次打开 iPhone 的“设置” → 点击顶部的 Apple ID → “订阅” → “RowPilot” → “取消订阅”。</p>
+                    <p>只要在下一个扣费日前取消，当前计费周期剩余时间内仍可继续正常使用各项功能，取消订阅后已有数据也不会丢失。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-restore-purchase">
+                <div class="faq-q">
+                    <span>更换手机或重新安装后，如何恢复已购买的订阅？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>请进入应用内的“设置” → “RowPilot Premium” → 点击“Restore”。只要登录的是购买时所用的同一个 Apple ID，系统便会自动识别并恢复您的有效订阅。</p>
+                    <p>若无法恢复，请前往 iPhone 的“设置” → “App Store”，确认当前登录的 Apple ID 是否正确。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-family">
+                <div class="faq-q">
+                    <span>支持通过 Apple“家人共享”共享订阅方案吗？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>目前不支持 App Store 家人共享功能。如需在队伍中多人协作使用，请选用 Team 或 MAX 方案中的领队权限共享功能：只需由教练或领队 1 人订阅方案，即可将领队模式共享给指定队员使用。</p>
+                </div>
+            </div>
+
+            <div class="faq-category-label">其他</div>
+
+            <div class="faq-item" id="faq-donation">
+                <div class="faq-q">
+                    <span>应用收益是如何捐赠给高知县赛艇协会的？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>扣除 App Store 平台佣金（15% *）、税费以及最低限度的服务器维护成本后，开发者每年会将结余收益统一捐赠给高知县赛艇协会，用于赛艇器材维护及青少年赛艇运动员的训练支持。</p>
+                    <p>* 本应用已加入 Apple Small Business Program（苹果小型企业计划），因此平台佣金由常规的 30% 降至 15%。</p>
+                </div>
+            </div>
+
+            <div class="faq-item" id="faq-opensource">
+                <div class="faq-q">
+                    <span>听说本项目是开源的，在哪里可以查看源代码？</span>
+                    <span class="faq-arrow">▼</span>
+                </div>
+                <div class="faq-a">
+                    <p>源代码已公开在 GitHub 上：<a href="https://github.com/Aho0526/RowPilot" target="_blank"
+                            rel="noopener noreferrer"
+                            style="color: var(--accent); text-decoration: none;">github.com/Aho0526/RowPilot</a></p>
+                    <p>公开源码旨在确保数据处理与应用运行逻辑的完全透明。请注意，所有源代码著作权均归开发者所有，严禁未经授权的二次分发或商业利用。</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-inner">
+            <a href="../index.html" class="footer-logo">
+                <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                RowPilot
+            </a>
+            <div class="footer-links">
+                <a href="../index.html">首页</a>
+                <a href="../news/index.html">最新动态</a>
+                <a href="#">支持</a>
+                <a href="../privacy-policy/index.html">隐私政策</a>
+                <a href="../terms/index.html">服务条款</a>
+                <a href="/dev/">开发者</a>
+                <a href="/teams/?lang=zh">团队</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 RowPilot. 保留所有权利。</div>
+        </div>
+    </footer>
+
+    <script>
+        const toggle = document.getElementById('nav-toggle');
+        const mMenu = document.getElementById('mobile-menu');
+        toggle.addEventListener('click', () => {
+            const open = mMenu.classList.toggle('open');
+            toggle.classList.toggle('open', open);
+        });
+        mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            mMenu.classList.remove('open'); toggle.classList.remove('open');
+        }));
+
+        document.querySelectorAll('.faq-item').forEach(item => {
+            item.querySelector('.faq-q').addEventListener('click', () => {
+                const isOpen = item.classList.toggle('open');
+                const ans = item.querySelector('.faq-a');
+                ans.style.maxHeight = isOpen ? ans.scrollHeight + 'px' : '0';
+                ans.style.opacity = isOpen ? '1' : '0';
+            });
+        });
+
+        document.querySelectorAll('.faq-a').forEach(a => {
+            a.style.maxHeight = '0';
+            a.style.opacity = '0';
+            a.style.overflow = 'hidden';
+            a.style.transition = 'max-height 0.35s ease, opacity 0.25s ease';
+        });
+
+        const openFaqFromHash = () => {
+            if (!location.hash) return;
+            const target = document.querySelector(location.hash);
+            if (!target || !target.classList.contains('faq-item')) return;
+            target.classList.add('open');
+            const ans = target.querySelector('.faq-a');
+            if (ans) {
+                ans.style.maxHeight = ans.scrollHeight + 'px';
+                ans.style.opacity = '1';
+            }
+            setTimeout(() => {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 80);
+        };
+        openFaqFromHash();
+        window.addEventListener('hashchange', openFaqFromHash);
+    </script>
+    <script src="../../js/lang-dropdown.js"></script>
 </body>
+
 </html>

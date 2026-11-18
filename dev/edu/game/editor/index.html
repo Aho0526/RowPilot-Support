@@ -24,14 +24,15 @@
         })();
     </script>
     <link rel="icon" href="../../../../pictures/hako_man_icon.png?v=1" type="image/png">
-    <link rel="stylesheet" href="ide.css?v=49">
+    <link rel="stylesheet" href="ide.css?v=50">
     <link rel="stylesheet" href="sticky-scroll.css?v=40">
     <link rel="stylesheet" href="docs.css?v=40">
     <script src="docs-content.js?v=40" defer></script>
     <script src="linter.js?v=44" defer></script>
     <script src="sticky-scroll.js?v=42" defer></script>
     <script src="../share-codec.js?v=1" defer></script>
-    <script src="ide.js?v=68" defer></script>
+    <script src="stage-solver.js?v=1" defer></script>
+    <script src="ide.js?v=69" defer></script>
     <script src="share-ui.js?v=1" defer></script>
 </head>
 
@@ -914,7 +915,22 @@
                         </div>
                     </div>
 
-                    <div class="builder-section-label" style="margin-top: 10px;">4. 自動生成される stages.js コード</div>
+                    <div class="builder-solver-panel" id="builder-solver-panel">
+                        <div class="builder-solver-header">
+                            <span class="builder-section-label" style="margin: 0;">4. クリア可否テスト・最小解の自動計算</span>
+                            <div class="builder-solver-btns">
+                                <button type="button" class="builder-solver-btn is-test" id="btn-builder-test-solution"
+                                    title="現在の盤面や配置済み正解ブロックでゴールできるか即座にテストします">クリア可否をテスト</button>
+                                <button type="button" class="builder-solver-btn is-solve" id="btn-builder-auto-solve"
+                                    title="クリア可能な最小ブロック数の solution を自動探索して盤面へ流し込みます">最小ブロック解を自動計算</button>
+                            </div>
+                        </div>
+                        <div class="builder-solver-status" id="builder-solver-status" data-state="idle">
+                            作っている盤面がクリア可能かの判定や、最小手数の solution 自動セットが行えます
+                        </div>
+                    </div>
+
+                    <div class="builder-section-label" style="margin-top: 8px;">5. 自動生成される stages.js コード</div>
                     <pre class="builder-code-preview" id="builder-code-preview"></pre>
                 </div>
             </div>

@@ -7,6 +7,7 @@ Languages to build: de, fr, es, it, zh, ko
 
 import os
 import re
+import sys
 from nav_helper import update_entire_navbar, LANGUAGES
 from translations_home import HOME_TRANSLATIONS
 from translations_home_sections import HOME_SECTIONS_TRANSLATIONS
@@ -223,6 +224,14 @@ def build_news_pages(lang):
     print(f"Generated {lang}/news/team-migration-policy.html")
 
 def main():
+    if '--force-legacy-overwrite' not in sys.argv:
+        sys.stderr.write(
+            "[ABORTED] All multilingual pages (de, fr, es, it, zh, ko) are now fully localized "
+            "and synchronized directly with the JP master pages (including /dev/, /teams/, and v1.0.1 updates).\n"
+            "Running this legacy English-template generator would overwrite localized content.\n"
+            "Pass --force-legacy-overwrite only if you intentionally want to reset from legacy templates.\n"
+        )
+        sys.exit(1)
     for lang in NEW_LANGS:
         print(f"--- Building language: {lang} ---")
         build_index_page(lang)

@@ -1525,6 +1525,14 @@ body:not(.show-portal-nav) .mobile-menu {
     height: 56px;
     gap: 0.5rem;
   }
+  .teams-page .mobile-menu {
+    top: 56px;
+    max-height: calc(100vh - 56px);
+    max-height: calc(100dvh - 56px);
+  }
+  .contact-type-grid {
+    grid-template-columns: 1fr;
+  }
   .teams-header .logo {
     font-size: 1.05rem;
     gap: 0.4rem;

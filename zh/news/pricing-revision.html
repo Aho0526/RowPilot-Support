@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subscription Pricing Revision — RowPilot</title>
+    <title>关于订阅方案价格下调的公告 — RowPilot</title>
     <meta name="description"
-        content="RowPilot is significantly reducing monthly subscription prices across all plans and discontinuing the Organization plan.">
+        content="RowPilot 订阅价格调整公告。全面下调 Pro、Manager、Team 与 MAX 方案月费，并停止提供 Organization 方案。">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
     <style>
@@ -86,6 +86,12 @@
             font-size: 1.0em;
         }
 
+        .price-arrow {
+            color: var(--text-2);
+            opacity: 0.4;
+            margin: 0 0.4rem;
+        }
+
         .badge-down {
             display: inline-block;
             padding: 0.18rem 0.55rem;
@@ -122,6 +128,34 @@
             font-weight: 700;
             color: var(--text);
         }
+
+        .price-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 1.5rem 0;
+        }
+
+        .price-table-wrap .price-table {
+            margin: 0;
+            min-width: 480px;
+        }
+
+        @media (max-width: 768px) {
+            .flow-card {
+                padding: 1.25rem 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .flow-card h2 {
+                font-size: 1.15rem;
+            }
+            .price-table th,
+            .price-table td {
+                padding: 0.6rem 0.65rem;
+                font-size: 0.85rem;
+                white-space: nowrap;
+            }
+        }
     </style>
 </head>
 
@@ -134,25 +168,25 @@
                 <span class="logo-text">RowPilot</span>
             </a>
             <ul class="nav-links">
-        <li><a href="../index.html">首页</a></li>
-        <li><a href="index.html" class="active">动态</a></li>
-        <li><a href="../support/index.html">技术支持</a></li>
-        <li><a href="../privacy-policy/index.html">隐私政策</a></li>
-        <li><a href="../terms/index.html">用户条款</a></li>
-        <li><a href="/dev/">开发</a></li>
-        <li><a href="/teams/">团队</a></li>
-        <li class="lang-dropdown-wrapper">
-          <button class="lang-btn" type="button" aria-label="Select Language">
-            <span class="lang-globe">🌐</span>
-            <span>ZH</span>
-            <span class="lang-arrow">▾</span>
-          </button>
-          <div class="lang-dropdown-menu">
-            <a href="../../news/pricing-revision.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/pricing-revision.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/pricing-revision.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/pricing-revision.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/pricing-revision.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/pricing-revision.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="pricing-revision.html" class="lang-dropdown-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/pricing-revision.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
-          </div>
-        </li>
-      </ul>
-            <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+                <li><a href="../index.html">首页</a></li>
+                <li><a href="index.html" class="active">最新动态</a></li>
+                <li><a href="../support/index.html">支持</a></li>
+                <li><a href="../privacy-policy/index.html">隐私政策</a></li>
+                <li><a href="../terms/index.html">服务条款</a></li>
+                <li><a href="/dev/">开发者</a></li>
+                <li><a href="/teams/?lang=zh">团队</a></li>
+                <li class="lang-dropdown-wrapper">
+                    <button class="lang-btn" type="button" aria-label="选择语言">
+                        <span class="lang-globe">🌐</span>
+                        <span>ZH</span>
+                        <span class="lang-arrow">▾</span>
+                    </button>
+                    <div class="lang-dropdown-menu">
+                        <a href="../../news/pricing-revision.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/pricing-revision.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/pricing-revision.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/pricing-revision.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/pricing-revision.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/pricing-revision.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="pricing-revision.html" class="lang-dropdown-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/pricing-revision.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                    </div>
+                </li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="菜单">
                 <span></span><span></span><span></span>
             </button>
         </div>
@@ -160,99 +194,97 @@
 
     <nav class="mobile-menu" id="mobile-menu">
         <div class="mobile-menu-inner">
-      <a href="../index.html">首页</a>
-      <a href="index.html" class="active">动态</a>
-      <a href="../support/index.html">技术支持</a>
-      <a href="../privacy-policy/index.html">隐私政策</a>
-      <a href="../terms/index.html">用户条款</a>
-      <a href="/dev/">开发</a>
-      <a href="/teams/">团队</a>
-      <div class="mobile-menu-divider"></div>
-      <div class="mobile-lang-sec">
-        <div class="mobile-lang-title">🌐 Language / 言語</div>
-        <div class="mobile-lang-grid">
-          <a href="../../news/pricing-revision.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/pricing-revision.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/pricing-revision.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/pricing-revision.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/pricing-revision.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/pricing-revision.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="pricing-revision.html" class="mobile-lang-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/pricing-revision.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+            <a href="../index.html">首页</a>
+            <a href="index.html" class="active">最新动态</a>
+            <a href="../support/index.html">支持</a>
+            <a href="../privacy-policy/index.html">隐私政策</a>
+            <a href="../terms/index.html">服务条款</a>
+            <a href="/dev/">开发者</a>
+            <a href="/teams/?lang=zh">团队</a>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-lang-sec">
+                <div class="mobile-lang-title">🌐 语言</div>
+                <div class="mobile-lang-grid">
+                    <a href="../../news/pricing-revision.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/pricing-revision.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/pricing-revision.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/pricing-revision.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/pricing-revision.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/pricing-revision.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="pricing-revision.html" class="mobile-lang-item active" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/pricing-revision.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </nav>
+    </nav>
 
     <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
         <div class="policy-hero">
-            <div class="policy-badge">Important Notice</div>
-            <h1>Subscription Pricing Revision</h1>
+            <div class="policy-badge">重要公告</div>
+            <h1>关于订阅方案价格下调的公告</h1>
             <p class="policy-lead">
-                We are significantly reducing monthly subscription prices across all plans to make RowPilot more
-                accessible. The Organization plan will also be discontinued.
+                我们将全面下调各付费方案的月度订阅费用，并正式停售取消 Organization 方案，让更多赛艇选手、教练与俱乐部能够更轻松地使用 RowPilot。
             </p>
-            <p class="policy-updated">Price Change Effective Date: October 1, 2026 (automatic)</p>
-            <p class="policy-updated">Organization Plan Discontinued: September 10, 2026 at 23:00 JST</p>
-            <p class="policy-updated">Published: August 22, 2026 &nbsp;/ &nbsp;Last Updated: September 10, 2026</p>
+            <p class="policy-updated">新价格生效日期：2026年10月1日（自动生效）</p>
+            <p class="policy-updated">Organization 方案停用时间：2026年9月10日 23:00（JST）</p>
+            <p class="policy-updated">发布日期：2026年8月22日 &nbsp;/&nbsp; 最后更新：2026年9月10日</p>
         </div>
 
         <div class="policy-content">
-            <p>Thank you for using RowPilot. We are pleased to announce the following revision to our monthly
-                subscription pricing.</p>
+            <p>感谢您一直以来对 RowPilot 的支持与厚爱。现就应用月度订阅价格调整事宜公告如下。</p>
 
-            <!-- Pricing Overview -->
             <div class="flow-card">
-                <h2>Pricing Overview</h2>
-                <p>Monthly subscription fees will be significantly reduced across all plans. New prices will take effect automatically on <strong>October 1, 2026</strong>. The Organization plan was discontinued on <strong>September 10, 2026 at 23:00 JST</strong>.</p>
+                <h2>价格调整概览</h2>
+                <p>各订阅方案的月费均将大幅下调，新价格将于 <strong>2026年10月1日</strong> 自动生效。此外，Organization 方案已于 <strong>2026年9月10日 23:00（JST）</strong> 正式停用。</p>
 
-                <table class="price-table">
-                    <thead>
-                        <tr>
-                            <th>Plan</th>
-                            <th>Current Price</th>
-                            <th>New Price</th>
-                            <th>Change</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><span class="plan-label">Free</span></td>
-                            <td>¥0 JPY / month</td>
-                            <td class="price-new">¥0 JPY / month</td>
-                            <td>No change</td>
-                        </tr>
-                        <tr>
-                            <td><span class="plan-label">Pro</span></td>
-                            <td><span class="price-old">¥600 JPY</span> / month</td>
-                            <td class="price-new">¥200 JPY / month</td>
-                            <td><span class="badge-down">↓ ¥400 JPY off</span></td>
-                        </tr>
-                        <tr>
-                            <td><span class="plan-label">Manager</span></td>
-                            <td><span class="price-old">¥900 JPY</span> / month</td>
-                            <td class="price-new">¥500 JPY / month</td>
-                            <td><span class="badge-down">↓ ¥400 JPY off</span></td>
-                        </tr>
-                        <tr>
-                            <td><span class="plan-label">Team</span></td>
-                            <td><span class="price-old">¥3,000 JPY</span> / month</td>
-                            <td class="price-new">¥1,000 JPY / month</td>
-                            <td><span class="badge-down">↓ ¥2,000 JPY off</span></td>
-                        </tr>
-                        <tr>
-                            <td><span class="plan-label">MAX</span></td>
-                            <td><span class="price-old">¥5,000 JPY</span> / month</td>
-                            <td class="price-new">¥3,000 JPY / month</td>
-                            <td><span class="badge-down">↓ ¥2,000 JPY off</span></td>
-                        </tr>
-                        <tr class="org-row">
-                            <td><span class="plan-label">Organization</span></td>
-                            <td><span class="price-old">¥8,000 JPY</span> / month</td>
-                            <td style="color: #ff7f7f; font-weight: 700;">Discontinued</td>
-                            <td><span class="badge-discontinued">Discontinued</span></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="price-table-wrap">
+                    <table class="price-table">
+                        <thead>
+                            <tr>
+                                <th>方案</th>
+                                <th>调整前价格</th>
+                                <th>调整后价格</th>
+                                <th>变更内容</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="plan-label">Free</span></td>
+                                <td>¥0 / 月</td>
+                                <td class="price-new">¥0 / 月</td>
+                                <td>维持不变</td>
+                            </tr>
+                            <tr>
+                                <td><span class="plan-label">Pro</span></td>
+                                <td><span class="price-old">¥600</span> / 月</td>
+                                <td class="price-new">¥200 / 月</td>
+                                <td><span class="badge-down">↓ 下调 ¥400</span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="plan-label">Manager</span></td>
+                                <td><span class="price-old">¥900</span> / 月</td>
+                                <td class="price-new">¥500 / 月</td>
+                                <td><span class="badge-down">↓ 下调 ¥400</span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="plan-label">Team</span></td>
+                                <td><span class="price-old">¥3,000</span> / 月</td>
+                                <td class="price-new">¥1,000 / 月</td>
+                                <td><span class="badge-down">↓ 下调 ¥2,000</span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="plan-label">MAX</span></td>
+                                <td><span class="price-old">¥5,000</span> / 月</td>
+                                <td class="price-new">¥3,000 / 月</td>
+                                <td><span class="badge-down">↓ 下调 ¥2,000</span></td>
+                            </tr>
+                            <tr class="org-row">
+                                <td><span class="plan-label">Organization</span></td>
+                                <td><span class="price-old">¥8,000</span> / 月</td>
+                                <td style="color: #ff7f7f; font-weight: 700;">已停用</td>
+                                <td><span class="badge-discontinued">已停用</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- Organization Plan Discontinuation -->
             <div class="flow-card">
-                <h2>Organization Plan Discontinuation</h2>
-                <p>The Organization plan was discontinued on <strong>September 10, 2026 at 23:00 JST</strong>. Existing Organization plan subscribers will be automatically migrated to the MAX plan.</p>
+                <h2>关于取消 Organization 方案的说明</h2>
+                <p>Organization 方案已于 <strong>2026年9月10日 23:00（JST）</strong> 正式停用。当前正在订阅 Organization 方案的用户将自动迁移至 MAX 方案。</p>
                 <div class="policy-callout"
                     style="background: rgba(255, 179, 71, 0.04); border: 1px solid rgba(255, 179, 71, 0.18); color: var(--gold);">
                     <span class="policy-callout-icon" style="color: var(--gold); margin-top: 0.1rem;">
@@ -264,24 +296,21 @@
                         </svg>
                     </span>
                     <span style="font-size: 0.85rem; line-height: 1.5; display: block;">
-                        <strong>For current Organization plan subscribers:</strong><br>
-                        Migration to the MAX plan is the primary transition path. Detailed migration guidance will be provided separately.
+                        <strong>致当前订阅 Organization 方案的用户：</strong><br>
+                        随着 Organization 方案的取消，系统将默认为您过渡迁移至 MAX 方案，具体迁移指引我们将另行通知。
                     </span>
                 </div>
             </div>
 
-            <!-- Background -->
             <div class="flow-card">
-                <h2>Background</h2>
-                <p>RowPilot aims to be an app that athletes, coaches, and teams of all levels can use without financial
-                    barriers. This price reduction was implemented with the goal of lowering the cost of entry and
-                    contributing to the growth of the rowing community and the improvement of training environments.</p>
-                <p>We appreciate your continued support of RowPilot.</p>
+                <h2>价格下调的背景</h2>
+                <p>RowPilot 始终致力于成为广大赛艇运动员、教练员和赛艇队都能无负担使用的训练工具。本次大幅下调价格，正是希望降低使用门槛，为赛艇运动的普及与日常训练环境的改善贡献一份力量。</p>
+                <p>今后也请继续支持 RowPilot。</p>
             </div>
 
-            <h2 style="margin-top: 3rem;">Contact</h2>
-            <p>If you have any questions regarding this announcement, please feel free to contact our support team at <a
-                    href="mailto:rowpilot.jp@gmail.com" style="color: #7dd3fc; text-decoration: underline;">rowpilot.jp@gmail.com</a>.</p>
+            <h2 style="margin-top: 3rem;">联系我们</h2>
+            <p>如对本次价格调整有任何疑问，欢迎随时发邮件至支持窗口（<a href="mailto:rowpilot.jp@gmail.com"
+                    style="color: #7dd3fc; text-decoration: underline;">rowpilot.jp@gmail.com</a>）垂询。</p>
         </div>
     </div>
 
@@ -293,13 +322,14 @@
             </a>
             <div class="footer-links">
                 <a href="../index.html">首页</a>
-                <a href="../index.html#features">功能</a>
-                <a href="../index.html#premium">方案</a>
-                <a href="../support/index.html">技术支持</a>
+                <a href="index.html">最新动态</a>
+                <a href="../support/index.html">支持</a>
                 <a href="../privacy-policy/index.html">隐私政策</a>
-                <a href="../terms/index.html">用户条款</a>
+                <a href="../terms/index.html">服务条款</a>
+                <a href="/dev/">开发者</a>
+                <a href="/teams/?lang=zh">团队</a>
             </div>
-            <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+            <div class="footer-copy">&copy; 2026 RowPilot. 保留所有权利。</div>
         </div>
     </footer>
 
@@ -314,7 +344,7 @@
             mMenu.classList.remove('open'); toggle.classList.remove('open');
         }));
     </script>
-  <script src="../../js/lang-dropdown.js"></script>
+    <script src="../../js/lang-dropdown.js"></script>
 </body>
 
 </html>

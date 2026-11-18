@@ -198,14 +198,14 @@
             </a>
             <ul class="nav-links">
                 <li><a href="../index.html">Home</a></li>
-                <li><a href="index.html" class="active">Updates</a></li>
+                <li><a href="index.html" class="active">News</a></li>
                 <li><a href="../support/index.html">Support</a></li>
                 <li><a href="../privacy-policy/index.html">Privacy</a></li>
                 <li><a href="../terms/index.html">Terms</a></li>
                 <li><a href="/dev/">Dev</a></li>
-                <li><a href="/teams/">Teams</a></li>
+                <li><a href="/teams/?lang=en">Teams</a></li>
                 <li class="lang-dropdown-wrapper">
-                    <button class="lang-btn" type="button" aria-label="Select Language">
+                    <button class="lang-btn" type="button" aria-label="Select language">
                         <span class="lang-globe">🌐</span>
                         <span>EN</span>
                         <span class="lang-arrow">▾</span>
@@ -224,12 +224,12 @@
     <nav class="mobile-menu" id="mobile-menu">
         <div class="mobile-menu-inner">
             <a href="../index.html">Home</a>
-            <a href="index.html" class="active">Updates</a>
+            <a href="index.html" class="active">News</a>
             <a href="../support/index.html">Support</a>
             <a href="../privacy-policy/index.html">Privacy</a>
             <a href="../terms/index.html">Terms</a>
             <a href="/dev/">Dev</a>
-            <a href="/teams/">Teams</a>
+            <a href="/teams/?lang=en">Teams</a>
             <div class="mobile-menu-divider"></div>
             <div class="mobile-lang-sec">
                 <div class="mobile-lang-title">🌐 Language</div>
@@ -251,12 +251,12 @@
         </div>
 
         <div class="policy-content">
-            <p>Thank you for using RowPilot. Version v1.0.1 has been approved and released on the App Store. Update your app to start using all of the new features and improvements detailed below.</p>
+            <p>Thank you for using RowPilot. Version v1.0.1 is now available on the App Store. Update your app to start using all of the new features and improvements detailed below.</p>
 
             <!-- Added -->
             <div class="flow-card">
                 <h2><span>1. New Features Added</span><button type="button" class="toggle-all-btn" data-expand="Expand all" data-collapse="Collapse all">Expand all</button></h2>
-                <p>The following capabilities have been newly introduced in v1.0.1:</p>
+                <p>Focused on multilingual support, PC browser connectivity, and team operations, the following capabilities have been added:</p>
 
                 <div class="feat-highlight-grid">
                     <div class="feat-highlight-item">
@@ -269,35 +269,35 @@
                     <div class="feat-highlight-item">
                         <h3>Team Web Dashboard Integration</h3>
                         <p>
-                            Connect with the PC/browser Team Web Portal to review team workouts, aggregate stats, and export CSV files. Supports custom team URL slugs, Web coach invitations, and one-tap app login approval via rowpilot://web-auth.
+                            Connect with the PC/tablet browser Team Web Portal to review team workouts, aggregate stats, and export CSV files. Supports custom team URL slugs, Web Coach invitations, and one-tap app login approval.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
                         <h3>Team Workout Filtering &amp; Batch Upload</h3>
                         <p>
-                            Added keyword search (athlete name, notes, boat type) as well as athlete, type, and date-range filters for team workouts. Also added batch uploading to share past unuploaded local records all at once.
+                            Added keyword search (athlete name, notes, boat type) as well as workout type and date-range filters for team workouts. Also added batch uploading to share past unuploaded local records all at once.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>RowMode Motion Sensitivity &amp; Portrait Battery</h3>
+                        <h3>RowMode Motion Sensitivity &amp; Display Settings</h3>
                         <p>
-                            Added a Motion Sensitivity slider (0.03 G to 0.30 G) inside RowMode display settings to fine-tune stroke catch detection, plus a toggle to display battery status in portrait orientation.
+                            Added a Motion Sensitivity slider (0.03 G to 0.30 G) inside RowMode display settings to fine-tune stroke detection thresholds, plus a toggle to display battery status in portrait orientation.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>Nationwide Tide Map &amp; Water Threshold Line</h3>
+                        <h3>Nationwide Tide Map &amp; Reference Water Level</h3>
                         <p>
-                            Added an interactive map view to browse and preview tide curves across 239 observation stations nationwide, along with a configurable reference water-level threshold line on the tide chart.
+                            Added an interactive map view to select pins and preview tide curves across 239 observation stations in Japan, along with a configurable reference water-level line on the tide chart.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
                         <h3>Device Lock Reset &amp; Guided Inquiry Form</h3>
                         <p>
-                            Added admin tools to unlock device authentication for members switching devices, automatic approval polling for pending requests, and a confirmation-backed inquiry screen specifying the target page and element.
+                            Added admin tools to unlock device authentication for members switching phones, automatic approval checks for pending join requests, and a confirmation-backed inquiry form specifying the target screen and element.
                         </p>
                     </div>
                 </div>
@@ -306,48 +306,48 @@
             <!-- Changed & Improved -->
             <div class="flow-card">
                 <h2><span>2. Changes &amp; Improvements</span><button type="button" class="toggle-all-btn" data-expand="Expand all" data-collapse="Collapse all">Expand all</button></h2>
-                <p>Measurement accuracy, Bluetooth reliability, team infrastructure, and data sync have been significantly refined:</p>
+                <p>Measurement accuracy, Bluetooth reliability, team infrastructure, and data synchronization stability have been significantly improved:</p>
 
                 <div class="feat-highlight-grid">
                     <div class="feat-highlight-item">
                         <h3>Unified Cloudflare D1 Team Backend</h3>
                         <p>
-                            Retired legacy CloudKit team management in favor of Cloudflare D1. Organized advanced team settings, invite code regeneration, ownership transfer, team workout deletion, duplicate join-request prevention, offline retry queues, and edge-case handling.
+                            Retired legacy CloudKit team management and unified everything onto Cloudflare D1. Streamlined advanced team settings, invite code regeneration, ownership transfer, team workout deletion, duplicate join-request prevention, offline retry queues, and plan/role edge-case handling.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
                         <h3>PM5 Sync &amp; Interval Progress Display</h3>
                         <p>
-                            Optimized BLE command queue timeouts, polling resilience, and 20-byte CSAFE framing for Variable Intervals. Fixed fixed-interval command framing, prevented stale post-reset notifications, and added per-interval remaining distance/time and interval count indicators.
+                            Optimized BLE command queue timeouts and status polling, and brought split CSAFE frames for Variable Intervals into full specification compliance. Fixed fixed-interval setup, blocked stale post-reset notifications, and added live per-interval remaining distance, remaining time, and completed interval counts.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
                         <h3>RowMode Detection, GPS &amp; End Flow</h3>
                         <p>
-                            Improved dynamic axis selection and auto-start conditions, decoupled real-time GPS accuracy display from distance filtering, renamed Stop to End, enabled save prompts for sessions under 10 seconds, and removed post-exit landscape lock.
+                            Refined dynamic axis selection and auto-start detection, decoupled real-time GPS accuracy display from distance filtering, renamed the finish button to "End", added save confirmation prompts even for sessions under 10 seconds, and removed post-session landscape lock.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>Accurate Averages &amp; Ghost Race Fixes</h3>
+                        <h3>Accurate Session Averages &amp; Ghost Race Fixes</h3>
                         <p>
-                            Saved records now compute true session averages (500m pace, SPM, and watts) instead of instantaneous end-of-session values across RowMode, Practice, and Manager Mode. Ghost Race timeline interpolation and finish detection were also fixed.
+                            Saved workouts now record true whole-session averages (average 500m pace, average SPM, and average watts) rather than final instantaneous values across on-water RowMode, Practice, and Manager Mode. Also fixed Ghost Race start interpolation and finish detection.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
                         <h3>Rigging 2D / 3D View &amp; Presets</h3>
                         <p>
-                            Refined the 3D rigging diagram and touch controls, added bow-mounted wing and straight rigger selection with improved 2D/3D rendering accuracy, and standardized blade presets.
+                            Refined the 3D rigging view and added selection between bow-mounted wing riggers and straight riggers, improved 2D/3D rendering positions and precision, and organized blade presets.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>CSV Export, iCloud Sync &amp; StoreKit Sync</h3>
+                        <h3>CSV Export, iCloud Sync &amp; Subscription Sync</h3>
                         <p>
-                            Ensured lazily-loaded chart points, crew info, and GPS routes are resolved before CSV export and coordinated iCloud sync. Added JWS verification, foreground subscription status refresh, updated pricing, and Organization plan deprecation.
+                            Ensured lazily loaded chart data, crew info, and GPS routes are reliably hydrated and saved during CSV export and iCloud sync. Integrated StoreKit 2 JWS verification, automatic subscription refresh on app foreground, revised pricing, and Organization plan deprecation.
                         </p>
                     </div>
                 </div>
@@ -357,28 +357,28 @@
             <div class="flow-card">
                 <h2><span>3. Pro Plan Feature Expansion &amp; Unchanged Price</span><button type="button" class="toggle-all-btn" data-expand="Expand all" data-collapse="Collapse all">Expand all</button></h2>
                 <p>
-                    Starting with v1.0.1, the following features have been added to the Pro plan while keeping the price unchanged at <strong>¥200 JPY / month</strong>.
+                    Starting with v1.0.1, the following features have been added to the Pro plan at no extra cost, keeping the October 1 revised price unchanged at <strong>¥200 JPY / month</strong>.
                 </p>
 
                 <div class="feat-highlight-grid">
                     <div class="feat-highlight-item">
-                        <h3>Choose Tide Observation Points Nationwide</h3>
+                        <h3>Select Any of 239 Tide Stations Nationwide</h3>
                         <p>
-                            In addition to auto-detecting the nearest station via GPS, select and preview tide curves across 239 observation stations nationwide via map or list.
+                            In addition to auto-displaying the nearest station via GPS, freely pick any of the 239 JMA tide observation stations across Japan from the map or list to check tide times and curves in advance for camps and regattas.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>PM5 Workout Sync for up to 4 Machines</h3>
+                        <h3>Simultaneous Workout Sync for up to 4 PM5s</h3>
                         <p>
-                            Connect up to 4 Concept2 PM5 rowing ergometers simultaneously via Bluetooth and batch-send workout menus for synchronized crew training.
+                            Connect up to 4 Concept2 PM5 rowing ergometers simultaneously and batch-transmit workout menus, enabling synchronized training for a four-person crew on the Pro plan alone.
                         </p>
                     </div>
 
                     <div class="feat-highlight-item">
-                        <h3>Multi-Seat Crew Management</h3>
+                        <h3>Multi-Seat Crew Lineup Management</h3>
                         <p>
-                            In addition to single sculls, create and manage multi-seat crew lineups from doubles to eights.
+                            Alongside single sculls, create and manage multi-seat crew lineups from double sculls through eights.
                         </p>
                     </div>
                 </div>
@@ -386,20 +386,20 @@
 
             <!-- Feature summary -->
             <div class="flow-card">
-                <h2>4. Pro Plan Feature Summary (v1.0.1)</h2>
-                <p>All features included in RowPilot Pro after updating to v1.0.1:</p>
+                <h2>4. Pro Plan Feature Summary After v1.0.1</h2>
+                <p>Updating to v1.0.1 unlocks all of the following capabilities on the Pro plan:</p>
                 <ul class="modal-list pro-summary-list">
-                    <li>All Free features (GPS rate meter, SPM real-time display, unlimited session history, emergency SOS)</li>
-                    <li>PM5 connection up to 4 machines (expanded from 1-on-1 connection in Free; workout sync)</li>
-                    <li>ForceCurve graph display (visualize stroke force curve)</li>
-                    <li>Ghost Race mode (real-time racing against past records)</li>
-                    <li>Choose and preview tide observation points nationwide via map</li>
-                    <li>Multi-seat crew management (Double through Eight)</li>
+                    <li>All Free features (GPS measurement, real-time SPM display, unlimited session history, emergency SOS, etc.)</li>
+                    <li>PM5 connection up to 4 machines (expanded from 1 machine in Free; workout send/receive)</li>
+                    <li>ForceCurve graph display (stroke force curve visualization)</li>
+                    <li>Ghost Race feature (real-time racing against past sessions)</li>
+                    <li>Select &amp; preview any tide observation station nationwide via map</li>
+                    <li>Multi-seat crew lineup &amp; management (Double through Eight)</li>
                 </ul>
             </div>
 
-            <h2 style="margin-top: 3rem;">Contact Support</h2>
-            <p>For questions or feedback regarding this update, please contact support at <a href="mailto:rowpilot.jp@gmail.com"
+            <h2 style="margin-top: 3rem;">Contact</h2>
+            <p>For questions or feedback regarding this update, please reach out to our support desk at <a href="mailto:rowpilot.jp@gmail.com"
                     style="color: #7dd3fc; text-decoration: underline;">rowpilot.jp@gmail.com</a>.</p>
         </div>
     </div>
@@ -412,11 +412,12 @@
             </a>
             <div class="footer-links">
                 <a href="../index.html">Home</a>
-                <a href="../index.html#features">Features</a>
-                <a href="../index.html#premium">Plans</a>
+                <a href="index.html">News</a>
                 <a href="../support/index.html">Support</a>
                 <a href="../privacy-policy/index.html">Privacy Policy</a>
                 <a href="../terms/index.html">Terms of Use</a>
+                <a href="/dev/">Dev</a>
+                <a href="/teams/?lang=en">Teams</a>
             </div>
             <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
         </div>

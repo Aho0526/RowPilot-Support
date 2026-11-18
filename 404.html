@@ -423,8 +423,8 @@
         <span class="status-dot" aria-hidden="true"></span>
         HTTP 404 · Not Found
       </div>
-      <h1>ページが見つかりません</h1>
-      <p class="subtitle">
+      <h1 id="err-title">ページが見つかりません</h1>
+      <p class="subtitle" id="err-subtitle">
         お探しのURLは存在しないか、移動・削除された可能性があります。<br>
         URLをご確認いただくか、以下のリンクからお試しください。
       </p>
@@ -439,9 +439,9 @@
 
     <!-- Moved URL notice (shown when a known redirect path is detected) -->
     <div class="moved-alert" id="moved-alert" role="alert">
-      <div class="moved-alert-header">
+      <div class="moved-alert-header" id="moved-header">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        このURLは移動しました。新しいURLへ移動しますか？
+        <span id="moved-header-text">このURLは移動しました。新しいURLへ移動しますか？</span>
       </div>
       <a href="" class="moved-link" id="moved-link" aria-label="移動先へ">
         <span id="moved-link-text"></span>
@@ -453,19 +453,19 @@
     <div class="actions">
       <a href="/" class="btn btn-primary" id="btn-go-home">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        RowPilot ホームへ
+        <span id="btn-go-home-label">RowPilot ホームへ</span>
       </a>
-      <button class="btn btn-secondary" id="btn-go-back" onclick="history.length>1 ? history.back() : (location.href='/')">
+      <button class="btn btn-secondary" id="btn-go-back" onclick="history.length>1 ? history.back() : (location.href=window.__homeHref||'/')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-        前のページに戻る
+        <span id="btn-go-back-label">前のページに戻る</span>
       </button>
     </div>
 
     <div class="divider" aria-hidden="true"></div>
 
     <!-- Quick links -->
-    <nav class="quick-links" aria-label="クイックリンク">
-      <p class="quick-links-title">よく使うページ</p>
+    <nav class="quick-links" id="quick-links-nav" aria-label="クイックリンク">
+      <p class="quick-links-title" id="quick-links-title">よく使うページ</p>
       <div class="quick-links-grid">
         <a href="/" class="quick-link" id="ql-home">
           <span class="quick-link-icon icon-home" aria-hidden="true">
@@ -490,14 +490,40 @@
   </main>
 
   <script>
-    // Show current URL
     const urlEl = document.getElementById('requested-url');
     urlEl.textContent = location.pathname + location.search;
 
-    // Known redirect map
+    const I18N_404 = {
+      en: { htmlLang: 'en', title: 'Page Not Found', sub: 'The requested URL does not exist or may have been moved or deleted.<br>Please check the URL or use the links below.', moved: 'This URL has moved. Would you like to go to the new URL?', home: 'RowPilot Home', back: 'Go Back', ql: 'Quick Links' },
+      de: { htmlLang: 'de', title: 'Seite nicht gefunden', sub: 'Die angeforderte URL existiert nicht oder wurde verschoben bzw. gelöscht.<br>Bitte überprüfen Sie die Adresse oder nutzen Sie die folgenden Links.', moved: 'Diese URL ist umgezogen. Zur neuen Adresse wechseln?', home: 'Zur RowPilot-Startseite', back: 'Zurück', ql: 'Schnellzugriff' },
+      fr: { htmlLang: 'fr', title: 'Page introuvable', sub: 'L’URL demandée n’existe pas ou a été déplacée ou supprimée.<br>Veuillez vérifier l’adresse ou utiliser les liens ci-dessous.', moved: 'Cette URL a été déplacée. Accéder à la nouvelle adresse ?', home: 'Accueil RowPilot', back: 'Retour', ql: 'Accès rapide' },
+      es: { htmlLang: 'es', title: 'Página no encontrada', sub: 'La URL solicitada no existe o puede haber sido movida o eliminada.<br>Verifique la dirección o utilice los enlaces siguientes.', moved: 'Esta URL se ha trasladado. ¿Desea ir a la nueva dirección?', home: 'Inicio de RowPilot', back: 'Volver', ql: 'Enlaces rápidos' },
+      it: { htmlLang: 'it', title: 'Pagina non trovata', sub: 'L’URL richiesto non esiste o potrebbe essere stato spostato o rimosso.<br>Controlla l’indirizzo o utilizza i link qui sotto.', moved: 'Questo URL è stato spostato. Vuoi andare al nuovo indirizzo?', home: 'Home di RowPilot', back: 'Torna indietro', ql: 'Link rapidi' },
+      zh: { htmlLang: 'zh-CN', title: '找不到页面', sub: '您访问的网址不存在，或者已被移动、删除。<br>请检查网址或通过下方链接返回。', moved: '此网址已迁移，是否前往新地址？', home: '返回 RowPilot 首页', back: '返回上一页', ql: '常用页面' },
+      ko: { htmlLang: 'ko', title: '페이지를 찾을 수 없습니다', sub: '요청하신 URL이 존재하지 않거나 이동·삭제되었을 수 있습니다.<br>주소를 확인하시거나 아래 링크를 이용해 주세요.', moved: '이 URL은 이동되었습니다. 새 주소로 이동하시겠습니까?', home: 'RowPilot 홈으로', back: '이전 페이지로', ql: '자주 찾는 페이지' }
+    };
+
+    const seg0 = (location.pathname.split('/').filter(Boolean)[0] || '').toLowerCase();
+    if (I18N_404[seg0]) {
+      const t = I18N_404[seg0];
+      const homeHref = '/' + seg0 + '/index.html';
+      window.__homeHref = homeHref;
+      document.documentElement.lang = t.htmlLang;
+      document.title = '404 — ' + t.title + ' | RowPilot';
+      document.getElementById('err-title').textContent = t.title;
+      document.getElementById('err-subtitle').innerHTML = t.sub;
+      document.getElementById('moved-header-text').textContent = t.moved;
+      document.getElementById('btn-go-home-label').textContent = t.home;
+      document.getElementById('btn-go-home').href = homeHref;
+      document.getElementById('ql-home').href = homeHref;
+      document.getElementById('btn-go-back-label').textContent = t.back;
+      document.getElementById('quick-links-title').textContent = t.ql;
+      document.getElementById('quick-links-nav').setAttribute('aria-label', t.ql);
+    }
+
     const REDIRECT_MAP = {
-      '/game':                     '/dev/game/',
-      '/game/':                    '/dev/game/',
+      '/game':                     '/dev/edu/game/',
+      '/game/':                    '/dev/edu/game/',
       '/statement-of-purpose':     '/dev/statement-of-purpose/',
       '/statement-of-purpose/':    '/dev/statement-of-purpose/',
       '/document':                 '/dev/document/',
@@ -512,7 +538,6 @@
       alert.style.display = 'block';
       link.href = newPath;
       text.textContent = newPath;
-      // Auto-redirect after 2s
       setTimeout(() => { location.replace(newPath); }, 2000);
     }
   </script>

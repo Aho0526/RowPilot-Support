@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subscription Pricing Revision — RowPilot</title>
+    <title>Anpassung der Abonnementpreise — RowPilot</title>
     <meta name="description"
-        content="RowPilot is significantly reducing monthly subscription prices across all plans and discontinuing the Organization plan.">
+        content="Mitteilung zur Anpassung der Abonnementpreise von RowPilot. Deutliche Preissenkung für die Tarife Pro, Manager, Team und MAX sowie Einstellung des Organization-Tarifs.">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
     <style>
@@ -86,6 +86,12 @@
             font-size: 1.0em;
         }
 
+        .price-arrow {
+            color: var(--text-2);
+            opacity: 0.4;
+            margin: 0 0.4rem;
+        }
+
         .badge-down {
             display: inline-block;
             padding: 0.18rem 0.55rem;
@@ -122,6 +128,34 @@
             font-weight: 700;
             color: var(--text);
         }
+
+        .price-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 1.5rem 0;
+        }
+
+        .price-table-wrap .price-table {
+            margin: 0;
+            min-width: 480px;
+        }
+
+        @media (max-width: 768px) {
+            .flow-card {
+                padding: 1.25rem 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .flow-card h2 {
+                font-size: 1.15rem;
+            }
+            .price-table th,
+            .price-table td {
+                padding: 0.6rem 0.65rem;
+                font-size: 0.85rem;
+                white-space: nowrap;
+            }
+        }
     </style>
 </head>
 
@@ -134,25 +168,25 @@
                 <span class="logo-text">RowPilot</span>
             </a>
             <ul class="nav-links">
-        <li><a href="../index.html">Startseite</a></li>
-        <li><a href="index.html" class="active">Aktuelles</a></li>
-        <li><a href="../support/index.html">Support</a></li>
-        <li><a href="../privacy-policy/index.html">Datenschutz</a></li>
-        <li><a href="../terms/index.html">Nutzungsbedingungen</a></li>
-        <li><a href="/dev/">Dev</a></li>
-        <li><a href="/teams/">Teams</a></li>
-        <li class="lang-dropdown-wrapper">
-          <button class="lang-btn" type="button" aria-label="Select Language">
-            <span class="lang-globe">🌐</span>
-            <span>DE</span>
-            <span class="lang-arrow">▾</span>
-          </button>
-          <div class="lang-dropdown-menu">
-            <a href="../../news/pricing-revision.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/pricing-revision.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="pricing-revision.html" class="lang-dropdown-item active" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/pricing-revision.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/pricing-revision.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/pricing-revision.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/pricing-revision.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/pricing-revision.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
-          </div>
-        </li>
-      </ul>
-            <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+                <li><a href="../index.html">Startseite</a></li>
+                <li><a href="index.html" class="active">Neuigkeiten</a></li>
+                <li><a href="../support/index.html">Support</a></li>
+                <li><a href="../privacy-policy/index.html">Datenschutz</a></li>
+                <li><a href="../terms/index.html">Nutzungsbedingungen</a></li>
+                <li><a href="/dev/">Entwicklung</a></li>
+                <li><a href="/teams/?lang=de">Teams</a></li>
+                <li class="lang-dropdown-wrapper">
+                    <button class="lang-btn" type="button" aria-label="Sprache auswählen">
+                        <span class="lang-globe">🌐</span>
+                        <span>DE</span>
+                        <span class="lang-arrow">▾</span>
+                    </button>
+                    <div class="lang-dropdown-menu">
+                        <a href="../../news/pricing-revision.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/pricing-revision.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="pricing-revision.html" class="lang-dropdown-item active" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/pricing-revision.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/pricing-revision.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/pricing-revision.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/pricing-revision.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/pricing-revision.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                    </div>
+                </li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Menü">
                 <span></span><span></span><span></span>
             </button>
         </div>
@@ -160,99 +194,99 @@
 
     <nav class="mobile-menu" id="mobile-menu">
         <div class="mobile-menu-inner">
-      <a href="../index.html">Startseite</a>
-      <a href="index.html" class="active">Aktuelles</a>
-      <a href="../support/index.html">Support</a>
-      <a href="../privacy-policy/index.html">Datenschutz</a>
-      <a href="../terms/index.html">Nutzungsbedingungen</a>
-      <a href="/dev/">Dev</a>
-      <a href="/teams/">Teams</a>
-      <div class="mobile-menu-divider"></div>
-      <div class="mobile-lang-sec">
-        <div class="mobile-lang-title">🌐 Language / 言語</div>
-        <div class="mobile-lang-grid">
-          <a href="../../news/pricing-revision.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/pricing-revision.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="pricing-revision.html" class="mobile-lang-item active" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/pricing-revision.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/pricing-revision.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/pricing-revision.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/pricing-revision.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/pricing-revision.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+            <a href="../index.html">Startseite</a>
+            <a href="index.html" class="active">Neuigkeiten</a>
+            <a href="../support/index.html">Support</a>
+            <a href="../privacy-policy/index.html">Datenschutz</a>
+            <a href="../terms/index.html">Nutzungsbedingungen</a>
+            <a href="/dev/">Entwicklung</a>
+            <a href="/teams/?lang=de">Teams</a>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-lang-sec">
+                <div class="mobile-lang-title">🌐 Sprache</div>
+                <div class="mobile-lang-grid">
+                    <a href="../../news/pricing-revision.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/pricing-revision.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="pricing-revision.html" class="mobile-lang-item active" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/pricing-revision.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/pricing-revision.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/pricing-revision.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/pricing-revision.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/pricing-revision.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </nav>
+    </nav>
 
     <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
         <div class="policy-hero">
-            <div class="policy-badge">Important Notice</div>
-            <h1>Subscription Pricing Revision</h1>
+            <div class="policy-badge">Wichtige Mitteilung</div>
+            <h1>Anpassung der Abonnementpreise</h1>
             <p class="policy-lead">
-                We are significantly reducing monthly subscription prices across all plans to make RowPilot more
-                accessible. The Organization plan will also be discontinued.
+                Wir senken die monatlichen Gebühren sämtlicher kostenpflichtiger Tarife deutlich und stellen gleichzeitig den Organization-Tarif ein, damit noch mehr Ruderer, Trainer und Vereine RowPilot unkompliziert nutzen können.
             </p>
-            <p class="policy-updated">Price Change Effective Date: October 1, 2026 (automatic)</p>
-            <p class="policy-updated">Organization Plan Discontinued: September 10, 2026 at 23:00 JST</p>
-            <p class="policy-updated">Published: August 22, 2026 &nbsp;/ &nbsp;Last Updated: September 10, 2026</p>
+            <p class="policy-updated">Gültigkeitsdatum der Preissenkung: 1. Oktober 2026 (automatische Umstellung)</p>
+            <p class="policy-updated">Einstellung des Organization-Tarifs: 10. September 2026 um 23:00 Uhr (JST)</p>
+            <p class="policy-updated">Veröffentlicht: 22. August 2026 &nbsp;/&nbsp; Zuletzt aktualisiert: 10. September 2026</p>
         </div>
 
         <div class="policy-content">
-            <p>Thank you for using RowPilot. We are pleased to announce the following revision to our monthly
-                subscription pricing.</p>
+            <p>Vielen Dank, dass Sie RowPilot nutzen. Hiermit informieren wir Sie über die folgende Anpassung unserer monatlichen Abonnementpreise.</p>
 
-            <!-- Pricing Overview -->
+            <!-- Übersicht der Preisanpassung -->
             <div class="flow-card">
-                <h2>Pricing Overview</h2>
-                <p>Monthly subscription fees will be significantly reduced across all plans. New prices will take effect automatically on <strong>October 1, 2026</strong>. The Organization plan was discontinued on <strong>September 10, 2026 at 23:00 JST</strong>.</p>
+                <h2>Übersicht der Preisanpassung</h2>
+                <p>Die monatlichen Gebühren aller kostenpflichtigen Tarife werden spürbar reduziert. Die neuen Preise gelten ab dem <strong>1. Oktober 2026</strong> automatisch. Darüber hinaus wurde der Organization-Tarif zum <strong>10. September 2026 um 23:00 Uhr (JST)</strong> eingestellt.</p>
 
+                <div class="price-table-wrap">
                 <table class="price-table">
                     <thead>
                         <tr>
-                            <th>Plan</th>
-                            <th>Current Price</th>
-                            <th>New Price</th>
-                            <th>Change</th>
+                            <th>Tarif</th>
+                            <th>Bisheriger Preis</th>
+                            <th>Neuer Preis</th>
+                            <th>Änderung</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td><span class="plan-label">Free</span></td>
-                            <td>¥0 JPY / month</td>
-                            <td class="price-new">¥0 JPY / month</td>
-                            <td>No change</td>
+                            <td>¥0 JPY / Monat</td>
+                            <td class="price-new">¥0 JPY / Monat</td>
+                            <td>Unverändert</td>
                         </tr>
                         <tr>
                             <td><span class="plan-label">Pro</span></td>
-                            <td><span class="price-old">¥600 JPY</span> / month</td>
-                            <td class="price-new">¥200 JPY / month</td>
-                            <td><span class="badge-down">↓ ¥400 JPY off</span></td>
+                            <td><span class="price-old">¥600 JPY</span> / Monat</td>
+                            <td class="price-new">¥200 JPY / Monat</td>
+                            <td><span class="badge-down">↓ ¥400 JPY gesenkt</span></td>
                         </tr>
                         <tr>
                             <td><span class="plan-label">Manager</span></td>
-                            <td><span class="price-old">¥900 JPY</span> / month</td>
-                            <td class="price-new">¥500 JPY / month</td>
-                            <td><span class="badge-down">↓ ¥400 JPY off</span></td>
+                            <td><span class="price-old">¥900 JPY</span> / Monat</td>
+                            <td class="price-new">¥500 JPY / Monat</td>
+                            <td><span class="badge-down">↓ ¥400 JPY gesenkt</span></td>
                         </tr>
                         <tr>
                             <td><span class="plan-label">Team</span></td>
-                            <td><span class="price-old">¥3,000 JPY</span> / month</td>
-                            <td class="price-new">¥1,000 JPY / month</td>
-                            <td><span class="badge-down">↓ ¥2,000 JPY off</span></td>
+                            <td><span class="price-old">¥3,000 JPY</span> / Monat</td>
+                            <td class="price-new">¥1,000 JPY / Monat</td>
+                            <td><span class="badge-down">↓ ¥2,000 JPY gesenkt</span></td>
                         </tr>
                         <tr>
                             <td><span class="plan-label">MAX</span></td>
-                            <td><span class="price-old">¥5,000 JPY</span> / month</td>
-                            <td class="price-new">¥3,000 JPY / month</td>
-                            <td><span class="badge-down">↓ ¥2,000 JPY off</span></td>
+                            <td><span class="price-old">¥5,000 JPY</span> / Monat</td>
+                            <td class="price-new">¥3,000 JPY / Monat</td>
+                            <td><span class="badge-down">↓ ¥2,000 JPY gesenkt</span></td>
                         </tr>
                         <tr class="org-row">
                             <td><span class="plan-label">Organization</span></td>
-                            <td><span class="price-old">¥8,000 JPY</span> / month</td>
-                            <td style="color: #ff7f7f; font-weight: 700;">Discontinued</td>
-                            <td><span class="badge-discontinued">Discontinued</span></td>
+                            <td><span class="price-old">¥8,000 JPY</span> / Monat</td>
+                            <td style="color: #ff7f7f; font-weight: 700;">Eingestellt</td>
+                            <td><span class="badge-discontinued">Eingestellt</span></td>
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
 
-            <!-- Organization Plan Discontinuation -->
+            <!-- Einstellung des Organization-Tarifs -->
             <div class="flow-card">
-                <h2>Organization Plan Discontinuation</h2>
-                <p>The Organization plan was discontinued on <strong>September 10, 2026 at 23:00 JST</strong>. Existing Organization plan subscribers will be automatically migrated to the MAX plan.</p>
+                <h2>Einstellung des Organization-Tarifs</h2>
+                <p>Der Organization-Tarif wurde am <strong>10. September 2026 um 23:00 Uhr (JST)</strong> eingestellt. Bestehende Abonnenten des Organization-Tarifs werden automatisch auf den MAX-Tarif umgestellt.</p>
                 <div class="policy-callout"
                     style="background: rgba(255, 179, 71, 0.04); border: 1px solid rgba(255, 179, 71, 0.18); color: var(--gold);">
                     <span class="policy-callout-icon" style="color: var(--gold); margin-top: 0.1rem;">
@@ -264,23 +298,21 @@
                         </svg>
                     </span>
                     <span style="font-size: 0.85rem; line-height: 1.5; display: block;">
-                        <strong>For current Organization plan subscribers:</strong><br>
-                        Migration to the MAX plan is the primary transition path. Detailed migration guidance will be provided separately.
+                        <strong>Hinweis für bisherige Nutzer des Organization-Tarifs:</strong><br>
+                        Im Zuge der Einstellung des Organization-Tarifs erfolgt standardmäßig der Übergang in den MAX-Tarif. Detaillierte Informationen zur Umstellung erhalten betroffene Nutzer gesondert.
                     </span>
                 </div>
             </div>
 
-            <!-- Background -->
+            <!-- Hintergrund der Anpassung -->
             <div class="flow-card">
-                <h2>Background</h2>
-                <p>RowPilot aims to be an app that athletes, coaches, and teams of all levels can use without financial
-                    barriers. This price reduction was implemented with the goal of lowering the cost of entry and
-                    contributing to the growth of the rowing community and the improvement of training environments.</p>
-                <p>We appreciate your continued support of RowPilot.</p>
+                <h2>Hintergrund der Anpassung</h2>
+                <p>Unser Ziel ist es, RowPilot möglichst vielen Athleten, Trainern und Rudervereinen ohne finanzielle Hürden zugänglich zu machen. Mit dieser Preissenkung möchten wir den Einstieg weiter erleichtern und zur Verbreitung des Rudersports sowie zu besseren Trainingsbedingungen beitragen.</p>
+                <p>Wir freuen uns, Sie auch weiterhin beim Training mit RowPilot begleiten zu dürfen.</p>
             </div>
 
-            <h2 style="margin-top: 3rem;">Contact</h2>
-            <p>If you have any questions regarding this announcement, please feel free to contact our support team at <a
+            <h2 style="margin-top: 3rem;">Kontakt</h2>
+            <p>Bei Fragen zu dieser Preisanpassung wenden Sie sich bitte jederzeit gerne an unseren Support unter <a
                     href="mailto:rowpilot.jp@gmail.com" style="color: #7dd3fc; text-decoration: underline;">rowpilot.jp@gmail.com</a>.</p>
         </div>
     </div>
@@ -293,11 +325,12 @@
             </a>
             <div class="footer-links">
                 <a href="../index.html">Startseite</a>
-                <a href="../index.html#features">Funktionen</a>
-                <a href="../index.html#premium">Pläne</a>
+                <a href="index.html">Neuigkeiten</a>
                 <a href="../support/index.html">Support</a>
-                <a href="../privacy-policy/index.html">Datenschutz</a>
+                <a href="../privacy-policy/index.html">Datenschutzerklärung</a>
                 <a href="../terms/index.html">Nutzungsbedingungen</a>
+                <a href="/dev/">Entwicklung</a>
+                <a href="/teams/?lang=de">Teams</a>
             </div>
             <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
         </div>
@@ -314,7 +347,7 @@
             mMenu.classList.remove('open'); toggle.classList.remove('open');
         }));
     </script>
-  <script src="../../js/lang-dropdown.js"></script>
+    <script src="../../js/lang-dropdown.js"></script>
 </body>
 
 </html>

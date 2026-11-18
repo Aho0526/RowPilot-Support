@@ -1,6 +1,10 @@
 teams-router.js
 wrangler.jsonc
 .assetsignore
+.gitignore
+.DS_Store
+**/.DS_Store
 server.py
+scripts/
 document-worker/
 scratch/

@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Plan Migration Policy — RowPilot</title>
-    <meta name="description" content="Detailed information regarding functional restrictions and auto-cleanup policies when migrating or changing team plans on RowPilot.">
+    <title>Ajustement automatique et restrictions lors d'un changement de forfait d'équipe — RowPilot</title>
+    <meta name="description"
+        content="Explications détaillées sur les restrictions fonctionnelles et la procédure d'ajustement automatique applicables lors d'un changement de forfait d'équipe sur RowPilot.">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
     <style>
-        /* Team Policy Specific Styles */
         .flow-card {
             background: var(--bg-2);
             border: 1px solid var(--border);
@@ -20,6 +20,7 @@
             position: relative;
             overflow: hidden;
         }
+
         .flow-card h2 {
             font-family: var(--font-h);
             font-size: 1.35rem;
@@ -33,22 +34,24 @@
             border-bottom: 1px solid var(--border);
             padding-bottom: 0.75rem;
         }
+
         .flow-card h2 .icon {
             font-size: 1.5rem;
         }
-        .flow-card > p {
+
+        .flow-card>p {
             color: var(--text-2);
             font-size: 0.95rem;
             line-height: 1.7;
             margin-bottom: 1.5rem;
         }
 
-        /* Timeline UI */
         .timeline {
             position: relative;
             padding-left: 2rem;
             margin: 1.5rem 0 0.5rem 0.5rem;
         }
+
         .timeline::before {
             content: '';
             position: absolute;
@@ -59,14 +62,17 @@
             background: linear-gradient(to bottom, var(--accent) 0%, var(--accent-2) 100%);
             opacity: 0.25;
         }
+
         .timeline-item {
             position: relative;
             margin-bottom: 2rem;
         }
+
         .timeline-item:last-child {
             margin-bottom: 0;
             background: none;
         }
+
         .timeline-dot {
             position: absolute;
             left: -2rem;
@@ -79,9 +85,11 @@
             border: 3px solid var(--bg-2);
             transition: transform var(--t);
         }
+
         .timeline-item:hover .timeline-dot {
             transform: scale(1.2);
         }
+
         .timeline-badge {
             display: inline-block;
             padding: 0.25rem 0.65rem;
@@ -94,6 +102,7 @@
             border: 1px solid rgba(77, 203, 255, 0.2);
             margin-bottom: 0.6rem;
         }
+
         .timeline-item h3 {
             font-family: var(--font-h);
             font-size: 1.05rem;
@@ -101,11 +110,29 @@
             margin-bottom: 0.4rem;
             color: var(--text);
         }
+
         .timeline-item p {
             color: var(--text-2);
             font-size: 0.9rem;
             line-height: 1.6;
             margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .flow-card {
+                padding: 1.25rem 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .flow-card h2 {
+                font-size: 1.15rem;
+            }
+            .timeline {
+                padding-left: 1.45rem;
+                margin-left: 0.15rem;
+            }
+            .timeline-dot {
+                left: -1.55rem;
+            }
         }
     </style>
 </head>
@@ -119,24 +146,39 @@
                 <span class="logo-text">RowPilot</span>
             </a>
             <ul class="nav-links">
-        <li><a href="../index.html">Accueil</a></li>
-        <li><a href="index.html" class="active">Actualités</a></li>
-        <li><a href="../support/index.html">Support</a></li>
-        <li><a href="../privacy-policy/index.html">Confidentialité</a></li>
-        <li><a href="../terms/index.html">Conditions</a></li>
-        <li><a href="/dev/">Dev</a></li>
-        <li><a href="/teams/">Équipes</a></li>
-        <li class="lang-dropdown-wrapper">
-          <button class="lang-btn" type="button" aria-label="Select Language">
-            <span class="lang-globe">🌐</span>
-            <span>FR</span>
-            <span class="lang-arrow">▾</span>
-          </button>
-          <div class="lang-dropdown-menu">
-            <a href="../../news/team-migration-policy.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="team-migration-policy.html" class="lang-dropdown-item active" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
-          </div>
-        </li>
-      </ul>
+                <li><a href="../index.html">Accueil</a></li>
+                <li><a href="index.html" class="active">Actualités</a></li>
+                <li><a href="../support/index.html">Support</a></li>
+                <li><a href="../privacy-policy/index.html">Confidentialité</a></li>
+                <li><a href="../terms/index.html">Conditions</a></li>
+                <li><a href="/dev/">Dév.</a></li>
+                <li><a href="/teams/?lang=fr">Équipes</a></li>
+                <li class="lang-dropdown-wrapper">
+                    <button class="lang-btn" type="button" aria-label="Choisir la langue">
+                        <span class="lang-globe">🌐</span>
+                        <span>FR</span>
+                        <span class="lang-arrow">▾</span>
+                    </button>
+                    <div class="lang-dropdown-menu">
+                        <a href="../../news/team-migration-policy.html" class="lang-dropdown-item"
+                            data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a
+                            href="../../en/news/team-migration-policy.html" class="lang-dropdown-item"
+                            data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a
+                            href="../../de/news/team-migration-policy.html" class="lang-dropdown-item"
+                            data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a
+                            href="team-migration-policy.html" class="lang-dropdown-item active"
+                            data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a
+                            href="../../es/news/team-migration-policy.html" class="lang-dropdown-item"
+                            data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a
+                            href="../../it/news/team-migration-policy.html" class="lang-dropdown-item"
+                            data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a
+                            href="../../zh/news/team-migration-policy.html" class="lang-dropdown-item"
+                            data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a
+                            href="../../ko/news/team-migration-policy.html" class="lang-dropdown-item"
+                            data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                    </div>
+                </li>
+            </ul>
             <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
                 <span></span><span></span><span></span>
             </button>
@@ -145,125 +187,156 @@
 
     <nav class="mobile-menu" id="mobile-menu">
         <div class="mobile-menu-inner">
-      <a href="../index.html">Accueil</a>
-      <a href="index.html" class="active">Actualités</a>
-      <a href="../support/index.html">Support</a>
-      <a href="../privacy-policy/index.html">Confidentialité</a>
-      <a href="../terms/index.html">Conditions</a>
-      <a href="/dev/">Dev</a>
-      <a href="/teams/">Équipes</a>
-      <div class="mobile-menu-divider"></div>
-      <div class="mobile-lang-sec">
-        <div class="mobile-lang-title">🌐 Language / 言語</div>
-        <div class="mobile-lang-grid">
-          <a href="../../news/team-migration-policy.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/team-migration-policy.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/team-migration-policy.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="team-migration-policy.html" class="mobile-lang-item active" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/team-migration-policy.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/team-migration-policy.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/team-migration-policy.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="../../ko/news/team-migration-policy.html" class="mobile-lang-item" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+            <a href="../index.html">Accueil</a>
+            <a href="index.html" class="active">Actualités</a>
+            <a href="../support/index.html">Support</a>
+            <a href="../privacy-policy/index.html">Confidentialité</a>
+            <a href="../terms/index.html">Conditions</a>
+            <a href="/dev/">Dév.</a>
+            <a href="/teams/?lang=fr">Équipes</a>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-lang-sec">
+                <div class="mobile-lang-title">🌐 Langue</div>
+                <div class="mobile-lang-grid">
+                    <a href="../../news/team-migration-policy.html" class="mobile-lang-item"
+                        data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a
+                        href="../../en/news/team-migration-policy.html" class="mobile-lang-item"
+                        data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a
+                        href="../../de/news/team-migration-policy.html" class="mobile-lang-item"
+                        data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a
+                        href="team-migration-policy.html" class="mobile-lang-item active"
+                        data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a
+                        href="../../es/news/team-migration-policy.html" class="mobile-lang-item"
+                        data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a
+                        href="../../it/news/team-migration-policy.html" class="mobile-lang-item"
+                        data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a
+                        href="../../zh/news/team-migration-policy.html" class="mobile-lang-item"
+                        data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a
+                        href="../../ko/news/team-migration-policy.html" class="mobile-lang-item"
+                        data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </nav>
+    </nav>
 
     <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
         <div class="policy-hero">
-            <div class="policy-badge">Important Notice</div>
-            <h1>Functional Restrictions &amp; Auto-Cleanup<br>on Team Plan Migration</h1>
+            <div class="policy-badge">Avis important</div>
+            <h1>Restrictions fonctionnelles et ajustement automatique<br>lors d'un changement de forfait d'équipe</h1>
             <p class="policy-lead">
-                Starting from v1.0.1, the behavior when a subscription plan is changed after creating a team (such as a downgrade or expiration due to non-renewal), which was previously undefined, has been clarified.<br>A control flow has been officially introduced to prevent unauthorized continuation of use and to properly manage service resources.
+                À compter de la version v1.0.1, le comportement de l'application lorsqu'un abonnement est modifié après la création d'une équipe (rétrogradation ou expiration faute de renouvellement) a été clairement défini.<br>Une procédure de contrôle officielle est désormais appliquée afin d'empêcher toute utilisation non autorisée et de gérer équitablement les ressources du service.
             </p>
-            <p class="policy-updated">Effective Date: July 4, 2026</p>
-            <p class="policy-updated">Implementation Date: July 7, 2026 (v1.0.1 (Build 1))</p>
+            <p class="policy-updated">Date d'application : 4 juillet 2026</p>
+            <p class="policy-updated">Date d'implémentation : 20 juillet 2026 (v1.0.1 (Build 2))</p>
         </div>
 
         <div class="policy-content">
-            <p>On RowPilot, when a change is made to your subscription plan (such as Team, MAX, or Organization), the following synchronization, restriction, and auto-cleanup flow will apply. Please check the details according to your migration type.</p>
+            <p>Dans RowPilot, lorsqu'un changement intervient sur un forfait incluant les fonctionnalités d'équipe (Team, MAX, Organization), les procédures suivantes de synchronisation automatique, de restriction et d'ajustement s'appliquent. Veuillez vérifier les modalités et délais de grâce correspondant au forfait vers lequel vous migrez.</p>
 
-            <!-- 1. Migration to a Higher Team Plan -->
+            <!-- 1. Passage à un forfait d'équipe supérieur -->
             <div class="flow-card">
-                <h2>1. Migration to a Higher Team Plan (e.g., Team → MAX / Org)</h2>
-                <p>When migrating to a plan that supports more members, the plan change is automatically reflected as follows:</p>
-                
+                <h2>1. Passage à un forfait d'équipe supérieur (ex. : Team → MAX / Org)</h2>
+                <p>En cas de passage à un forfait prenant en charge davantage de membres, la modification est prise en compte automatiquement comme suit :</p>
+
                 <div class="timeline">
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">Immediate Sync</div>
-                        <h3>Plan Synchronization &amp; Limit Expansion</h3>
-                        <p>The team's subscription status will automatically synchronize in the background, and the maximum limit for member additions will expand based on the new plan immediately.</p>
+                        <div class="timeline-badge">Synchronisation immédiate</div>
+                        <h3>Synchronisation automatique du forfait et augmentation du plafond</h3>
+                        <p>L'état d'abonnement de l'équipe se synchronise automatiquement en arrière-plan et le nombre maximal de membres autorisés passe instantanément au plafond du nouveau forfait.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. Migration to a Lower Team Plan -->
+            <!-- 2. Passage à un forfait d'équipe inférieur -->
             <div class="flow-card">
-                <h2>2. Migration to a Lower Team Plan (e.g., Org → MAX / Team)</h2>
-                <p>If you change to a team plan with a lower member limit, and the number of existing members at the time of migration exceeds the new plan's limit, the following adjustment flow applies:</p>
-                
+                <h2>2. Passage à un forfait d'équipe inférieur (ex. : Org → MAX / Team)</h2>
+                <p>En cas de passage à un forfait d'équipe doté d'un plafond de membres plus restreint, si le nombre de membres existants dépasse cette nouvelle limite au moment de la bascule, la procédure suivante s'applique :</p>
+
                 <div class="timeline">
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">Day 1 〜 Day 30</div>
-                        <h3>1-Month (30-Day) Grace Period &amp; Warnings</h3>
-                        <p>A 30-day grace period starts immediately after migration. During this period, a warning banner will be displayed at the top of the team management screen, and a <strong>"Deletion Scheduled"</strong> warning label will be shown next to the members targeted for auto-deletion (surplus members with newer creation times, <code>created_at</code>).</p>
-                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">* "Day 1" is not the day you requested the plan change, but the day your <strong>current plan's subscription period ends and the new plan officially takes effect</strong>. Your current member limit applies until the end of the subscription period.</p>
+                        <div class="timeline-badge">Jour 1 à Jour 30</div>
+                        <h3>Délai de grâce d'un mois (30 jours) et affichage d'un avertissement</h3>
+                        <p>Dès la bascule effective, un délai de grâce de 30 jours démarre. Durant cette période, une bannière d'avertissement s'affiche en haut de l'écran de gestion d'équipe et une étiquette <strong>« Retrait prévu »</strong> apparaît en regard des membres susceptibles d'être retirés automatiquement (les membres en surnombre ajoutés le plus récemment).</p>
+                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">* Le « Jour 1 » ne correspond pas à la date de demande du changement d'offre, mais au <strong>jour où la période d'abonnement en cours prend fin et où le nouveau forfait entre effectivement en vigueur</strong>. Le plafond initial reste maintenu jusqu'à l'échéance de la période en cours.</p>
                     </div>
-                    
+
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">During Grace Period</div>
-                        <h3>Manual Adjustment by Administrator</h3>
-                        <p>The admin (owner) can adjust the target members by manually kicking unnecessary members. Once the member count is within the new limit, the warning and scheduled auto-deletion will be cancelled automatically.</p>
+                        <div class="timeline-badge">Pendant le délai de grâce</div>
+                        <h3>Ajustement manuel par l'administrateur</h3>
+                        <p>Pendant le délai de grâce, l'administrateur (propriétaire) peut retirer manuellement les membres qui ne sont plus nécessaires. Dès que l'effectif revient dans la limite du nouveau forfait, l'avertissement et le retrait automatique programmé sont annulés d'office.</p>
                     </div>
-                    
+
                     <div class="timeline-item">
-                        <div class="timeline-dot" style="background: var(--gold); box-shadow: 0 0 12px var(--gold);"></div>
-                        <div class="timeline-badge" style="background: rgba(255, 179, 71, 0.1); color: var(--gold); border: 1px solid rgba(255, 179, 71, 0.2);">After Day 30 (Upon Access)</div>
-                        <h3>Auto-Removal of Exceeding Members</h3>
-                        <p>If the member count is not reduced to the limit by the deadline, surplus members (starting from the newest accounts) will be automatically removed (deleted) from the team upon the next access after the deadline.</p>
+                        <div class="timeline-dot" style="background: var(--gold); box-shadow: 0 0 12px var(--gold);">
+                        </div>
+                        <div class="timeline-badge"
+                            style="background: rgba(255, 179, 71, 0.1); color: var(--gold); border: 1px solid rgba(255, 179, 71, 0.2);">
+                            À partir du Jour 30 (lors de l'accès)</div>
+                        <h3>Retrait automatique des membres en surnombre</h3>
+                        <p>Si le nombre de membres n'a pas été ramené sous le plafond avant l'échéance, les membres en surnombre (en commençant par les ajouts les plus récents) sont automatiquement retirés de l'équipe lors du premier accès suivant l'échéance.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. Migration to a Non-Team Plan -->
+            <!-- 3. Passage à un forfait sans fonction d'équipe -->
             <div class="flow-card">
-                <h2>3. Migration to a Non-Team Plan (e.g., Org → Pro / Free)</h2>
-                <p>If you change to an individual plan (Pro) or a free plan (Free) that does not support team creation, or if your subscription expires, the following archival and data protection measures apply:</p>
-                
+                <h2>3. Passage à un forfait sans fonction d'équipe (ex. : Org → Pro / Free)</h2>
+                <p>En cas de passage à un forfait individuel ne permettant pas la création d'équipe (Pro ou Free) ou d'expiration de l'abonnement, les mesures suivantes de préservation des données et d'archivage s'appliquent :</p>
+
                 <div class="timeline">
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">Day 1 〜 Day 30</div>
-                        <h3>30-Day Archival Grace Period</h3>
-                        <p>A 30-day grace period is set upon plan change detection. During this period, all team features (including uploading workouts) remain fully accessible without restrictions.</p>
-                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">* "Day 1" is not the day you requested the plan change, but the day your <strong>current plan's subscription period ends and the downgrade or expiration officially takes effect</strong>. You can continue using team features until the end of the subscription period.</p>
+                        <div class="timeline-badge">Jour 1 à Jour 30</div>
+                        <h3>Délai de grâce de 30 jours avant archivage</h3>
+                        <p>Après détection du changement de forfait, un délai de grâce de 30 jours avant archivage est accordé. Pendant toute cette période, toutes les fonctionnalités d'équipe, y compris l'envoi de nouvelles séances d'entraînement, restent pleinement accessibles sans aucune restriction.</p>
+                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">* Le « Jour 1 » ne correspond pas au jour de la demande de modification, mais au <strong>jour où la période de validité du forfait d'équipe en cours s'achève et où le passage au nouveau forfait (ou l'expiration) prend effectivement effet</strong>. Vous conservez les fonctionnalités d'origine jusqu'à cette date.</p>
                     </div>
-                    
+
                     <div class="timeline-item">
                         <div class="timeline-dot" style="background: #ff7f7f; box-shadow: 0 0 12px #ff7f7f;"></div>
-                        <div class="timeline-badge" style="background: rgba(255, 127, 127, 0.1); color: #ff7f7f; border: 1px solid rgba(255, 127, 127, 0.2);">After Day 30</div>
-                        <h3>"Archived (Read-Only)" State Applied</h3>
-                        <p>After the 30-day grace period, the team enters an "Archived (Read-Only)" state.</p>
-                        <p>Along with this, the entire team will be frozen, and everyone (including the owner) will be restricted to view-only access.</p>
-                        
-                        <div class="policy-callout" style="background: rgba(255, 127, 127, 0.03); border: 1px solid rgba(255, 127, 127, 0.15); color: #ff7f7f; margin: 1rem 0 0 0; padding: 1rem;">
+                        <div class="timeline-badge"
+                            style="background: rgba(255, 127, 127, 0.1); color: #ff7f7f; border: 1px solid rgba(255, 127, 127, 0.2);">
+                            Après le Jour 30</div>
+                        <h3>Passage à l'état « Archivée (lecture seule) »</h3>
+                        <p>À l'expiration du délai de grâce de 30 jours, l'équipe passe à l'état « Archivée (lecture seule) ».</p>
+                        <p>L'équipe est alors gelée et l'ensemble des membres (y compris le propriétaire) ne dispose plus que d'un accès en consultation.</p>
+
+                        <div class="policy-callout"
+                            style="background: rgba(255, 127, 127, 0.03); border: 1px solid rgba(255, 127, 127, 0.15); color: #ff7f7f; margin: 1rem 0 0 0; padding: 1rem;">
                             <span class="policy-callout-icon" style="color: #ff7f7f; margin-top: 0.1rem;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-alert-triangle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="feather feather-alert-triangle">
+                                    <path
+                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                    </path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
                             </span>
                             <span style="font-size: 0.85rem; line-height: 1.5; display: block;">
-                                <strong>Archived Restrictions:</strong><br>
-                                • Team members are blocked from uploading new workouts. A message: "This team is archived. Please contact the team administrator." will be displayed.<br>
-                                • Team management controls (e.g., name changes, code regeneration, member approvals, role changes) are locked (disabled).<br>
-                                • <strong>Team data is NOT deleted:</strong> Unlike the previous policy, team data and workout records will not be deleted, and you can access and browse past records at any time.
+                                <strong>Restrictions durant l'archivage :</strong><br>
+                                • L'envoi de nouvelles séances d'entraînement est bloqué et le message suivant s'affiche : « Cette équipe est archivée (suspendue). Veuillez contacter l'administrateur de l'équipe. »<br>
+                                • Toutes les actions d'administration (changement de nom de l'équipe, régénération du code d'invitation, approbation de membres, modification des rôles, etc.) sont verrouillées.<br>
+                                • <strong>Les données de l'équipe ne sont pas supprimées :</strong> contrairement à l'ancien fonctionnement, l'équipe et ses données ne sont pas effacées à l'échéance ; l'historique des séances passées reste consultable à tout moment.
                             </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <p style="margin-top: 2rem; padding: 1.25rem; background: rgba(77, 203, 255, 0.05); border: 1px solid rgba(77, 203, 255, 0.15); border-radius: 12px; font-size: 0.925rem; line-height: 1.6; color: var(--text);">
-                <strong>Cancelling the Archived State:</strong><br>
-                If you re-register or migrate to a plan that supports team creation during the 30-day grace period or after archiving, the archived state will be cancelled automatically, returning the team to normal operation.
+            <p
+                style="margin-top: 2rem; padding: 1.25rem; background: rgba(77, 203, 255, 0.05); border: 1px solid rgba(77, 203, 255, 0.15); border-radius: 12px; font-size: 0.925rem; line-height: 1.6; color: var(--text);">
+                <strong>Levée de l'état d'archivage :</strong><br>
+                Si vous souscrivez de nouveau un forfait doté des fonctionnalités d'équipe pendant le délai de grâce de 30 jours ou après le passage en archivage, l'état d'archivage est levé automatiquement et votre équipe redevient immédiatement utilisable normalement.
             </p>
 
-            <h2 style="margin-top: 3rem;">Inquiries</h2>
-            <p>If you have any questions regarding this policy change or the handling of data after plan migration, please feel free to contact our support desk at <a href="mailto:rowpilot.jp@gmail.com">rowpilot.jp@gmail.com</a>.</p>
+            <h2 style="margin-top: 3rem;">Contact</h2>
+            <p>Pour toute question concernant cette évolution ou la gestion des données lors d'un changement de forfait, n'hésitez pas à contacter notre support (<a
+                    href="mailto:rowpilot.jp@gmail.com">rowpilot.jp@gmail.com</a>).</p>
         </div>
     </div>
 
@@ -275,13 +348,14 @@
             </a>
             <div class="footer-links">
                 <a href="../index.html">Accueil</a>
-                <a href="../index.html#features">Fonctionnalités</a>
-                <a href="../index.html#premium">Tarifs</a>
+                <a href="index.html">Actualités</a>
                 <a href="../support/index.html">Support</a>
                 <a href="../privacy-policy/index.html">Confidentialité</a>
                 <a href="../terms/index.html">Conditions</a>
+                <a href="/dev/">Dév.</a>
+                <a href="/teams/?lang=fr">Équipes</a>
             </div>
-            <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+            <div class="footer-copy">&copy; 2026 RowPilot. Tous droits réservés.</div>
         </div>
     </footer>
 
@@ -296,7 +370,7 @@
             mMenu.classList.remove('open'); toggle.classList.remove('open');
         }));
     </script>
-  <script src="../../js/lang-dropdown.js"></script>
+    <script src="../../js/lang-dropdown.js"></script>
 </body>
 
 </html>

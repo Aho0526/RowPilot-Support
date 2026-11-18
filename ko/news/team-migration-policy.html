@@ -4,12 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Plan Migration Policy — RowPilot</title>
-    <meta name="description" content="Detailed information regarding functional restrictions and auto-cleanup policies when migrating or changing team plans on RowPilot.">
+    <title>팀 요금제 변경 시 자동 정리 및 기능 제한 안내 — RowPilot</title>
+    <meta name="description" content="RowPilot의 팀 요금제 변경에 따른 기능 제한 및 자동 정리 사양에 관한 상세 설명 페이지입니다.">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
     <style>
-        /* Team Policy Specific Styles */
         .flow-card {
             background: var(--bg-2);
             border: 1px solid var(--border);
@@ -20,6 +19,7 @@
             position: relative;
             overflow: hidden;
         }
+
         .flow-card h2 {
             font-family: var(--font-h);
             font-size: 1.35rem;
@@ -33,22 +33,24 @@
             border-bottom: 1px solid var(--border);
             padding-bottom: 0.75rem;
         }
+
         .flow-card h2 .icon {
             font-size: 1.5rem;
         }
-        .flow-card > p {
+
+        .flow-card>p {
             color: var(--text-2);
             font-size: 0.95rem;
             line-height: 1.7;
             margin-bottom: 1.5rem;
         }
 
-        /* Timeline UI */
         .timeline {
             position: relative;
             padding-left: 2rem;
             margin: 1.5rem 0 0.5rem 0.5rem;
         }
+
         .timeline::before {
             content: '';
             position: absolute;
@@ -59,14 +61,17 @@
             background: linear-gradient(to bottom, var(--accent) 0%, var(--accent-2) 100%);
             opacity: 0.25;
         }
+
         .timeline-item {
             position: relative;
             margin-bottom: 2rem;
         }
+
         .timeline-item:last-child {
             margin-bottom: 0;
             background: none;
         }
+
         .timeline-dot {
             position: absolute;
             left: -2rem;
@@ -79,9 +84,11 @@
             border: 3px solid var(--bg-2);
             transition: transform var(--t);
         }
+
         .timeline-item:hover .timeline-dot {
             transform: scale(1.2);
         }
+
         .timeline-badge {
             display: inline-block;
             padding: 0.25rem 0.65rem;
@@ -94,6 +101,7 @@
             border: 1px solid rgba(77, 203, 255, 0.2);
             margin-bottom: 0.6rem;
         }
+
         .timeline-item h3 {
             font-family: var(--font-h);
             font-size: 1.05rem;
@@ -101,11 +109,29 @@
             margin-bottom: 0.4rem;
             color: var(--text);
         }
+
         .timeline-item p {
             color: var(--text-2);
             font-size: 0.9rem;
             line-height: 1.6;
             margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .flow-card {
+                padding: 1.25rem 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .flow-card h2 {
+                font-size: 1.15rem;
+            }
+            .timeline {
+                padding-left: 1.45rem;
+                margin-left: 0.15rem;
+            }
+            .timeline-dot {
+                left: -1.55rem;
+            }
         }
     </style>
 </head>
@@ -119,25 +145,25 @@
                 <span class="logo-text">RowPilot</span>
             </a>
             <ul class="nav-links">
-        <li><a href="../index.html">홈</a></li>
-        <li><a href="index.html" class="active">공지사항</a></li>
-        <li><a href="../support/index.html">고객지원</a></li>
-        <li><a href="../privacy-policy/index.html">개인정보처리방침</a></li>
-        <li><a href="../terms/index.html">이용약관</a></li>
-        <li><a href="/dev/">개발</a></li>
-        <li><a href="/teams/">팀</a></li>
-        <li class="lang-dropdown-wrapper">
-          <button class="lang-btn" type="button" aria-label="Select Language">
-            <span class="lang-globe">🌐</span>
-            <span>KO</span>
-            <span class="lang-arrow">▾</span>
-          </button>
-          <div class="lang-dropdown-menu">
-            <a href="../../news/team-migration-policy.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="team-migration-policy.html" class="lang-dropdown-item active" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
-          </div>
-        </li>
-      </ul>
-            <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+                <li><a href="../index.html">홈</a></li>
+                <li><a href="index.html" class="active">공지사항</a></li>
+                <li><a href="../support/index.html">고객지원</a></li>
+                <li><a href="../privacy-policy/index.html">개인정보처리방침</a></li>
+                <li><a href="../terms/index.html">이용약관</a></li>
+                <li><a href="/dev/">개발</a></li>
+                <li><a href="/teams/?lang=ko">팀</a></li>
+                <li class="lang-dropdown-wrapper">
+                    <button class="lang-btn" type="button" aria-label="언어 선택">
+                        <span class="lang-globe">🌐</span>
+                        <span>KO</span>
+                        <span class="lang-arrow">▾</span>
+                    </button>
+                    <div class="lang-dropdown-menu">
+                        <a href="../../news/team-migration-policy.html" class="lang-dropdown-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/team-migration-policy.html" class="lang-dropdown-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="team-migration-policy.html" class="lang-dropdown-item active" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                    </div>
+                </li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="메뉴">
                 <span></span><span></span><span></span>
             </button>
         </div>
@@ -145,125 +171,141 @@
 
     <nav class="mobile-menu" id="mobile-menu">
         <div class="mobile-menu-inner">
-      <a href="../index.html">홈</a>
-      <a href="index.html" class="active">공지사항</a>
-      <a href="../support/index.html">고객지원</a>
-      <a href="../privacy-policy/index.html">개인정보처리방침</a>
-      <a href="../terms/index.html">이용약관</a>
-      <a href="/dev/">개발</a>
-      <a href="/teams/">팀</a>
-      <div class="mobile-menu-divider"></div>
-      <div class="mobile-lang-sec">
-        <div class="mobile-lang-title">🌐 Language / 言語</div>
-        <div class="mobile-lang-grid">
-          <a href="../../news/team-migration-policy.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/team-migration-policy.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/team-migration-policy.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/team-migration-policy.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/team-migration-policy.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/team-migration-policy.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/team-migration-policy.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="team-migration-policy.html" class="mobile-lang-item active" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+            <a href="../index.html">홈</a>
+            <a href="index.html" class="active">공지사항</a>
+            <a href="../support/index.html">고객지원</a>
+            <a href="../privacy-policy/index.html">개인정보처리방침</a>
+            <a href="../terms/index.html">이용약관</a>
+            <a href="/dev/">개발</a>
+            <a href="/teams/?lang=ko">팀</a>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-lang-sec">
+                <div class="mobile-lang-title">🌐 언어</div>
+                <div class="mobile-lang-grid">
+                    <a href="../../news/team-migration-policy.html" class="mobile-lang-item" data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a href="../../en/news/team-migration-policy.html" class="mobile-lang-item" data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a href="../../de/news/team-migration-policy.html" class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a href="../../fr/news/team-migration-policy.html" class="mobile-lang-item" data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a href="../../es/news/team-migration-policy.html" class="mobile-lang-item" data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a href="../../it/news/team-migration-policy.html" class="mobile-lang-item" data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a href="../../zh/news/team-migration-policy.html" class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a href="team-migration-policy.html" class="mobile-lang-item active" data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </nav>
+    </nav>
 
     <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
         <div class="policy-hero">
-            <div class="policy-badge">Important Notice</div>
-            <h1>Functional Restrictions &amp; Auto-Cleanup<br>on Team Plan Migration</h1>
+            <div class="policy-badge">중요 공지</div>
+            <h1>팀 요금제 변경에 따른 기능 제한<br>및 자동 정리 사양에 대하여</h1>
             <p class="policy-lead">
-                Starting from v1.0.1, the behavior when a subscription plan is changed after creating a team (such as a downgrade or expiration due to non-renewal), which was previously undefined, has been clarified.<br>A control flow has been officially introduced to prevent unauthorized continuation of use and to properly manage service resources.
+                v1.0.1부터 이전에는 명확히 정의되지 않았던 팀 생성 후 정기 구독 요금제 변경(다운그레이드 및 미갱신으로 인한 만료 등) 시의 동작이 명확해졌습니다.<br>부정한 이용 지속을 방지하고 서비스 정원을 적절히 관리하기 위한 제어 절차가 정식으로 도입되었습니다.
             </p>
-            <p class="policy-updated">Effective Date: July 4, 2026</p>
-            <p class="policy-updated">Implementation Date: July 7, 2026 (v1.0.1 (Build 1))</p>
+            <p class="policy-updated">적용일: 2026년 7월 4일</p>
+            <p class="policy-updated">구현일: 2026년 7월 20일 (v1.0.1 빌드 2)</p>
         </div>
 
         <div class="policy-content">
-            <p>On RowPilot, when a change is made to your subscription plan (such as Team, MAX, or Organization), the following synchronization, restriction, and auto-cleanup flow will apply. Please check the details according to your migration type.</p>
+            <p>RowPilot에서는 팀 기능이 포함된 요금제(Team, MAX, Organization)의 계약 내용이 변경될 때 아래와 같은 자동 동기화 및 제한·자동 정리 절차가 적용됩니다. 전환되는 요금제에 따라 필요한 조치와 유예 기간이 다르므로 확인해 주세요.</p>
 
-            <!-- 1. Migration to a Higher Team Plan -->
             <div class="flow-card">
-                <h2>1. Migration to a Higher Team Plan (e.g., Team → MAX / Org)</h2>
-                <p>When migrating to a plan that supports more members, the plan change is automatically reflected as follows:</p>
-                
+                <h2>1. 상위 팀 요금제로의 전환 (예: Team → MAX / Org)</h2>
+                <p>더 많은 멤버를 지원하는 상위 요금제로 전환한 경우, 다음과 같이 자동으로 요금제 변경이 반영됩니다.</p>
+
                 <div class="timeline">
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">Immediate Sync</div>
-                        <h3>Plan Synchronization &amp; Limit Expansion</h3>
-                        <p>The team's subscription status will automatically synchronize in the background, and the maximum limit for member additions will expand based on the new plan immediately.</p>
+                        <div class="timeline-badge">즉시 동기화</div>
+                        <h3>요금제 정원 자동 동기화 및 상한 인원 확대</h3>
+                        <p>팀의 구독 상태가 백그라운드에서 자동으로 동기화되며, 추가 가능한 최대 멤버 수가 새 요금제의 규정 상한치로 즉시 확대됩니다.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. Migration to a Lower Team Plan -->
             <div class="flow-card">
-                <h2>2. Migration to a Lower Team Plan (e.g., Org → MAX / Team)</h2>
-                <p>If you change to a team plan with a lower member limit, and the number of existing members at the time of migration exceeds the new plan's limit, the following adjustment flow applies:</p>
-                
+                <h2>2. 하위 팀 요금제로의 전환 (예: Org → MAX / Team)</h2>
+                <p>멤버 상한이 더 적은 팀 요금제로 변경했을 때 전환 시점에 기존 멤버 수가 새 요금제의 상한을 초과하고 있는 경우, 다음과 같은 조정·자동 정리 절차가 적용됩니다.</p>
+
                 <div class="timeline">
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">Day 1 〜 Day 30</div>
-                        <h3>1-Month (30-Day) Grace Period &amp; Warnings</h3>
-                        <p>A 30-day grace period starts immediately after migration. During this period, a warning banner will be displayed at the top of the team management screen, and a <strong>"Deletion Scheduled"</strong> warning label will be shown next to the members targeted for auto-deletion (surplus members with newer creation times, <code>created_at</code>).</p>
-                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">* "Day 1" is not the day you requested the plan change, but the day your <strong>current plan's subscription period ends and the new plan officially takes effect</strong>. Your current member limit applies until the end of the subscription period.</p>
+                        <div class="timeline-badge">1일 차 ~ 30일 차</div>
+                        <h3>1개월(30일간) 유예 기간 및 경고 표시</h3>
+                        <p>전환 완료와 동시에 30일간의 유예 기간이 시작됩니다. 유예 기간 중에는 팀 관리 화면 상단에 경고 배너가 표시되며, 자동 삭제 대상 후보가 되는 멤버(추가 일시가 최근인 초과 멤버) 옆에 <strong>‘삭제 예정’</strong> 경고 라벨이 명시됩니다.
+                        </p>
+                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">※ ‘1일 차’는 요금제 변경을 신청한 날이 아니라, <strong>현재 요금제의 구독 기간이 종료되고 새 요금제로 전환이 완료된 날</strong>을 의미합니다. 구독 기간 종료 시까지는 기존 멤버 상한이 그대로 적용됩니다.
+                        </p>
                     </div>
-                    
+
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">During Grace Period</div>
-                        <h3>Manual Adjustment by Administrator</h3>
-                        <p>The admin (owner) can adjust the target members by manually kicking unnecessary members. Once the member count is within the new limit, the warning and scheduled auto-deletion will be cancelled automatically.</p>
+                        <div class="timeline-badge">유예 기간 중</div>
+                        <h3>관리자의 수동 조정 (멤버 정리)</h3>
+                        <p>관리자(소유자)는 유예 기간 중에 불필요한 멤버를 직접 내보내어 인원을 조정할 수 있습니다. 멤버 수가 새로운 상한 이내로 줄어들면 경고 및 자동 정리 예약은 자동으로 해제됩니다.</p>
                     </div>
-                    
+
                     <div class="timeline-item">
-                        <div class="timeline-dot" style="background: var(--gold); box-shadow: 0 0 12px var(--gold);"></div>
-                        <div class="timeline-badge" style="background: rgba(255, 179, 71, 0.1); color: var(--gold); border: 1px solid rgba(255, 179, 71, 0.2);">After Day 30 (Upon Access)</div>
-                        <h3>Auto-Removal of Exceeding Members</h3>
-                        <p>If the member count is not reduced to the limit by the deadline, surplus members (starting from the newest accounts) will be automatically removed (deleted) from the team upon the next access after the deadline.</p>
+                        <div class="timeline-dot" style="background: var(--gold); box-shadow: 0 0 12px var(--gold);">
+                        </div>
+                        <div class="timeline-badge"
+                            style="background: rgba(255, 179, 71, 0.1); color: var(--gold); border: 1px solid rgba(255, 179, 71, 0.2);">
+                            30일 경과 후 접속 시</div>
+                        <h3>초과 멤버 자동 제외 (삭제)</h3>
+                        <p>기한까지 멤버 수가 상한 이하로 줄어들지 않은 경우, 기한 경과 후 팀에 접속할 때 초과된 멤버(생성 일시가 최근인 초과 인원)가 자동으로 팀에서 제외(삭제)됩니다.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. Migration to a Non-Team Plan -->
             <div class="flow-card">
-                <h2>3. Migration to a Non-Team Plan (e.g., Org → Pro / Free)</h2>
-                <p>If you change to an individual plan (Pro) or a free plan (Free) that does not support team creation, or if your subscription expires, the following archival and data protection measures apply:</p>
-                
+                <h2>3. 팀 기능이 없는 요금제로의 전환 (예: Org → Pro / Free)</h2>
+                <p>팀 생성 기능이 없는 개인용 요금제(Pro)나 무료 요금제(Free)로 전환하거나 정기 구독이 만료된 경우에는 아래와 같이 데이터 보호 및 아카이브 전환 조치가 적용됩니다.</p>
+
                 <div class="timeline">
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
-                        <div class="timeline-badge">Day 1 〜 Day 30</div>
-                        <h3>30-Day Archival Grace Period</h3>
-                        <p>A 30-day grace period is set upon plan change detection. During this period, all team features (including uploading workouts) remain fully accessible without restrictions.</p>
-                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">* "Day 1" is not the day you requested the plan change, but the day your <strong>current plan's subscription period ends and the downgrade or expiration officially takes effect</strong>. You can continue using team features until the end of the subscription period.</p>
+                        <div class="timeline-badge">1일 차 ~ 30일 차</div>
+                        <h3>30일간의 아카이브 유예 기간</h3>
+                        <p>요금제 전환이 감지된 후 30일간의 아카이브 유예 기간이 설정됩니다. 이 기간 내에는 신규 훈련 기록 업로드를 포함하여 모든 팀 기능을 제한 없이 계속 이용하실 수 있습니다.</p>
+                        <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 0.5rem;">※ ‘1일 차’는 요금제 변경을 신청한 날이 아니라, <strong>현재 팀 요금제의 계약 기간(유효 기간)이 종료되고 실제로 새 요금제로 전환(또는 만료)된 날</strong>을 의미합니다. 계약 기간 종료 시까지는 기존 요금제의 기능을 그대로 이용하실 수 있습니다.
+                        </p>
                     </div>
-                    
+
                     <div class="timeline-item">
                         <div class="timeline-dot" style="background: #ff7f7f; box-shadow: 0 0 12px #ff7f7f;"></div>
-                        <div class="timeline-badge" style="background: rgba(255, 127, 127, 0.1); color: #ff7f7f; border: 1px solid rgba(255, 127, 127, 0.2);">After Day 30</div>
-                        <h3>"Archived (Read-Only)" State Applied</h3>
-                        <p>After the 30-day grace period, the team enters an "Archived (Read-Only)" state.</p>
-                        <p>Along with this, the entire team will be frozen, and everyone (including the owner) will be restricted to view-only access.</p>
-                        
-                        <div class="policy-callout" style="background: rgba(255, 127, 127, 0.03); border: 1px solid rgba(255, 127, 127, 0.15); color: #ff7f7f; margin: 1rem 0 0 0; padding: 1rem;">
+                        <div class="timeline-badge"
+                            style="background: rgba(255, 127, 127, 0.1); color: #ff7f7f; border: 1px solid rgba(255, 127, 127, 0.2);">
+                            30일 경과 후</div>
+                        <h3>‘아카이브(열람 전용)’ 상태 적용</h3>
+                        <p>30일간의 유예 기간이 종료되면 팀은 ‘아카이브(열람 전용)’ 상태로 전환됩니다.</p>
+                        <p>이에 따라 팀 전체가 동결되며 전원(소유자 포함)이 열람만 가능한 상태로 변경됩니다.</p>
+
+                        <div class="policy-callout"
+                            style="background: rgba(255, 127, 127, 0.03); border: 1px solid rgba(255, 127, 127, 0.15); color: #ff7f7f; margin: 1rem 0 0 0; padding: 1rem;">
                             <span class="policy-callout-icon" style="color: #ff7f7f; margin-top: 0.1rem;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-alert-triangle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="feather feather-alert-triangle">
+                                    <path
+                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                    </path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
                             </span>
                             <span style="font-size: 0.85rem; line-height: 1.5; display: block;">
-                                <strong>Archived Restrictions:</strong><br>
-                                • Team members are blocked from uploading new workouts. A message: "This team is archived. Please contact the team administrator." will be displayed.<br>
-                                • Team management controls (e.g., name changes, code regeneration, member approvals, role changes) are locked (disabled).<br>
-                                • <strong>Team data is NOT deleted:</strong> Unlike the previous policy, team data and workout records will not be deleted, and you can access and browse past records at any time.
+                                <strong>아카이브 상태에서의 제한 사항:</strong><br>
+                                • 신규 워크아웃(훈련 기록) 업로드가 차단되며, 화면에 “이 팀은 아카이브(정지) 상태입니다. 팀 관리자에게 확인해 주세요.”라는 안내가 표시됩니다.<br>
+                                • 팀 이름 변경, 초대 코드 재발급, 멤버 승인, 역할 변경 등 모든 관리 작업이 잠금(비활성화) 처리됩니다.<br>
+                                • <strong>팀 데이터는 삭제되지 않습니다:</strong> 이전 사양과 달리 기한이 만료되어도 팀이나 데이터가 삭제되지 않으며, 과거 훈련 기록 열람은 언제든지 가능합니다.
                             </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <p style="margin-top: 2rem; padding: 1.25rem; background: rgba(77, 203, 255, 0.05); border: 1px solid rgba(77, 203, 255, 0.15); border-radius: 12px; font-size: 0.925rem; line-height: 1.6; color: var(--text);">
-                <strong>Cancelling the Archived State:</strong><br>
-                If you re-register or migrate to a plan that supports team creation during the 30-day grace period or after archiving, the archived state will be cancelled automatically, returning the team to normal operation.
+            <p
+                style="margin-top: 2rem; padding: 1.25rem; background: rgba(77, 203, 255, 0.05); border: 1px solid rgba(77, 203, 255, 0.15); border-radius: 12px; font-size: 0.925rem; line-height: 1.6; color: var(--text);">
+                <strong>아카이브 상태 해제에 대하여:</strong><br>
+                30일간의 유예 기간 중 또는 아카이브 전환 후에 다시 팀 생성 기능을 보유한 요금제에 재가입하거나 팀 요금제로 전환한 경우, 팀의 아카이브 상태는 자동으로 해제되어 정상적으로 다시 이용하실 수 있습니다.
             </p>
 
-            <h2 style="margin-top: 3rem;">Inquiries</h2>
-            <p>If you have any questions regarding this policy change or the handling of data after plan migration, please feel free to contact our support desk at <a href="mailto:rowpilot.jp@gmail.com">rowpilot.jp@gmail.com</a>.</p>
+            <h2 style="margin-top: 3rem;">문의하기</h2>
+            <p>본 사양 변경에 관한 질문이나 요금제 변경에 따른 데이터 처리에 대해 궁금하신 점이 있으시면 고객지원 창구(<a
+                    href="mailto:rowpilot.jp@gmail.com">rowpilot.jp@gmail.com</a>)로 편하게 문의해 주세요.</p>
         </div>
     </div>
 
@@ -275,11 +317,12 @@
             </a>
             <div class="footer-links">
                 <a href="../index.html">홈</a>
-                <a href="../index.html#features">기능</a>
-                <a href="../index.html#premium">요금제</a>
+                <a href="index.html">공지사항</a>
                 <a href="../support/index.html">고객지원</a>
                 <a href="../privacy-policy/index.html">개인정보처리방침</a>
                 <a href="../terms/index.html">이용약관</a>
+                <a href="/dev/">개발</a>
+                <a href="/teams/?lang=ko">팀</a>
             </div>
             <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
         </div>
@@ -296,7 +339,7 @@
             mMenu.classList.remove('open'); toggle.classList.remove('open');
         }));
     </script>
-  <script src="../../js/lang-dropdown.js"></script>
+    <script src="../../js/lang-dropdown.js"></script>
 </body>
 
 </html>

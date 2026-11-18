@@ -167,6 +167,14 @@ const STAGES = [
             baselineContent: '// loading...',
             isSystemFile: true
         },
+        'editor/stage-solver.js': {
+            name: 'stage-solver.js',
+            type: 'javascript',
+            content: '// loading...',
+            defaultContent: '// loading...',
+            baselineContent: '// loading...',
+            isSystemFile: true
+        },
         'tests/share-codec.test.js': {
             name: 'share-codec.test.js',
             type: 'javascript',
@@ -327,7 +335,11 @@ const STAGES = [
         window.__editorApi = {
             getStages: () => parseStagesSafely(),
             checkAutoBuilderRedirect: () => handleAutoBuilderRedirectIfNeeded(),
-            getBuilderState: () => builderState
+            openStageBuilderModal: (idx) => openStageBuilderModal(idx),
+            getBuilderState: () => builderState,
+            buildStageObjectFromBuilder: (blind) => buildStageObjectFromBuilder(blind),
+            testCurrentBuilderStageSync: () => testCurrentBuilderStageSync(),
+            autoSolveBuilderStageSync: () => autoSolveBuilderStageSync()
         };
 
         renderTabs();
@@ -555,6 +567,7 @@ const STAGES = [
             'editor/sticky-scroll.css': './sticky-scroll.css',
             'editor/docs-content.js': './docs-content.js',
             'editor/share-ui.js': './share-ui.js',
+            'editor/stage-solver.js': './stage-solver.js',
             'tests/share-codec.test.js': '../tests/share-codec.test.js',
             'CHANGES_MEMO.md': '../CHANGES_MEMO.md',
             'how-to-play.html': '../how-to-play.html',
@@ -3206,6 +3219,8 @@ const STAGES = [
             }))),
             startRow: builderState.startRow,
             goalRow: builderState.goalRow,
+            maxBlocks: builderState.maxBlocks,
+            targetBlocks: builderState.targetBlocks,
             hasCeiling: Boolean(builderState.hasCeiling),
             switchDirs: [...builderState.switchDirs],
             activeSwitchSlot: builderState.activeSwitchSlot,
@@ -3229,6 +3244,16 @@ const STAGES = [
         })));
         builderState.startRow = snap.startRow;
         builderState.goalRow = snap.goalRow;
+        if (typeof snap.maxBlocks === 'number') {
+            builderState.maxBlocks = snap.maxBlocks;
+            const maxInput = document.getElementById('builder-input-maxblocks');
+            if (maxInput) maxInput.value = String(snap.maxBlocks);
+        }
+        if (typeof snap.targetBlocks === 'number') {
+            builderState.targetBlocks = snap.targetBlocks;
+            const targetInput = document.getElementById('builder-input-targetblocks');
+            if (targetInput) targetInput.value = String(snap.targetBlocks);
+        }
         builderState.hasCeiling = snap.hasCeiling;
         builderState.switchDirs = [...snap.switchDirs];
         builderState.activeSwitchSlot = snap.activeSwitchSlot;
@@ -3491,6 +3516,20 @@ const STAGES = [
                 closeBuilder();
             });
         }
+
+        const btnTestSol = document.getElementById('btn-builder-test-solution');
+        if (btnTestSol) {
+            btnTestSol.addEventListener('click', () => {
+                runBuilderTestCurrentStage();
+            });
+        }
+
+        const btnAutoSolve = document.getElementById('btn-builder-auto-solve');
+        if (btnAutoSolve) {
+            btnAutoSolve.addEventListener('click', () => {
+                runBuilderAutoSolveMinimum();
+            });
+        }
     }
 
     function openStageBuilderModal(targetStageIdx = null, directStageObj = null) {
@@ -3619,8 +3658,331 @@ const STAGES = [
         if (titleInput) titleInput.value = builderState.title;
         if (subInput) subInput.value = builderState.subtitle;
 
+        resetBuilderSolverUI();
         updateBuilderToolOptionPanels();
         renderBuilderBoard();
+    }
+
+    // ── 盤面エディタ クリア可否テスト & 最小ブロック数解の自動探索連携 ──
+    let builderSolverRunning = false;
+    let builderSolverCancelRequested = false;
+    let builderSolverJobId = 0;
+
+    function buildStageObjectFromBuilder(forceBlindSolution = false) {
+        const forbidden = [];
+        const gimmicks = [];
+        const lasers = [];
+        const solution = [];
+
+        for (let r = 0; r < 5; r++) {
+            for (let c = 0; c < 5; c++) {
+                const cell = builderState.cells[r][c];
+                if (cell.forbidden) {
+                    forbidden.push({ col: c, row: r });
+                }
+                if (cell.dashDir || cell.stepDir || cell.switchData || cell.purpleBorder) {
+                    const gObj = { col: c, row: r };
+                    if (cell.dashDir) {
+                        gObj.type = 'dash';
+                        gObj.dir = cell.dashDir;
+                    } else if (cell.stepDir) {
+                        gObj.type = 'step';
+                        gObj.dir = cell.stepDir;
+                        gObj.steps = 1;
+                    } else if (cell.switchData) {
+                        gObj.type = 'switch';
+                        gObj.dirs = [...cell.switchData.dirs];
+                        gObj.moveType = cell.switchData.moveType === 'dash' ? 'dash' : 'step';
+                    }
+                    if (cell.purpleBorder) {
+                        gObj.purpleBorder = true;
+                    }
+                    gimmicks.push(gObj);
+                }
+                if (Array.isArray(cell.lasers) && cell.lasers.length > 0) {
+                    cell.lasers.forEach(side => {
+                        lasers.push({ col: c, row: r, side });
+                    });
+                }
+                if (!forceBlindSolution && cell.solution) {
+                    solution.push({ col: c, row: r });
+                }
+            }
+        }
+
+        return {
+            id: Number(builderState.id) || 1,
+            title: builderState.title || `ステージ ${builderState.id}`,
+            subtitle: builderState.subtitle || '',
+            maxBlocks: Math.max(1, Number(builderState.maxBlocks) || 6),
+            targetBlocks: Math.max(1, Number(builderState.targetBlocks) || Number(builderState.maxBlocks) || 6),
+            startRow: typeof builderState.startRow === 'number' ? builderState.startRow : 3,
+            goalRow: typeof builderState.goalRow === 'number' ? builderState.goalRow : 1,
+            hasCeiling: Boolean(builderState.hasCeiling),
+            forbidden,
+            gimmicks,
+            lasers,
+            solution
+        };
+    }
+
+    function setBuilderSolverStatus(state, message) {
+        const statusEl = document.getElementById('builder-solver-status');
+        if (!statusEl) return;
+        statusEl.setAttribute('data-state', state || 'idle');
+        statusEl.textContent = message || '';
+    }
+
+    function updateBuilderSolverButtonsUI() {
+        const btnTest = document.getElementById('btn-builder-test-solution');
+        const btnSolve = document.getElementById('btn-builder-auto-solve');
+        if (btnTest) {
+            btnTest.disabled = builderSolverRunning;
+        }
+        if (btnSolve) {
+            if (builderSolverRunning) {
+                btnSolve.textContent = '計算を中断';
+                btnSolve.classList.add('is-running');
+            } else {
+                btnSolve.textContent = '最小ブロック解を自動計算';
+                btnSolve.classList.remove('is-running');
+            }
+        }
+    }
+
+    function resetBuilderSolverUI() {
+        builderSolverJobId++;
+        builderSolverRunning = false;
+        builderSolverCancelRequested = true;
+        updateBuilderSolverButtonsUI();
+        setBuilderSolverStatus('idle', '作っている盤面がクリア可能かの判定や、最小手数の solution 自動セットが行えます');
+    }
+
+    function applyComputedSolutionToBuilder(res) {
+        if (!res || !res.found) return false;
+        pushBuilderUndo();
+
+        for (let r = 0; r < 5; r++) {
+            for (let c = 0; c < 5; c++) {
+                builderState.cells[r][c].solution = false;
+            }
+        }
+        if (Array.isArray(res.solution)) {
+            res.solution.forEach(p => {
+                if (p && p.row >= 0 && p.row < 5 && p.col >= 0 && p.col < 5) {
+                    builderState.cells[p.row][p.col].solution = true;
+                }
+            });
+        }
+
+        if (res.blockCount > 0) {
+            builderState.targetBlocks = res.blockCount;
+            const targetInput = document.getElementById('builder-input-targetblocks');
+            if (targetInput) targetInput.value = String(builderState.targetBlocks);
+        }
+        if (res.exceededOriginalMaxBlocks && res.recommendedMaxBlocks > builderState.maxBlocks) {
+            builderState.maxBlocks = res.recommendedMaxBlocks;
+            const maxInput = document.getElementById('builder-input-maxblocks');
+            if (maxInput) maxInput.value = String(builderState.maxBlocks);
+        }
+
+        renderBuilderBoard();
+        return true;
+    }
+
+    function testCurrentBuilderStageSync() {
+        if (!window.HakoStageSolver) {
+            return { ok: false, message: 'ソルバーモジュールが読み込まれていません' };
+        }
+        const stageObj = buildStageObjectFromBuilder(false);
+        const curValidation = window.HakoStageSolver.validateSolution(stageObj);
+        if (curValidation.ok) {
+            const blindStage = buildStageObjectFromBuilder(true);
+            const minRes = window.HakoStageSolver.findMinimumSolutionSync(blindStage, { allowExceedMaxBlocks: false });
+            let msg = `クリア可能：現在の正解配置 ${curValidation.blockCount}個 でゴール到達を確認しました`;
+            if (minRes && minRes.found && minRes.blockCount < curValidation.blockCount) {
+                msg += ` — さらに少ない最小 ${minRes.blockCount}個 の解も存在します`;
+            }
+            setBuilderSolverStatus('ok', msg);
+            return { ok: true, currentOk: true, blockCount: curValidation.blockCount, minBlockCount: minRes && minRes.found ? minRes.blockCount : curValidation.blockCount, message: msg };
+        }
+
+        // 正解未配置または現在の正解配置で失敗する場合、盤面自体がクリア可能かも検証する
+        const blindStage = buildStageObjectFromBuilder(true);
+        const minRes = window.HakoStageSolver.findMinimumSolutionSync(blindStage, { allowExceedMaxBlocks: true });
+
+        if (curValidation.reasonCode === 'empty_solution') {
+            if (minRes.found) {
+                if (minRes.exceededOriginalMaxBlocks) {
+                    const msg = `条件付きクリア可能：現在の maxBlocks ${stageObj.maxBlocks}個 では不足しますが、最小 ${minRes.blockCount}個 あればクリア可能です`;
+                    setBuilderSolverStatus('warn', msg);
+                    return { ok: true, currentOk: false, stageSolvable: true, minBlockCount: minRes.blockCount, exceededMax: true, message: msg };
+                }
+                const msg = `クリア可能：この盤面は最小 ${minRes.blockCount}個 のブロックでゴールできます — 右の自動計算ボタンで solution に流し込めます`;
+                setBuilderSolverStatus('ok', msg);
+                return { ok: true, currentOk: false, stageSolvable: true, minBlockCount: minRes.blockCount, exceededMax: false, message: msg };
+            }
+            const msg = `クリア不可能：${minRes.message}`;
+            setBuilderSolverStatus('error', msg);
+            return { ok: false, currentOk: false, stageSolvable: false, message: msg };
+        }
+
+        // 現在の配置に不備がある場合
+        if (minRes.found) {
+            const extra = minRes.exceededOriginalMaxBlocks
+                ? `盤面自体は maxBlocks を ${minRes.blockCount} に増やせばクリア可能です`
+                : `盤面自体は最小 ${minRes.blockCount}個 でクリア可能です`;
+            const msg = `現在の配置はNG：${curValidation.message} — ${extra}`;
+            setBuilderSolverStatus('warn', msg);
+            return { ok: false, currentOk: false, stageSolvable: true, minBlockCount: minRes.blockCount, message: msg };
+        }
+
+        const msg = `クリア不可能：${curValidation.message} — 他のどの配置でもゴールできません`;
+        setBuilderSolverStatus('error', msg);
+        return { ok: false, currentOk: false, stageSolvable: false, message: msg };
+    }
+
+    function autoSolveBuilderStageSync() {
+        if (!window.HakoStageSolver) {
+            return { found: false, message: 'ソルバーモジュールが読み込まれていません' };
+        }
+        const origMax = Math.max(1, Number(builderState.maxBlocks) || 6);
+        const blindStage = buildStageObjectFromBuilder(true);
+        const res = window.HakoStageSolver.findMinimumSolutionSync(blindStage, { allowExceedMaxBlocks: true });
+        if (res.found) {
+            applyComputedSolutionToBuilder(res);
+            const msg = res.exceededOriginalMaxBlocks
+                ? `上限調整して反映完了：元の maxBlocks ${origMax}個 では不足するため ${res.recommendedMaxBlocks}個 に引き上げ、最小 ${res.blockCount}個 の solution をセットしました`
+                : `自動計算完了：最小 ${res.blockCount}個 の正解配置 solution を盤面にセットしました — 検証 ${res.evaluatedCount} 通り`;
+            setBuilderSolverStatus(res.exceededOriginalMaxBlocks ? 'warn' : 'ok', msg);
+            return { ...res, message: msg };
+        }
+        const msg = `クリア不可能：${res.message}`;
+        setBuilderSolverStatus('error', msg);
+        return { ...res, message: msg };
+    }
+
+    async function runBuilderTestCurrentStage() {
+        if (builderSolverRunning) return;
+        if (!window.HakoStageSolver) {
+            setBuilderSolverStatus('error', 'ソルバーモジュールが読み込まれていません');
+            return;
+        }
+        const myJob = ++builderSolverJobId;
+        builderSolverRunning = true;
+        builderSolverCancelRequested = false;
+        updateBuilderSolverButtonsUI();
+        setBuilderSolverStatus('running', '盤面のクリア可能性を検証しています...');
+
+        try {
+            const stageObj = buildStageObjectFromBuilder(false);
+            const curValidation = window.HakoStageSolver.validateSolution(stageObj);
+            const blindStage = buildStageObjectFromBuilder(true);
+            const minRes = await window.HakoStageSolver.findMinimumSolutionAsync(blindStage, {
+                allowExceedMaxBlocks: !curValidation.ok,
+                isCancelled: () => builderSolverCancelRequested || myJob !== builderSolverJobId,
+                onProgress: (p) => {
+                    if (myJob === builderSolverJobId) {
+                        setBuilderSolverStatus('running', `盤面検証中... ブロック数 ${p.currentK}個 を調査中 — ${p.evaluatedCount} 通り評価`);
+                    }
+                }
+            });
+
+            if (myJob !== builderSolverJobId) return;
+
+            if (minRes.aborted) {
+                setBuilderSolverStatus('idle', '検証を中断しました');
+                return;
+            }
+
+            if (curValidation.ok) {
+                let msg = `クリア可能：現在の正解配置 ${curValidation.blockCount}個 でゴール到達を確認しました`;
+                if (minRes.found && minRes.blockCount < curValidation.blockCount) {
+                    msg += ` — さらに少ない最小 ${minRes.blockCount}個 の解も存在します`;
+                }
+                setBuilderSolverStatus('ok', msg);
+                showToast(`クリア可能を確認しました`);
+            } else if (curValidation.reasonCode === 'empty_solution') {
+                if (minRes.found) {
+                    if (minRes.exceededOriginalMaxBlocks) {
+                        setBuilderSolverStatus('warn', `条件付きクリア可能：現在の maxBlocks ${stageObj.maxBlocks}個 では不足しますが、最小 ${minRes.blockCount}個 あればクリア可能です`);
+                    } else {
+                        setBuilderSolverStatus('ok', `クリア可能：この盤面は最小 ${minRes.blockCount}個 のブロックでゴールできます — 右の自動計算ボタンで solution に流し込めます`);
+                    }
+                } else {
+                    setBuilderSolverStatus('error', `クリア不可能：${minRes.message}`);
+                }
+            } else if (minRes.found) {
+                const extra = minRes.exceededOriginalMaxBlocks
+                    ? `盤面自体は maxBlocks を ${minRes.blockCount} に増やせばクリア可能です`
+                    : `盤面自体は最小 ${minRes.blockCount}個 でクリア可能です`;
+                setBuilderSolverStatus('warn', `現在の配置はNG：${curValidation.message} — ${extra}`);
+            } else {
+                setBuilderSolverStatus('error', `クリア不可能：${curValidation.message} — 他のどの配置でもゴールできません`);
+            }
+        } finally {
+            if (myJob === builderSolverJobId) {
+                builderSolverRunning = false;
+                updateBuilderSolverButtonsUI();
+            }
+        }
+    }
+
+    async function runBuilderAutoSolveMinimum() {
+        if (builderSolverRunning) {
+            builderSolverCancelRequested = true;
+            return;
+        }
+        if (!window.HakoStageSolver) {
+            setBuilderSolverStatus('error', 'ソルバーモジュールが読み込まれていません');
+            return;
+        }
+
+        const myJob = ++builderSolverJobId;
+        const origMax = Math.max(1, Number(builderState.maxBlocks) || 6);
+        builderSolverRunning = true;
+        builderSolverCancelRequested = false;
+        updateBuilderSolverButtonsUI();
+        setBuilderSolverStatus('running', '最小ブロック数の正解配置を探索しています...');
+
+        try {
+            const blindStage = buildStageObjectFromBuilder(true);
+            const res = await window.HakoStageSolver.findMinimumSolutionAsync(blindStage, {
+                allowExceedMaxBlocks: true,
+                isCancelled: () => builderSolverCancelRequested || myJob !== builderSolverJobId,
+                onProgress: (p) => {
+                    if (myJob === builderSolverJobId) {
+                        setBuilderSolverStatus('running', `自動計算中... ブロック ${p.currentK}個 のパターンを探索中 — ${p.evaluatedCount} 通り評価`);
+                    }
+                }
+            });
+
+            if (myJob !== builderSolverJobId) return;
+
+            if (res.aborted) {
+                setBuilderSolverStatus('idle', '最小ブロック解の自動計算を中断しました');
+                return;
+            }
+
+            if (res.found) {
+                applyComputedSolutionToBuilder(res);
+                if (res.exceededOriginalMaxBlocks) {
+                    setBuilderSolverStatus('warn', `上限調整して反映完了：元の maxBlocks ${origMax}個 では不足するため ${res.recommendedMaxBlocks}個 に引き上げ、最小 ${res.blockCount}個 の solution をセットしました`);
+                    showToast(`最小 ${res.blockCount}個 の解をセットし maxBlocks を更新しました`);
+                } else {
+                    setBuilderSolverStatus('ok', `自動計算完了：最小 ${res.blockCount}個 の正解配置 solution を盤面にセットしました — 検証 ${res.evaluatedCount} 通り`);
+                    showToast(`最小 ${res.blockCount}個 の正解配置を盤面に流し込みました`);
+                }
+            } else {
+                setBuilderSolverStatus('error', `クリア不可能：${res.message}`);
+                showToast('クリア可能な配置が見つかりませんでした');
+            }
+        } finally {
+            if (myJob === builderSolverJobId) {
+                builderSolverRunning = false;
+                updateBuilderSolverButtonsUI();
+            }
+        }
     }
 
     function applyToolToBuilderCell(row, col) {

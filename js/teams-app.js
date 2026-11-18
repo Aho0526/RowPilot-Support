@@ -30,11 +30,15 @@
 
   // ── DOM Helpers ──
   const $ = (id) => document.getElementById(id);
+  const tr = (key, fallback, vars) =>
+    window.TeamsI18n && typeof window.TeamsI18n.t === "function"
+      ? window.TeamsI18n.t(key, vars) || fallback
+      : fallback;
 
   function setLoadingMessage(message) {
     const el = $("loading-status-text");
     if (el) {
-      el.textContent = message || "読み込み中...";
+      el.textContent = message || tr("loading", "読み込み中...");
     }
   }
 
@@ -87,11 +91,11 @@
       lower.includes("networkerror") ||
       lower.includes("network request failed")
     ) {
-      return "通信エラーが発生しました。通信環境をご確認のうえ、時間をおいて再度お試しください。";
+      return tr("errNetwork", "通信エラーが発生しました。通信環境をご確認のうえ、時間をおいて再度お試しください。");
     }
 
     if (/\bunauthorized\b|\bforbidden\b/.test(lower)) {
-      return "認証が無効になっているか、この操作を行う権限がありません。再ログインしても解決しない場合は、サポートページからお問い合わせください。";
+      return tr("errAuth", "認証が無効になっているか、この操作を行う権限がありません。再ログインしても解決しない場合は、サポートページからお問い合わせください。");
     }
 
     if (
@@ -99,14 +103,14 @@
       lower.includes("unexpected token") ||
       lower.includes("json")
     ) {
-      return "サーバーとの通信中にエラーが発生しました。時間をおいて再度お試しいただくか、解決しない場合はサポートページからお問い合わせください。";
+      return tr("errServer", "サーバーとの通信中にエラーが発生しました。時間をおいて再度お試しいただくか、解決しない場合はサポートページからお問い合わせください。");
     }
 
     if (raw && !/^[A-Za-z0-9\s.,:;!?\-_()]+$/.test(raw)) {
       return raw;
     }
 
-    return fallback || "エラーが発生しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。";
+    return fallback || tr("errGeneric", "エラーが発生しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。");
   }
 
   // ── Token / API Fetch Helper ──
@@ -287,9 +291,9 @@
   }
 
   function workoutTypeLabel(type) {
-    if (isErgType(type)) return "エルゴ";
-    if (isOnWaterType(type)) return "水上";
-    return type || "その他";
+    if (isErgType(type)) return tr("optErg", "エルゴ");
+    if (isOnWaterType(type)) return tr("optWater", "水上");
+    return type || tr("catOther", "その他");
   }
 
   // ── Route Extraction ──
@@ -298,7 +302,7 @@
     const qSlug = params.get("slug");
     if (qSlug && qSlug.trim()) return qSlug.trim();
 
-    const m = location.pathname.match(/^\/teams\/([^\/]+)\/?$/);
+    const m = location.pathname.match(/^(?:\/(?:en|de|fr|es|it|zh|ko))?\/teams\/([^\/]+)\/?$/i);
     if (m && m[1] && m[1] !== "index.html") {
       return decodeURIComponent(m[1]);
     }
@@ -307,10 +311,12 @@
 
   function buildTeamUrl(key) {
     const safeKey = String(key || "").trim();
+    const curLang = window.TeamsI18n && typeof window.TeamsI18n.getLang === "function" ? window.TeamsI18n.getLang() : "ja";
+    const langSuffix = curLang && curLang !== "ja" ? `?lang=${encodeURIComponent(curLang)}` : "";
     if (!safeKey || !/^[a-zA-Z0-9_-]+$/.test(safeKey)) {
-      return "/teams/";
+      return `/teams/${langSuffix}`;
     }
-    return `/teams/${encodeURIComponent(safeKey)}/`;
+    return `/teams/${encodeURIComponent(safeKey)}/${langSuffix}`;
   }
 
   function extractSlugInput(value) {
@@ -333,6 +339,9 @@
 
   // ── Initialization ──
   async function init() {
+    if (window.TeamsI18n && typeof window.TeamsI18n.applyStaticDomTranslations === "function") {
+      window.TeamsI18n.applyStaticDomTranslations();
+    }
     bindUIEvents();
     state.slugOrId = extractSlugOrId();
 
@@ -343,13 +352,13 @@
     // ルートポータル (/teams/) の場合
     if (!state.slugOrId) {
       document.title = "Team Web — RowPilot";
-      setLoadingMessage("認証中...");
+      setLoadingMessage(tr("authenticating", "認証中..."));
       try {
         const meRes = await apiFetch("/web/me");
         if (meRes.ok) {
           const me = await meRes.json();
           if (me.authenticated && (me.team_slug || me.team_id)) {
-            setLoadingMessage("認証中... チームページへ移動しています");
+            setLoadingMessage(tr("authenticatingRedirect", "認証中... チームページへ移動しています"));
             location.assign(buildTeamUrl(me.team_slug || me.team_id));
             return;
           }
@@ -365,7 +374,7 @@
     }
 
     // チーム指定あり: 公開情報取得
-    setLoadingMessage("読み込み中...");
+    setLoadingMessage(tr("loading", "読み込み中..."));
     try {
       const pubRes = await apiFetch(`/web/teams/${encodeURIComponent(state.slugOrId)}/public`);
       if (!pubRes.ok) {
@@ -375,8 +384,8 @@
       state.publicTeam = await pubRes.json();
       document.title = `${state.publicTeam.name} — RowPilot Team Web`;
     } catch {
-      $("not-found-title").textContent = "サーバーに接続できません";
-      $("not-found-desc").textContent = "通信環境をご確認のうえ、再度ページを読み込んでください。解決しない場合はサポートページからお問い合わせください。";
+      $("not-found-title").textContent = tr("serverConnErrTitle", "サーバーに接続できません");
+      $("not-found-desc").textContent = tr("serverConnErrDesc", "通信環境をご確認のうえ、再度ページを読み込んでください。解決しない場合はサポートページからお問い合わせください。");
       showOnlyView("view-not-found");
       return;
     }
@@ -384,13 +393,13 @@
     // パスワード設定・リセットリンクの場合
     if (inviteToken && (mode === "setup" || mode === "reset")) {
       $("setup-team-pill").textContent = state.publicTeam.name;
-      $("setup-title").textContent = mode === "reset" ? "新しいパスワードの設定" : "Webコーチ パスワード設定";
+      $("setup-title").textContent = mode === "reset" ? tr("resetPwTitle", "新しいパスワードの設定") : tr("setupTitle", "Webコーチ パスワード設定");
       showOnlyView("view-set-password");
       return;
     }
 
     // 既存セッションでダッシュボード取得を試みる
-    setLoadingMessage("認証中...");
+    setLoadingMessage(tr("authenticating", "認証中..."));
     const loaded = await tryLoadDashboard();
     if (!loaded) {
       enterAuthView();
@@ -431,16 +440,20 @@
     const isTeamSpecific = Boolean(state.slugOrId && state.publicTeam);
     if (isTeamSpecific) {
       $("auth-team-name").textContent = state.publicTeam.name;
-      $("portal-heading").textContent = `${state.publicTeam.name} の練習記録へログイン`;
-      $("portal-desc").textContent =
-        "Webコーチ用アカウントのメールアドレス・パスワード、または RowPilot アプリのワンタップ／QR／6桁コードでログインできます。";
+      $("portal-heading").textContent = tr("portalTeamHeading", `${state.publicTeam.name} の練習記録へログイン`, { team: state.publicTeam.name });
+      $("portal-desc").textContent = tr(
+        "portalTeamDesc",
+        "Webコーチ用アカウントのメールアドレス・パスワード、または RowPilot アプリのワンタップ・QR・6桁コードでログインできます。"
+      );
       $("form-slug-jump").hidden = true;
       $("portal-showcase").hidden = true;
     } else {
       $("auth-team-name").textContent = "RowPilot Team Web";
-      $("portal-heading").textContent = "チームの練習記録を、ブラウザの大画面で。";
-      $("portal-desc").textContent =
-        "RowPilot Team・MAXプランの練習データを、PC・タブレット・Android端末から確認できます。ログインすると所属チームの専用ページへ自動で移動します。";
+      $("portal-heading").textContent = tr("portalHeading", "チームの練習記録を、ブラウザの大画面で。");
+      $("portal-desc").textContent = tr(
+        "portalDesc",
+        "RowPilot Team・MAXプランの練習データを、PC・タブレット・Android端末から確認できます。ログインすると所属チームの専用ページへ自動で移動します。"
+      );
       $("form-slug-jump").hidden = false;
       $("portal-showcase").hidden = false;
     }
@@ -464,7 +477,7 @@
     stopAppPolling();
     $("app-auth-error").hidden = true;
     $("app-code-display").textContent = "--- ---";
-    $("polling-status-text").textContent = "認証コードを発行しています...";
+    $("polling-status-text").textContent = tr("pollingIssuing", "認証コードを発行しています...");
 
     try {
       const payload = state.slugOrId ? { slug_or_id: state.slugOrId } : {};
@@ -477,7 +490,7 @@
         if (res.status === 401 || res.status === 403) {
           throw new Error(data.error || "Unauthorized");
         }
-        throw new Error(data.error || "認証コードの発行に失敗しました。時間をおいて再度お試しください。");
+        throw new Error(data.error || tr("errGeneric", "認証コードの発行に失敗しました。時間をおいて再度お試しください。"));
       }
 
       state.appSessionId = data.session_id;
@@ -488,7 +501,7 @@
       $("app-code-display").textContent = formattedCode;
       const deepLink = `rowpilot://web-auth?code=${encodeURIComponent(data.code)}`;
       $("btn-open-app").href = deepLink;
-      $("polling-status-text").textContent = "アプリでの承認を待機しています...";
+      $("polling-status-text").textContent = tr("pollingWaiting", "アプリでの承認を待機しています...");
 
       renderQRCode(deepLink);
       startCountdown();
@@ -496,10 +509,10 @@
     } catch (err) {
       $("app-auth-error").textContent = formatUserErrorMessage(
         err,
-        "認証コードの発行に失敗しました。通信環境をご確認のうえ再度お試しください。"
+        tr("errGeneric", "認証コードの発行に失敗しました。通信環境をご確認のうえ再度お試しください。")
       );
       $("app-auth-error").hidden = false;
-      $("polling-status-text").textContent = "コードを再発行してください";
+      $("polling-status-text").textContent = tr("pollingReissue", "コードを再発行してください");
     }
   }
 
@@ -556,10 +569,11 @@
       const remainSec = Math.max(0, Math.floor((state.appExpiresAtMs - Date.now()) / 1000));
       const m = String(Math.floor(remainSec / 60)).padStart(2, "0");
       const s = String(remainSec % 60).padStart(2, "0");
-      $("app-code-timer").textContent = remainSec > 0 ? `有効期限 ${m}:${s}` : "期限切れ";
+      $("app-code-timer").textContent =
+        remainSec > 0 ? `${tr("expiresPrefix", "有効期限")} ${m}:${s}` : tr("expired", "期限切れ");
       if (remainSec <= 0) {
         stopAppPolling();
-        $("polling-status-text").textContent = "有効期限が切れました。コードを再発行してください。";
+        $("polling-status-text").textContent = tr("pollingReissue", "コードを再発行してください");
       }
     };
     update();
@@ -576,7 +590,7 @@
         if (data.status === "approved") {
           stopAppPolling();
           saveFallbackTokenIfNeeded(data.web_token);
-          $("polling-status-text").textContent = "承認されました！読み込み中...";
+          $("polling-status-text").textContent = tr("loading", "読み込み中...");
           const targetKey = data.team_slug || data.team_id;
           if (!state.slugOrId || (targetKey && state.slugOrId !== data.team_slug && state.slugOrId !== data.team_id)) {
             if (targetKey) {
@@ -586,12 +600,12 @@
           }
           const ok = await tryLoadDashboard();
           if (!ok) {
-            $("app-auth-error").textContent = "ダッシュボードの読み込みに失敗しました。再読み込みしてください。";
+            $("app-auth-error").textContent = tr("errServer", "ダッシュボードの読み込みに失敗しました。再読み込みしてください。");
             $("app-auth-error").hidden = false;
           }
         } else if (data.status === "expired") {
           stopAppPolling();
-          $("polling-status-text").textContent = "有効期限が切れました。コードを再発行してください。";
+          $("polling-status-text").textContent = tr("pollingReissue", "コードを再発行してください");
         }
       } catch {
         // 一時的なネットワークエラーは無視してリトライ
@@ -627,20 +641,20 @@
 
     const exportBtn = $("btn-export-csv");
     if (team.has_csv_export) {
-      exportBtn.textContent = "CSVエクスポート";
+      exportBtn.textContent = tr("btnExportCsv", "CSVエクスポート");
       exportBtn.disabled = false;
-      exportBtn.title = "現在の絞り込み条件でCSVをダウンロード";
+      exportBtn.title = tr("btnExportCsv", "CSVエクスポート");
     } else {
-      exportBtn.textContent = "CSVエクスポート (MAX限定)";
+      exportBtn.textContent = `${tr("btnExportCsv", "CSVエクスポート")} (MAX)`;
       exportBtn.disabled = false;
-      exportBtn.title = "MAXプラン以上で開放されます";
+      exportBtn.title = "MAX";
     }
 
     // 選手セレクトボックス更新
     const athleteSelect = $("filter-athlete");
     const prevAthlete = athleteSelect.value;
     clearElement(athleteSelect);
-    athleteSelect.appendChild(createEl("option", "", "すべての選手")).value = "";
+    athleteSelect.appendChild(createEl("option", "", tr("optAllAthletes", "すべての選手"))).value = "";
 
     const seenAthletes = new Map();
     for (const m of members) {
@@ -1568,7 +1582,7 @@
         if (!input) return;
         const show = input.type === "password";
         input.type = show ? "text" : "password";
-        btn.textContent = show ? "隠す" : "表示";
+        btn.textContent = show ? tr("btnHide", "隠す") : tr("btnShow", "表示");
       });
     });
 
@@ -1578,13 +1592,13 @@
       e.preventDefault();
       const key = extractSlugInput($("slug-jump-input").value);
       if (!key || !/^[a-zA-Z0-9_-]+$/.test(key)) {
-        showToast("専用URLのチーム識別子（半角英数字・ハイフン・アンダースコア）を入力してください");
+        showToast(tr("slugToastInvalid", "専用URLのチーム識別子（半角英数字・ハイフン・アンダースコア）を入力してください"));
         return;
       }
       const submitBtn = $("form-slug-jump").querySelector("button[type='submit']");
       if (submitBtn) submitBtn.disabled = true;
 
-      setLoadingMessage("認証中...");
+      setLoadingMessage(tr("authenticating", "認証中..."));
       showOnlyView("view-loading");
 
       let resolvedKey = key;
@@ -1592,7 +1606,7 @@
         const res = await apiFetch(`/web/teams/${encodeURIComponent(key)}/public`);
         if (res.status === 404) {
           showOnlyView("view-auth");
-          showToast("指定された専用URLのチームが見つかりません");
+          showToast(tr("notFoundTitle", "指定された専用URLのチームが見つかりません"));
           return;
         }
         if (res.ok) {
@@ -1617,7 +1631,7 @@
         showToast(
           formatUserErrorMessage(
             err,
-            "通信エラーが発生しました。通信環境をご確認のうえ再度お試しください。"
+            tr("errNetwork", "通信エラーが発生しました。通信環境をご確認のうえ再度お試しください。")
           )
         );
         return;
@@ -1625,7 +1639,7 @@
         if (submitBtn) submitBtn.disabled = false;
       }
       showOnlyView("view-auth");
-      showToast("チーム情報の取得に失敗しました。通信環境をご確認のうえ再度お試しください。");
+      showToast(tr("errServer", "チーム情報の取得に失敗しました。通信環境をご確認のうえ再度お試しください。"));
     });
 
     $("btn-show-reset").addEventListener("click", () => {
@@ -1675,7 +1689,7 @@
       state.dashboard = null;
       state.slugOrId = null;
       state.publicTeam = null;
-      location.assign("/teams/");
+      location.assign(buildTeamUrl(""));
     });
 
     $("btn-print").addEventListener("click", () => window.print());
