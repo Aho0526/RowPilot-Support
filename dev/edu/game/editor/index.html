@@ -216,6 +216,13 @@
                                     <span class="tree-label">share-ui.js</span>
                                 </button>
                                 <button type="button" class="tree-item-row file-item is-system"
+                                    data-path="editor/stage-solver.js">
+                                    <span class="tree-indent-guide"></span><span class="tree-indent-guide"></span>
+                                    <span class="tree-chevron-spacer"></span>
+                                    <span class="tree-icon icon-js-sym">JS</span>
+                                    <span class="tree-label">stage-solver.js</span>
+                                </button>
+                                <button type="button" class="tree-item-row file-item is-system"
                                     data-path="editor/sticky-scroll.js">
                                     <span class="tree-indent-guide"></span><span class="tree-indent-guide"></span>
                                     <span class="tree-chevron-spacer"></span>
@@ -917,16 +924,17 @@
 
                     <div class="builder-solver-panel" id="builder-solver-panel">
                         <div class="builder-solver-header">
-                            <span class="builder-section-label" style="margin: 0;">4. クリア可否テスト・最小解の自動計算</span>
+                            <span class="builder-section-label" style="margin: 0;">4. クリア可否テスト</span>
                             <div class="builder-solver-btns">
-                                <button type="button" class="builder-solver-btn is-test" id="btn-builder-test-solution"
-                                    title="現在の盤面や配置済み正解ブロックでゴールできるか即座にテストします">クリア可否をテスト</button>
                                 <button type="button" class="builder-solver-btn is-solve" id="btn-builder-auto-solve"
-                                    title="クリア可能な最小ブロック数の solution を自動探索して盤面へ流し込みます">最小ブロック解を自動計算</button>
+                                    title="盤面のクリア可否をテストし、見つかった最小ブロック数の正答を盤面に配置します">クリア可否をテスト</button>
+                                <button type="button" class="builder-solver-btn is-solutions" id="btn-builder-view-solutions"
+                                    style="display: none;"
+                                    title="計算で見つかったすべての最小ブロック正答パターンを確認します">配置例を確認する</button>
                             </div>
                         </div>
                         <div class="builder-solver-status" id="builder-solver-status" data-state="idle">
-                            作っている盤面がクリア可能かの判定や、最小手数の solution 自動セットが行えます
+                            「クリア可否をテスト」を押すとクリア可否を判定し、最小ブロック数の正答を盤面に配置します
                         </div>
                     </div>
 
@@ -940,6 +948,29 @@
                 <button type="button" class="builder-btn builder-btn-copy" id="btn-builder-copy-code">コードをコピー</button>
                 <button type="button" class="builder-btn builder-btn-apply" id="btn-builder-apply">stages.js
                     に書き込んでゲームに即時反映</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 正答配置例一覧モーダル (ビジュアル盤面エディタ上に固定サイズで表示) -->
+    <div class="builder-solutions-overlay" id="builder-solutions-overlay" aria-hidden="true">
+        <div class="builder-solutions-dialog" id="builder-solutions-dialog" role="dialog" aria-modal="true"
+            aria-labelledby="builder-solutions-title">
+            <div class="builder-solutions-header">
+                <div class="builder-solutions-title-wrap">
+                    <span class="builder-solutions-badge">SOLUTIONS</span>
+                    <h3 class="builder-solutions-title" id="builder-solutions-title">正答の配置例一覧</h3>
+                    <span class="builder-solutions-summary" id="builder-solutions-summary"></span>
+                </div>
+                <button type="button" class="builder-close-btn" id="btn-close-builder-solutions"
+                    title="閉じる (Esc)">✕</button>
+            </div>
+            <div class="builder-solutions-body" id="builder-solutions-body">
+                <div class="builder-solutions-grid" id="builder-solutions-grid"></div>
+            </div>
+            <div class="builder-solutions-footer">
+                <span class="builder-solutions-note">カードをクリックすると、その配置例を盤面エディタに適用します</span>
+                <button type="button" class="builder-btn builder-btn-cancel" id="btn-builder-solutions-done">閉じる</button>
             </div>
         </div>
     </div>

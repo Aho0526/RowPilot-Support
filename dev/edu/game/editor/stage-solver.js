@@ -1502,6 +1502,15 @@
                 return {
                     found: true,
                     solution: [],
+                    solutions: [{
+                        solution: [],
+                        blockCount: 0,
+                        ticks: 0,
+                        jumpCount: r0.jumpCount,
+                        clearTime: r0.clearTime
+                    }],
+                    solutionCount: 1,
+                    solutionsTruncated: false,
                     blockCount: 0,
                     exceededOriginalMaxBlocks: false,
                     recommendedMaxBlocks: maxBlocks,
@@ -1727,38 +1736,82 @@
             ? Math.min(maxSearchLimit, knownUpperBound.blockCount)
             : maxSearchLimit;
 
+        const collectAll = options.collectAll !== false;
+        const maxSolutions = Math.max(1, Number(options.maxSolutions) || 200);
+
+        const coordsToAvailMask = (coords) => {
+            if (!Array.isArray(coords)) return -1;
+            let mask = 0;
+            for (let i = 0; i < coords.length; i++) {
+                const p = coords[i];
+                if (!p || p.row < 0 || p.row >= ROWS || p.col < 0 || p.col >= COLS) return -1;
+                const idx = cellToAvail[p.row][p.col];
+                if (idx === -1) return -1;
+                mask |= (1 << idx);
+            }
+            return mask;
+        };
+
         for (let k = startK; k <= effectiveLimit; k++) {
-            // もし既知の有効解と同じサイズ k に到達したら、より良い同サイズ解を少し探すか即確定可能
+            let bestAtK = null;
+            const foundSolutionsAtK = [];
+            const foundMasksAtK = new Set();
+            let solutionsTruncated = false;
+
+            const recordHit = (mask, hit) => {
+                if (!hit) return;
+                if (mask >= 0) {
+                    if (foundMasksAtK.has(mask)) return;
+                    foundMasksAtK.add(mask);
+                }
+                const entry = {
+                    solution: hit.solution,
+                    blockCount: hit.blockCount,
+                    ticks: hit.ticks,
+                    jumpCount: hit.jumpCount,
+                    clearTime: hit.clearTime
+                };
+                foundSolutionsAtK.push(entry);
+                if (
+                    !bestAtK ||
+                    entry.clearTime < bestAtK.clearTime ||
+                    (entry.clearTime === bestAtK.clearTime && entry.jumpCount < bestAtK.jumpCount)
+                ) {
+                    bestAtK = entry;
+                }
+            };
+
             if (knownUpperBound && k === knownUpperBound.blockCount) {
-                // 念のためガイド候補だけ試してから確定
-                const gSet = guidedCandidatesByK.get(k);
-                if (gSet) {
-                    for (const mask of gSet) {
-                        const hit = evalGridCandidate(maskToGrid(mask));
-                        if (hit && hit.clearTime < knownUpperBound.clearTime) {
-                            knownUpperBound = hit;
+                const knownMask = coordsToAvailMask(knownUpperBound.solution);
+                recordHit(knownMask, knownUpperBound);
+                if (!collectAll) {
+                    const gSet = guidedCandidatesByK.get(k);
+                    if (gSet) {
+                        for (const mask of gSet) {
+                            const hit = evalGridCandidate(maskToGrid(mask));
+                            if (hit) recordHit(mask, hit);
                         }
                     }
+                    const exceeded = bestAtK.blockCount > maxBlocks;
+                    return {
+                        found: true,
+                        solution: bestAtK.solution,
+                        solutions: foundSolutionsAtK,
+                        solutionCount: foundSolutionsAtK.length,
+                        solutionsTruncated: false,
+                        blockCount: bestAtK.blockCount,
+                        exceededOriginalMaxBlocks: exceeded,
+                        recommendedMaxBlocks: exceeded ? bestAtK.blockCount : maxBlocks,
+                        ticks: bestAtK.ticks,
+                        jumpCount: bestAtK.jumpCount,
+                        clearTime: bestAtK.clearTime,
+                        evaluatedCount,
+                        message: exceeded
+                            ? `元の最大数 ${maxBlocks}個 ではクリア不可のため、最小 ${bestAtK.blockCount}個 の解を検出しました`
+                            : `最小 ${bestAtK.blockCount}個 の正解配置を検出しました`
+                    };
                 }
-                const exceeded = knownUpperBound.blockCount > maxBlocks;
-                return {
-                    found: true,
-                    solution: knownUpperBound.solution,
-                    blockCount: knownUpperBound.blockCount,
-                    exceededOriginalMaxBlocks: exceeded,
-                    recommendedMaxBlocks: exceeded ? knownUpperBound.blockCount : maxBlocks,
-                    ticks: knownUpperBound.ticks,
-                    jumpCount: knownUpperBound.jumpCount,
-                    clearTime: knownUpperBound.clearTime,
-                    evaluatedCount,
-                    message: exceeded
-                        ? `元の最大数 ${maxBlocks}個 ではクリア不可のため、最小 ${knownUpperBound.blockCount}個 の解を検出しました`
-                        : `最小 ${knownUpperBound.blockCount}個 の正解配置を検出しました`
-                };
             }
-
-            let bestAtK = null;
-            let sameSizeCheckRemaining = 48;
 
             // Step A: サイズ k のガイド付き候補を先に評価
             const guidedSet = guidedCandidatesByK.get(k);
@@ -1766,16 +1819,25 @@
                 for (const mask of guidedSet) {
                     const hit = evalGridCandidate(maskToGrid(mask));
                     if (hit) {
-                        if (!bestAtK || hit.clearTime < bestAtK.clearTime) {
-                            bestAtK = hit;
+                        recordHit(mask, hit);
+                        if (!collectAll || foundSolutionsAtK.length >= maxSolutions) {
+                            if (foundSolutionsAtK.length >= maxSolutions) {
+                                solutionsTruncated = true;
+                            }
+                            break;
                         }
                     }
                 }
-                if (bestAtK) {
+                if (bestAtK && (!collectAll || solutionsTruncated)) {
+                    foundSolutionsAtK.sort((a, b) => (a.clearTime - b.clearTime) || (a.jumpCount - b.jumpCount));
+                    bestAtK = foundSolutionsAtK[0];
                     const exceeded = bestAtK.blockCount > maxBlocks;
                     return {
                         found: true,
                         solution: bestAtK.solution,
+                        solutions: foundSolutionsAtK,
+                        solutionCount: foundSolutionsAtK.length,
+                        solutionsTruncated,
                         blockCount: bestAtK.blockCount,
                         exceededOriginalMaxBlocks: exceeded,
                         recommendedMaxBlocks: exceeded ? bestAtK.blockCount : maxBlocks,
@@ -1825,7 +1887,8 @@
                         const shouldAbort = yield {
                             currentK: k,
                             maxK: effectiveLimit,
-                            evaluatedCount
+                            evaluatedCount,
+                            foundCount: foundSolutionsAtK.length
                         };
                         if (shouldAbort) {
                             return {
@@ -1851,11 +1914,11 @@
                             if (!guidedSet || !guidedSet.has(frame.mask)) {
                                 const hit = evalGridCandidate(maskToGrid(frame.mask));
                                 if (hit) {
-                                    if (!bestAtK || hit.clearTime < bestAtK.clearTime) {
-                                        bestAtK = hit;
-                                    }
-                                    sameSizeCheckRemaining--;
-                                    if (sameSizeCheckRemaining <= 0) {
+                                    recordHit(frame.mask, hit);
+                                    if (!collectAll || foundSolutionsAtK.length >= maxSolutions) {
+                                        if (foundSolutionsAtK.length >= maxSolutions) {
+                                            solutionsTruncated = true;
+                                        }
                                         break;
                                     }
                                 }
@@ -1929,15 +1992,20 @@
                     });
                 }
 
-                if (bestAtK && sameSizeCheckRemaining <= 0) break;
+                if (bestAtK && (!collectAll || solutionsTruncated)) break;
                 if (exhaustedOrCapped) break;
             }
 
             if (bestAtK) {
+                foundSolutionsAtK.sort((a, b) => (a.clearTime - b.clearTime) || (a.jumpCount - b.jumpCount));
+                bestAtK = foundSolutionsAtK[0];
                 const exceeded = bestAtK.blockCount > maxBlocks;
                 return {
                     found: true,
                     solution: bestAtK.solution,
+                    solutions: foundSolutionsAtK,
+                    solutionCount: foundSolutionsAtK.length,
+                    solutionsTruncated,
                     blockCount: bestAtK.blockCount,
                     exceededOriginalMaxBlocks: exceeded,
                     recommendedMaxBlocks: exceeded ? bestAtK.blockCount : maxBlocks,

@@ -338,8 +338,10 @@ const STAGES = [
             openStageBuilderModal: (idx) => openStageBuilderModal(idx),
             getBuilderState: () => builderState,
             buildStageObjectFromBuilder: (blind) => buildStageObjectFromBuilder(blind),
-            testCurrentBuilderStageSync: () => testCurrentBuilderStageSync(),
-            autoSolveBuilderStageSync: () => autoSolveBuilderStageSync()
+            autoSolveBuilderStageSync: () => autoSolveBuilderStageSync(),
+            getBuilderSolverResult: () => builderSolverResult,
+            openBuilderSolutionsModal: () => openBuilderSolutionsModal(),
+            closeBuilderSolutionsModal: () => closeBuilderSolutionsModal()
         };
 
         renderTabs();
@@ -522,6 +524,148 @@ const STAGES = [
         );
     }
 
+    const STORAGE_KEY_OFFICIAL_SYNC_MAX_ID = 'hako_ide_official_sync_max_id';
+
+    function isSameStageDefinition(a, b) {
+        if (!a || !b) return false;
+        return Number(a.startRow) === Number(b.startRow)
+            && Number(a.goalRow) === Number(b.goalRow)
+            && Number(a.maxBlocks) === Number(b.maxBlocks)
+            && Number(a.targetBlocks) === Number(b.targetBlocks)
+            && String(a.subtitle || '') === String(b.subtitle || '')
+            && JSON.stringify(a.forbidden || []) === JSON.stringify(b.forbidden || [])
+            && JSON.stringify(a.gimmicks || []) === JSON.stringify(b.gimmicks || []);
+    }
+
+    function migrateOfficialStagesInCode(savedCode, officialCode) {
+        if (!savedCode || !officialCode || typeof savedCode !== 'string' || typeof officialCode !== 'string') {
+            return savedCode;
+        }
+        const officialStages = parseStagesSafely(officialCode);
+        const savedStages = parseStagesSafely(savedCode);
+        if (!Array.isArray(officialStages) || officialStages.length === 0 || !Array.isArray(savedStages)) {
+            return savedCode;
+        }
+
+        const officialMaxId = Math.max(...officialStages.map(s => Number(s.id) || 0));
+        if (officialMaxId <= 0) return savedCode;
+
+        const syncedMaxId = Number(localStorage.getItem(STORAGE_KEY_OFFICIAL_SYNC_MAX_ID) || '0');
+        const hasAllOfficialIds = officialStages.every(off =>
+            savedStages.some(st => Number(st.id) === Number(off.id))
+        );
+        const lastOfficial = officialStages[officialStages.length - 1];
+        const savedLastMatch = savedStages.find(st => Number(st.id) === Number(lastOfficial.id));
+        if (syncedMaxId >= officialMaxId && hasAllOfficialIds) {
+            return savedCode;
+        }
+        if (hasAllOfficialIds && savedLastMatch && isSameStageDefinition(savedLastMatch, lastOfficial)) {
+            try {
+                localStorage.setItem(STORAGE_KEY_OFFICIAL_SYNC_MAX_ID, String(officialMaxId));
+            } catch (e) { /* ignore */ }
+            return savedCode;
+        }
+
+        let resultCode = savedCode;
+        const officialById = new Map(officialStages.map(s => [Number(s.id), s]));
+
+        // 公式の最新ステージ帯（id >= 20 かつ officialMaxId 以下）に公式と異なる自作ステージがある場合は、
+        // 公式のステージ番号を優先し、衝突する自作ステージ以降のステージidだけを繰り下げる
+        let conflictMinId = null;
+        for (const st of savedStages) {
+            const stId = Number(st.id);
+            if (!Number.isFinite(stId) || stId < 20 || stId > officialMaxId) continue;
+            const off = officialById.get(stId);
+            if (!off || !isSameStageDefinition(st, off)) {
+                if (conflictMinId === null || stId < conflictMinId) {
+                    conflictMinId = stId;
+                }
+            }
+        }
+
+        if (conflictMinId !== null) {
+            const shift = officialMaxId - conflictMinId + 1;
+            for (let idx = savedStages.length - 1; idx >= 0; idx--) {
+                const stId = Number(savedStages[idx].id);
+                if (!Number.isFinite(stId) || stId < conflictMinId) continue;
+                const range = findStageObjectRangeInCode(resultCode, idx);
+                if (!range) continue;
+                const objText = resultCode.slice(range.start, range.end);
+                const updatedObjText = objText.replace(/(\bid\s*:\s*)(\d+)/, (_, prefix, numStr) => {
+                    return prefix + String(Number(numStr) + shift);
+                });
+                if (updatedObjText !== objText) {
+                    resultCode = resultCode.slice(0, range.start) + updatedObjText + resultCode.slice(range.end);
+                }
+            }
+        }
+
+        const afterShiftStages = parseStagesSafely(resultCode);
+        if (!Array.isArray(afterShiftStages)) return savedCode;
+
+        const existingIds = new Set(afterShiftStages.map(s => Number(s.id)));
+        const missingOfficialEntries = [];
+        officialStages.forEach((off, offIdx) => {
+            if (!existingIds.has(Number(off.id))) {
+                const offRange = findStageObjectRangeInCode(officialCode, offIdx);
+                if (offRange) {
+                    missingOfficialEntries.push({
+                        id: Number(off.id),
+                        text: officialCode.slice(offRange.start, offRange.end)
+                    });
+                }
+            }
+        });
+
+        for (const entry of missingOfficialEntries) {
+            const curStages = parseStagesSafely(resultCode);
+            if (!Array.isArray(curStages)) break;
+
+            let insertPos = -1;
+            let prevIdx = -1;
+            for (let i = 0; i < curStages.length; i++) {
+                if (Number(curStages[i].id) < entry.id) {
+                    prevIdx = i;
+                }
+            }
+
+            if (prevIdx !== -1) {
+                const prevRange = findStageObjectRangeInCode(resultCode, prevIdx);
+                if (!prevRange) continue;
+                const afterPrev = resultCode.slice(prevRange.end);
+                const commaMatch = afterPrev.match(/^\s*,/);
+                if (commaMatch) {
+                    insertPos = prevRange.end + commaMatch[0].length;
+                    resultCode = resultCode.slice(0, insertPos)
+                        + '\n    ' + entry.text + (curStages.length - 1 > prevIdx ? ',' : '')
+                        + resultCode.slice(insertPos);
+                } else {
+                    const hasNext = curStages.length - 1 > prevIdx;
+                    resultCode = resultCode.slice(0, prevRange.end)
+                        + ',\n    ' + entry.text + (hasNext ? ',' : '')
+                        + resultCode.slice(prevRange.end);
+                }
+            } else {
+                const arrIdx = resultCode.indexOf('STAGES');
+                const openBracket = arrIdx !== -1 ? resultCode.indexOf('[', arrIdx) : -1;
+                if (openBracket === -1) continue;
+                const hasAny = curStages.length > 0;
+                resultCode = resultCode.slice(0, openBracket + 1)
+                    + '\n    ' + entry.text + (hasAny ? ',' : '')
+                    + resultCode.slice(openBracket + 1);
+            }
+        }
+
+        const verified = parseStagesSafely(resultCode);
+        if (!Array.isArray(verified) || verified.length === 0) {
+            return savedCode;
+        }
+        try {
+            localStorage.setItem(STORAGE_KEY_OFFICIAL_SYNC_MAX_ID, String(officialMaxId));
+        } catch (e) { /* ignore */ }
+        return resultCode;
+    }
+
     function loadSavedFilesFromStorage() {
         Object.keys(files).forEach(key => {
             if (files[key].isSystemFile) return;
@@ -598,6 +742,7 @@ const STAGES = [
                         let cleanSaved = key.endsWith('.html') ? cleanInjectedPlatformScripts(saved) : saved;
                         if (key === 'stages.js') {
                             cleanSaved = migrateStage12InStagesCode(cleanSaved);
+                            cleanSaved = migrateOfficialStagesInCode(cleanSaved, rawText);
                             localStorage.setItem(STORAGE_KEY_PREFIX + key, cleanSaved);
                         }
                         files[key].content = cleanSaved;
@@ -3321,6 +3466,7 @@ const STAGES = [
         const paletteGrid = document.getElementById('builder-palette-grid');
 
         function closeBuilder() {
+            closeBuilderSolutionsModal();
             if (!overlay) return;
             overlay.classList.remove('is-open');
             overlay.setAttribute('aria-hidden', 'true');
@@ -3334,7 +3480,24 @@ const STAGES = [
             });
         }
 
+        const solOverlay = document.getElementById('builder-solutions-overlay');
+        const btnCloseSolModal = document.getElementById('btn-close-builder-solutions');
+        const btnSolDone = document.getElementById('btn-builder-solutions-done');
+        if (btnCloseSolModal) btnCloseSolModal.addEventListener('click', closeBuilderSolutionsModal);
+        if (btnSolDone) btnSolDone.addEventListener('click', closeBuilderSolutionsModal);
+        if (solOverlay) {
+            solOverlay.addEventListener('click', (e) => {
+                if (e.target === solOverlay) closeBuilderSolutionsModal();
+            });
+        }
+
         window.addEventListener('keydown', (e) => {
+            if (solOverlay && solOverlay.classList.contains('is-open')) {
+                if (e.key === 'Escape') {
+                    closeBuilderSolutionsModal();
+                }
+                return;
+            }
             if (!overlay || !overlay.classList.contains('is-open')) return;
             if (e.key === 'Escape') {
                 closeBuilder();
@@ -3496,6 +3659,7 @@ const STAGES = [
                     builderState.targetBlocks = parseInt(document.getElementById('builder-input-targetblocks')?.value, 10) || builderState.maxBlocks;
                     builderState.title = document.getElementById('builder-input-title')?.value || `ステージ ${builderState.id}`;
                     builderState.subtitle = document.getElementById('builder-input-subtitle')?.value || '';
+                    syncBuilderSolverCacheValidity();
                     updateBuilderCodePreview();
                 });
             }
@@ -3517,17 +3681,17 @@ const STAGES = [
             });
         }
 
-        const btnTestSol = document.getElementById('btn-builder-test-solution');
-        if (btnTestSol) {
-            btnTestSol.addEventListener('click', () => {
-                runBuilderTestCurrentStage();
-            });
-        }
-
         const btnAutoSolve = document.getElementById('btn-builder-auto-solve');
         if (btnAutoSolve) {
             btnAutoSolve.addEventListener('click', () => {
                 runBuilderAutoSolveMinimum();
+            });
+        }
+
+        const btnViewSolutions = document.getElementById('btn-builder-view-solutions');
+        if (btnViewSolutions) {
+            btnViewSolutions.addEventListener('click', () => {
+                openBuilderSolutionsModal();
             });
         }
     }
@@ -3663,10 +3827,54 @@ const STAGES = [
         renderBuilderBoard();
     }
 
-    // ── 盤面エディタ クリア可否テスト & 最小ブロック数解の自動探索連携 ──
+    // ── 盤面エディタ クリア可否テスト & 全最小ブロック解一覧連携 ──
     let builderSolverRunning = false;
     let builderSolverCancelRequested = false;
     let builderSolverJobId = 0;
+    let builderSolverResult = null;
+
+    function getBuilderBoardStructureSignature() {
+        const stageObj = buildStageObjectFromBuilder(true);
+        return JSON.stringify({
+            startRow: stageObj.startRow,
+            goalRow: stageObj.goalRow,
+            hasCeiling: stageObj.hasCeiling,
+            maxBlocks: stageObj.maxBlocks,
+            forbidden: stageObj.forbidden,
+            gimmicks: stageObj.gimmicks,
+            lasers: stageObj.lasers
+        });
+    }
+
+    function getCurrentBuilderSolutionKey() {
+        const coords = [];
+        for (let r = 0; r < 5; r++) {
+            for (let c = 0; c < 5; c++) {
+                if (builderState.cells[r][c].solution) {
+                    coords.push(`${c},${r}`);
+                }
+            }
+        }
+        return coords.join('|');
+    }
+
+    function coordsToSolutionKey(coords) {
+        if (!Array.isArray(coords)) return '';
+        return [...coords]
+            .map(p => ({ col: Number(p.col), row: Number(p.row) }))
+            .sort((a, b) => (a.row - b.row) || (a.col - b.col))
+            .map(p => `${p.col},${p.row}`)
+            .join('|');
+    }
+
+    function syncBuilderSolverCacheValidity() {
+        if (builderSolverResult && builderSolverResult.stageSignature !== getBuilderBoardStructureSignature()) {
+            builderSolverResult = null;
+            closeBuilderSolutionsModal();
+            updateBuilderSolverButtonsUI();
+            setBuilderSolverStatus('idle', '「クリア可否をテスト」を押すとクリア可否を判定し、最小ブロック数の正答を盤面に配置します');
+        }
+    }
 
     function buildStageObjectFromBuilder(forceBlindSolution = false) {
         const forbidden = [];
@@ -3734,19 +3942,24 @@ const STAGES = [
     }
 
     function updateBuilderSolverButtonsUI() {
-        const btnTest = document.getElementById('btn-builder-test-solution');
         const btnSolve = document.getElementById('btn-builder-auto-solve');
-        if (btnTest) {
-            btnTest.disabled = builderSolverRunning;
-        }
+        const btnViewSolutions = document.getElementById('btn-builder-view-solutions');
         if (btnSolve) {
             if (builderSolverRunning) {
                 btnSolve.textContent = '計算を中断';
                 btnSolve.classList.add('is-running');
             } else {
-                btnSolve.textContent = '最小ブロック解を自動計算';
+                btnSolve.textContent = 'クリア可否をテスト';
                 btnSolve.classList.remove('is-running');
             }
+        }
+        if (btnViewSolutions) {
+            const hasSolutions = !builderSolverRunning
+                && builderSolverResult
+                && Array.isArray(builderSolverResult.solutions)
+                && builderSolverResult.solutions.length > 0;
+            btnViewSolutions.style.display = hasSolutions ? 'inline-flex' : 'none';
+            btnViewSolutions.disabled = !hasSolutions;
         }
     }
 
@@ -3754,12 +3967,14 @@ const STAGES = [
         builderSolverJobId++;
         builderSolverRunning = false;
         builderSolverCancelRequested = true;
+        builderSolverResult = null;
+        closeBuilderSolutionsModal();
         updateBuilderSolverButtonsUI();
-        setBuilderSolverStatus('idle', '作っている盤面がクリア可能かの判定や、最小手数の solution 自動セットが行えます');
+        setBuilderSolverStatus('idle', '「クリア可否をテスト」を押すとクリア可否を判定し、最小ブロック数の正答を盤面に配置します');
     }
 
-    function applyComputedSolutionToBuilder(res) {
-        if (!res || !res.found) return false;
+    function applySolutionCoordsToBuilder(solutionCoords, opts = {}) {
+        if (!Array.isArray(solutionCoords)) return false;
         pushBuilderUndo();
 
         for (let r = 0; r < 5; r++) {
@@ -3767,21 +3982,20 @@ const STAGES = [
                 builderState.cells[r][c].solution = false;
             }
         }
-        if (Array.isArray(res.solution)) {
-            res.solution.forEach(p => {
-                if (p && p.row >= 0 && p.row < 5 && p.col >= 0 && p.col < 5) {
-                    builderState.cells[p.row][p.col].solution = true;
-                }
-            });
-        }
+        solutionCoords.forEach(p => {
+            if (p && p.row >= 0 && p.row < 5 && p.col >= 0 && p.col < 5) {
+                builderState.cells[p.row][p.col].solution = true;
+            }
+        });
 
-        if (res.blockCount > 0) {
-            builderState.targetBlocks = res.blockCount;
+        const blockCount = opts.blockCount != null ? Number(opts.blockCount) : solutionCoords.length;
+        if (blockCount > 0) {
+            builderState.targetBlocks = blockCount;
             const targetInput = document.getElementById('builder-input-targetblocks');
             if (targetInput) targetInput.value = String(builderState.targetBlocks);
         }
-        if (res.exceededOriginalMaxBlocks && res.recommendedMaxBlocks > builderState.maxBlocks) {
-            builderState.maxBlocks = res.recommendedMaxBlocks;
+        if (opts.exceededOriginalMaxBlocks && opts.recommendedMaxBlocks > builderState.maxBlocks) {
+            builderState.maxBlocks = opts.recommendedMaxBlocks;
             const maxInput = document.getElementById('builder-input-maxblocks');
             if (maxInput) maxInput.value = String(builderState.maxBlocks);
         }
@@ -3790,56 +4004,43 @@ const STAGES = [
         return true;
     }
 
-    function testCurrentBuilderStageSync() {
-        if (!window.HakoStageSolver) {
-            return { ok: false, message: 'ソルバーモジュールが読み込まれていません' };
-        }
-        const stageObj = buildStageObjectFromBuilder(false);
-        const curValidation = window.HakoStageSolver.validateSolution(stageObj);
-        if (curValidation.ok) {
-            const blindStage = buildStageObjectFromBuilder(true);
-            const minRes = window.HakoStageSolver.findMinimumSolutionSync(blindStage, { allowExceedMaxBlocks: false });
-            let msg = `クリア可能：現在の正解配置 ${curValidation.blockCount}個 でゴール到達を確認しました`;
-            if (minRes && minRes.found && minRes.blockCount < curValidation.blockCount) {
-                msg += ` — さらに少ない最小 ${minRes.blockCount}個 の解も存在します`;
-            }
-            setBuilderSolverStatus('ok', msg);
-            return { ok: true, currentOk: true, blockCount: curValidation.blockCount, minBlockCount: minRes && minRes.found ? minRes.blockCount : curValidation.blockCount, message: msg };
-        }
+    function applyComputedSolutionToBuilder(res) {
+        if (!res || !res.found) return false;
+        return applySolutionCoordsToBuilder(res.solution || [], {
+            blockCount: res.blockCount,
+            exceededOriginalMaxBlocks: res.exceededOriginalMaxBlocks,
+            recommendedMaxBlocks: res.recommendedMaxBlocks
+        });
+    }
 
-        // 正解未配置または現在の正解配置で失敗する場合、盤面自体がクリア可能かも検証する
-        const blindStage = buildStageObjectFromBuilder(true);
-        const minRes = window.HakoStageSolver.findMinimumSolutionSync(blindStage, { allowExceedMaxBlocks: true });
+    function finalizeBuilderSolverSuccess(res, origMax) {
+        applyComputedSolutionToBuilder(res);
+        const solutions = Array.isArray(res.solutions) && res.solutions.length > 0
+            ? res.solutions
+            : [{
+                solution: Array.isArray(res.solution) ? res.solution : [],
+                blockCount: res.blockCount,
+                ticks: res.ticks,
+                jumpCount: res.jumpCount,
+                clearTime: res.clearTime
+            }];
 
-        if (curValidation.reasonCode === 'empty_solution') {
-            if (minRes.found) {
-                if (minRes.exceededOriginalMaxBlocks) {
-                    const msg = `条件付きクリア可能：現在の maxBlocks ${stageObj.maxBlocks}個 では不足しますが、最小 ${minRes.blockCount}個 あればクリア可能です`;
-                    setBuilderSolverStatus('warn', msg);
-                    return { ok: true, currentOk: false, stageSolvable: true, minBlockCount: minRes.blockCount, exceededMax: true, message: msg };
-                }
-                const msg = `クリア可能：この盤面は最小 ${minRes.blockCount}個 のブロックでゴールできます — 右の自動計算ボタンで solution に流し込めます`;
-                setBuilderSolverStatus('ok', msg);
-                return { ok: true, currentOk: false, stageSolvable: true, minBlockCount: minRes.blockCount, exceededMax: false, message: msg };
-            }
-            const msg = `クリア不可能：${minRes.message}`;
-            setBuilderSolverStatus('error', msg);
-            return { ok: false, currentOk: false, stageSolvable: false, message: msg };
-        }
+        builderSolverResult = {
+            stageSignature: getBuilderBoardStructureSignature(),
+            solutions,
+            blockCount: res.blockCount,
+            recommendedMaxBlocks: res.recommendedMaxBlocks,
+            exceededOriginalMaxBlocks: Boolean(res.exceededOriginalMaxBlocks),
+            solutionsTruncated: Boolean(res.solutionsTruncated)
+        };
 
-        // 現在の配置に不備がある場合
-        if (minRes.found) {
-            const extra = minRes.exceededOriginalMaxBlocks
-                ? `盤面自体は maxBlocks を ${minRes.blockCount} に増やせばクリア可能です`
-                : `盤面自体は最小 ${minRes.blockCount}個 でクリア可能です`;
-            const msg = `現在の配置はNG：${curValidation.message} — ${extra}`;
-            setBuilderSolverStatus('warn', msg);
-            return { ok: false, currentOk: false, stageSolvable: true, minBlockCount: minRes.blockCount, message: msg };
-        }
-
-        const msg = `クリア不可能：${curValidation.message} — 他のどの配置でもゴールできません`;
-        setBuilderSolverStatus('error', msg);
-        return { ok: false, currentOk: false, stageSolvable: false, message: msg };
+        const countText = `${solutions.length}通り${res.solutionsTruncated ? '以上' : ''}`;
+        const msg = res.exceededOriginalMaxBlocks
+            ? `クリア可能（上限調整）：元の maxBlocks ${origMax}個 では不足するため ${res.recommendedMaxBlocks}個 に引き上げ、最小 ${res.blockCount}個 の正答を盤面に配置しました（全 ${countText}）`
+            : `クリア可能：最小 ${res.blockCount}個 の正答を盤面に配置しました（正答パターン ${countText}）`;
+        setBuilderSolverStatus(res.exceededOriginalMaxBlocks ? 'warn' : 'ok', msg);
+        updateBuilderSolverButtonsUI();
+        return { msg, countText, solutions };
     }
 
     function autoSolveBuilderStageSync() {
@@ -3850,82 +4051,195 @@ const STAGES = [
         const blindStage = buildStageObjectFromBuilder(true);
         const res = window.HakoStageSolver.findMinimumSolutionSync(blindStage, { allowExceedMaxBlocks: true });
         if (res.found) {
-            applyComputedSolutionToBuilder(res);
-            const msg = res.exceededOriginalMaxBlocks
-                ? `上限調整して反映完了：元の maxBlocks ${origMax}個 では不足するため ${res.recommendedMaxBlocks}個 に引き上げ、最小 ${res.blockCount}個 の solution をセットしました`
-                : `自動計算完了：最小 ${res.blockCount}個 の正解配置 solution を盤面にセットしました — 検証 ${res.evaluatedCount} 通り`;
-            setBuilderSolverStatus(res.exceededOriginalMaxBlocks ? 'warn' : 'ok', msg);
+            const { msg } = finalizeBuilderSolverSuccess(res, origMax);
             return { ...res, message: msg };
         }
+        builderSolverResult = null;
+        updateBuilderSolverButtonsUI();
         const msg = `クリア不可能：${res.message}`;
         setBuilderSolverStatus('error', msg);
         return { ...res, message: msg };
     }
 
-    async function runBuilderTestCurrentStage() {
-        if (builderSolverRunning) return;
-        if (!window.HakoStageSolver) {
-            setBuilderSolverStatus('error', 'ソルバーモジュールが読み込まれていません');
+    function renderBuilderSolutionsGrid() {
+        const gridEl = document.getElementById('builder-solutions-grid');
+        const summaryEl = document.getElementById('builder-solutions-summary');
+        if (!gridEl) return;
+
+        gridEl.innerHTML = '';
+        if (!builderSolverResult || !Array.isArray(builderSolverResult.solutions) || builderSolverResult.solutions.length === 0) {
+            if (summaryEl) summaryEl.textContent = '';
             return;
         }
-        const myJob = ++builderSolverJobId;
-        builderSolverRunning = true;
-        builderSolverCancelRequested = false;
-        updateBuilderSolverButtonsUI();
-        setBuilderSolverStatus('running', '盤面のクリア可能性を検証しています...');
 
-        try {
-            const stageObj = buildStageObjectFromBuilder(false);
-            const curValidation = window.HakoStageSolver.validateSolution(stageObj);
-            const blindStage = buildStageObjectFromBuilder(true);
-            const minRes = await window.HakoStageSolver.findMinimumSolutionAsync(blindStage, {
-                allowExceedMaxBlocks: !curValidation.ok,
-                isCancelled: () => builderSolverCancelRequested || myJob !== builderSolverJobId,
-                onProgress: (p) => {
-                    if (myJob === builderSolverJobId) {
-                        setBuilderSolverStatus('running', `盤面検証中... ブロック数 ${p.currentK}個 を調査中 — ${p.evaluatedCount} 通り評価`);
-                    }
+        const { solutions, blockCount, solutionsTruncated } = builderSolverResult;
+        if (summaryEl) {
+            summaryEl.textContent = `最小 ${blockCount}個 / 全 ${solutions.length}通り${solutionsTruncated ? '以上' : ''}`;
+        }
+
+        const currentKey = getCurrentBuilderSolutionKey();
+
+        solutions.forEach((entry, idx) => {
+            const solList = Array.isArray(entry.solution) ? entry.solution : [];
+            const entryKey = coordsToSolutionKey(solList);
+            const isApplied = entryKey === currentKey;
+            const placedSet = new Set(solList.map(p => `${p.col},${p.row}`));
+
+            const card = document.createElement('div');
+            card.className = 'builder-solution-card' + (isApplied ? ' is-active' : '');
+            card.setAttribute('role', 'button');
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('data-solution-index', String(idx));
+
+            const head = document.createElement('div');
+            head.className = 'builder-solution-card-head';
+
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'builder-solution-card-title';
+            titleSpan.textContent = `例 ${idx + 1}`;
+            head.appendChild(titleSpan);
+
+            const badgesWrap = document.createElement('div');
+            badgesWrap.className = 'builder-solution-card-badges';
+            if (idx === 0) {
+                const bestBadge = document.createElement('span');
+                bestBadge.className = 'builder-solution-tag is-best';
+                bestBadge.textContent = '最短';
+                badgesWrap.appendChild(bestBadge);
+            }
+            if (isApplied) {
+                const appliedBadge = document.createElement('span');
+                appliedBadge.className = 'builder-solution-tag is-applied';
+                appliedBadge.textContent = '適用中';
+                badgesWrap.appendChild(appliedBadge);
+            }
+            const countBadge = document.createElement('span');
+            countBadge.className = 'builder-solution-tag';
+            countBadge.textContent = `${solList.length}個`;
+            badgesWrap.appendChild(countBadge);
+            head.appendChild(badgesWrap);
+            card.appendChild(head);
+
+            // ミニ 5×5 盤面プレビュー
+            const boardWrap = document.createElement('div');
+            boardWrap.className = 'sol-mini-board-wrap';
+
+            const ceilingEl = document.createElement('div');
+            ceilingEl.className = 'sol-mini-ceiling' + (builderState.hasCeiling ? ' is-active' : '');
+            boardWrap.appendChild(ceilingEl);
+
+            const rowWrap = document.createElement('div');
+            rowWrap.className = 'sol-mini-row-wrap';
+
+            const startCol = document.createElement('div');
+            startCol.className = 'sol-mini-side-col';
+            for (let r = 0; r < 5; r++) {
+                const slot = document.createElement('div');
+                slot.className = 'sol-mini-side-slot' + (builderState.startRow === r ? ' is-start' : '');
+                slot.textContent = builderState.startRow === r ? 'S' : '';
+                startCol.appendChild(slot);
+            }
+            rowWrap.appendChild(startCol);
+
+            const miniGrid = document.createElement('div');
+            miniGrid.className = 'sol-mini-grid';
+            for (let r = 0; r < 5; r++) {
+                for (let c = 0; c < 5; c++) {
+                    const cellData = builderState.cells[r][c];
+                    const isPlaced = placedSet.has(`${c},${r}`);
+                    const cellEl = document.createElement('div');
+                    let cls = 'sol-mini-cell';
+                    if (cellData.forbidden) cls += ' is-forbidden';
+                    if (cellData.dashDir) cls += ' is-dash';
+                    if (cellData.stepDir) cls += ' is-step';
+                    if (cellData.switchData) cls += ' is-switch';
+                    if (cellData.purpleBorder) cls += ' is-purple';
+                    if (isPlaced) cls += ' is-placed';
+                    cellEl.className = cls;
+
+                    const arrowDir = cellData.dashDir || cellData.stepDir || (cellData.switchData ? cellData.switchData.dirs[0] : null);
+                    const arrowColor = cellData.switchData
+                        ? (cellData.switchData.moveType === 'dash' ? '#22d3ee' : '#4ade80')
+                        : '#ffffff';
+                    const arrowSvg = arrowDir ? getBuilderArrowSvg(arrowDir, 15, arrowColor) : '';
+                    const laserHtml = (cellData.lasers || [])
+                        .map(side => `<span class="sol-mini-laser is-${side}"></span>`)
+                        .join('');
+
+                    cellEl.innerHTML = `
+                        ${laserHtml}
+                        ${isPlaced ? '<span class="sol-mini-block"></span>' : ''}
+                        ${arrowSvg ? `<span class="sol-mini-arrow">${arrowSvg}</span>` : ''}
+                    `;
+                    miniGrid.appendChild(cellEl);
+                }
+            }
+            rowWrap.appendChild(miniGrid);
+
+            const goalCol = document.createElement('div');
+            goalCol.className = 'sol-mini-side-col';
+            for (let r = 0; r < 5; r++) {
+                const slot = document.createElement('div');
+                slot.className = 'sol-mini-side-slot' + (builderState.goalRow === r ? ' is-goal' : '');
+                slot.textContent = builderState.goalRow === r ? 'G' : '';
+                goalCol.appendChild(slot);
+            }
+            rowWrap.appendChild(goalCol);
+
+            boardWrap.appendChild(rowWrap);
+            card.appendChild(boardWrap);
+
+            const meta = document.createElement('div');
+            meta.className = 'builder-solution-card-meta';
+            const coordStr = solList.map(p => `(${p.col},${p.row})`).join(' ');
+            const coordSpan = document.createElement('span');
+            coordSpan.textContent = coordStr;
+            const hintSpan = document.createElement('span');
+            hintSpan.className = 'builder-solution-apply-hint';
+            hintSpan.textContent = isApplied ? '適用中' : '盤面に適用';
+            meta.appendChild(coordSpan);
+            meta.appendChild(hintSpan);
+            card.appendChild(meta);
+
+            const applyCard = () => {
+                applySolutionCoordsToBuilder(solList, { blockCount: solList.length });
+                setBuilderSolverStatus(
+                    builderSolverResult.exceededOriginalMaxBlocks ? 'warn' : 'ok',
+                    `配置例 ${idx + 1}（最小 ${solList.length}個）を盤面にセットしました（正答パターン ${solutions.length}通り${solutionsTruncated ? '以上' : ''}）`
+                );
+                closeBuilderSolutionsModal();
+                showToast(`配置例 ${idx + 1} を盤面にセットしました`);
+            };
+
+            card.addEventListener('click', applyCard);
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    applyCard();
                 }
             });
 
-            if (myJob !== builderSolverJobId) return;
+            gridEl.appendChild(card);
+        });
+    }
 
-            if (minRes.aborted) {
-                setBuilderSolverStatus('idle', '検証を中断しました');
-                return;
-            }
-
-            if (curValidation.ok) {
-                let msg = `クリア可能：現在の正解配置 ${curValidation.blockCount}個 でゴール到達を確認しました`;
-                if (minRes.found && minRes.blockCount < curValidation.blockCount) {
-                    msg += ` — さらに少ない最小 ${minRes.blockCount}個 の解も存在します`;
-                }
-                setBuilderSolverStatus('ok', msg);
-                showToast(`クリア可能を確認しました`);
-            } else if (curValidation.reasonCode === 'empty_solution') {
-                if (minRes.found) {
-                    if (minRes.exceededOriginalMaxBlocks) {
-                        setBuilderSolverStatus('warn', `条件付きクリア可能：現在の maxBlocks ${stageObj.maxBlocks}個 では不足しますが、最小 ${minRes.blockCount}個 あればクリア可能です`);
-                    } else {
-                        setBuilderSolverStatus('ok', `クリア可能：この盤面は最小 ${minRes.blockCount}個 のブロックでゴールできます — 右の自動計算ボタンで solution に流し込めます`);
-                    }
-                } else {
-                    setBuilderSolverStatus('error', `クリア不可能：${minRes.message}`);
-                }
-            } else if (minRes.found) {
-                const extra = minRes.exceededOriginalMaxBlocks
-                    ? `盤面自体は maxBlocks を ${minRes.blockCount} に増やせばクリア可能です`
-                    : `盤面自体は最小 ${minRes.blockCount}個 でクリア可能です`;
-                setBuilderSolverStatus('warn', `現在の配置はNG：${curValidation.message} — ${extra}`);
-            } else {
-                setBuilderSolverStatus('error', `クリア不可能：${curValidation.message} — 他のどの配置でもゴールできません`);
-            }
-        } finally {
-            if (myJob === builderSolverJobId) {
-                builderSolverRunning = false;
-                updateBuilderSolverButtonsUI();
-            }
+    function openBuilderSolutionsModal() {
+        const solOverlay = document.getElementById('builder-solutions-overlay');
+        if (!solOverlay || !builderSolverResult || !Array.isArray(builderSolverResult.solutions) || builderSolverResult.solutions.length === 0) {
+            return;
         }
+        renderBuilderSolutionsGrid();
+        const bodyEl = document.getElementById('builder-solutions-body');
+        if (bodyEl) bodyEl.scrollTop = 0;
+        solOverlay.classList.add('is-open');
+        solOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeBuilderSolutionsModal() {
+        const solOverlay = document.getElementById('builder-solutions-overlay');
+        if (!solOverlay) return;
+        solOverlay.classList.remove('is-open');
+        solOverlay.setAttribute('aria-hidden', 'true');
     }
 
     async function runBuilderAutoSolveMinimum() {
@@ -3942,8 +4256,10 @@ const STAGES = [
         const origMax = Math.max(1, Number(builderState.maxBlocks) || 6);
         builderSolverRunning = true;
         builderSolverCancelRequested = false;
+        builderSolverResult = null;
+        closeBuilderSolutionsModal();
         updateBuilderSolverButtonsUI();
-        setBuilderSolverStatus('running', '最小ブロック数の正解配置を探索しています...');
+        setBuilderSolverStatus('running', 'クリア可否のテストおよび全最小ブロック解の探索を行っています...');
 
         try {
             const blindStage = buildStageObjectFromBuilder(true);
@@ -3952,7 +4268,8 @@ const STAGES = [
                 isCancelled: () => builderSolverCancelRequested || myJob !== builderSolverJobId,
                 onProgress: (p) => {
                     if (myJob === builderSolverJobId) {
-                        setBuilderSolverStatus('running', `自動計算中... ブロック ${p.currentK}個 のパターンを探索中 — ${p.evaluatedCount} 通り評価`);
+                        const foundInfo = p.foundCount > 0 ? ` / ${p.foundCount}通りの正答を発見` : '';
+                        setBuilderSolverStatus('running', `テスト中... ブロック ${p.currentK}個 のパターンを調査中（${p.evaluatedCount} 通り評価${foundInfo}）`);
                     }
                 }
             });
@@ -3960,20 +4277,19 @@ const STAGES = [
             if (myJob !== builderSolverJobId) return;
 
             if (res.aborted) {
-                setBuilderSolverStatus('idle', '最小ブロック解の自動計算を中断しました');
+                setBuilderSolverStatus('idle', 'クリア可否テストを中断しました');
                 return;
             }
 
             if (res.found) {
-                applyComputedSolutionToBuilder(res);
+                const { countText } = finalizeBuilderSolverSuccess(res, origMax);
                 if (res.exceededOriginalMaxBlocks) {
-                    setBuilderSolverStatus('warn', `上限調整して反映完了：元の maxBlocks ${origMax}個 では不足するため ${res.recommendedMaxBlocks}個 に引き上げ、最小 ${res.blockCount}個 の solution をセットしました`);
-                    showToast(`最小 ${res.blockCount}個 の解をセットし maxBlocks を更新しました`);
+                    showToast(`最小 ${res.blockCount}個 の正答をセットし maxBlocks を更新しました（${countText}）`);
                 } else {
-                    setBuilderSolverStatus('ok', `自動計算完了：最小 ${res.blockCount}個 の正解配置 solution を盤面にセットしました — 検証 ${res.evaluatedCount} 通り`);
-                    showToast(`最小 ${res.blockCount}個 の正解配置を盤面に流し込みました`);
+                    showToast(`クリア可能：最小 ${res.blockCount}個 の正答を盤面に配置しました（${countText}）`);
                 }
             } else {
+                builderSolverResult = null;
                 setBuilderSolverStatus('error', `クリア不可能：${res.message}`);
                 showToast('クリア可能な配置が見つかりませんでした');
             }
@@ -4188,6 +4504,7 @@ const STAGES = [
             statsEl.textContent = `正解配置 (solution): ${solCount}個 / 最大ブロック (maxBlocks): ${builderState.maxBlocks}個`;
         }
 
+        syncBuilderSolverCacheValidity();
         updateBuilderCodePreview();
     }
 

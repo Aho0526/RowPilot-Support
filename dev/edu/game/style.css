@@ -2487,3 +2487,17 @@ html.in-iframe[data-preview-layout="compact"] .block-count-badge {
     opacity: 0;
     display: none;
 }
+
+/* エディタ内プレビュー時はエディタ遷移・外部ナビゲーションボタンを押下不可にする */
+body.in-editor-preview #gameToEditorBtn,
+body.in-editor-preview #homeHelpBtn,
+body.in-editor-preview #homeTechBtn,
+body.in-editor-preview #homeEduPortalBtn,
+body.in-editor-preview .custom-banner-btn.edit-btn,
+body.in-editor-preview #helpModalOverlay .modal-full-guide-link {
+    pointer-events: none !important;
+    opacity: 0.42 !important;
+    filter: grayscale(0.35);
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+}

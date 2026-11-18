@@ -7819,12 +7819,22 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
     if (homeHelpBtn) {
-        homeHelpBtn.addEventListener('click', () => {
+        homeHelpBtn.addEventListener('click', (e) => {
+            if (isInsideEditorPreview()) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
             openHelpModal();
         });
     }
     if (homeTechBtn) {
         homeTechBtn.addEventListener('click', (e) => {
+            if (isInsideEditorPreview()) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
             // aタグの標準動作でtech-doc.htmlへ遷移
         });
     }
@@ -8322,6 +8332,34 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     if (inEditorPreview) {
+        document.body.classList.add('in-editor-preview');
+        const blockedSelectors = [
+            '#gameToEditorBtn',
+            '#homeHelpBtn',
+            '#homeTechBtn',
+            '#homeEduPortalBtn',
+            '.custom-banner-btn.edit-btn',
+            '#helpModalOverlay .modal-full-guide-link'
+        ];
+        blockedSelectors.forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => {
+                if (!el) return;
+                if (typeof el.setAttribute === 'function') {
+                    el.setAttribute('aria-disabled', 'true');
+                    el.setAttribute('tabindex', '-1');
+                }
+                if (el.tagName === 'BUTTON') {
+                    el.disabled = true;
+                }
+                if (typeof el.addEventListener === 'function') {
+                    el.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }, true);
+                }
+            });
+        });
+
         window.addEventListener('resize', updatePreviewLayout);
         if (window.ResizeObserver) {
             const ro = new ResizeObserver(() => {

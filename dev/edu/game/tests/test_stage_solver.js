@@ -258,13 +258,25 @@ async function runAllTests() {
             return el;
         };
 
+        const editorHtmlCode = fs.readFileSync(path.join(__dirname, '../editor/index.html'), 'utf8');
+        const editorCssCode = fs.readFileSync(path.join(__dirname, '../editor/ide.css'), 'utf8');
+        assert.strictEqual(editorHtmlCode.includes('id="btn-builder-test-solution"'), false, 'Old test-only button must be removed from editor/index.html');
+        assert.ok(editorHtmlCode.includes('id="btn-builder-auto-solve"'), 'btn-builder-auto-solve must exist');
+        assert.ok(editorHtmlCode.includes('>クリア可否をテスト</button>'), 'btn-builder-auto-solve label must be クリア可否をテスト');
+        assert.ok(editorHtmlCode.includes('id="btn-builder-view-solutions"'), 'btn-builder-view-solutions must exist');
+        assert.ok(editorHtmlCode.includes('>配置例を確認する</button>'), 'btn-builder-view-solutions label must be 配置例を確認する');
+        assert.ok(editorCssCode.includes('grid-template-columns: repeat(2, minmax(0, 1fr))'), 'Solutions grid must be 2 columns per row');
+        assert.ok(editorCssCode.includes('overflow-y: auto'), 'Solutions body must be vertically scrollable');
+
         [
             'editor-tabs', 'editor-pane', 'line-numbers', 'line-numbers-inner', 'code-textarea', 'code-highlight',
             'pane-resizer', 'preview-pane', 'ide-toast', 'ide-toast-msg',
             'stage-builder-overlay', 'builder-stage-select', 'builder-grid-5x5', 'builder-start-col', 'builder-goal-col',
             'builder-board-stats', 'builder-code-preview', 'builder-ceiling-status', 'builder-ceiling-bar',
             'builder-input-id', 'builder-input-maxblocks', 'builder-input-targetblocks', 'builder-input-title', 'builder-input-subtitle',
-            'btn-builder-undo', 'btn-builder-redo', 'btn-builder-test-solution', 'btn-builder-auto-solve', 'builder-solver-status',
+            'btn-builder-undo', 'btn-builder-redo', 'btn-builder-auto-solve', 'btn-builder-view-solutions', 'builder-solver-status',
+            'builder-solutions-overlay', 'builder-solutions-dialog', 'builder-solutions-grid', 'builder-solutions-summary', 'builder-solutions-body',
+            'btn-close-builder-solutions', 'btn-builder-solutions-done',
             'auto-builder-blackout-curtain', 'auto-builder-marquee-banner', 'auto-builder-marquee-text'
         ].forEach(id => makeEl(id));
 
@@ -328,17 +340,15 @@ async function runAllTests() {
         const api = ideSandbox.window.__editorApi;
         api.openStageBuilderModal(0);
 
-        // 1. まず未配置状態で「クリア可否をテスト」実行 -> maxBlocks=4 では不足だが 5個でクリア可能と診断されること
-        const testRes = api.testCurrentBuilderStageSync();
-        assert.strictEqual(testRes.stageSolvable, true);
-        assert.strictEqual(testRes.minBlockCount, 5);
-        assert.strictEqual(testRes.exceededMax, true);
-        assert.strictEqual(elMap.get('builder-solver-status').getAttribute('data-state'), 'warn');
+        // 初期状態では「配置例を確認する」ボタンは非表示
+        assert.strictEqual(elMap.get('btn-builder-view-solutions').style.display, 'none', 'View solutions button must be hidden initially');
 
-        // 2. 「最小ブロック解を自動計算」実行 -> solution 5個が流し込まれ、maxBlocks/targetBlocks も 5 に引き上げられること
+        // 1. 「クリア可否をテスト」実行 -> 最小解を自動計算して盤面に配置し、maxBlocks/targetBlocks も 5 に引き上げられること
         const solveRes = api.autoSolveBuilderStageSync();
         assert.strictEqual(solveRes.found, true);
         assert.strictEqual(solveRes.blockCount, 5);
+        assert.ok(Array.isArray(solveRes.solutions) && solveRes.solutions.length >= 1, 'All min solutions must be collected');
+        assert.strictEqual(elMap.get('builder-solver-status').getAttribute('data-state'), 'warn');
 
         const bState = api.getBuilderState();
         assert.strictEqual(bState.maxBlocks, 5, 'maxBlocks should be updated to 5');
@@ -346,17 +356,30 @@ async function runAllTests() {
         const previewCode = elMap.get('builder-code-preview').textContent;
         assert.ok(previewCode.includes('maxBlocks: 5'), 'Generated code preview must include updated maxBlocks: 5');
 
-        // 流し込まれた状態で再度テストすると currentOk: true (ok) になること
-        const retest = api.testCurrentBuilderStageSync();
-        assert.strictEqual(retest.currentOk, true);
-        assert.strictEqual(elMap.get('builder-solver-status').getAttribute('data-state'), 'ok');
+        // 正答存在時は右横に「配置例を確認する」ボタンが表示されること
+        assert.strictEqual(elMap.get('btn-builder-view-solutions').style.display, 'inline-flex', 'View solutions button must be visible when solutions exist');
+        assert.strictEqual(elMap.get('btn-builder-view-solutions').disabled, false);
+
+        // 2. 「配置例を確認する」押下で配置例モーダルが開き、すべての通りがカード描画されること
+        elMap.get('builder-solutions-grid').children = [];
+        elMap.get('btn-builder-view-solutions').click();
+        assert.ok(elMap.get('builder-solutions-overlay').classList.contains('is-open'), 'Solutions modal must open');
+        const cards = elMap.get('builder-solutions-grid').children;
+        assert.strictEqual(cards.length, solveRes.solutions.length, 'All solution cards must be rendered');
+        if (cards.length >= 2) {
+            cards[1].click();
+            assert.strictEqual(elMap.get('builder-solutions-overlay').classList.contains('is-open'), false, 'Clicking a card must apply and close solutions modal');
+            assert.strictEqual(api.buildStageObjectFromBuilder(false).solution.length, 5, 'Applied solution must have 5 blocks');
+            elMap.get('btn-builder-undo').click();
+        }
 
         // 3. Undo ボタンで元の未配置＆maxBlocks=4 に戻せること
         elMap.get('btn-builder-undo').click();
         assert.strictEqual(api.getBuilderState().maxBlocks, 4, 'Undo must restore original maxBlocks=4');
         const afterUndoCount = api.buildStageObjectFromBuilder(false).solution.length;
         assert.strictEqual(afterUndoCount, 0, 'Undo must restore empty solution');
-        console.log(' -> OK: 盤面エディタでのクリア可否テスト・最小解流し込み・コード自動反映・Undo復元を確認しました。');
+        assert.strictEqual(elMap.get('btn-builder-view-solutions').style.display, 'none', 'View solutions button must hide again when board maxBlocks changes via undo');
+        console.log(' -> OK: 盤面エディタの統一クリア可否テスト・全正答配置例モーダル・クリック適用・Undo復元を確認しました。');
     }
 
     console.log('ALL STAGE SOLVER TESTS PASSED!');
