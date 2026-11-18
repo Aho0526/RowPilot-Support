@@ -365,6 +365,28 @@ function updateBlockBadge(preserveStatus = false) {
 // Saved grid before block movement for retry
 let originalGrid = null;
 
+function updateResetCancelButtonUI() {
+    if (!resetBtn) return;
+    const isPlace = (phase === 'place');
+    const labelText = isPlace ? 'リセット' : 'キャンセル';
+    const labelEl = typeof resetBtn.querySelector === 'function' ? resetBtn.querySelector('.btn-main-label') : null;
+    if (labelEl) {
+        labelEl.textContent = labelText;
+    } else {
+        resetBtn.textContent = labelText;
+    }
+    if (resetBtn.classList) {
+        if (isPlace) {
+            resetBtn.classList.remove('btn-cancel');
+        } else {
+            resetBtn.classList.add('btn-cancel');
+        }
+    }
+    resetBtn.title = isPlace
+        ? '配置を全クリア (Mキー / Shiftキー)'
+        : '実行をキャンセルして配置に戻る (Mキー / Shiftキー)';
+}
+
 // MARK: - Normal Block Placement (Does not move until Start)
 function placeBlock(col, row) {
     if (explosionMessageTimer) {
@@ -1230,10 +1252,8 @@ function getSpotStopRatio(spot) {
 function startSupernova(supernovaData) {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
     phase = 'supernova';
-    startBtn.disabled = true;
-
-    // 爆発によってステージ上のブロックをすべて消去するため、バックアップも破棄
-    originalGrid = null;
+    if (startBtn) startBtn.disabled = true;
+    updateResetCancelButtonUI();
 
     // 単一オブジェクトまたは複数オブジェクトの配列を正規化
     const rawSpots = Array.isArray(supernovaData) ? supernovaData : [supernovaData];
@@ -2045,7 +2065,8 @@ function finishSupernova() {
 
     phase = 'place';
     man = makeMan();
-    startBtn.disabled = false;
+    if (startBtn) startBtn.disabled = false;
+    updateResetCancelButtonUI();
     statusBar.innerHTML = '<span class="status-place">ブロックを配置してください。</span>';
     if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
     updateBlockBadge(true);
@@ -2431,10 +2452,71 @@ function getObjectState(elapsed, suckStart, suckEnd, dropStart, dropEnd, origX, 
     return { x: origX, y: origY, scale: 1, rotation: 0, alpha: 1, active: true, landed: true, phase: 'landed' };
 }
 
+function getMultiBlackHoleMergeEnd(holeCount) {
+    if (holeCount <= 2) return 4000;
+    if (holeCount <= 4) return 5800;
+    const rounds = Math.ceil(Math.log2(holeCount));
+    return 5800 + Math.max(0, rounds - 2) * 1400;
+}
+
+function getMultiBlackHoleTimeline(holeCount) {
+    const TM = getMultiBlackHoleMergeEnd(holeCount);
+    const T_GENESIS = 1000;
+    const T_half = 600;
+    const T_GROW_END = T_GENESIS + Math.min(600, Math.round((TM - T_GENESIS) * 0.18));
+
+    // 1. ステージ要素の吸引を先にすべて完了させる
+    const SUCK_BLOCKS_START = TM + 700, SUCK_BLOCKS_END = TM + 1400;
+    const SUCK_ARROWS_START = TM + 1200, SUCK_ARROWS_END = TM + 1900;
+    const SUCK_MAN_START = TM + 1700, SUCK_MAN_END = TM + 2400;
+    const SUCK_PIPE_START = TM + 2200, SUCK_PIPE_END = TM + 2900;
+    const SUCK_GOAL_START = TM + 2700, SUCK_GOAL_END = TM + 3400;
+    const SUCK_GROUND_START = TM + 2300, SUCK_GROUND_END = TM + 3900;
+
+    // 2. ステージ吸引完了後にUI群と背景空を吸収する
+    const SUCK_UI_START = SUCK_GROUND_END;
+    const SUCK_UI_END = SUCK_UI_START + 2200;
+
+    // 3. ブラックホール収縮・暗黒の静寂・落下復元
+    const BH_COLLAPSE_START = SUCK_UI_END + 100;
+    const BH_COLLAPSE_END = BH_COLLAPSE_START + 800;
+
+    const DROP_BASE = BH_COLLAPSE_END + 1000;
+    const DROP_GROUND_START = DROP_BASE + 400, DROP_GROUND_END = DROP_BASE + 1100;
+    const DROP_GOAL_START = DROP_BASE + 1400, DROP_GOAL_END = DROP_BASE + 2100;
+    const DROP_PIPE_START = DROP_BASE + 2000, DROP_PIPE_END = DROP_BASE + 2700;
+    const DROP_MAN_START = DROP_BASE + 3200, DROP_MAN_END = DROP_BASE + 4000;
+    const DROP_ARROWS_START = DROP_BASE + 3800, DROP_ARROWS_END = DROP_BASE + 4600;
+    const totalDuration = DROP_BASE + 5300;
+
+    return {
+        TM,
+        T_GENESIS,
+        T_half,
+        T_GROW_END,
+        SUCK_BLOCKS_START, SUCK_BLOCKS_END,
+        SUCK_ARROWS_START, SUCK_ARROWS_END,
+        SUCK_MAN_START, SUCK_MAN_END,
+        SUCK_PIPE_START, SUCK_PIPE_END,
+        SUCK_GOAL_START, SUCK_GOAL_END,
+        SUCK_GROUND_START, SUCK_GROUND_END,
+        SUCK_UI_START, SUCK_UI_END,
+        BH_COLLAPSE_START, BH_COLLAPSE_END,
+        DROP_BASE,
+        DROP_GROUND_START, DROP_GROUND_END,
+        DROP_GOAL_START, DROP_GOAL_END,
+        DROP_PIPE_START, DROP_PIPE_END,
+        DROP_MAN_START, DROP_MAN_END,
+        DROP_ARROWS_START, DROP_ARROWS_END,
+        totalDuration
+    };
+}
+
 function startBlackHole(loopDataOrList) {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
     phase = 'blackhole';
-    startBtn.disabled = true;
+    if (startBtn) startBtn.disabled = true;
+    updateResetCancelButtonUI();
 
     // 単一・複数の正規化
     const rawLoops = Array.isArray(loopDataOrList) ? loopDataOrList : [loopDataOrList];
@@ -2463,7 +2545,8 @@ function startBlackHole(loopDataOrList) {
             initRadius,
             initAngle,
             curX: l.centerX,
-            curY: l.centerY
+            curY: l.centerY,
+            curRadius: 0
         };
     });
 
@@ -2501,9 +2584,8 @@ function startBlackHole(loopDataOrList) {
         }
     }
 
-    const TM = (loopCount <= 2) ? 4000 : 5800;
-    const DROP_BASE = TM + 5700;
-    const totalDuration = DROP_BASE + 5300;
+    const timeline = getMultiBlackHoleTimeline(loopCount);
+    const totalDuration = isMulti ? timeline.totalDuration : 7900;
 
     const st = getStage();
     blackHoleState = {
@@ -2520,12 +2602,11 @@ function startBlackHole(loopDataOrList) {
         placedBlocks: initialPlacedBlocks,
         gimmicks: [...st.gimmicks],
         landedImpacts: new Set(),
+        timeline,
         totalDuration
     };
 
-    holes.forEach(h => {
-        initBlackHoleParticles(h.centerX, h.centerY);
-    });
+    initBlackHoleParticles(midCenterX, midCenterY);
 
     if (statusBar) {
         statusBar.innerHTML = '<span class="status-place">•••••</span>';
@@ -2556,7 +2637,8 @@ function finishBlackHole() {
 
     phase = 'place';
     man = makeMan();
-    startBtn.disabled = false;
+    if (startBtn) startBtn.disabled = false;
+    updateResetCancelButtonUI();
     statusBar.innerHTML = '<span class="status-place">ブロックを配置してください。</span>';
     if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
     updateBlockBadge(true);
@@ -2619,10 +2701,114 @@ function drawPostMergedBlackHole(ctx, elapsed, midX, midY, TM, maxMergedRadius, 
     }
 }
 
-// 階層的連星ブラックホール（Hierarchical Binary Merger）シミュレーション
-function renderHierarchicalBinaryBlackHoles(ctx, elapsed, holes, midX, midY, T_GENESIS, TM, BH_COLLAPSE_START, BH_COLLAPSE_END) {
+// 任意の複数ブラックホール (2個〜無制限) に対する階層的バイナリマージ計画を構築
+function getBinaryMergePlan(holes, T_GENESIS, TM) {
     const K = holes.length;
-    const maxMergedRadius = Math.round(60 * Math.min(2.0, Math.sqrt(K)));
+    const planKey = `${K}:${T_GENESIS}:${TM}:${holes.map(h => `${Math.round(h.centerX)},${Math.round(h.centerY)}`).join(';')}`;
+    if (holes._mergePlan && holes._mergePlanKey === planKey) {
+        return holes._mergePlan;
+    }
+
+    let minPairDist = Infinity;
+    for (let i = 0; i < K; i++) {
+        for (let j = i + 1; j < K; j++) {
+            const d = Math.hypot(holes[i].centerX - holes[j].centerX, holes[i].centerY - holes[j].centerY);
+            if (d > 0 && d < minPairDist) minPairDist = d;
+        }
+    }
+    const baseRadius = Math.min(45, Math.max(18, Number.isFinite(minPairDist) ? minPairDist * 0.44 : 45));
+    const maxMergedRadius = Math.round(60 * Math.min(2.0, Math.sqrt(Math.max(1, K))));
+    const radiusForMass = (mass) => {
+        if (mass <= 1) return baseRadius;
+        if (mass >= K) return maxMergedRadius;
+        const ratio = Math.sqrt((mass - 1) / Math.max(1, K - 1));
+        const maxMid = Math.min(84, Math.max(baseRadius + 10, maxMergedRadius * 0.72));
+        return baseRadius + (maxMid - baseRadius) * ratio;
+    };
+
+    let nodes = holes.map((h, idx) => ({
+        x: h.centerX,
+        y: h.centerY,
+        mass: 1,
+        radius: baseRadius,
+        leafIndices: [idx]
+    }));
+
+    const rounds = [];
+    while (nodes.length > 1) {
+        const pairs = [];
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                const dist = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+                pairs.push({ i, j, dist });
+            }
+        }
+        pairs.sort((p1, p2) => p1.dist - p2.dist);
+
+        const used = new Set();
+        const activePairs = [];
+        const nextNodes = [];
+
+        for (const p of pairs) {
+            if (used.has(p.i) || used.has(p.j)) continue;
+            used.add(p.i);
+            used.add(p.j);
+            const a = nodes[p.i];
+            const b = nodes[p.j];
+            const totalMass = a.mass + b.mass;
+            const mx = (a.x * a.mass + b.x * b.mass) / totalMass;
+            const my = (a.y * a.mass + b.y * b.mass) / totalMass;
+            const mergedNode = {
+                x: mx,
+                y: my,
+                mass: totalMass,
+                radius: radiusForMass(totalMass),
+                leafIndices: [...a.leafIndices, ...b.leafIndices]
+            };
+            activePairs.push({ a, b, mx, my, mergedNode });
+            nextNodes.push(mergedNode);
+        }
+
+        const carryNodes = [];
+        for (let i = 0; i < nodes.length; i++) {
+            if (!used.has(i)) {
+                carryNodes.push(nodes[i]);
+                nextNodes.push(nodes[i]);
+            }
+        }
+        rounds.push({ activePairs, carryNodes });
+        nodes = nextNodes;
+    }
+
+    const totalSpan = Math.max(200, TM - T_GENESIS);
+    const growDuration = Math.min(600, Math.round(totalSpan * 0.18));
+    const T_GROW_END = T_GENESIS + growDuration;
+    const mergeSpan = Math.max(100, TM - T_GROW_END);
+    const roundCount = Math.max(1, rounds.length);
+    const roundDur = mergeSpan / roundCount;
+
+    rounds.forEach((r, idx) => {
+        r.start = T_GROW_END + idx * roundDur;
+        r.end = (idx === roundCount - 1) ? TM : T_GROW_END + (idx + 1) * roundDur;
+    });
+
+    const plan = {
+        K,
+        baseRadius,
+        maxMergedRadius,
+        T_GENESIS,
+        T_GROW_END,
+        TM,
+        rounds
+    };
+    holes._mergePlan = plan;
+    holes._mergePlanKey = planKey;
+    return plan;
+}
+
+function evaluateHierarchicalBinaryBlackHoles(elapsed, holes, midX, midY, T_GENESIS, TM, BH_COLLAPSE_START, BH_COLLAPSE_END) {
+    const plan = getBinaryMergePlan(holes, T_GENESIS, TM);
+    const { K, baseRadius, maxMergedRadius, T_GROW_END, rounds } = plan;
 
     if (elapsed < T_GENESIS) {
         holes.forEach(h => {
@@ -2630,185 +2816,211 @@ function renderHierarchicalBinaryBlackHoles(ctx, elapsed, holes, midX, midY, T_G
             h.curY = h.centerY;
             h.curRadius = 0;
         });
+        return { phase: 'pre', plan, drawOps: [] };
+    }
+
+    if (elapsed < T_GROW_END) {
+        const t = (elapsed - T_GENESIS) / Math.max(1, T_GROW_END - T_GENESIS);
+        const r = baseRadius * Math.pow(t, 1.4);
+        const drawOps = [];
+        holes.forEach(h => {
+            h.curX = h.centerX;
+            h.curY = h.centerY;
+            h.curRadius = r;
+            drawOps.push({ type: 'single', x: h.curX, y: h.curY, r });
+        });
+        return { phase: 'grow', plan, drawOps };
+    }
+
+    if (elapsed < TM && rounds.length > 0) {
+        const activeRound = rounds.find(r => elapsed >= r.start && elapsed < r.end) || rounds[rounds.length - 1];
+        const u = Math.min(1, Math.max(0, (elapsed - activeRound.start) / Math.max(1, activeRound.end - activeRound.start)));
+        const dTheta = 4.3 * Math.PI * (1 - Math.pow(1 - u, 2.2));
+        const rRatio = Math.max(0, Math.pow(1 - u, 0.85));
+        const flash = (u > 0.93) ? (u - 0.93) / 0.07 : 0;
+
+        const drawOps = [];
+
+        activeRound.carryNodes.forEach(node => {
+            node.leafIndices.forEach(idx => {
+                const h = holes[idx];
+                if (h) {
+                    h.curX = node.x;
+                    h.curY = node.y;
+                    h.curRadius = node.radius;
+                }
+            });
+            drawOps.push({ type: 'single', x: node.x, y: node.y, r: node.radius });
+        });
+
+        activeRound.activePairs.forEach(pair => {
+            const { a, b, mx, my } = pair;
+            const rA0 = Math.hypot(a.x - mx, a.y - my);
+            const rB0 = Math.hypot(b.x - mx, b.y - my);
+            const angA0 = Math.atan2(a.y - my, a.x - mx);
+            const angB0 = Math.atan2(b.y - my, b.x - mx);
+
+            const ax = mx + Math.cos(angA0 + dTheta) * (rA0 * rRatio);
+            const ay = my + Math.sin(angA0 + dTheta) * (rA0 * rRatio);
+            const bx = mx + Math.cos(angB0 + dTheta) * (rB0 * rRatio);
+            const by = my + Math.sin(angB0 + dTheta) * (rB0 * rRatio);
+
+            a.leafIndices.forEach(idx => {
+                const h = holes[idx];
+                if (h) {
+                    h.curX = ax;
+                    h.curY = ay;
+                    h.curRadius = a.radius;
+                }
+            });
+            b.leafIndices.forEach(idx => {
+                const h = holes[idx];
+                if (h) {
+                    h.curX = bx;
+                    h.curY = by;
+                    h.curRadius = b.radius;
+                }
+            });
+
+            drawOps.push({
+                type: 'binary',
+                x1: ax, y1: ay, r1: a.radius,
+                x2: bx, y2: by, r2: b.radius,
+                midX: mx, midY: my,
+                u, flash
+            });
+        });
+
+        return { phase: 'merge', plan, drawOps };
+    }
+
+    holes.forEach(h => {
+        h.curX = midX;
+        h.curY = midY;
+        h.curRadius = (K === 1) ? 60 : maxMergedRadius;
+    });
+    return { phase: 'post', plan, drawOps: [{ type: 'post' }] };
+}
+
+function drawEvaluatedBinaryBlackHoles(ctx, evalResult, elapsed, midX, midY, TM, BH_COLLAPSE_START, BH_COLLAPSE_END) {
+    if (!evalResult) return;
+    const { phase: bhPhase, plan, drawOps } = evalResult;
+    if (bhPhase === 'pre') return;
+
+    if (bhPhase === 'post') {
+        drawPostMergedBlackHole(ctx, elapsed, midX, midY, TM, plan.maxMergedRadius, BH_COLLAPSE_START, BH_COLLAPSE_END);
         return;
     }
 
-    if (K <= 2) {
-        // 2天体: 連星インスパイラル（公転チャープ加速・軌道収縮・ダンベル型接触融合）
-        const h0 = holes[0];
-        const h1 = holes[1];
-        const T_SPIRAL = 1600;
-
-        if (elapsed < T_SPIRAL) {
-            const t = (elapsed - T_GENESIS) / (T_SPIRAL - T_GENESIS);
-            const r = 45 * Math.pow(t, 1.4);
-            h0.curX = h0.centerX; h0.curY = h0.centerY; h0.curRadius = r;
-            h1.curX = h1.centerX; h1.curY = h1.centerY; h1.curRadius = r;
-            drawSingleBlackHoleDisc(ctx, h0.curX, h0.curY, r, elapsed);
-            drawSingleBlackHoleDisc(ctx, h1.curX, h1.curY, r, elapsed);
-        } else if (elapsed < TM) {
-            const u = (elapsed - T_SPIRAL) / (TM - T_SPIRAL);
-            const dTheta = 4.6 * Math.PI * (1 - Math.pow(1 - u, 2.2));
-            const rRatio = Math.max(0, Math.pow(1 - u, 0.82));
-
-            const curR0 = h0.initRadius * rRatio;
-            const curR1 = h1.initRadius * rRatio;
-            const a0 = h0.initAngle + dTheta;
-            const a1 = h1.initAngle + dTheta;
-
-            h0.curX = midX + Math.cos(a0) * curR0;
-            h0.curY = midY + Math.sin(a0) * curR0;
-            h0.curRadius = 45;
-
-            h1.curX = midX + Math.cos(a1) * curR1;
-            h1.curY = midY + Math.sin(a1) * curR1;
-            h1.curRadius = 45;
-
-            const flash = (u > 0.94) ? (u - 0.94) / 0.06 : 0;
-            drawBinaryBlackHoleSystem(ctx, h0.curX, h0.curY, 45, h1.curX, h1.curY, 45, midX, midY, u, elapsed, flash);
-        } else {
-            h0.curX = midX; h0.curY = midY;
-            h1.curX = midX; h1.curY = midY;
-            drawPostMergedBlackHole(ctx, elapsed, midX, midY, TM, maxMergedRadius, BH_COLLAPSE_START, BH_COLLAPSE_END);
+    drawOps.forEach(op => {
+        if (op.type === 'single') {
+            drawSingleBlackHoleDisc(ctx, op.x, op.y, op.r, elapsed);
+        } else if (op.type === 'binary') {
+            drawBinaryBlackHoleSystem(ctx, op.x1, op.y1, op.r1, op.x2, op.y2, op.r2, op.midX, op.midY, op.u, elapsed, op.flash);
         }
-    } else if (K === 3) {
-        // 3天体: 任意の2つ (h0, h1) を第1段階で合体させ、残りの1つ (h2) と第2段階で合体
-        const h0 = holes[0];
-        const h1 = holes[1];
-        const h2 = holes[2];
+    });
+}
 
-        const T_S1_START = 1600;
-        const T_S1_END = 3600;
-        const T_S2_START = 3600;
+// 階層的連星ブラックホール（Hierarchical Binary Merger）シミュレーション
+function renderHierarchicalBinaryBlackHoles(ctx, elapsed, holes, midX, midY, T_GENESIS, TM, BH_COLLAPSE_START, BH_COLLAPSE_END) {
+    const evalResult = evaluateHierarchicalBinaryBlackHoles(elapsed, holes, midX, midY, T_GENESIS, TM, BH_COLLAPSE_START, BH_COLLAPSE_END);
+    drawEvaluatedBinaryBlackHoles(ctx, evalResult, elapsed, midX, midY, TM, BH_COLLAPSE_START, BH_COLLAPSE_END);
+}
 
-        const mAx = (h0.centerX + h1.centerX) / 2;
-        const mAy = (h0.centerY + h1.centerY) / 2;
-        const rA0 = Math.hypot(h0.centerX - mAx, h0.centerY - mAy);
-        const angA0 = Math.atan2(h0.centerY - mAy, h0.centerX - mAx);
-        const angA1 = Math.atan2(h1.centerY - mAy, h1.centerX - mAx);
+function getMultiHoleLoopBlockPosition(b, holes, elapsed, T_half, T_GROW_END, TM, forceCenter = null) {
+    const targetHole = (b.loopIndex >= 0 && b.loopIndex < holes.length) ? holes[b.loopIndex] : null;
+    if (!targetHole || !targetHole.loopPath || targetHole.loopPath.length === 0) {
+        return {
+            bx: GX + (b.col + 0.5) * CELL,
+            by: GY + (b.row + 0.5) * CELL,
+            scale: 1,
+            speed: 1,
+            col: b.col,
+            row: b.row
+        };
+    }
 
-        if (elapsed < T_S1_START) {
-            const t = (elapsed - T_GENESIS) / (T_S1_START - T_GENESIS);
-            const r = 45 * Math.pow(t, 1.4);
-            holes.forEach(h => {
-                h.curX = h.centerX; h.curY = h.centerY; h.curRadius = r;
-                drawSingleBlackHoleDisc(ctx, h.curX, h.curY, r, elapsed);
-            });
-        } else if (elapsed < T_S1_END) {
-            const u1 = (elapsed - T_S1_START) / (T_S1_END - T_S1_START);
-            const dTheta = 4.2 * Math.PI * (1 - Math.pow(1 - u1, 2.2));
-            const rRatio = Math.max(0, Math.pow(1 - u1, 0.85));
+    const lp = targetHole.loopPath;
+    const lN = lp.length;
+    const halfN = lN / 2;
+    const v0 = halfN / Math.max(0.05, T_half / 1000);
+    const k = 2.2;
+    const maxSpeed = 14;
 
-            h0.curX = mAx + Math.cos(angA0 + dTheta) * (rA0 * rRatio);
-            h0.curY = mAy + Math.sin(angA0 + dTheta) * (rA0 * rRatio);
-            h0.curRadius = 45;
-
-            h1.curX = mAx + Math.cos(angA1 + dTheta) * (rA0 * rRatio);
-            h1.curY = mAy + Math.sin(angA1 + dTheta) * (rA0 * rRatio);
-            h1.curRadius = 45;
-
-            h2.curX = h2.centerX;
-            h2.curY = h2.centerY;
-            h2.curRadius = 45;
-
-            const flash1 = (u1 > 0.93) ? (u1 - 0.93) / 0.07 : 0;
-            drawBinaryBlackHoleSystem(ctx, h0.curX, h0.curY, 45, h1.curX, h1.curY, 45, mAx, mAy, u1, elapsed, flash1);
-            drawSingleBlackHoleDisc(ctx, h2.curX, h2.curY, 45, elapsed);
-        } else if (elapsed < TM) {
-            const u2 = (elapsed - T_S2_START) / (TM - T_S2_START);
-            const dTheta = 4.4 * Math.PI * (1 - Math.pow(1 - u2, 2.2));
-            const rRatio = Math.max(0, Math.pow(1 - u2, 0.85));
-
-            const rMid_mA = Math.hypot(mAx - midX, mAy - midY);
-            const rMid_h2 = Math.hypot(h2.centerX - midX, h2.centerY - midY);
-            const angMid_mA = Math.atan2(mAy - midY, mAx - midX);
-            const angMid_h2 = Math.atan2(h2.centerY - midY, h2.centerX - midX);
-
-            const curX_mA = midX + Math.cos(angMid_mA + dTheta) * (rMid_mA * rRatio);
-            const curY_mA = midY + Math.sin(angMid_mA + dTheta) * (rMid_mA * rRatio);
-            const curX_h2 = midX + Math.cos(angMid_h2 + dTheta) * (rMid_h2 * rRatio);
-            const curY_h2 = midY + Math.sin(angMid_h2 + dTheta) * (rMid_h2 * rRatio);
-
-            h0.curX = curX_mA; h0.curY = curY_mA;
-            h1.curX = curX_mA; h1.curY = curY_mA;
-            h2.curX = curX_h2; h2.curY = curY_h2;
-
-            const flash2 = (u2 > 0.94) ? (u2 - 0.94) / 0.06 : 0;
-            drawBinaryBlackHoleSystem(ctx, curX_mA, curY_mA, 64, curX_h2, curY_h2, 45, midX, midY, u2, elapsed, flash2);
-        } else {
-            holes.forEach(h => { h.curX = midX; h.curY = midY; });
-            drawPostMergedBlackHole(ctx, elapsed, midX, midY, TM, maxMergedRadius, BH_COLLAPSE_START, BH_COLLAPSE_END);
-        }
+    let loopS = 0;
+    let loopSpeed = 1;
+    if (elapsed < T_half) {
+        loopS = (halfN / T_half) * elapsed;
+        loopSpeed = 1;
     } else {
-        // 4天体以上: ペアA (h0, h1) とペアB (h2, h3) が第1段階で並行合体し、第2段階で中間天体同士が合体
-        const h0 = holes[0], h1 = holes[1], h2 = holes[2], h3 = holes[3];
-        const T_S1_START = 1600;
-        const T_S1_END = 3600;
-        const T_S2_START = 3600;
-
-        const mAx = (h0.centerX + h1.centerX) / 2, mAy = (h0.centerY + h1.centerY) / 2;
-        const mBx = (h2.centerX + h3.centerX) / 2, mBy = (h2.centerY + h3.centerY) / 2;
-
-        const rA0 = Math.hypot(h0.centerX - mAx, h0.centerY - mAy);
-        const angA0 = Math.atan2(h0.centerY - mAy, h0.centerX - mAx);
-        const angA1 = Math.atan2(h1.centerY - mAy, h1.centerX - mAx);
-
-        const rB0 = Math.hypot(h2.centerX - mBx, h2.centerY - mBy);
-        const angB0 = Math.atan2(h2.centerY - mBy, h2.centerX - mBx);
-        const angB1 = Math.atan2(h3.centerY - mBy, h3.centerX - mBx);
-
-        if (elapsed < T_S1_START) {
-            const t = (elapsed - T_GENESIS) / (T_S1_START - T_GENESIS);
-            const r = 45 * Math.pow(t, 1.4);
-            holes.forEach(h => {
-                h.curX = h.centerX; h.curY = h.centerY; h.curRadius = r;
-                drawSingleBlackHoleDisc(ctx, h.curX, h.curY, r, elapsed);
-            });
-        } else if (elapsed < T_S1_END) {
-            const u1 = (elapsed - T_S1_START) / (T_S1_END - T_S1_START);
-            const dTheta = 4.2 * Math.PI * (1 - Math.pow(1 - u1, 2.2));
-            const rRatio = Math.max(0, Math.pow(1 - u1, 0.85));
-
-            h0.curX = mAx + Math.cos(angA0 + dTheta) * (rA0 * rRatio);
-            h0.curY = mAy + Math.sin(angA0 + dTheta) * (rA0 * rRatio);
-            h1.curX = mAx + Math.cos(angA1 + dTheta) * (rA0 * rRatio);
-            h1.curY = mAy + Math.sin(angA1 + dTheta) * (rA0 * rRatio);
-
-            h2.curX = mBx + Math.cos(angB0 + dTheta) * (rB0 * rRatio);
-            h2.curY = mBy + Math.sin(angB0 + dTheta) * (rB0 * rRatio);
-            h3.curX = mBx + Math.cos(angB1 + dTheta) * (rB0 * rRatio);
-            h3.curY = mBy + Math.sin(angB1 + dTheta) * (rB0 * rRatio);
-
-            const flash1 = (u1 > 0.93) ? (u1 - 0.93) / 0.07 : 0;
-            drawBinaryBlackHoleSystem(ctx, h0.curX, h0.curY, 45, h1.curX, h1.curY, 45, mAx, mAy, u1, elapsed, flash1);
-            drawBinaryBlackHoleSystem(ctx, h2.curX, h2.curY, 45, h3.curX, h3.curY, 45, mBx, mBy, u1, elapsed, flash1);
-        } else if (elapsed < TM) {
-            const u2 = (elapsed - T_S2_START) / (TM - T_S2_START);
-            const dTheta = 4.4 * Math.PI * (1 - Math.pow(1 - u2, 2.2));
-            const rRatio = Math.max(0, Math.pow(1 - u2, 0.85));
-
-            const rMid_mA = Math.hypot(mAx - midX, mAy - midY);
-            const rMid_mB = Math.hypot(mBx - midX, mBy - midY);
-            const angMid_mA = Math.atan2(mAy - midY, mAx - midX);
-            const angMid_mB = Math.atan2(mBy - midY, mBx - midX);
-
-            const curX_mA = midX + Math.cos(angMid_mA + dTheta) * (rMid_mA * rRatio);
-            const curY_mA = midY + Math.sin(angMid_mA + dTheta) * (rMid_mA * rRatio);
-            const curX_mB = midX + Math.cos(angMid_mB + dTheta) * (rMid_mB * rRatio);
-            const curY_mB = midY + Math.sin(angMid_mB + dTheta) * (rMid_mB * rRatio);
-
-            h0.curX = curX_mA; h0.curY = curY_mA;
-            h1.curX = curX_mA; h1.curY = curY_mA;
-            h2.curX = curX_mB; h2.curY = curY_mB;
-            h3.curX = curX_mB; h3.curY = curY_mB;
-
-            const flash2 = (u2 > 0.94) ? (u2 - 0.94) / 0.06 : 0;
-            drawBinaryBlackHoleSystem(ctx, curX_mA, curY_mA, 64, curX_mB, curY_mB, 64, midX, midY, u2, elapsed, flash2);
+        const dtSec = (elapsed - T_half) / 1000;
+        const tCap = maxSpeed > v0 ? Math.log(maxSpeed / v0) / k : 0;
+        if (dtSec <= tCap) {
+            loopS = halfN + (v0 / k) * (Math.exp(k * dtSec) - 1);
+            loopSpeed = Math.exp(k * dtSec);
         } else {
-            holes.forEach(h => { h.curX = midX; h.curY = midY; });
-            drawPostMergedBlackHole(ctx, elapsed, midX, midY, TM, maxMergedRadius, BH_COLLAPSE_START, BH_COLLAPSE_END);
+            loopS = halfN + (v0 / k) * (Math.exp(k * tCap) - 1) + maxSpeed * (dtSec - tCap);
+            loopSpeed = maxSpeed / Math.max(0.1, v0);
         }
     }
+
+    const getCoordAt = (sVal) => {
+        const modS = ((sVal % lN) + lN) % lN;
+        const idx = Math.floor(modS);
+        const sub = modS - idx;
+        const p0 = lp[idx];
+        const p1 = lp[(idx + 1) % lN];
+        return {
+            col: p0.col + (p1.col - p0.col) * sub,
+            row: p0.row + (p1.row - p0.row) * sub
+        };
+    };
+
+    const s_b = loopS + (b.loopOffset || 0);
+    const curCoord = getCoordAt(s_b);
+
+    let orbitScale = 1;
+    let blockScale = 1;
+    if (elapsed > T_GROW_END) {
+        const u = Math.min(1, (elapsed - T_GROW_END) / Math.max(1, TM - T_GROW_END));
+        const easeU = Math.pow(u, 1.35);
+        orbitScale = 1 - 0.78 * easeU;
+        blockScale = 1 - 0.35 * easeU;
+    }
+
+    const holeCurX = forceCenter ? forceCenter.x : (typeof targetHole.curX === 'number' ? targetHole.curX : targetHole.centerX);
+    const holeCurY = forceCenter ? forceCenter.y : (typeof targetHole.curY === 'number' ? targetHole.curY : targetHole.centerY);
+
+    const relX = (GX + (curCoord.col + 0.5) * CELL) - targetHole.centerX;
+    const relY = (GY + (curCoord.row + 0.5) * CELL) - targetHole.centerY;
+
+    return {
+        bx: holeCurX + relX * orbitScale,
+        by: holeCurY + relY * orbitScale,
+        scale: blockScale,
+        speed: loopSpeed,
+        orbitScale,
+        s_b,
+        holeCurX,
+        holeCurY,
+        targetHole,
+        getCoordAt,
+        col: curCoord.col,
+        row: curCoord.row
+    };
+}
+
+function drawBlockAtPixelCenter(cx, cy, scale = 1, rot = 0, alpha = 1, allowGimmickOverlay = false, gridCol = 0, gridRow = 0) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    if (rot) ctx.rotate(rot);
+    if (scale !== 1) ctx.scale(scale, scale);
+    if (alpha < 1) ctx.globalAlpha *= alpha;
+    const targetCx = GX + (gridCol + 0.5) * CELL;
+    const targetCy = GY + (gridRow + 0.5) * CELL;
+    ctx.translate(-targetCx, -targetCy);
+    drawMarioBlock(gridCol, gridRow, allowGimmickOverlay);
+    ctx.restore();
 }
 
 function renderMultiBlackHoleState(elapsed) {
@@ -2821,31 +3033,32 @@ function renderMultiBlackHoleState(elapsed) {
     const holes = bhState.holes;
     const K = holes.length;
 
-    // タイムライン定数（ゆっくり丁寧に演出）
-    const TM = (K <= 2) ? 4000 : 5800;
-    const T_GENESIS = 1000;
-    const T_half = 600;
+    const tl = bhState.timeline || getMultiBlackHoleTimeline(K);
+    const {
+        TM, T_GENESIS, T_half, T_GROW_END,
+        SUCK_BLOCKS_START, SUCK_BLOCKS_END,
+        SUCK_ARROWS_START, SUCK_ARROWS_END,
+        SUCK_MAN_START, SUCK_MAN_END,
+        SUCK_PIPE_START, SUCK_PIPE_END,
+        SUCK_GOAL_START, SUCK_GOAL_END,
+        SUCK_GROUND_START, SUCK_GROUND_END,
+        SUCK_UI_START, SUCK_UI_END,
+        BH_COLLAPSE_START, BH_COLLAPSE_END,
+        DROP_BASE,
+        DROP_GROUND_START, DROP_GROUND_END,
+        DROP_GOAL_START, DROP_GOAL_END,
+        DROP_PIPE_START, DROP_PIPE_END,
+        DROP_MAN_START, DROP_MAN_END,
+        DROP_ARROWS_START, DROP_ARROWS_END
+    } = tl;
 
-    const SUCK_BLOCKS_START = TM + 700, SUCK_BLOCKS_END = TM + 1400;
-    const SUCK_ARROWS_START = TM + 1200, SUCK_ARROWS_END = TM + 1900;
-    const SUCK_MAN_START = TM + 1700, SUCK_MAN_END = TM + 2400;
-    const SUCK_PIPE_START = TM + 2200, SUCK_PIPE_END = TM + 2900;
-    const SUCK_GOAL_START = TM + 2700, SUCK_GOAL_END = TM + 3400;
-    const SUCK_GROUND_START = TM + 2300, SUCK_GROUND_END = TM + 3900;
-    const SUCK_UI_START = TM + 1200, SUCK_UI_END = TM + 3900;
-    const BH_COLLAPSE_START = TM + 3900, BH_COLLAPSE_END = TM + 4700;
-
-    const DROP_BASE = TM + 5700;
-    const DROP_GROUND_START = DROP_BASE + 400, DROP_GROUND_END = DROP_BASE + 1100;
-    const DROP_GOAL_START = DROP_BASE + 1400, DROP_GOAL_END = DROP_BASE + 2100;
-    const DROP_PIPE_START = DROP_BASE + 2000, DROP_PIPE_END = DROP_BASE + 2700;
-    const DROP_MAN_START = DROP_BASE + 3200, DROP_MAN_END = DROP_BASE + 4000;
-    const DROP_ARROWS_START = DROP_BASE + 3800, DROP_ARROWS_END = DROP_BASE + 4600;
+    // ブラックホールの現在座標・半径を先に評価し、ループブロック描画と1フレームのズレもなく同期させる
+    const bhEval = evaluateHierarchicalBinaryBlackHoles(elapsed, holes, midX, midY, T_GENESIS, TM, BH_COLLAPSE_START, BH_COLLAPSE_END);
 
     // カメラの揺れ（Screen Shake）
     let shakeAmp = 0;
-    if (elapsed >= 1600 && elapsed < TM) {
-        const t = (elapsed - 1600) / (TM - 1600);
+    if (elapsed >= T_GROW_END && elapsed < TM) {
+        const t = (elapsed - T_GROW_END) / Math.max(1, TM - T_GROW_END);
         shakeAmp = 1.5 + t * 5.5;
     } else if (elapsed >= TM && elapsed < TM + 250) {
         shakeAmp = 10.0;
@@ -2885,7 +3098,7 @@ function renderMultiBlackHoleState(elapsed) {
         triggerImpact('man', () => { spawnDust(-1.5, st.startRow); });
     }
 
-    // UI群の吸引 / 上空からの自動落下更新
+    // UI群の吸引（ステージ完了後） / 上空からの自動落下更新
     if (canvas) {
         const canvasRect = canvas.getBoundingClientRect();
         const sx = canvasRect.width / TOTAL_W;
@@ -2900,42 +3113,13 @@ function renderMultiBlackHoleState(elapsed) {
         }
     }
 
-    // ループ進行計算
-    const primaryHole = holes[0];
-    const loopPath = primaryHole.loopPath;
-    const N = loopPath.length;
-    const halfN = N / 2;
-    let loopS = 0;
-
-    if (elapsed < T_half) {
-        loopS = (halfN / T_half) * elapsed;
-    } else {
-        const dtSec = (elapsed - T_half) / 1000;
-        const v0 = halfN / 0.5;
-        const k = 2.2;
-        loopS = halfN + (v0 / k) * (Math.exp(k * dtSec) - 1);
-    }
-
-    const getHoleLoopCoord = (holeData, sVal) => {
-        const lp = holeData.loopPath;
-        const lN = lp.length;
-        const modS = ((sVal % lN) + lN) % lN;
-        const idx = Math.floor(modS);
-        const sub = modS - idx;
-        const p0 = lp[idx];
-        const p1 = lp[(idx + 1) % lN];
-        return {
-            col: p0.col + (p1.col - p0.col) * sub,
-            row: p0.row + (p1.row - p0.row) * sub
-        };
-    };
-
     // レンダリング開始
     ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
 
+    // ステージが吸い込まれ終わったあと、UIと同時に空背景も暗黒空間(#060814)へ沈む
     let skyAlpha = 1;
-    if (elapsed >= BH_COLLAPSE_START && elapsed < DROP_BASE) {
-        skyAlpha = Math.max(0, 1 - (elapsed - BH_COLLAPSE_START) / (BH_COLLAPSE_END - BH_COLLAPSE_START));
+    if (elapsed >= SUCK_UI_START && elapsed < DROP_BASE) {
+        skyAlpha = Math.max(0, 1 - (elapsed - SUCK_UI_START) / Math.max(1, SUCK_UI_END - SUCK_UI_START));
     } else if (elapsed >= DROP_BASE) {
         skyAlpha = Math.min(1, (elapsed - DROP_BASE) / 700);
     }
@@ -3054,23 +3238,24 @@ function renderMultiBlackHoleState(elapsed) {
         }
     });
 
-    // 6. ブロック (Blocks) の描画
+    // 6. ブロック (Blocks) の描画（全ループブロックも最新ブラックホール位置に同期しワープゼロ）
     if (elapsed < SUCK_BLOCKS_START) {
         bhState.placedBlocks.forEach(b => {
             if (b.isLoopBlock && b.loopIndex >= 0 && b.loopIndex < holes.length) {
-                const targetHole = holes[b.loopIndex];
-                const s_b = loopS + b.loopOffset;
-                const curCoord = getHoleLoopCoord(targetHole, s_b);
-
-                const offsetX = targetHole.curX - targetHole.centerX;
-                const offsetY = targetHole.curY - targetHole.centerY;
-                const bX = GX + (curCoord.col + 0.5) * CELL + offsetX;
-                const bY = GY + (curCoord.row + 0.5) * CELL + offsetY;
-
-                ctx.save();
-                ctx.translate(bX - (GX + (curCoord.col + 0.5) * CELL), bY - (GY + (curCoord.row + 0.5) * CELL));
-                drawMarioBlock(curCoord.col, curCoord.row);
-                ctx.restore();
+                const pos = getMultiHoleLoopBlockPosition(b, holes, elapsed, T_half, T_GROW_END, TM);
+                if (elapsed >= T_half && pos.speed > 2.5 && pos.getCoordAt) {
+                    const trailCount = Math.min(4, Math.floor(pos.speed * 0.35));
+                    for (let t = trailCount; t >= 1; t--) {
+                        const trailS = pos.s_b - t * Math.min(0.32, 1.0 / trailCount);
+                        const tc = pos.getCoordAt(trailS);
+                        const tRelX = (GX + (tc.col + 0.5) * CELL) - pos.targetHole.centerX;
+                        const tRelY = (GY + (tc.row + 0.5) * CELL) - pos.targetHole.centerY;
+                        const tBx = pos.holeCurX + tRelX * pos.orbitScale;
+                        const tBy = pos.holeCurY + tRelY * pos.orbitScale;
+                        drawBlockAtPixelCenter(tBx, tBy, pos.scale, 0, 0.14 * (1 - t / (trailCount + 1)), false, 0, 0);
+                    }
+                }
+                drawBlockAtPixelCenter(pos.bx, pos.by, pos.scale, 0, 1, elapsed < T_half, b.col, b.row);
             } else {
                 drawMarioBlock(b.col, b.row);
             }
@@ -3079,35 +3264,18 @@ function renderMultiBlackHoleState(elapsed) {
         bhState.placedBlocks.forEach(b => {
             let bOrigX = GX + (b.col + 0.5) * CELL;
             let bOrigY = GY + (b.row + 0.5) * CELL;
-            let curCoordAtSuck = null;
+            let initScale = 1;
 
             if (b.isLoopBlock && b.loopIndex >= 0 && b.loopIndex < holes.length) {
-                const targetHole = holes[b.loopIndex];
-                const dtSecSuck = (SUCK_BLOCKS_START - T_half) / 1000;
-                const v0 = halfN / 0.5;
-                const k = 2.2;
-                const loopSAtSuck = halfN + (v0 / k) * (Math.exp(k * dtSecSuck) - 1);
-                const s_b_suck = loopSAtSuck + b.loopOffset;
-                curCoordAtSuck = getHoleLoopCoord(targetHole, s_b_suck);
-                bOrigX = GX + (curCoordAtSuck.col + 0.5) * CELL;
-                bOrigY = GY + (curCoordAtSuck.row + 0.5) * CELL;
+                const posAtSuck = getMultiHoleLoopBlockPosition(b, holes, SUCK_BLOCKS_START, T_half, T_GROW_END, TM, { x: midX, y: midY });
+                bOrigX = posAtSuck.bx;
+                bOrigY = posAtSuck.by;
+                initScale = posAtSuck.scale;
             }
 
             const bState = getSuckTransform(elapsed, SUCK_BLOCKS_START, SUCK_BLOCKS_END, bOrigX, bOrigY, midX, midY);
             if (bState.active) {
-                const drawCol = (b.isLoopBlock && curCoordAtSuck) ? curCoordAtSuck.col : b.col;
-                const drawRow = (b.isLoopBlock && curCoordAtSuck) ? curCoordAtSuck.row : b.row;
-                const targetCx = GX + (drawCol + 0.5) * CELL;
-                const targetCy = GY + (drawRow + 0.5) * CELL;
-
-                ctx.save();
-                ctx.translate(bState.x, bState.y);
-                if (bState.rotation) ctx.rotate(bState.rotation);
-                if (bState.scale !== 1) ctx.scale(bState.scale, bState.scale);
-                if (bState.alpha < 1) ctx.globalAlpha *= bState.alpha;
-                ctx.translate(-targetCx, -targetCy);
-                drawMarioBlock(drawCol, drawRow);
-                ctx.restore();
+                drawBlockAtPixelCenter(bState.x, bState.y, bState.scale * initScale, bState.rotation, bState.alpha, false, b.col, b.row);
             }
         });
     }
@@ -3124,7 +3292,7 @@ function renderMultiBlackHoleState(elapsed) {
         if (manState.alpha < 1) ctx.globalAlpha *= manState.alpha;
         ctx.translate(-manOrigX, -manOrigY);
 
-        if (elapsed >= 1600 && elapsed < SUCK_MAN_START) {
+        if (elapsed >= T_GROW_END && elapsed < SUCK_MAN_START) {
             const jitterX = Math.sin(elapsed * 0.15) * 2.0;
             ctx.translate(jitterX, 0);
             drawStickman(-1.5, st.startRow);
@@ -3135,7 +3303,7 @@ function renderMultiBlackHoleState(elapsed) {
     }
 
     // 8. 階層的連星ブラックホール（Hierarchical Binary Merger）の描画
-    renderHierarchicalBinaryBlackHoles(ctx, elapsed, holes, midX, midY, T_GENESIS, TM, BH_COLLAPSE_START, BH_COLLAPSE_END);
+    drawEvaluatedBinaryBlackHoles(ctx, bhEval, elapsed, midX, midY, TM, BH_COLLAPSE_START, BH_COLLAPSE_END);
 
     // 9. パーティクル
     updateAndDrawParticles(ctx);
@@ -3524,11 +3692,143 @@ function renderBlackHoleState(elapsed) {
 }
 
 // MARK: - Dual Event: Supernova + Black Hole Simultaneous Sequence
+function getDualEventTimeline(extraTime, holeCount) {
+    const isMultiBH = holeCount >= 2;
+    const T_HALF = 450;
+    const BH_APPEAR_START = 1750 + extraTime;
+    const BH_APPEAR_END = 2350 + extraTime;
+    const LOOP_FREEZE_TIME = 2150 + extraTime;
+
+    const APPROACH_END = 1350;
+    const PULL_START = 1850 + extraTime;
+    const PULL_END = 2350 + extraTime;
+    const SN_SUCK_START = 1900 + extraTime;
+    const EXPLODE_TIME = 2450 + extraTime;
+    const BLOW_START = 2550 + extraTime;
+    const ESCAPE_POINT = 3100 + extraTime;
+
+    if (!isMultiBH) {
+        return {
+            isMultiBH: false,
+            T_HALF,
+            BH_APPEAR_START,
+            BH_APPEAR_END,
+            LOOP_FREEZE_TIME,
+            APPROACH_END,
+            PULL_START,
+            PULL_END,
+            SN_SUCK_START,
+            EXPLODE_TIME,
+            BLOW_START,
+            ESCAPE_POINT,
+            TM_DUAL: 3300 + extraTime,
+            SUCK_MAN_START: 3100 + extraTime,
+            SUCK_MAN_END: 3550 + extraTime,
+            SUCK_BLOCKS_START: 3450 + extraTime,
+            SUCK_BLOCKS_END: 3900 + extraTime,
+            SUCK_ARROWS_START: 3800 + extraTime,
+            SUCK_ARROWS_END: 4250 + extraTime,
+            SUCK_GOAL_START: 3550 + extraTime,
+            SUCK_GOAL_END: 4050 + extraTime,
+            SUCK_PIPE_START: 4150 + extraTime,
+            SUCK_PIPE_END: 4600 + extraTime,
+            SUCK_GROUND_START: 3550 + extraTime,
+            SUCK_GROUND_END: 5250 + extraTime,
+            SUCK_UI_START: Infinity,
+            SUCK_UI_END: Infinity,
+            BH_COLLAPSE_START: 5550 + extraTime,
+            BH_COLLAPSE_END: 5950 + extraTime,
+            DROP_BASE: 5950 + extraTime,
+            DROP_GROUND_START: 6250 + extraTime,
+            DROP_GROUND_END: 6700 + extraTime,
+            DROP_GOAL_START: 6650 + extraTime,
+            DROP_GOAL_END: 7050 + extraTime,
+            DROP_PIPE_START: 7000 + extraTime,
+            DROP_PIPE_END: 7400 + extraTime,
+            DROP_MAN_START: 7350 + extraTime,
+            DROP_MAN_END: 7850 + extraTime,
+            DROP_ARROWS_START: 7800 + extraTime,
+            DROP_ARROWS_END: 8200 + extraTime,
+            totalDuration: 8350 + extraTime
+        };
+    }
+
+    const mergeSpan = Math.max(2000, getMultiBlackHoleMergeEnd(holeCount) - 1000);
+    const TM_DUAL = BH_APPEAR_START + mergeSpan;
+
+    // 複数BH時は合体後にステージを先に全吸引し、その後UIと空背景を吸収する
+    const SUCK_MAN_START = ESCAPE_POINT;
+    const SUCK_MAN_END = TM_DUAL + 400;
+    const SUCK_BLOCKS_START = TM_DUAL + 500, SUCK_BLOCKS_END = TM_DUAL + 1200;
+    const SUCK_ARROWS_START = TM_DUAL + 1000, SUCK_ARROWS_END = TM_DUAL + 1700;
+    const SUCK_PIPE_START = TM_DUAL + 1500, SUCK_PIPE_END = TM_DUAL + 2200;
+    const SUCK_GOAL_START = TM_DUAL + 1900, SUCK_GOAL_END = TM_DUAL + 2600;
+    const SUCK_GROUND_START = TM_DUAL + 1600, SUCK_GROUND_END = TM_DUAL + 3200;
+
+    const SUCK_UI_START = SUCK_GROUND_END;
+    const SUCK_UI_END = SUCK_UI_START + 2200;
+
+    const BH_COLLAPSE_START = SUCK_UI_END + 100;
+    const BH_COLLAPSE_END = BH_COLLAPSE_START + 800;
+
+    const DROP_BASE = BH_COLLAPSE_END + 1000;
+    const DROP_GROUND_START = DROP_BASE + 400, DROP_GROUND_END = DROP_BASE + 1100;
+    const DROP_GOAL_START = DROP_BASE + 1400, DROP_GOAL_END = DROP_BASE + 2100;
+    const DROP_PIPE_START = DROP_BASE + 2000, DROP_PIPE_END = DROP_BASE + 2700;
+    const DROP_MAN_START = DROP_BASE + 3200, DROP_MAN_END = DROP_BASE + 4000;
+    const DROP_ARROWS_START = DROP_BASE + 3800, DROP_ARROWS_END = DROP_BASE + 4600;
+    const totalDuration = DROP_BASE + 5300;
+
+    return {
+        isMultiBH: true,
+        T_HALF,
+        BH_APPEAR_START,
+        BH_APPEAR_END,
+        LOOP_FREEZE_TIME,
+        APPROACH_END,
+        PULL_START,
+        PULL_END,
+        SN_SUCK_START,
+        EXPLODE_TIME,
+        BLOW_START,
+        ESCAPE_POINT,
+        TM_DUAL,
+        SUCK_MAN_START,
+        SUCK_MAN_END,
+        SUCK_BLOCKS_START,
+        SUCK_BLOCKS_END,
+        SUCK_ARROWS_START,
+        SUCK_ARROWS_END,
+        SUCK_PIPE_START,
+        SUCK_PIPE_END,
+        SUCK_GOAL_START,
+        SUCK_GOAL_END,
+        SUCK_GROUND_START,
+        SUCK_GROUND_END,
+        SUCK_UI_START,
+        SUCK_UI_END,
+        BH_COLLAPSE_START,
+        BH_COLLAPSE_END,
+        DROP_BASE,
+        DROP_GROUND_START,
+        DROP_GROUND_END,
+        DROP_GOAL_START,
+        DROP_GOAL_END,
+        DROP_PIPE_START,
+        DROP_PIPE_END,
+        DROP_MAN_START,
+        DROP_MAN_END,
+        DROP_ARROWS_START,
+        DROP_ARROWS_END,
+        totalDuration
+    };
+}
+
 function startDualSupernovaBlackHole(snData, bhData) {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
     phase = 'dual_event';
-    startBtn.disabled = true;
-    originalGrid = null;
+    if (startBtn) startBtn.disabled = true;
+    updateResetCancelButtonUI();
 
     const rawSpots = Array.isArray(snData) ? snData : [snData];
     const spots = rawSpots.map(s => ({
@@ -3650,6 +3950,8 @@ function startDualSupernovaBlackHole(snData, bhData) {
         }
     }
 
+    const timeline = getDualEventTimeline(extraTime, loopCount);
+
     const st = getStage();
     dualEventState = {
         spots: spots,
@@ -3667,6 +3969,8 @@ function startDualSupernovaBlackHole(snData, bhData) {
         },
         extraTime: extraTime,
         schedule: schedule,
+        timeline,
+        totalDuration: timeline.totalDuration,
         startTime: performance.now(),
         placedBlocks: initialPlacedBlocks,
         gimmicks: [...st.gimmicks],
@@ -3704,7 +4008,8 @@ function finishDualEvent() {
 
     phase = 'place';
     man = makeMan();
-    startBtn.disabled = false;
+    if (startBtn) startBtn.disabled = false;
+    updateResetCancelButtonUI();
     statusBar.innerHTML = '<span class="status-place">ブロックを配置してください。</span>';
     if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
     updateBlockBadge(true);
@@ -3719,7 +4024,7 @@ function animateDualEvent(ts) {
 
     renderDualEventState(elapsed);
 
-    const totalEnd = 8350 + (dualEventState.extraTime || 0);
+    const totalEnd = dualEventState.totalDuration || (8350 + (dualEventState.extraTime || 0));
     if (elapsed >= totalEnd) {
         finishDualEvent();
     } else {
@@ -3738,38 +4043,56 @@ function renderDualEventState(elapsed) {
     const bhX = bh.centerX;
     const bhY = bh.centerY;
     const extraTime = deState.extraTime || 0;
-    const PAN_DURATION = deState.PAN_DURATION || 750;
+    const isMultiBH = Boolean(deState.isMultiBH && deState.holes && deState.holes.length >= 2);
+    const holes = deState.holes || [];
+    const tl = deState.timeline || getDualEventTimeline(extraTime, holes.length);
 
-    // --- タイムライン定義（2点以上の爆発時は動的に時間を伸ばす）---
-    const T_HALF = 450;             // 0〜0.45s: ループブロック半周通常回転
-    const BH_APPEAR_START = 1750 + extraTime;   // ループブロックが終端速度に到達し、ブラックホール出現開始
-    const BH_APPEAR_END = 2350 + extraTime;     // ブラックホール最大半径到達
-    const LOOP_FREEZE_TIME = 2150 + extraTime;  // ブラックホールがブロックに重なり、外周回転から吸引フェーズへ移行
+    const {
+        T_HALF,
+        BH_APPEAR_START,
+        BH_APPEAR_END,
+        LOOP_FREEZE_TIME,
+        APPROACH_END,
+        PULL_START,
+        PULL_END,
+        SN_SUCK_START,
+        EXPLODE_TIME,
+        BLOW_START,
+        ESCAPE_POINT,
+        TM_DUAL,
+        SUCK_MAN_START,
+        SUCK_MAN_END,
+        SUCK_BLOCKS_START,
+        SUCK_BLOCKS_END,
+        SUCK_ARROWS_START,
+        SUCK_ARROWS_END,
+        SUCK_GOAL_START,
+        SUCK_GOAL_END,
+        SUCK_PIPE_START,
+        SUCK_PIPE_END,
+        SUCK_GROUND_START,
+        SUCK_GROUND_END,
+        SUCK_UI_START,
+        SUCK_UI_END,
+        BH_COLLAPSE_START,
+        BH_COLLAPSE_END,
+        DROP_BASE,
+        DROP_GROUND_START,
+        DROP_GROUND_END,
+        DROP_GOAL_START,
+        DROP_GOAL_END,
+        DROP_PIPE_START,
+        DROP_PIPE_END,
+        DROP_MAN_START,
+        DROP_MAN_END,
+        DROP_ARROWS_START,
+        DROP_ARROWS_END
+    } = tl;
 
-    const APPROACH_END = 1350;      // 0〜1.35s: カメラが超新星交点へズーム
-    const PULL_START = 1850 + extraTime;        // 爆発の少し前にカメラが等倍へ戻る
-    const PULL_END = 2350 + extraTime;
-    const SN_SUCK_START = 1900 + extraTime;     // ブラックホール生成後、爆発するブロックが吸われながら融合
-    const EXPLODE_TIME = 2450 + extraTime;      // 吸われながら超新星爆発！
-
-    const BLOW_START = 2550 + extraTime;        // 爆風でプレイヤー吹っ飛び開始
-    const ESCAPE_POINT = 3100 + extraTime;      // プレイヤーが画面右上端寸前に到達
-    const SUCK_MAN_START = 3100 + extraTime;    // 進路を急変させてブラックホールへスパイラル吸引
-    const SUCK_MAN_END = 3550 + extraTime;
-
-    // 他のブロック達・ステージ要素の吸引タイムライン
-    const SUCK_BLOCKS_START = 3450 + extraTime, SUCK_BLOCKS_END = 3900 + extraTime;
-    const SUCK_ARROWS_START = 3800 + extraTime, SUCK_ARROWS_END = 4250 + extraTime;
-    const SUCK_GOAL_START = 3550 + extraTime, SUCK_GOAL_END = 4050 + extraTime;
-    const SUCK_PIPE_START = 4150 + extraTime, SUCK_PIPE_END = 4600 + extraTime;
-    const SUCK_GROUND_START = 3550 + extraTime, SUCK_GROUND_END = 5250 + extraTime;
-
-    // 落下出現タイムライン（反対の順: 地面 → ゴール → 土管 → キャラクター → 矢印）
-    const DROP_GROUND_START = 6250 + extraTime, DROP_GROUND_END = 6700 + extraTime;
-    const DROP_GOAL_START = 6650 + extraTime, DROP_GOAL_END = 7050 + extraTime;
-    const DROP_PIPE_START = 7000 + extraTime, DROP_PIPE_END = 7400 + extraTime;
-    const DROP_MAN_START = 7350 + extraTime, DROP_MAN_END = 7850 + extraTime;
-    const DROP_ARROWS_START = 7800 + extraTime, DROP_ARROWS_END = 8200 + extraTime;
+    // 複数BH時は先にブラックホールの現在位置を評価しておく
+    const bhEval = isMultiBH
+        ? evaluateHierarchicalBinaryBlackHoles(elapsed, holes, bhX, bhY, BH_APPEAR_START, TM_DUAL, BH_COLLAPSE_START, BH_COLLAPSE_END)
+        : null;
 
     // --- ステータスバー文言 ---
     if (statusBar) {
@@ -3810,7 +4133,7 @@ function renderDualEventState(elapsed) {
         if (elapsed < APPROACH_END) {
             const t1 = elapsed / APPROACH_END;
             const ease1 = t1 < 0.5 ? 2 * t1 * t1 : 1 - Math.pow(-2 * t1 + 2, 2) / 2;
-            zoom = 1.0 + 1.35 * ease1; // 1.0 -> 2.35
+            zoom = 1.0 + 1.35 * ease1;
             camRatio = ease1;
         } else if (elapsed < PULL_START) {
             zoom = 2.35;
@@ -3818,11 +4141,10 @@ function renderDualEventState(elapsed) {
             camShakeX = Math.sin(elapsed * 0.1) * 2.2;
             camShakeY = Math.cos(elapsed * 0.12) * 2.2;
         } else if (elapsed < PULL_END) {
-            // 爆発の少し前にカメラが等倍に戻る
             const pt = (elapsed - PULL_START) / (PULL_END - PULL_START);
             const easePt = pt < 0.5 ? 2 * pt * pt : 1 - Math.pow(-2 * pt + 2, 2) / 2;
-            zoom = 2.35 - 1.35 * easePt; // 2.35 -> 1.0
-            camRatio = 1.0 - easePt;     // 1.0 -> 0.0
+            zoom = 2.35 - 1.35 * easePt;
+            camRatio = 1.0 - easePt;
             camShakeX = Math.sin(elapsed * 0.15) * 3.2;
             camShakeY = Math.cos(elapsed * 0.18) * 3.2;
         } else {
@@ -3830,7 +4152,6 @@ function renderDualEventState(elapsed) {
             camRatio = 0.0;
         }
     } else {
-        // 複数地点の場合（見る時間を徐々に縮めて爆発が迫る緊迫感を演出）
         const schedule = dualEventState.schedule;
         const currentItem = schedule ? schedule.find(s => elapsed >= s.start && elapsed < s.end) : null;
 
@@ -3871,7 +4192,6 @@ function renderDualEventState(elapsed) {
             camShakeX = Math.sin(elapsed * 0.1) * 2.2;
             camShakeY = Math.cos(elapsed * 0.12) * 2.2;
         } else if (elapsed < PULL_END) {
-            // 爆発の少し前にカメラが等倍に戻る
             const lastSpot = spots[spotCount - 1];
             currentFocusX = lastSpot.focusX;
             currentFocusY = lastSpot.focusY;
@@ -3892,14 +4212,15 @@ function renderDualEventState(elapsed) {
         let shakeAmp = 0;
         if (elapsed < EXPLODE_TIME) {
             shakeAmp = 3.5;
-        } else if (elapsed < 3250 + extraTime) {
+        } else if (elapsed < EXPLODE_TIME + 800) {
             shakeAmp = 12 * (1 - (elapsed - EXPLODE_TIME) / 800);
-        } else if (elapsed < 4850 + extraTime) {
-            shakeAmp = ((elapsed - (3250 + extraTime)) / 1600) * 6.5;
-        } else if (elapsed < 5550 + extraTime) {
-            shakeAmp = 6.5 + ((elapsed - (4850 + extraTime)) / 700) * 3.0;
-        } else if (elapsed < 5950 + extraTime) {
-            shakeAmp = 9.5 * (1 - (elapsed - (5550 + extraTime)) / 400);
+        } else if (elapsed < BH_COLLAPSE_START) {
+            const gravStart = EXPLODE_TIME + 800;
+            const t = Math.min(1, (elapsed - gravStart) / Math.max(1, BH_COLLAPSE_START - gravStart));
+            shakeAmp = 2.0 + t * 6.0;
+        } else if (elapsed < BH_COLLAPSE_END) {
+            const t = (elapsed - BH_COLLAPSE_START) / Math.max(1, BH_COLLAPSE_END - BH_COLLAPSE_START);
+            shakeAmp = 8.0 * (1 - t);
         } else if (elapsed >= DROP_GROUND_END - 50 && elapsed < DROP_GROUND_END + 200) {
             const pt = (elapsed - (DROP_GROUND_END - 50)) / 250;
             shakeAmp = 5.5 * (1 - pt);
@@ -3939,19 +4260,35 @@ function renderDualEventState(elapsed) {
         triggerImpact('man', () => { spawnDust(-1.5, st.startRow); });
     }
 
-    // --- ブラックホールのサイズ ---
-    let bhRadius = 0;
-    if (elapsed >= BH_APPEAR_START && elapsed < BH_APPEAR_END) {
-        const t = (elapsed - BH_APPEAR_START) / (BH_APPEAR_END - BH_APPEAR_START);
-        bhRadius = 62 * Math.pow(t, 1.6);
-    } else if (elapsed >= BH_APPEAR_END && elapsed < 5550 + extraTime) {
-        bhRadius = 62 + Math.sin(elapsed * 0.01) * 2.5;
-    } else if (elapsed >= 5550 + extraTime && elapsed < 5950 + extraTime) {
-        const t = (elapsed - (5550 + extraTime)) / 400;
-        bhRadius = Math.max(0, 62 * Math.pow(1 - t, 2));
+    // 複数BH時のみUI群の吸引（ステージ完了後）＆上空からの自動落下更新
+    if (isMultiBH && canvas) {
+        const canvasRect = canvas.getBoundingClientRect();
+        const sx = canvasRect.width / TOTAL_W;
+        const sy = canvasRect.height / TOTAL_H;
+        const midClientX = canvasRect.left + bhX * sx;
+        const midClientY = canvasRect.top + bhY * sy;
+
+        if (elapsed >= DROP_BASE) {
+            updateBlackHoleUiDrop(elapsed - DROP_BASE);
+        } else {
+            updateBlackHoleUiSuck(elapsed, midClientX, midClientY, SUCK_UI_START, SUCK_UI_END);
+        }
     }
 
-    // --- ループ回転の進行マス数 (s) の計算 ---
+    // --- 単一BH時のサイズ・ループ進行計算 ---
+    let bhRadius = 0;
+    if (!isMultiBH) {
+        if (elapsed >= BH_APPEAR_START && elapsed < BH_APPEAR_END) {
+            const t = (elapsed - BH_APPEAR_START) / (BH_APPEAR_END - BH_APPEAR_START);
+            bhRadius = 62 * Math.pow(t, 1.6);
+        } else if (elapsed >= BH_APPEAR_END && elapsed < BH_COLLAPSE_START) {
+            bhRadius = 62 + Math.sin(elapsed * 0.01) * 2.5;
+        } else if (elapsed >= BH_COLLAPSE_START && elapsed < BH_COLLAPSE_END) {
+            const t = (elapsed - BH_COLLAPSE_START) / Math.max(1, BH_COLLAPSE_END - BH_COLLAPSE_START);
+            bhRadius = Math.max(0, 62 * Math.pow(1 - t, 2));
+        }
+    }
+
     const loopPath = bh.loopPath;
     const N = loopPath.length;
     const halfN = N / 2;
@@ -3992,6 +4329,21 @@ function renderDualEventState(elapsed) {
     ctx.clearRect(0, 0, TOTAL_W, TOTAL_H);
     drawBackground();
 
+    if (isMultiBH) {
+        let skyAlpha = 1;
+        if (elapsed >= SUCK_UI_START && elapsed < DROP_BASE) {
+            skyAlpha = Math.max(0, 1 - (elapsed - SUCK_UI_START) / Math.max(1, SUCK_UI_END - SUCK_UI_START));
+        } else if (elapsed >= DROP_BASE) {
+            skyAlpha = Math.min(1, (elapsed - DROP_BASE) / 700);
+        }
+        if (skyAlpha < 1) {
+            ctx.save();
+            ctx.fillStyle = `rgba(6, 8, 20, ${1 - skyAlpha})`;
+            ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
+            ctx.restore();
+        }
+    }
+
     ctx.save();
     ctx.translate(baseCenterX + camShakeX, baseCenterY + camShakeY);
     ctx.scale(zoom, zoom);
@@ -4010,10 +4362,8 @@ function renderDualEventState(elapsed) {
         drawGroundRight();
         drawGroundPit();
     } else if (elapsed < SUCK_GROUND_END) {
-        // レンガ・芝が1個ずつ独立して吸い込まれる
         drawGroundSuckPieces(elapsed, SUCK_GROUND_START, SUCK_GROUND_END, bhX, bhY);
     } else if (elapsed >= DROP_GROUND_START) {
-        // 落下復帰
         const leftGrState = getObjectState(elapsed, SUCK_GROUND_START, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, leftGroundOrigX, leftGroundOrigY, bhX, bhY);
         const rightGrState = getObjectState(elapsed, SUCK_GROUND_START + 80, SUCK_GROUND_END, DROP_GROUND_START, DROP_GROUND_END, rightGroundOrigX, rightGroundOrigY, bhX, bhY);
 
@@ -4042,13 +4392,14 @@ function renderDualEventState(elapsed) {
         }
     }
 
-    // 2. グリッド線・天井
+    // 2. グリッド線・天井・配置不可タイル
     if (elapsed < SUCK_GROUND_START || elapsed >= DROP_GROUND_END) {
         ctx.save();
         ctx.fillStyle = 'rgba(100,150,255,0.06)';
         ctx.fillRect(GX, GY, COLS * CELL, ROWS * CELL);
         drawGridLines();
         drawCeiling();
+        st.forbidden.forEach(f => drawForbiddenTile(f.col, f.row));
         ctx.restore();
     }
 
@@ -4104,9 +4455,50 @@ function renderDualEventState(elapsed) {
         }
     });
 
-    // 6. ループブロック & 他のブロック達の描画（ブラックホールがブロックに重なるように先描き）
-    if (elapsed < LOOP_FREEZE_TIME) {
-        // 終端速度到達＆ブラックホール出現まで: 高速周回＆残像描画
+    // 6. ループブロック & 他のブロック達の描画
+    if (isMultiBH && bhEval) {
+        const dualGrowEnd = bhEval.plan.T_GROW_END;
+        if (elapsed < SUCK_BLOCKS_START) {
+            deState.placedBlocks.forEach(b => {
+                if (b.isCollider) return;
+                if (b.isLoopBlock) {
+                    const pos = getMultiHoleLoopBlockPosition(b, holes, elapsed, T_HALF, dualGrowEnd, TM_DUAL);
+                    if (elapsed >= T_HALF && pos.speed > 2.5 && pos.getCoordAt) {
+                        const trailCount = Math.min(4, Math.floor(pos.speed * 0.35));
+                        for (let t = trailCount; t >= 1; t--) {
+                            const trailS = pos.s_b - t * Math.min(0.32, 1.0 / trailCount);
+                            const tc = pos.getCoordAt(trailS);
+                            const tRelX = (GX + (tc.col + 0.5) * CELL) - pos.targetHole.centerX;
+                            const tRelY = (GY + (tc.row + 0.5) * CELL) - pos.targetHole.centerY;
+                            const tBx = pos.holeCurX + tRelX * pos.orbitScale;
+                            const tBy = pos.holeCurY + tRelY * pos.orbitScale;
+                            drawBlockAtPixelCenter(tBx, tBy, pos.scale, 0, 0.14 * (1 - t / (trailCount + 1)), false, 0, 0);
+                        }
+                    }
+                    drawBlockAtPixelCenter(pos.bx, pos.by, pos.scale, 0, 1, elapsed < T_HALF, b.col, b.row);
+                } else {
+                    drawMarioBlock(b.col, b.row);
+                }
+            });
+        } else if (elapsed < SUCK_BLOCKS_END) {
+            deState.placedBlocks.forEach(b => {
+                if (b.isCollider) return;
+                let bOrigX = GX + (b.col + 0.5) * CELL;
+                let bOrigY = GY + (b.row + 0.5) * CELL;
+                let initScale = 1;
+                if (b.isLoopBlock) {
+                    const posAtSuck = getMultiHoleLoopBlockPosition(b, holes, SUCK_BLOCKS_START, T_HALF, dualGrowEnd, TM_DUAL, { x: bhX, y: bhY });
+                    bOrigX = posAtSuck.bx;
+                    bOrigY = posAtSuck.by;
+                    initScale = posAtSuck.scale;
+                }
+                const bState = getSuckTransform(elapsed, SUCK_BLOCKS_START, SUCK_BLOCKS_END, bOrigX, bOrigY, bhX, bhY);
+                if (bState.active) {
+                    drawBlockAtPixelCenter(bState.x, bState.y, bState.scale * initScale, bState.rotation, bState.alpha, false, b.col, b.row);
+                }
+            });
+        }
+    } else if (elapsed < LOOP_FREEZE_TIME) {
         deState.placedBlocks.forEach(b => {
             if (b.isCollider) return;
             if (b.isLoopBlock) {
@@ -4121,17 +4513,16 @@ function renderDualEventState(elapsed) {
                         const tc = getLoopCoord(trailS, hIdx);
                         ctx.save();
                         ctx.globalAlpha = 0.12 * (1 - t / (trailCount + 1));
-                        drawMarioBlock(tc.col, tc.row);
+                        drawMarioBlock(tc.col, tc.row, false);
                         ctx.restore();
                     }
                 }
-                drawMarioBlock(curCoord.col, curCoord.row);
+                drawMarioBlock(curCoord.col, curCoord.row, false);
             } else {
                 drawMarioBlock(b.col, b.row);
             }
         });
     } else if (elapsed < SUCK_BLOCKS_END) {
-        // ブラックホール出現後: 外周回転を止め、重力に引かれつつプレイヤー吸引後に一気に中心へ吸い込まれる
         const dtSecFreeze = (LOOP_FREEZE_TIME - T_HALF) / 1000;
         const loopSAtFreeze = halfN + (v0 / k) * (Math.exp(k * dtSecFreeze) - 1);
 
@@ -4141,13 +4532,11 @@ function renderDualEventState(elapsed) {
         let alphaVal = 1;
 
         if (elapsed < SUCK_BLOCKS_START) {
-            // 爆発〜プレイヤー吸引中: ブラックホール出現と同時に重力でじわじわ中心へ引き寄せられる
             const preT = (elapsed - LOOP_FREEZE_TIME) / (SUCK_BLOCKS_START - LOOP_FREEZE_TIME);
             pullEase = 0.32 * Math.pow(preT, 1.2);
             rotAngle = pullEase * Math.PI * 1.1;
             scaleVal = 1 - pullEase * 0.28;
         } else {
-            // プレイヤー吸引直後: 他のブロック達も一気にブラックホール中心へ吸い込まれる
             const u = (elapsed - SUCK_BLOCKS_START) / (SUCK_BLOCKS_END - SUCK_BLOCKS_START);
             const postEase = Math.pow(u, 2.1);
             pullEase = 0.32 + 0.68 * postEase;
@@ -4174,31 +4563,13 @@ function renderDualEventState(elapsed) {
             const curX = bOrigX + (bhX - bOrigX) * pullEase;
             const curY = bOrigY + (bhY - bOrigY) * pullEase;
 
-            ctx.save();
-            ctx.translate(curX, curY);
-            if (rotAngle) ctx.rotate(rotAngle);
-            if (scaleVal !== 1) ctx.scale(scaleVal, scaleVal);
-            if (alphaVal < 1) ctx.globalAlpha *= alphaVal;
-            ctx.translate(-bOrigX, -bOrigY);
-            drawMarioBlock(drawCol, drawRow);
-            ctx.restore();
+            drawBlockAtPixelCenter(curX, curY, scaleVal, rotAngle, alphaVal, false, drawCol, drawRow);
         });
     }
 
     // 7. ブラックホール本体（ブロックの上に重なるように描画）
-    if (deState.isMultiBH && deState.holes && deState.holes.length >= 2) {
-        const K = deState.holes.length;
-        const TM_MAPPED = (K <= 2) ? 4000 : 5800;
-        const TM_DUAL = 3300 + extraTime;
-        let mappedElapsed = 0;
-        if (elapsed >= BH_APPEAR_START && elapsed < TM_DUAL) {
-            mappedElapsed = 1000 + ((elapsed - BH_APPEAR_START) / (TM_DUAL - BH_APPEAR_START)) * (TM_MAPPED - 1000);
-        } else if (elapsed >= TM_DUAL) {
-            mappedElapsed = TM_MAPPED + (elapsed - TM_DUAL);
-        }
-        const COLLAPSE_START_MAPPED = TM_MAPPED + (5550 + extraTime - TM_DUAL);
-        const COLLAPSE_END_MAPPED = TM_MAPPED + (5950 + extraTime - TM_DUAL);
-        renderHierarchicalBinaryBlackHoles(ctx, mappedElapsed, deState.holes, bhX, bhY, 1000, TM_MAPPED, COLLAPSE_START_MAPPED, COLLAPSE_END_MAPPED);
+    if (isMultiBH && bhEval) {
+        drawEvaluatedBinaryBlackHoles(ctx, bhEval, elapsed, bhX, bhY, TM_DUAL, BH_COLLAPSE_START, BH_COLLAPSE_END);
     } else if (bhRadius > 0) {
         const grad = ctx.createRadialGradient(bhX, bhY, bhRadius * 0.25, bhX, bhY, bhRadius * 2.3);
         grad.addColorStop(0, 'rgba(0, 0, 0, 1)');
@@ -5179,12 +5550,12 @@ function drawKeyGuide(col, row) {
 }
 
 // Mario-style brick block (ポンと即座に配置されるシンプルなレンダリング)
-function drawMarioBlock(col, row) {
+function drawMarioBlock(col, row, allowGimmickOverlay = true) {
     const x = GX + col * CELL, y = GY + row * CELL;
     const p = 2;
     ctx.save();
 
-    const isGridAligned = (Math.abs(col - Math.round(col)) < 0.01 && Math.abs(row - Math.round(row)) < 0.01);
+    const isGridAligned = allowGimmickOverlay && (Math.abs(col - Math.round(col)) < 0.01 && Math.abs(row - Math.round(row)) < 0.01);
     const g = isGridAligned ? getGimmick(Math.round(col), Math.round(row)) : null;
     const hasArrow = g && (g.type === 'dash' || g.type === 'step' || g.type === 'switch');
 
@@ -5798,6 +6169,10 @@ function render() {
     // Draw particles (土煙・スターバースト等)
     updateAndDrawParticles(ctx);
     ctx.restore();
+
+    if (phase === 'laser_death') {
+        drawLaserDeathOverlay(now);
+    }
 }
 
 // MARK: - Route Solver & Simulation (Character moves rightward)
@@ -5937,6 +6312,7 @@ function solveRouteRaw() {
 }
 
 function applyLaserCollisionsToKeyframes(keyframes) {
+    const st = getStage();
     const rawBeams = computeLaserBeams(grid);
     const activeBeams = rawBeams
         .filter(b => Math.hypot(b.endX - b.startX, b.endY - b.startY) >= 1)
@@ -5945,10 +6321,10 @@ function applyLaserCollisionsToKeyframes(keyframes) {
             const dy = Math.abs(b.endY - b.startY);
             const orientation = dx >= dy ? 'horizontal' : 'vertical';
             return {
-                minX: Math.min(b.startX, b.endX) - 2,
-                maxX: Math.max(b.startX, b.endX) + 2,
-                minY: Math.min(b.startY, b.endY) - 2,
-                maxY: Math.max(b.startY, b.endY) + 2,
+                rawMinX: Math.min(b.startX, b.endX),
+                rawMaxX: Math.max(b.startX, b.endX),
+                rawMinY: Math.min(b.startY, b.endY),
+                rawMaxY: Math.max(b.startY, b.endY),
                 orientation,
                 beamX: (b.startX + b.endX) / 2,
                 beamY: (b.startY + b.endY) / 2
@@ -5956,40 +6332,165 @@ function applyLaserCollisionsToKeyframes(keyframes) {
         });
     if (activeBeams.length === 0 || keyframes.length < 2) return keyframes;
 
-    const SUB_STEPS = 24;
+    const getSampleAt = (prevKf, nextKf, ratio) => {
+        const x = prevKf.x + (nextKf.x - prevKf.x) * ratio;
+        const y = (prevKf.type === 'jump')
+            ? prevKf.y + (nextKf.y - prevKf.y) * ratio - 4 * 0.5 * ratio * (1 - ratio)
+            : prevKf.y + (nextKf.y - prevKf.y) * ratio;
+        const time = prevKf.time + (nextKf.time - prevKf.time) * ratio;
+        const cx = GX + (x + 0.5) * CELL;
+        const onLeftGround = x < -0.5 && st && y === st.startRow;
+        const bot = GY + (y + 1) * CELL - (onLeftGround ? 0 : 2);
+        return { x, y, time, cx, bot, top: bot - 66, centerY: bot - 33 };
+    };
+
+    const SUB_STEPS = 48;
     for (let i = 0; i < keyframes.length - 1; i++) {
         const prevKf = keyframes[i];
         const nextKf = keyframes[i + 1];
-        for (let s = 0; s <= SUB_STEPS; s++) {
-            const ratio = s / SUB_STEPS;
-            const x = prevKf.x + (nextKf.x - prevKf.x) * ratio;
-            const y = (prevKf.type === 'jump')
-                ? prevKf.y + (nextKf.y - prevKf.y) * ratio - 4 * 0.5 * ratio * (1 - ratio)
-                : prevKf.y + (nextKf.y - prevKf.y) * ratio;
-            const time = prevKf.time + (nextKf.time - prevKf.time) * ratio;
 
-            const px = GX + (x + 0.5) * CELL;
-            const pyBot = GY + (y + 1) * CELL;
-            const charLeft = px - 7;
-            const charRight = px + 7;
-            const charTop = pyBot - 40;
-            const charBot = pyBot - 2;
+        for (let s = 0; s < SUB_STEPS; s++) {
+            const r0 = s / SUB_STEPS;
+            const r1 = (s + 1) / SUB_STEPS;
+            const p0 = getSampleAt(prevKf, nextKf, r0);
+            const p1 = getSampleAt(prevKf, nextKf, r1);
 
-            const hitBeam = activeBeams.find(b =>
-                charRight >= b.minX && charLeft <= b.maxX &&
-                charBot >= b.minY && charTop <= b.maxY
-            );
-            if (hitBeam) {
-                const laserHit = {
-                    orientation: hitBeam.orientation,
-                    cutX: hitBeam.orientation === 'vertical' ? hitBeam.beamX : px,
-                    cutY: hitBeam.orientation === 'horizontal' ? hitBeam.beamY : (charTop + charBot) / 2
-                };
-                const truncated = keyframes.slice(0, i + 1);
-                if (s > 0) {
-                    truncated.push({ x, y, type: 'fail', time, laserHit });
+            let bestHit = null;
+
+            for (const b of activeBeams) {
+                if (b.orientation === 'vertical') {
+                    // 横方向に体の半分（中心X）がレーザー軸に入ったかチェック
+                    const crossesX = (p0.cx <= b.beamX && p1.cx >= b.beamX) || (p0.cx >= b.beamX && p1.cx <= b.beamX);
+                    const nearX = Math.abs(p0.cx - b.beamX) <= 0.5 || Math.abs(p1.cx - b.beamX) <= 0.5;
+                    if (!crossesX && !nearX) continue;
+
+                    let u = 0;
+                    if (Math.abs(p1.cx - p0.cx) > 1e-6) {
+                        u = Math.max(0, Math.min(1, (b.beamX - p0.cx) / (p1.cx - p0.cx)));
+                    }
+                    const hitRatio = r0 + (r1 - r0) * u;
+                    const hitSample = getSampleAt(prevKf, nextKf, hitRatio);
+
+                    // 縦方向にも体の半分以上（身長66pxの半分33px以上、または垂直中心）がレーザーに含まれているか
+                    const overlapY = Math.min(hitSample.bot, b.rawMaxY) - Math.max(hitSample.top, b.rawMinY);
+                    const centerInsideY = hitSample.centerY >= b.rawMinY && hitSample.centerY <= b.rawMaxY;
+                    if (overlapY >= 33 || centerInsideY) {
+                        if (!bestHit || hitRatio < bestHit.ratio) {
+                            bestHit = {
+                                ratio: hitRatio,
+                                sample: hitSample,
+                                laserHit: {
+                                    orientation: 'vertical',
+                                    cutX: b.beamX,
+                                    cutY: hitSample.centerY
+                                }
+                            };
+                        }
+                    }
                 } else {
-                    truncated[truncated.length - 1] = { ...truncated[truncated.length - 1], type: 'fail', laserHit };
+                    // 横レーザー
+                    // 1. 縦方向（ジャンプ・落下）で体の高さ半分（centerY）が横レーザー軸を跨いだ場合
+                    const crossesY = (p0.centerY <= b.beamY && p1.centerY >= b.beamY) || (p0.centerY >= b.beamY && p1.centerY <= b.beamY);
+                    if (crossesY) {
+                        let hitRatio = r0;
+                        if (Math.abs(p1.centerY - p0.centerY) > 1e-6) {
+                            if (prevKf.type === 'jump') {
+                                // ジャンプ軌道は放物線のため、二分探索で centerY === b.beamY となる正確な交点を求める
+                                let lo = r0, hi = r1;
+                                const fLo = p0.centerY - b.beamY;
+                                if (Math.abs(fLo) < 1e-7) {
+                                    hitRatio = r0;
+                                } else if (Math.abs(p1.centerY - b.beamY) < 1e-7) {
+                                    hitRatio = r1;
+                                } else {
+                                    for (let iter = 0; iter < 18; iter++) {
+                                        const mid = (lo + hi) * 0.5;
+                                        const fMid = getSampleAt(prevKf, nextKf, mid).centerY - b.beamY;
+                                        if ((fLo <= 0 && fMid <= 0) || (fLo >= 0 && fMid >= 0)) {
+                                            lo = mid;
+                                        } else {
+                                            hi = mid;
+                                        }
+                                    }
+                                    hitRatio = (lo + hi) * 0.5;
+                                }
+                            } else {
+                                const u = Math.max(0, Math.min(1, (b.beamY - p0.centerY) / (p1.centerY - p0.centerY)));
+                                hitRatio = r0 + (r1 - r0) * u;
+                            }
+                        }
+                        const hitSample = getSampleAt(prevKf, nextKf, hitRatio);
+                        if (hitSample.cx >= b.rawMinX && hitSample.cx <= b.rawMaxX) {
+                            if (!bestHit || hitRatio < bestHit.ratio) {
+                                bestHit = {
+                                    ratio: hitRatio,
+                                    sample: hitSample,
+                                    laserHit: {
+                                        orientation: 'horizontal',
+                                        cutX: hitSample.cx,
+                                        cutY: b.beamY
+                                    }
+                                };
+                            }
+                            continue;
+                        }
+                    }
+
+                    // 2. 横移動（歩行や水平突入）で、胴体中央帯に横レーザーがある状態で横半分（cx）がビーム領域に入った場合
+                    // ※垂直落下(fall)やビーム内での上下通過は上の crossesY で中心一致時に切るため、ここでは除外する
+                    const isPureVerticalMove = Math.abs(p1.cx - p0.cx) < 1e-6;
+                    if (!isPureVerticalMove) {
+                        const enteringFromSide = (p0.cx < b.rawMinX && p1.cx >= b.rawMinX) || (p0.cx > b.rawMaxX && p1.cx <= b.rawMaxX);
+                        const walkingInside = (prevKf.type !== 'fall' && prevKf.type !== 'jump') && p0.cx >= b.rawMinX && p0.cx <= b.rawMaxX;
+                        if (enteringFromSide || walkingInside) {
+                            let hitU = null;
+                            if (walkingInside && Math.abs(p0.centerY - b.beamY) <= 17) {
+                                hitU = 0;
+                            } else if (p0.cx < b.rawMinX && p1.cx >= b.rawMinX) {
+                                hitU = (b.rawMinX - p0.cx) / Math.max(1e-6, p1.cx - p0.cx);
+                            } else if (p0.cx > b.rawMaxX && p1.cx <= b.rawMaxX) {
+                                hitU = (b.rawMaxX - p0.cx) / Math.min(-1e-6, p1.cx - p0.cx);
+                            }
+
+                            if (hitU !== null) {
+                                hitU = Math.max(0, Math.min(1, hitU));
+                                const hitRatio = r0 + (r1 - r0) * hitU;
+                                const hitSample = getSampleAt(prevKf, nextKf, hitRatio);
+                                if (Math.abs(hitSample.centerY - b.beamY) <= 17) {
+                                    if (!bestHit || hitRatio < bestHit.ratio) {
+                                        bestHit = {
+                                            ratio: hitRatio,
+                                            sample: hitSample,
+                                            laserHit: {
+                                                orientation: 'horizontal',
+                                                cutX: hitSample.cx,
+                                                cutY: b.beamY
+                                            }
+                                        };
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (bestHit) {
+                const truncated = keyframes.slice(0, i + 1);
+                if (bestHit.ratio > 0) {
+                    truncated.push({
+                        x: bestHit.sample.x,
+                        y: bestHit.sample.y,
+                        type: 'fail',
+                        time: bestHit.sample.time,
+                        laserHit: bestHit.laserHit
+                    });
+                } else {
+                    truncated[truncated.length - 1] = {
+                        ...truncated[truncated.length - 1],
+                        type: 'fail',
+                        laserHit: bestHit.laserHit
+                    };
                 }
                 return truncated;
             }
@@ -6000,6 +6501,7 @@ function applyLaserCollisionsToKeyframes(keyframes) {
 
 function startRun() {
     phase = 'run';
+    updateResetCancelButtonUI();
     man = makeMan();
     currentRoute = solveRoute();
     routeStartTime = null;
@@ -6043,6 +6545,7 @@ function step(ts) {
 
         if (prevKf.type === 'done' || prevKf.type === 'clear') {
             phase = 'clear';
+            updateResetCancelButtonUI();
             spawnGoalSparkles(man.x, man.y);
             render();
             showClear();
@@ -6094,7 +6597,7 @@ function getLaserDeathCamera(now) {
     const maxZoom = 2.4;
 
     const zoomEnd = eff.zoomDuration;
-    const holdEnd = eff.zoomDuration + eff.cutDuration + eff.pauseDuration + eff.fadeDuration;
+    const holdEnd = eff.zoomDuration + (eff.slashDuration || 0) + (eff.omaeDuration || 0) + eff.cutDuration + eff.pauseDuration + eff.fadeDuration;
     const zoomOutEnd = holdEnd + eff.zoomOutDuration;
 
     let zoom = 1;
@@ -6111,7 +6614,7 @@ function getLaserDeathCamera(now) {
     }
 
     const focusX = eff.cx;
-    const focusY = eff.bot - 20;
+    const focusY = eff.bot - 26;
     const halfW = TOTAL_W / (2 * zoom);
     const halfH = TOTAL_H / (2 * zoom);
     const camX = Math.max(halfW, Math.min(TOTAL_W - halfW, focusX));
@@ -6123,24 +6626,28 @@ function isLaserDeathPipeEmerging(now) {
     if (!laserDeathEffect) return false;
     const eff = laserDeathEffect;
     const elapsed = now - eff.startTime;
-    const emergeStart = eff.zoomDuration + eff.cutDuration + eff.pauseDuration + eff.fadeDuration + eff.zoomOutDuration;
+    const emergeStart = eff.zoomDuration + (eff.slashDuration || 0) + (eff.omaeDuration || 0) + eff.cutDuration + eff.pauseDuration + eff.fadeDuration + eff.zoomOutDuration;
     return elapsed >= emergeStart && elapsed < emergeStart + eff.emergeDuration;
 }
 
 function triggerLaserDeathAnimation(failX, failY, laserHit) {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
     phase = 'laser_death';
-    startBtn.disabled = true;
-    statusBar.innerHTML = '<span class="status-fail">レーザーに当たった！ リトライ</span>';
+    if (startBtn) startBtn.disabled = true;
+    updateResetCancelButtonUI();
+    if (statusBar) statusBar.innerHTML = '<span class="status-fail">お前はもう死んでいる...</span>';
 
     const startTime = performance.now();
+    const st = getStage();
     const cx = GX + (failX + 0.5) * CELL;
-    const bot = GY + (failY + 1) * CELL;
+    const onLeftGround = failX < -0.5 && st && failY === st.startRow;
+    const bot = GY + (failY + 1) * CELL - (onLeftGround ? 0 : 2);
     const orientation = (laserHit && laserHit.orientation) || 'horizontal';
     const rawCutX = (laserHit && typeof laserHit.cutX === 'number') ? laserHit.cutX : cx;
-    const rawCutY = (laserHit && typeof laserHit.cutY === 'number') ? laserHit.cutY : bot - 20;
-    const cutX = Math.max(cx - 8, Math.min(cx + 8, rawCutX));
-    const cutY = Math.max(bot - 36, Math.min(bot - 4, rawCutY));
+    const rawCutY = (laserHit && typeof laserHit.cutY === 'number') ? laserHit.cutY : bot - 33;
+    // 縦でも横でも端っこが切れないよう体の中央帯に収める
+    const cutX = Math.max(cx - 6, Math.min(cx + 6, rawCutX));
+    const cutY = Math.max(bot - 48, Math.min(bot - 16, rawCutY));
 
     laserDeathEffect = {
         failX,
@@ -6153,12 +6660,14 @@ function triggerLaserDeathAnimation(failX, failY, laserHit) {
         cutX,
         cutY,
         startTime,
-        zoomDuration: 380,
-        cutDuration: 560,
-        pauseDuration: 500,
-        fadeDuration: 520,
+        zoomDuration: 360,
+        slashDuration: 220,
+        omaeDuration: 1250,
+        cutDuration: 580,
+        pauseDuration: 420,
+        fadeDuration: 480,
         zoomOutDuration: 300,
-        emergeDuration: 420,
+        emergeDuration: 400,
         hopDuration: 240
     };
 
@@ -6169,6 +6678,8 @@ function triggerLaserDeathAnimation(failX, failY, laserHit) {
         const elapsed = now - eff.startTime;
         const totalDuration =
             eff.zoomDuration +
+            eff.slashDuration +
+            eff.omaeDuration +
             eff.cutDuration +
             eff.pauseDuration +
             eff.fadeDuration +
@@ -6179,13 +6690,13 @@ function triggerLaserDeathAnimation(failX, failY, laserHit) {
         render();
 
         if (elapsed < totalDuration) {
-            requestAnimationFrame(laserDeathLoop);
+            animId = requestAnimationFrame(laserDeathLoop);
         } else {
             completeRespawn();
         }
     }
 
-    requestAnimationFrame(laserDeathLoop);
+    animId = requestAnimationFrame(laserDeathLoop);
 }
 
 function drawSplitCharacterHalves(eff, fallP, bodyAlpha) {
@@ -6254,7 +6765,9 @@ function drawLaserDeathEffect(now) {
     const eff = laserDeathEffect;
     const elapsed = now - eff.startTime;
 
-    const cutStart = eff.zoomDuration;
+    const slashStart = eff.zoomDuration;
+    const omaeStart = slashStart + (eff.slashDuration || 0);
+    const cutStart = omaeStart + (eff.omaeDuration || 0);
     const pauseStart = cutStart + eff.cutDuration;
     const fadeStart = pauseStart + eff.pauseDuration;
     const fadeEnd = fadeStart + eff.fadeDuration;
@@ -6263,46 +6776,66 @@ function drawLaserDeathEffect(now) {
 
     ctx.save();
 
-    if (elapsed < cutStart) {
+    if (elapsed < slashStart) {
         // ズームイン中：切れる直前のキャラクターを描画
         renderStickmanToContext(ctx, eff.cx, eff.bot, eff.walkCycle, eff.isJump);
+    } else if (elapsed < cutStart) {
+        // 一閃〜「お前はもう死んでいる」演出中：まだ体はズレずに繋がったまま静止！
+        renderStickmanToContext(ctx, eff.cx, eff.bot, eff.walkCycle, eff.isJump);
+
+        if (elapsed < omaeStart) {
+            const sp = (elapsed - slashStart) / Math.max(1, eff.slashDuration);
+            const flashAlpha = Math.sin(sp * Math.PI);
+            ctx.save();
+            ctx.globalAlpha = flashAlpha;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2.6;
+            ctx.shadowColor = '#22d3ee';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            if (eff.orientation === 'horizontal') {
+                ctx.moveTo(eff.cx - 28, eff.cutY);
+                ctx.lineTo(eff.cx + 28, eff.cutY);
+            } else {
+                ctx.moveTo(eff.cutX, eff.bot - 68);
+                ctx.lineTo(eff.cutX, eff.bot + 4);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
     } else if (elapsed < pauseStart) {
-        // スパッと切れて切り離された部分が落下
+        // 遅れてスパッと切れて切り離された部分が崩れ落ちる
         const cutElapsed = elapsed - cutStart;
         const fallP = Math.min(1, cutElapsed / (eff.cutDuration * 0.82));
         drawSplitCharacterHalves(eff, fallP, 1.0);
 
-        // 切断の瞬間の閃光一閃
-        const flashDuration = 180;
+        const flashDuration = 200;
         if (cutElapsed < flashDuration) {
             const flashAlpha = 1 - cutElapsed / flashDuration;
             ctx.save();
             ctx.globalAlpha = flashAlpha;
             ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2.2;
+            ctx.lineWidth = 2.4;
             ctx.shadowColor = '#ef4444';
-            ctx.shadowBlur = 8;
+            ctx.shadowBlur = 10;
             ctx.beginPath();
             if (eff.orientation === 'horizontal') {
-                ctx.moveTo(eff.cx - 22, eff.cutY);
-                ctx.lineTo(eff.cx + 22, eff.cutY);
+                ctx.moveTo(eff.cx - 24, eff.cutY);
+                ctx.lineTo(eff.cx + 24, eff.cutY);
             } else {
-                ctx.moveTo(eff.cutX, eff.bot - 46);
+                ctx.moveTo(eff.cutX, eff.bot - 68);
                 ctx.lineTo(eff.cutX, eff.bot + 4);
             }
             ctx.stroke();
             ctx.restore();
         }
     } else if (elapsed < fadeStart) {
-        // 落下後、0.5秒待機
         drawSplitCharacterHalves(eff, 1.0, 1.0);
     } else if (elapsed < fadeEnd) {
-        // 落下した状態でそのままフワーッと消える
         const fadeP = Math.min(1, (elapsed - fadeStart) / eff.fadeDuration);
         const bodyAlpha = Math.max(0, 1 - Math.pow(fadeP, 0.85));
         drawSplitCharacterHalves(eff, 1.0, bodyAlpha);
     } else if (elapsed >= zoomOutEnd) {
-        // ズームアウト後、土管から出てきてスタート位置へ着地
         const st = getStage();
         const pipeCx = GX - 78 + 30;
         const pipeTopY = GY + st.startRow * CELL + 2;
@@ -6330,10 +6863,126 @@ function drawLaserDeathEffect(now) {
     ctx.restore();
 }
 
+function drawLaserDeathOverlay(now) {
+    if (!laserDeathEffect) return;
+    const eff = laserDeathEffect;
+    const elapsed = now - eff.startTime;
+
+    const slashStart = eff.zoomDuration;
+    const omaeStart = slashStart + (eff.slashDuration || 0);
+    const cutStart = omaeStart + (eff.omaeDuration || 0);
+    const pauseStart = cutStart + eff.cutDuration;
+
+    if (elapsed < slashStart || elapsed >= pauseStart) return;
+
+    const cam = getLaserDeathCamera(now);
+    const scrX = TOTAL_W / 2 + (eff.cx - cam.camX) * cam.zoom;
+    const scrY = TOTAL_H / 2 + ((eff.bot - 33) - cam.camY) * cam.zoom;
+
+    // 切断直前の「お前はもう死んでいる」劇画演出
+    if (elapsed >= omaeStart && elapsed < cutStart) {
+        const omaeElapsed = elapsed - omaeStart;
+        const omaeDur = Math.max(1, eff.omaeDuration);
+        const omaeP = Math.min(1, omaeElapsed / omaeDur);
+        const enterP = Math.min(1, omaeElapsed / 180);
+        const exitP = omaeP > 0.85 ? (omaeP - 0.85) / 0.15 : 0;
+        const overlayAlpha = Math.max(0, (enterP < 1 ? enterP : 1) * (1 - exitP * 0.65));
+
+        ctx.save();
+
+        // 1. 赤黒いドラマチックビネット（中心のキャラは見せる）
+        const vig = ctx.createRadialGradient(scrX, scrY, 45, scrX, scrY, 340);
+        vig.addColorStop(0, 'rgba(0, 0, 0, 0.08)');
+        vig.addColorStop(0.45, `rgba(127, 29, 29, ${0.38 * overlayAlpha})`);
+        vig.addColorStop(1, `rgba(10, 5, 10, ${0.78 * overlayAlpha})`);
+        ctx.fillStyle = vig;
+        ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
+
+        // 出現瞬間の赤い衝撃フラッシュ
+        if (omaeElapsed < 140) {
+            const fA = (1 - omaeElapsed / 140) * 0.45;
+            ctx.fillStyle = `rgba(239, 68, 68, ${fA})`;
+            ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
+        }
+
+        // 2. 劇画調の放射状集中線
+        const lineCount = 34;
+        ctx.save();
+        for (let i = 0; i < lineCount; i++) {
+            const ang = (i / lineCount) * Math.PI * 2 + ((i % 2) * 0.04);
+            const innerR = 72 + ((i * 19) % 36);
+            const outerR = 380;
+            const x1 = scrX + Math.cos(ang) * innerR;
+            const y1 = scrY + Math.sin(ang) * innerR;
+            const x2 = scrX + Math.cos(ang) * outerR;
+            const y2 = scrY + Math.sin(ang) * outerR;
+
+            ctx.strokeStyle = (i % 3 === 0)
+                ? `rgba(254, 202, 202, ${0.55 * overlayAlpha})`
+                : `rgba(255, 255, 255, ${0.65 * overlayAlpha})`;
+            ctx.lineWidth = (i % 2 === 0) ? 2.2 : 1.1;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // 3. 「お前はもう死んでいる」タイポグラフィ（キャラに被らない側へ自動配置）
+        const textY = (scrY < TOTAL_H * 0.45) ? TOTAL_H * 0.78 : TOTAL_H * 0.22;
+        const textX = TOTAL_W / 2;
+        const slamT = Math.min(1, omaeElapsed / 200);
+        const textScale = slamT < 1 ? 1.85 - 0.85 * (1 - Math.pow(1 - slamT, 3)) : 1.0;
+        const shakeX = (omaeElapsed >= 160 && omaeElapsed < 400) ? Math.sin(omaeElapsed * 0.25) * 3.0 : 0;
+        const shakeY = (omaeElapsed >= 160 && omaeElapsed < 400) ? Math.cos(omaeElapsed * 0.31) * 2.5 : 0;
+
+        ctx.save();
+        ctx.translate(textX + shakeX, textY + shakeY);
+        ctx.scale(textScale, textScale);
+        ctx.globalAlpha = overlayAlpha;
+
+        // 背後の帯リボンアクセント
+        ctx.fillStyle = 'rgba(12, 8, 16, 0.82)';
+        ctx.fillRect(-195, -24, 390, 48);
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-205, -24); ctx.lineTo(205, -24);
+        ctx.moveTo(-205, 24); ctx.lineTo(205, 24);
+        ctx.stroke();
+
+        ctx.font = '900 28px "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+
+        ctx.shadowColor = '#dc2626';
+        ctx.shadowBlur = 14;
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 7;
+        ctx.strokeText('お前はもう死んでいる', 0, 1);
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('お前はもう死んでいる', 0, 1);
+        ctx.restore();
+
+        ctx.restore();
+    } else if (elapsed >= cutStart && elapsed < cutStart + 180) {
+        // 切断の瞬間：真っ赤な閃光フラッシュ
+        const p = (elapsed - cutStart) / 180;
+        ctx.save();
+        ctx.fillStyle = `rgba(239, 68, 68, ${(1 - p) * 0.5})`;
+        ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
+        ctx.restore();
+    }
+}
+
 function triggerRespawnAnimation(failX, failY) {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
     phase = 'respawning';
-    startBtn.disabled = true;
+    if (startBtn) startBtn.disabled = true;
+    updateResetCancelButtonUI();
     statusBar.innerHTML = '<span class="status-fail">ミス！ ｼｭｩｲｰﾝ... リトライ</span>';
 
     const st = getStage();
@@ -6401,13 +7050,13 @@ function triggerRespawnAnimation(failX, failY) {
         render();
 
         if (progress < 1) {
-            requestAnimationFrame(respawnLoop);
+            animId = requestAnimationFrame(respawnLoop);
         } else {
             completeRespawn();
         }
     }
 
-    requestAnimationFrame(respawnLoop);
+    animId = requestAnimationFrame(respawnLoop);
 }
 
 function completeRespawn() {
@@ -6424,7 +7073,8 @@ function completeRespawn() {
     resetSwitchStates();
     phase = 'place';
     man = makeMan();
-    startBtn.disabled = false;
+    if (startBtn) startBtn.disabled = false;
+    updateResetCancelButtonUI();
 
     statusBar.innerHTML = '<span class="status-place">ブロックを再配置 (Space: 開始 / m: 全クリア)</span>';
     if (hintText) hintText.textContent = 'Spaceキーで即座に再スタートできます！';
@@ -6503,6 +7153,7 @@ function cancelActiveGameSequenceOnLeave() {
         phase = 'place';
         man = makeMan();
         if (startBtn) startBtn.disabled = false;
+        updateResetCancelButtonUI();
         if (statusBar) statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
         if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
         updateBlockBadge(true);
@@ -7016,6 +7667,8 @@ function selectStage(idx) {
     pendingBlackHole = null;
     blackHoleState = null;
     dualEventState = null;
+    laserDeathEffect = null;
+    respawnEffect = null;
     originalGrid = null;
     showSolution = false;
     usedHintInStage = false;
@@ -7026,7 +7679,8 @@ function selectStage(idx) {
     updateAnswerBtnUI();
     phase = 'place';
     man = makeMan();
-    startBtn.disabled = false;
+    if (startBtn) startBtn.disabled = false;
+    updateResetCancelButtonUI();
     statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
     if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
 
@@ -7041,7 +7695,7 @@ function selectStage(idx) {
 
 function bgLoop() {
     if (currentView === 'game') {
-        if (phase === 'place' || (phase !== 'supernova' && phase !== 'block_move' && gameParticles.length > 0)) {
+        if (phase === 'place' || (phase === 'clear' && gameParticles.length > 0)) {
             render();
         }
     }
@@ -7304,15 +7958,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
         startBtn.disabled = true;
 
-        // スタート前のブロック配置と個数をバックアップ（超新星爆発・ブラックホール時は全消去となるため復元しない）
+        // スタート前のブロック配置と個数をバックアップ（演出中のキャンセル時は必ず直前の配置通りに戻す）
         placedBlocksAtStart = countPlacedBlocks();
-        originalGrid = (supernova || blackHoleLoop) ? null : grid.map(r => [...r]);
+        originalGrid = grid.map(r => [...r]);
         pendingSupernova = (supernovas && supernovas.length > 0) ? supernovas : (supernova ? [supernova] : null);
         pendingBlackHole = (blackHoleLoops && blackHoleLoops.length > 0) ? blackHoleLoops : (blackHoleLoop ? [blackHoleLoop] : null);
 
         // ブロックがギミックによって移動する場合は、先行移動（block_move）を優先して実行
         if (rounds.length > 0) {
             phase = 'block_move';
+            updateResetCancelButtonUI();
             blockAnimationRounds = rounds;
             currentRoundIndex = 0;
             roundStartTime = performance.now();
@@ -7363,18 +8018,21 @@ window.addEventListener('DOMContentLoaded', () => {
         blockAnimationRounds = [];
         currentRoundIndex = 0;
         laserDeathEffect = null;
+        respawnEffect = null;
         pendingSupernova = null;
         supernovaState = null;
         pendingBlackHole = null;
         blackHoleState = null;
         dualEventState = null;
 
-        // スタート後（実行中や結果画面）なら、スタート前の配置に復元して再挑戦しやすくする
-        if (phase !== 'place' && originalGrid) {
-            grid = originalGrid.map(r => [...r]);
-            originalGrid = null;
+        // 演出中・移動中のリセット（全消去）は禁止し、直前に配置された通りのブロック状態へキャンセル復元する
+        if (phase !== 'place') {
+            if (originalGrid) {
+                grid = originalGrid.map(r => [...r]);
+                originalGrid = null;
+            }
         } else {
-            // 配置中または超新星爆発後は全ブロックをクリア
+            // 配置フェーズ中のみ全ブロックをクリア
             grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
             actionHistory = [];
             originalGrid = null;
@@ -7387,7 +8045,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
         phase = 'place';
         man = makeMan();
-        startBtn.disabled = false;
+        if (startBtn) startBtn.disabled = false;
+        updateResetCancelButtonUI();
         statusBar.innerHTML = '<span class="status-place">ブロックを配置してください</span>';
         if (hintText) hintText.textContent = 'クリックでブロック配置 / もう一度クリックで削除';
         updateBlockBadge();
@@ -7541,6 +8200,7 @@ window.addEventListener('DOMContentLoaded', () => {
     updateBlockBadge();
     updateLegendUI();
     updateSelectScreenUI();
+    updateResetCancelButtonUI();
 
     function isInsideEditorPreview() {
         try {
@@ -7561,6 +8221,7 @@ window.addEventListener('DOMContentLoaded', () => {
         triggerReset,
         switchView,
         getStage,
+        getPhase: () => phase,
         getCurrentStageIndex: () => currentStageIndex,
         getStages: () => STAGES,
         getGrid: () => grid,

@@ -703,48 +703,6 @@ const STAGES = [
     {
         id: 21,
         title: 'ステージ 21',
-        subtitle: '多重流路の交差点',
-        maxBlocks: 6,
-        targetBlocks: 6,
-        startRow: 1,
-        goalRow: 2,
-        forbidden: [
-            { col: 2, row: 0 },
-            { col: 4, row: 0 },
-            { col: 2, row: 1 },
-            { col: 2, row: 2 },
-            { col: 3, row: 3 },
-            { col: 4, row: 3 },
-            { col: 0, row: 4 },
-            { col: 2, row: 4 }
-        ],
-        gimmicks: [
-            { col: 1, row: 0, type: 'dash', dir: 'right', purpleBorder: false },
-            { col: 3, row: 0, type: 'step', dir: 'right', steps: 1 },
-            { col: 4, row: 0, type: 'step', dir: 'down', steps: 1 },
-            { col: 0, row: 2, type: 'step', dir: 'down', steps: 1 },
-            { col: 3, row: 2, type: 'dash', dir: 'left', purpleBorder: false },
-            { col: 0, row: 3, type: 'step', dir: 'down', steps: 1 },
-            { col: 1, row: 3, type: 'dash', dir: 'right', purpleBorder: false },
-            { col: 4, row: 3, type: 'step', dir: 'up', steps: 1 },
-            { col: 0, row: 4, type: 'dash', dir: 'right', purpleBorder: false },
-            { col: 2, row: 4, type: 'step', dir: 'up', steps: 1 },
-            { col: 4, row: 4, type: 'step', dir: 'left', steps: 1 }
-        ],
-        solution: [],
-        legends: [
-            { icon: '／', type: 'forbidden', text: '赤の斜線：配置不可' },
-            { icon: '➔', type: 'dash', text: '水色：置いたブロックが矢印の方向に端まで移動（緑矢印で方向転換し1マス移動）' },
-            { icon: '↑', type: 'step', text: '緑色：置いたブロックが1マスだけ矢印の方向に移動' }
-        ]
-    },
-
-    // ------------------------------------------
-    // ステージ 22
-    // ------------------------------------------
-    {
-        id: 22,
-        title: 'ステージ 22',
         subtitle: '一直線の架け橋',
         maxBlocks: 5,
         targetBlocks: 5,
@@ -779,11 +737,11 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 23
+    // ステージ 22
     // ------------------------------------------
     {
-        id: 23,
-        title: 'ステージ 23',
+        id: 22,
+        title: 'ステージ 22',
         subtitle: '循環する風と階段',
         maxBlocks: 6,
         targetBlocks: 6,
@@ -818,11 +776,11 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 24
+    // ステージ 23
     // ------------------------------------------
     {
-        id: 24,
-        title: 'ステージ 24',
+        id: 23,
+        title: 'ステージ 23',
         subtitle: '光線を防ぐ足場',
         maxBlocks: 6,
         targetBlocks: 6,
@@ -862,11 +820,11 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 25
+    // ステージ 24
     // ------------------------------------------
     {
-        id: 25,
-        title: 'ステージ 25',
+        id: 24,
+        title: 'ステージ 24',
         subtitle: '切り替わる道と光線',
         maxBlocks: 6,
         targetBlocks: 6,
@@ -906,11 +864,11 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 26
+    // ステージ 25
     // ------------------------------------------
     {
-        id: 26,
-        title: 'ステージ 26',
+        id: 25,
+        title: 'ステージ 25',
         subtitle: '交差レーザーと連続スイッチ',
         maxBlocks: 7,
         targetBlocks: 7,
@@ -957,11 +915,11 @@ const STAGES = [
     },
 
     // ------------------------------------------
-    // ステージ 27
+    // ステージ 26
     // ------------------------------------------
     {
-        id: 27,
-        title: 'ステージ 27',
+        id: 26,
+        title: 'ステージ 26',
         subtitle: '高台からの落下と跳躍',
         maxBlocks: 6,
         targetBlocks: 6,

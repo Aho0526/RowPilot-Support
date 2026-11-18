@@ -997,6 +997,12 @@ body {
     border-color: #7f1d1d;
 }
 
+.btn-reset.btn-cancel {
+    background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+    box-shadow: 5px 5px 0 #78350f;
+    border-color: #78350f;
+}
+
 .btn-answer {
     background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
     box-shadow: 5px 5px 0 #78350f;
@@ -2096,6 +2102,12 @@ body.in-iframe .controls-panel .btn-reset:active,
 .in-iframe .controls-panel .btn-reset:active {
     transform: translateY(2px) !important;
     box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.4), 0 1px 0 #000000 !important;
+}
+
+html.in-iframe .controls-panel .btn-reset.btn-cancel,
+body.in-iframe .controls-panel .btn-reset.btn-cancel,
+.in-iframe .controls-panel .btn-reset.btn-cancel {
+    background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 60%, #d97706 100%) !important;
 }
 
 /* 答え合わせなどサブコントロール */

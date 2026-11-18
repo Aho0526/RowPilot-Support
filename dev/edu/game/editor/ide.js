@@ -571,7 +571,7 @@ const STAGES = [
                     files[key].defaultContent = rawText;
 
                     let saved = !files[key].isSystemFile ? localStorage.getItem(STORAGE_KEY_PREFIX + key) : null;
-                    if (key === 'main.js' && saved && (!saved.includes('EMERGE_RISE_END') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('supernovaColliderIds') || !saved.includes('renderHierarchicalBinaryBlackHoles') || !saved.includes('updateBlackHoleUiDrop') || saved.includes('drawGoalArea()') || !saved.includes('.status-wrap'))) {
+                    if (key === 'main.js' && saved && (!saved.includes('EMERGE_RISE_END') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('supernovaColliderIds') || !saved.includes('renderHierarchicalBinaryBlackHoles') || !saved.includes('updateBlackHoleUiDrop') || saved.includes('drawGoalArea()') || !saved.includes('.status-wrap') || !saved.includes('updateResetCancelButtonUI') || !saved.includes('drawLaserDeathOverlay'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         saved = null;
                     }

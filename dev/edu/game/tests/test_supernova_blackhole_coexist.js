@@ -1,4 +1,4 @@
-// テスト: 爆発とブラックホールの共存・複数ブラックホール同時演出・ステージ22間接関与ブロックの検証
+// テスト: 爆発とブラックホールの共存・複数ブラックホール同時演出・ステージ21(旧22)間接関与ブロックの検証
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -59,16 +59,16 @@ function assert(cond, msg) {
 }
 
 // ------------------------------------------------------------------
-// Test 1: ステージ22の配置（(1,0), (2,0), (3,1) + 無関係ブロック (4,4)）
+// Test 1: ステージ21(旧22)の配置（(1,0), (2,0), (3,1) + 無関係ブロック (4,4)）
 // ------------------------------------------------------------------
-console.log('Test 1: ステージ22の貫通防止（間接関与ブロックの追従移動）検証');
+console.log('Test 1: ステージ21(旧22)の貫通防止（間接関与ブロックの追従移動）検証');
 {
     const stagesCtx = vm.createContext({});
     vm.runInContext(stagesJsCode + '; this.STAGES = STAGES;', stagesCtx);
-    const stage22 = stagesCtx.STAGES.find(s => s.id === 22);
-    assert(stage22, 'Stage 22 not found');
+    const stage21 = stagesCtx.STAGES.find(s => s.id === 21);
+    assert(stage21, 'Stage 21 not found');
 
-    const { sandbox, context } = createSandbox([stage22]);
+    const { sandbox, context } = createSandbox([stage21]);
     vm.runInContext(`
         grid = Array.from({ length: 5 }, () => Array(5).fill(false));
         grid[0][1] = true; // (1,0): 道を空けるブロック
