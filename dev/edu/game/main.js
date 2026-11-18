@@ -28,13 +28,22 @@ const KEY_MAP = [
 
 // MARK: - Stage State
 let currentStageIndex = 0; // デフォルトはステージ 1 (index 0)
+let solverStageOverride = null;
 let OFFICIAL_STAGES = null;
 if (typeof STAGES !== 'undefined' && Array.isArray(STAGES)) {
     OFFICIAL_STAGES = JSON.parse(JSON.stringify(STAGES));
 }
 
 function getStage() {
-    return STAGES[currentStageIndex];
+    return solverStageOverride || STAGES[currentStageIndex];
+}
+
+function isInsideEditorPreview() {
+    try {
+        return (window.self !== window.top || Boolean(window.frameElement));
+    } catch (e) {
+        return true;
+    }
 }
 
 // MARK: - DOM Elements
@@ -80,6 +89,7 @@ let pendingBlackHole = null;
 let blackHoleState = null;
 let blackHoleParticles = [];
 let dualEventState = null;
+let impossibleBlackoutState = null;
 
 function makeMan() {
     const st = getStage();
@@ -303,11 +313,11 @@ function countPlacedBlocks() {
 }
 
 // 全てのブロックが8方向（縦・横・斜め）で一続きに連結しているかを判定
-function areBlocksConnected() {
+function areBlocksConnected(targetGrid = grid) {
     const blocks = [];
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-            if (grid[r][c]) blocks.push({ r, c });
+            if (targetGrid[r][c]) blocks.push({ r, c });
         }
     }
     // 0個または1個なら常に連結
@@ -329,7 +339,7 @@ function areBlocksConnected() {
         for (const [dr, dc] of dirs) {
             const nr = cur.r + dr;
             const nc = cur.c + dc;
-            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && grid[nr][nc]) {
+            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && targetGrid[nr][nc]) {
                 const key = `${nr},${nc}`;
                 if (!visited.has(key)) {
                     visited.add(key);
@@ -2050,6 +2060,7 @@ function renderSupernovaState(elapsed, dtScale = 1) {
 
 function finishSupernova() {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
+    if (maybeStartImpossibleCustomRedirect()) return;
     supernovaState = null;
     pendingSupernova = null;
     slidingBlocks = [];
@@ -2164,6 +2175,9 @@ function resetBlackHoleUiStyles() {
     }
     if (canvas) {
         canvas.style.cursor = '';
+    }
+    if (typeof removeRedirectBlackoutCurtain === 'function') {
+        removeRedirectBlackoutCurtain();
     }
 }
 
@@ -2620,6 +2634,7 @@ function startBlackHole(loopDataOrList) {
 
 function finishBlackHole() {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
+    if (maybeStartImpossibleCustomRedirect()) return;
     resetBlackHoleUiStyles();
 
     blackHoleState = null;
@@ -2653,7 +2668,20 @@ function animateBlackHole(ts) {
     const elapsed = Math.max(0, now - blackHoleState.startTime);
 
     if (blackHoleState.isMulti) {
+        const tl = blackHoleState.timeline || getMultiBlackHoleTimeline(blackHoleState.holes.length);
+        const shouldRedirect = shouldRedirectBlackHoleToEditor(blackHoleState.holes.length);
+        const redirectTriggerAt = tl.BH_COLLAPSE_END + 240;
+        if (shouldRedirect && elapsed >= redirectTriggerAt) {
+            renderMultiBlackHoleState(tl.BH_COLLAPSE_END);
+            setRedirectBlackoutCurtain(1);
+            redirectToEditorStageBuilder('multi_blackhole');
+            return;
+        }
         renderMultiBlackHoleState(elapsed);
+        if (shouldRedirect && elapsed >= tl.BH_COLLAPSE_END) {
+            const cp = Math.max(0, Math.min(1, (elapsed - tl.BH_COLLAPSE_END) / 240));
+            setRedirectBlackoutCurtain(cp);
+        }
         if (elapsed >= blackHoleState.totalDuration) {
             finishBlackHole();
             return;
@@ -3991,6 +4019,7 @@ function startDualSupernovaBlackHole(snData, bhData) {
 
 function finishDualEvent() {
     if (animId) { cancelAnimationFrame(animId); animId = null; }
+    if (maybeStartImpossibleCustomRedirect()) return;
     resetBlackHoleUiStyles();
     dualEventState = null;
     pendingSupernova = null;
@@ -4021,6 +4050,26 @@ function animateDualEvent(ts) {
 
     const now = ts || performance.now();
     const elapsed = Math.max(0, now - dualEventState.startTime);
+
+    const bhCount = (dualEventState.holes && dualEventState.holes.length) || 1;
+    const dtl = dualEventState.timeline;
+    const shouldRedirect = Boolean(dualEventState.isMultiBH && dtl && shouldRedirectBlackHoleToEditor(bhCount));
+    if (shouldRedirect) {
+        const redirectTriggerAt = dtl.BH_COLLAPSE_END + 240;
+        if (elapsed >= redirectTriggerAt) {
+            renderDualEventState(dtl.BH_COLLAPSE_END);
+            setRedirectBlackoutCurtain(1);
+            redirectToEditorStageBuilder('multi_blackhole');
+            return;
+        }
+        renderDualEventState(elapsed);
+        if (elapsed >= dtl.BH_COLLAPSE_END) {
+            const cp = Math.max(0, Math.min(1, (elapsed - dtl.BH_COLLAPSE_END) / 240));
+            setRedirectBlackoutCurtain(cp);
+        }
+        animId = requestAnimationFrame(animateDualEvent);
+        return;
+    }
 
     renderDualEventState(elapsed);
 
@@ -6172,6 +6221,8 @@ function render() {
 
     if (phase === 'laser_death') {
         drawLaserDeathOverlay(now);
+    } else if (phase === 'impossible_blackout') {
+        drawImpossibleBlackoutOverlay(now);
     }
 }
 
@@ -7067,6 +7118,7 @@ function completeRespawn() {
     if (originalGrid) {
         grid = originalGrid.map(r => [...r]);
     }
+    if (maybeStartImpossibleCustomRedirect()) return;
     slidingBlocks = [];
     blockAnimationRounds = [];
     currentRoundIndex = 0;
@@ -7135,16 +7187,18 @@ function cancelActiveGameSequenceOnLeave() {
         explosionMessageTimer = null;
     }
     resetBlackHoleUiStyles();
-    if (phase !== 'place' || blackHoleState || dualEventState || supernovaState) {
+    if (phase !== 'place' || blackHoleState || dualEventState || supernovaState || impossibleBlackoutState) {
         slidingBlocks = [];
         blockAnimationRounds = [];
         currentRoundIndex = 0;
         laserDeathEffect = null;
+        impossibleBlackoutState = null;
         pendingSupernova = null;
         supernovaState = null;
         pendingBlackHole = null;
         blackHoleState = null;
         dualEventState = null;
+        impossibleBlackoutState = null;
         if (originalGrid) {
             grid = originalGrid.map(r => [...r]);
             originalGrid = null;
@@ -7667,6 +7721,7 @@ function selectStage(idx) {
     pendingBlackHole = null;
     blackHoleState = null;
     dualEventState = null;
+    impossibleBlackoutState = null;
     laserDeathEffect = null;
     respawnEffect = null;
     originalGrid = null;
@@ -8024,6 +8079,7 @@ window.addEventListener('DOMContentLoaded', () => {
         pendingBlackHole = null;
         blackHoleState = null;
         dualEventState = null;
+        impossibleBlackoutState = null;
 
         // 演出中・移動中のリセット（全消去）は禁止し、直前に配置された通りのブロック状態へキャンセル復元する
         if (phase !== 'place') {
@@ -8202,14 +8258,6 @@ window.addEventListener('DOMContentLoaded', () => {
     updateSelectScreenUI();
     updateResetCancelButtonUI();
 
-    function isInsideEditorPreview() {
-        try {
-            return (window.self !== window.top || Boolean(window.frameElement));
-        } catch (e) {
-            return true;
-        }
-    }
-
     const inEditorPreview = isInsideEditorPreview();
 
     // 外部/テスト用露出
@@ -8226,6 +8274,9 @@ window.addEventListener('DOMContentLoaded', () => {
         getStages: () => STAGES,
         getGrid: () => grid,
         placeBlock: (col, row) => placeBlock(col, row),
+        isStageSolvable,
+        setCustomMode: (val) => { customMode = Boolean(val); },
+        getImpossibleBlackoutState: () => impossibleBlackoutState,
         render,
         // エディタ内でのキー配置有効/無効フラグ (ide.jsから制御可能)
         disableKeyPlacement: inEditorPreview,
@@ -8432,4 +8483,803 @@ function bootSharedStagesFromHash() {
     window.applyCustomStages(result.stages, 0);
     showSharedNotice('共有されたステージです。記録は保存されません。');
     return true;
+}
+
+// MARK: - Unsolvable Stage Solver & Seamless Editor Redirect
+const _stageSolvableCache = new Map();
+
+function isCustomUrlMode() {
+    if (isInsideEditorPreview()) return false;
+    return Boolean(customMode && !sharedMode);
+}
+
+function shouldRedirectBlackHoleToEditor(holesCount) {
+    if (isInsideEditorPreview()) return false;
+    return Number(holesCount) >= 2;
+}
+
+function setRedirectBlackoutCurtain(opacity) {
+    if (typeof document === 'undefined' || !document.body) return;
+    let el = document.getElementById('redirectBlackoutCurtain');
+    const clamped = Math.max(0, Math.min(1, Number(opacity) || 0));
+    if (!el) {
+        if (clamped <= 0) return;
+        el = document.createElement('div');
+        el.id = 'redirectBlackoutCurtain';
+        el.className = 'blackhole-redirect-curtain';
+        document.body.appendChild(el);
+    }
+    el.style.display = clamped <= 0 ? 'none' : 'block';
+    el.style.opacity = String(clamped);
+    if (clamped >= 0.99 && document.documentElement && document.documentElement.style) {
+        document.documentElement.style.backgroundColor = '#060814';
+    }
+}
+
+function removeRedirectBlackoutCurtain() {
+    if (typeof document === 'undefined') return;
+    const el = document.getElementById('redirectBlackoutCurtain');
+    if (el && el.style) {
+        el.style.opacity = '0';
+        el.style.display = 'none';
+    }
+    if (document.documentElement && document.documentElement.style) {
+        document.documentElement.style.backgroundColor = '';
+    }
+}
+
+function redirectToEditorStageBuilder(reason) {
+    if (isInsideEditorPreview()) return false;
+    const st = getStage();
+    const payload = {
+        stageId: st ? st.id : null,
+        stageIndex: currentStageIndex,
+        stageTitle: st ? (st.title || '') : '',
+        reason: reason || 'multi_blackhole',
+        message: 'ゴールできるステージを作れ^^',
+        isCustomMode: Boolean(customMode),
+        isSharedMode: Boolean(sharedMode),
+        stageData: st ? JSON.parse(JSON.stringify(st)) : null,
+        ts: Date.now()
+    };
+
+    if (typeof window !== 'undefined' && typeof window.__redirectToEditorHook === 'function') {
+        window.__redirectToEditorHook(payload);
+        return true;
+    }
+
+    if (redirectToEditorStageBuilder._navigated) return true;
+    redirectToEditorStageBuilder._navigated = true;
+
+    setRedirectBlackoutCurtain(1);
+    if (typeof document !== 'undefined' && document.body) {
+        document.body.style.backgroundColor = '#060814';
+        document.body.style.backgroundImage = 'none';
+    }
+    try {
+        if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem('hako_editor_redirect_payload', JSON.stringify(payload));
+        }
+    } catch (e) { /* ignore */ }
+
+    const sId = st && st.id !== undefined ? st.id : '';
+    const targetUrl = `editor/index.html?autoBuilder=1&stageId=${encodeURIComponent(sId)}&stageIndex=${encodeURIComponent(currentStageIndex)}`;
+    if (typeof window !== 'undefined' && window.location) {
+        window.location.href = targetUrl;
+    }
+    return true;
+}
+
+function evaluatePlacementOnStage(stage, testGrid) {
+    const prevOverride = solverStageOverride;
+    const prevGrid = grid;
+    solverStageOverride = stage;
+    grid = testGrid;
+    try {
+        const sim = simulateGimmickBlockMoves();
+        if ((sim.supernovas && sim.supernovas.length > 0) || (sim.blackHoleLoops && sim.blackHoleLoops.length > 0)) {
+            return false;
+        }
+        grid = sim.finalGrid;
+        const route = solveRoute();
+        return Array.isArray(route) && route.length > 0 && route[route.length - 1].type === 'done';
+    } finally {
+        grid = prevGrid;
+        solverStageOverride = prevOverride;
+    }
+}
+
+function isStageSolvable(stage) {
+    if (!stage) return true;
+    const cacheKey = JSON.stringify({
+        id: stage.id,
+        sr: stage.startRow,
+        gr: stage.goalRow,
+        mb: stage.maxBlocks,
+        hc: Boolean(stage.hasCeiling),
+        f: stage.forbidden || [],
+        g: stage.gimmicks || [],
+        l: stage.lasers || [],
+        sol: stage.solution || []
+    });
+    if (_stageSolvableCache.has(cacheKey)) {
+        return _stageSolvableCache.get(cacheKey);
+    }
+
+    const res = computeStageSolvableUncached(stage);
+    _stageSolvableCache.set(cacheKey, res);
+    return res;
+}
+
+function computeStageSolvableUncached(stage) {
+    const maxBlocks = Math.max(0, Math.floor(Number(stage.maxBlocks) || 0));
+    const forbidden = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    if (Array.isArray(stage.forbidden)) {
+        stage.forbidden.forEach(f => {
+            if (f && f.row >= 0 && f.row < ROWS && f.col >= 0 && f.col < COLS) {
+                forbidden[f.row][f.col] = true;
+            }
+        });
+    }
+
+    const gimmickAt = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+    const requiredList = [];
+    if (Array.isArray(stage.gimmicks)) {
+        stage.gimmicks.forEach(g => {
+            if (g && g.row >= 0 && g.row < ROWS && g.col >= 0 && g.col < COLS) {
+                gimmickAt[g.row][g.col] = g;
+                if (g.purpleBorder) requiredList.push({ r: g.row, c: g.col });
+            }
+        });
+    }
+
+    // 必須セルが禁止マスと重複 or 上限超過なら即クリア不可能
+    if (requiredList.some(p => forbidden[p.r][p.c])) return false;
+    if (requiredList.length > maxBlocks) return false;
+
+    const emptyGrid = () => Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+
+    // 1. 既定の solution が有効かつクリアできるなら即クリア可能
+    if (Array.isArray(stage.solution) && stage.solution.length > 0 && stage.solution.length <= maxBlocks) {
+        const sg = emptyGrid();
+        let validSol = true;
+        stage.solution.forEach(p => {
+            if (!p || p.row < 0 || p.row >= ROWS || p.col < 0 || p.col >= COLS || forbidden[p.row][p.col]) {
+                validSol = false;
+            } else {
+                sg[p.row][p.col] = true;
+            }
+        });
+        if (validSol && requiredList.every(p => sg[p.r][p.c]) && areBlocksConnected(sg)) {
+            if (evaluatePlacementOnStage(stage, sg)) return true;
+        }
+    }
+
+    // 2. ブロック0個でクリアできるか確認
+    if (requiredList.length === 0) {
+        if (evaluatePlacementOnStage(stage, emptyGrid())) return true;
+    }
+    if (maxBlocks === 0) return false;
+
+    // 3. 保守的静止可能セル上界 (canStay) と列経路DPの計算
+    const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
+    const DELTA = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
+    const getDirsAt = (r, c) => {
+        const g = gimmickAt[r][c];
+        if (!g) return null;
+        if (g.type === 'switch') return getSwitchDirSequence(g);
+        if (g.type === 'step' || g.type === 'dash') return [g.dir];
+        return null;
+    };
+
+    const canReach = Array.from({ length: ROWS }, (_, r) =>
+        Array.from({ length: COLS }, (__, c) => !forbidden[r][c])
+    );
+    let reachChanged = true;
+    while (reachChanged) {
+        reachChanged = false;
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (!canReach[r][c]) continue;
+                const g = gimmickAt[r][c];
+                const dirs = getDirsAt(r, c);
+                if (!dirs) continue;
+                const isDash = (g.type === 'dash' || (g.type === 'switch' && getEffectiveGimmickMoveType(g) === 'dash'));
+                dirs.forEach(d => {
+                    const dv = DELTA[d];
+                    if (!dv) return;
+                    let nr = r + dv[0];
+                    let nc = c + dv[1];
+                    while (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                        if (!canReach[nr][nc]) {
+                            canReach[nr][nc] = true;
+                            reachChanged = true;
+                        }
+                        if (!isDash) break;
+                        nr += dv[0];
+                        nc += dv[1];
+                    }
+                });
+            }
+        }
+    }
+
+    const canStay = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (!getDirsAt(r, c) && canReach[r][c]) {
+                canStay[r][c] = true;
+            }
+        }
+    }
+    let stayChanged = true;
+    while (stayChanged) {
+        stayChanged = false;
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (canStay[r][c] || !canReach[r][c]) continue;
+                const dirs = getDirsAt(r, c);
+                if (!dirs) continue;
+                for (const d of dirs) {
+                    const dv = DELTA[d];
+                    if (!dv) continue;
+                    const nr = r + dv[0];
+                    const nc = c + dv[1];
+                    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) {
+                        canStay[r][c] = true;
+                        stayChanged = true;
+                        break;
+                    }
+                    if (canStay[nr][nc]) {
+                        canStay[r][c] = true;
+                        stayChanged = true;
+                        break;
+                    }
+                    const nbrDirs = getDirsAt(nr, nc);
+                    if (nbrDirs && canReach[nr][nc] && nbrDirs.includes(OPPOSITE[d])) {
+                        canStay[r][c] = true;
+                        stayChanged = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    const fixedTrue = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+    requiredList.forEach(p => {
+        if (!getDirsAt(p.r, p.c)) fixedTrue[p.r][p.c] = true;
+    });
+
+    // 確実に遮断不能な垂直レーザーの下限・上限を前計算 (誤判定を防ぐため厳密保守範囲を使用)
+    const guaranteedVBeamsAtCol = Array.from({ length: COLS }, () => []);
+    if (Array.isArray(stage.lasers)) {
+        stage.lasers.forEach(laser => {
+            if (!laser || (laser.side !== 'top' && laser.side !== 'bottom')) return;
+            const c = laser.col;
+            let r = laser.row;
+            if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return;
+            const dr = laser.side === 'top' ? 1 : -1;
+            let startY = laser.side === 'top' ? (GY + r * CELL) : (GY + (r + 1) * CELL);
+            let endY = startY;
+            while (r >= 0 && r < ROWS) {
+                if (canStay[r][c]) {
+                    endY = laser.side === 'top' ? (GY + r * CELL) : (GY + (r + 1) * CELL);
+                    break;
+                }
+                r += dr;
+            }
+            if (r < 0 || r >= ROWS) {
+                endY = laser.side === 'top' ? (GY + ROWS * CELL) : GY;
+            }
+            const minY = Math.min(startY, endY);
+            const maxY = Math.max(startY, endY);
+            if (maxY - minY > 1) {
+                guaranteedVBeamsAtCol[c].push({ minY, maxY });
+            }
+        });
+    }
+
+    const isHeightKilledByGuaranteedBeam = (c, y) => {
+        const beams = guaranteedVBeamsAtCol[c];
+        if (!beams || beams.length === 0) return false;
+        const bot = GY + (y + 1) * CELL - 2;
+        const topSafe = bot - 48; // 実際の切断対象帯(帽子・靴端除外後も確実に重なる中央帯)
+        const botSafe = bot - 16;
+        return beams.some(b => botSafe >= b.minY + 1 && topSafe <= b.maxY - 1);
+    };
+
+    // 各列高さ経路の保守的列挙 (-1..3)
+    const candidatePaths = [];
+    const sr = Number(stage.startRow) || 0;
+    const gr = Number(stage.goalRow) || 0;
+    const colHeights = new Array(COLS);
+
+    function searchColPaths(c, curY) {
+        if (c === COLS) {
+            if (curY === gr || curY === gr + 1 || curY === gr - 1) {
+                candidatePaths.push([...colHeights]);
+            }
+            return;
+        }
+        // ジャンプ上昇 (curY - 1)
+        const jumpY = curY - 1;
+        if (curY >= 0 && curY < ROWS && canStay[curY][c]) {
+            const ceilHit = Boolean(stage.hasCeiling) && (jumpY < 0);
+            const jumpBlocked = (jumpY >= 0 && jumpY < ROWS) && fixedTrue[jumpY][c];
+            const prevCeilBlocked = (c - 1 >= 0 && curY - 1 >= 0) && fixedTrue[curY - 1][c - 1];
+            if (!ceilHit && !jumpBlocked && !prevCeilBlocked && !isHeightKilledByGuaranteedBeam(c, jumpY)) {
+                colHeights[c] = jumpY;
+                searchColPaths(c + 1, jumpY);
+            }
+        }
+        // 水平歩行 (curY) or 落下 (curY + 1 .. 3)
+        if (curY >= 0 && curY < ROWS && !fixedTrue[curY][c]) {
+            if (curY < 4 && canStay[curY + 1][c] && !isHeightKilledByGuaranteedBeam(c, curY)) {
+                colHeights[c] = curY;
+                searchColPaths(c + 1, curY);
+            }
+            for (let ny = curY + 1; ny < 4; ny++) {
+                if (fixedTrue[ny][c]) break;
+                if (canStay[ny + 1][c] && !isHeightKilledByGuaranteedBeam(c, ny)) {
+                    colHeights[c] = ny;
+                    searchColPaths(c + 1, ny);
+                }
+            }
+        } else if (curY === -1) {
+            for (let ny = 0; ny < 4; ny++) {
+                if (fixedTrue[ny][c]) break;
+                if (canStay[ny + 1][c] && !isHeightKilledByGuaranteedBeam(c, ny)) {
+                    colHeights[c] = ny;
+                    searchColPaths(c + 1, ny);
+                }
+            }
+        }
+    }
+    searchColPaths(0, sr);
+    if (candidatePaths.length === 0) return false;
+
+    // 経路ごとの finalGrid 静止閉包による保守的最小必要ブロック数下界を計算
+    const computeMinFinalBlocksForPath = (ys) => {
+        const seedMap = new Map();
+        const addCell = (r, c) => {
+            if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+                seedMap.set(`${r},${c}`, { r, c });
+            }
+        };
+        for (let c = 0; c < COLS; c++) addCell(ys[c] + 1, c);
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (fixedTrue[r][c]) addCell(r, c);
+            }
+        }
+        // 移動ギミック上にある静止必須ブロックは、進行先隣マスのいずれか1つが盤面外か finalGrid 上で true でなければならない
+        // 保守的下界として、全移動先候補が全て同じ他セル共有になる最大緩和でも各移動マスに境界外でない場合は隣マスが必要になる
+        // ここでは一意な隣マスしか持たない単純ケース（全候補方向中盤面外なし＆他ブロック未収容が1種類しか繋がらない等）を反復追加
+        let changed = true;
+        while (changed) {
+            changed = false;
+            for (const { r, c } of Array.from(seedMap.values())) {
+                const dirs = getDirsAt(r, c);
+                if (!dirs) continue;
+                let hasBoundaryOrPresent = false;
+                const candStoppers = [];
+                for (const d of dirs) {
+                    const dv = DELTA[d];
+                    if (!dv) continue;
+                    const nr = r + dv[0], nc = c + dv[1];
+                    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) {
+                        hasBoundaryOrPresent = true;
+                        break;
+                    }
+                    if (seedMap.has(`${nr},${nc}`)) {
+                        hasBoundaryOrPresent = true;
+                        break;
+                    }
+                    if (canStay[nr][nc] || (getDirsAt(nr, nc) && canReach[nr][nc])) {
+                        candStoppers.push({ r: nr, c: nc });
+                    }
+                }
+                if (!hasBoundaryOrPresent && candStoppers.length === 1) {
+                    addCell(candStoppers[0].r, candStoppers[0].c);
+                    changed = true;
+                }
+            }
+        }
+        // 移動が必要な requiredList の数も下界に含める（非移動+移動 required 合計以上）
+        return Math.max(seedMap.size, requiredList.length);
+    };
+
+    const feasiblePaths = candidatePaths
+        .map(ys => ({ ys, minNeed: computeMinFinalBlocksForPath(ys) }))
+        .filter(item => item.minNeed <= maxBlocks)
+        .sort((a, b) => a.minNeed - b.minNeed);
+
+    if (feasiblePaths.length === 0) return false;
+
+    // 4. 上位候補経路からのダイレクト連結・対向ストッパー試行
+    const connectSeedsToGrid = (seedList) => {
+        const g = emptyGrid();
+        const used = [];
+        seedList.forEach(p => {
+            if (p.r >= 0 && p.r < ROWS && p.c >= 0 && p.c < COLS && !forbidden[p.r][p.c] && !g[p.r][p.c]) {
+                g[p.r][p.c] = true;
+                used.push({ r: p.r, c: p.c });
+            }
+        });
+        requiredList.forEach(p => {
+            if (!g[p.r][p.c]) {
+                g[p.r][p.c] = true;
+                used.push({ r: p.r, c: p.c });
+            }
+        });
+        if (used.length === 0 || used.length > maxBlocks) return null;
+
+        // 連結成分を最短8方向BFSで繋ぐ
+        while (!areBlocksConnected(g)) {
+            // 最初の連結成分を探索
+            const comp = new Set();
+            const q = [used[0]];
+            comp.add(`${used[0].r},${used[0].c}`);
+            const bfsQ = [{ r: used[0].r, c: used[0].c, parent: null }];
+            const visited = new Set([`${used[0].r},${used[0].c}`]);
+            while (q.length > 0) {
+                const curCell = q.shift();
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        if (dr === 0 && dc === 0) continue;
+                        const nr = curCell.r + dr, nc = curCell.c + dc;
+                        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && g[nr][nc]) {
+                            const k = `${nr},${nc}`;
+                            if (!comp.has(k)) {
+                                comp.add(k);
+                                q.push({ r: nr, c: nc });
+                                bfsQ.push({ r: nr, c: nc, parent: null });
+                                visited.add(k);
+                            }
+                        }
+                    }
+                }
+            }
+            let foundBridge = null;
+            let idx = 0;
+            while (idx < bfsQ.length) {
+                const curNode = bfsQ[idx++];
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        if (dr === 0 && dc === 0) continue;
+                        const nr = curNode.r + dr, nc = curNode.c + dc;
+                        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || forbidden[nr][nc]) continue;
+                        const k = `${nr},${nc}`;
+                        if (g[nr][nc] && !comp.has(k)) {
+                            foundBridge = curNode;
+                            break;
+                        }
+                        if (!visited.has(k)) {
+                            visited.add(k);
+                            bfsQ.push({ r: nr, c: nc, parent: curNode });
+                        }
+                    }
+                    if (foundBridge) break;
+                }
+                if (foundBridge) break;
+            }
+            if (!foundBridge) return null;
+            let trace = foundBridge;
+            while (trace) {
+                if (!g[trace.r][trace.c]) {
+                    g[trace.r][trace.c] = true;
+                    used.push({ r: trace.r, c: trace.c });
+                    if (used.length > maxBlocks) return null;
+                }
+                trace = trace.parent;
+            }
+        }
+        return g;
+    };
+
+    const triedKeys = new Set();
+    const tryCandidateGrid = (g) => {
+        if (!g) return false;
+        let cnt = 0;
+        let key = '';
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (g[r][c]) {
+                    cnt++;
+                    key += `${r}${c}`;
+                }
+            }
+        }
+        if (cnt > maxBlocks || triedKeys.has(key)) return false;
+        triedKeys.add(key);
+        if (!requiredList.every(p => g[p.r][p.c]) || !areBlocksConnected(g)) return false;
+        return evaluatePlacementOnStage(stage, g);
+    };
+
+    // 足場位置から「静止用隣接ストッパー」を含めた候補を生成して優先評価
+    for (let i = 0; i < Math.min(feasiblePaths.length, 40); i++) {
+        const ys = feasiblePaths[i].ys;
+        const baseSeeds = [];
+        const withStoppers = [];
+        for (let c = 0; c < COLS; c++) {
+            const footR = ys[c] + 1;
+            baseSeeds.push({ r: footR, c });
+            withStoppers.push({ r: footR, c });
+            const dirs = getDirsAt(footR, c);
+            if (dirs) {
+                for (const d of dirs) {
+                    const dv = DELTA[d];
+                    if (!dv) continue;
+                    const sr2 = footR + dv[0], sc2 = c + dv[1];
+                    if (sr2 >= 0 && sr2 < ROWS && sc2 >= 0 && sc2 < COLS && !forbidden[sr2][sc2]) {
+                        withStoppers.push({ r: sr2, c: sc2 });
+                        break;
+                    }
+                }
+            }
+        }
+        if (tryCandidateGrid(connectSeedsToGrid(baseSeeds))) return true;
+        if (tryCandidateGrid(connectSeedsToGrid(withStoppers))) return true;
+    }
+
+    // 5. Canonical Connected Enumeration (Redelmeier 法) による連結配置探索
+    const avail = [];
+    const cellToAvail = Array.from({ length: ROWS }, () => Array(COLS).fill(-1));
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (!forbidden[r][c]) {
+                cellToAvail[r][c] = avail.length;
+                avail.push({ r, c });
+            }
+        }
+    }
+    const N = avail.length;
+    if (N === 0) return false;
+
+    const adjMask = new Array(N).fill(0);
+    for (let i = 0; i < N; i++) {
+        let m = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue;
+                const nr = avail[i].r + dr, nc = avail[i].c + dc;
+                if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                    const j = cellToAvail[nr][nc];
+                    if (j !== -1) m |= (1 << j);
+                }
+            }
+        }
+        adjMask[i] = m;
+    }
+
+    let reqMask = 0;
+    let firstReqIdx = N;
+    requiredList.forEach(p => {
+        const idx = cellToAvail[p.r][p.c];
+        if (idx !== -1) {
+            reqMask |= (1 << idx);
+            if (idx < firstReqIdx) firstReqIdx = idx;
+        }
+    });
+
+    const START_TIME = Date.now();
+    const TIME_BUDGET_MS = 75;
+    let evalCount = 0;
+    let timedOut = false;
+
+    const testBitMask = (mask) => {
+        const g = emptyGrid();
+        let key = '';
+        for (let i = 0; i < N; i++) {
+            if (mask & (1 << i)) {
+                g[avail[i].r][avail[i].c] = true;
+                key += `${avail[i].r}${avail[i].c}`;
+            }
+        }
+        if (triedKeys.has(key)) return false;
+        triedKeys.add(key);
+        return evaluatePlacementOnStage(stage, g);
+    };
+
+    const minGlobalBlocks = feasiblePaths[0].minNeed;
+
+    const maxRoot = reqMask !== 0 ? Math.min(N - 1, firstReqIdx) : N - 1;
+    for (let root = 0; root <= maxRoot && !timedOut; root++) {
+        const rootBit = (1 << root);
+        const aboveOrEqualMask = (~(rootBit - 1)) & ((1 << N) - 1);
+        const initNeighbors = adjMask[root] & aboveOrEqualMask & ~rootBit;
+        const initUntried = [];
+        for (let bits = initNeighbors; bits; bits &= bits - 1) {
+            initUntried.push(31 - Math.clz32(bits & -bits));
+        }
+        const initSeen = ((rootBit - 1) | rootBit | initNeighbors);
+
+        const extend = (mask, count, untried, seenMask) => {
+            if (timedOut) return false;
+            if ((mask & reqMask) === reqMask && count >= minGlobalBlocks) {
+                evalCount++;
+                if ((evalCount & 31) === 0 && (Date.now() - START_TIME) > TIME_BUDGET_MS) {
+                    timedOut = true;
+                    return false;
+                }
+                if (testBitMask(mask)) return true;
+            }
+            if (count >= maxBlocks) return false;
+
+            // 必須マス残り到達枝刈り
+            if (reqMask !== 0 && (mask & reqMask) !== reqMask) {
+                let reach = mask;
+                let front = mask;
+                const rem = maxBlocks - count;
+                for (let step = 0; step < rem; step++) {
+                    let nf = 0;
+                    for (let b = front; b; b &= b - 1) {
+                        nf |= adjMask[31 - Math.clz32(b & -b)];
+                    }
+                    nf = (nf & aboveOrEqualMask) & ~reach;
+                    reach |= nf;
+                    front = nf;
+                    if ((reach & reqMask) === reqMask || front === 0) break;
+                }
+                if ((reach & reqMask) !== reqMask) return false;
+            }
+
+            const localUntried = [...untried];
+            let localSeen = seenMask;
+            while (localUntried.length > 0) {
+                if (timedOut) return false;
+                const u = localUntried.pop();
+                const uMask = mask | (1 << u);
+                const newNbrBits = adjMask[u] & aboveOrEqualMask & ~localSeen;
+                let nextUntried = localUntried;
+                let nextSeen = localSeen;
+                if (newNbrBits) {
+                    nextUntried = [...localUntried];
+                    nextSeen |= newNbrBits;
+                    for (let bits = newNbrBits; bits; bits &= bits - 1) {
+                        nextUntried.push(31 - Math.clz32(bits & -bits));
+                    }
+                }
+                if (extend(uMask, count + 1, nextUntried, nextSeen)) return true;
+            }
+            return false;
+        };
+
+        if (extend(rootBit, 1, initUntried, initSeen)) return true;
+    }
+
+    // 時間切れなく全探索完了したなら確実にクリア不可能(false)、時間切れ時は誤爆防止でクリア可能扱い(true)
+    return timedOut ? true : false;
+}
+
+function maybeStartImpossibleCustomRedirect() {
+    if (!isCustomUrlMode()) return false;
+    const st = getStage();
+    if (!st || isStageSolvable(st)) return false;
+    startImpossibleStageBlackout();
+    return true;
+}
+
+function startImpossibleStageBlackout() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    phase = 'impossible_blackout';
+    if (startBtn) startBtn.disabled = true;
+    updateResetCancelButtonUI();
+
+    impossibleBlackoutState = {
+        startTime: performance.now(),
+        scanDuration: 760,
+        suckEndTime: 1620,
+        redirectAt: 1780
+    };
+
+    if (statusBar) {
+        statusBar.innerHTML = '<span class="status-fail">クリア不可能なステージを検出！</span>';
+    }
+    if (hintText) {
+        hintText.textContent = '盤面エディタへ転送します...';
+    }
+
+    animId = requestAnimationFrame(animateImpossibleBlackout);
+}
+
+function animateImpossibleBlackout(ts) {
+    if (phase !== 'impossible_blackout' || !impossibleBlackoutState) return;
+    const now = ts || performance.now();
+    const elapsed = Math.max(0, now - impossibleBlackoutState.startTime);
+
+    if (elapsed >= impossibleBlackoutState.redirectAt) {
+        setRedirectBlackoutCurtain(1);
+        redirectToEditorStageBuilder('unsolvable');
+        return;
+    }
+
+    // 後半フェーズ (760ms〜1620ms) で画面中心へ UI 要素・空背景を重力収束させる
+    if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const midX = rect.left + rect.width * 0.5;
+        const midY = rect.top + rect.height * 0.5;
+        if (elapsed >= impossibleBlackoutState.scanDuration) {
+            updateBlackHoleUiSuck(
+                elapsed,
+                midX,
+                midY,
+                impossibleBlackoutState.scanDuration,
+                impossibleBlackoutState.suckEndTime
+            );
+        }
+    }
+
+    if (elapsed >= impossibleBlackoutState.suckEndTime) {
+        const cp = Math.max(0, Math.min(1, (elapsed - impossibleBlackoutState.suckEndTime) / Math.max(1, impossibleBlackoutState.redirectAt - impossibleBlackoutState.suckEndTime)));
+        setRedirectBlackoutCurtain(cp);
+    }
+
+    render();
+    animId = requestAnimationFrame(animateImpossibleBlackout);
+}
+
+function drawImpossibleBlackoutOverlay(now) {
+    if (!impossibleBlackoutState) return;
+    const elapsed = Math.max(0, now - impossibleBlackoutState.startTime);
+    const { scanDuration, suckEndTime } = impossibleBlackoutState;
+
+    ctx.save();
+    if (elapsed < suckEndTime) {
+        // 赤色走査ラインとグリッド検証フレーム
+        const scanP = Math.min(1, elapsed / scanDuration);
+        const suckP = elapsed >= scanDuration
+            ? Math.min(1, (elapsed - scanDuration) / Math.max(1, suckEndTime - scanDuration))
+            : 0;
+        const alertAlpha = elapsed < scanDuration ? Math.min(1, scanP * 3) : Math.max(0, 1 - suckP * 1.4);
+
+        const scanY = GY + ((elapsed * 0.48) % (ROWS * CELL));
+        ctx.fillStyle = `rgba(239, 68, 68, ${0.14 * alertAlpha})`;
+        ctx.fillRect(GX, GY, COLS * CELL, ROWS * CELL);
+
+        ctx.strokeStyle = `rgba(248, 113, 113, ${0.85 * alertAlpha})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(GX - 8, scanY);
+        ctx.lineTo(GX + COLS * CELL + 8, scanY);
+        ctx.stroke();
+
+        // 中央警告バナー
+        const cx = GX + (COLS * CELL) * 0.5;
+        const cy = GY + (ROWS * CELL) * 0.5;
+        const pop = Math.min(1, elapsed / 180);
+        const scale = (1 - Math.pow(1 - pop, 3)) * (1 - suckP * 0.85);
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(Math.max(0.05, scale), Math.max(0.05, scale));
+        ctx.globalAlpha = alertAlpha;
+        ctx.fillStyle = 'rgba(15, 10, 24, 0.9)';
+        ctx.strokeStyle = '#f87171';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(-146, -34, 292, 68, 12);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#fca5a5';
+        ctx.font = '800 12px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('UNSOLVABLE STAGE DETECTED', 0, -13);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 18px "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
+        ctx.fillText('クリア不可能を検出！', 0, 12);
+        ctx.restore();
+    }
+
+    // 円形アイリスイン暗転 (#060814)
+    if (elapsed >= scanDuration) {
+        const suckP = Math.min(1, (elapsed - scanDuration) / Math.max(1, suckEndTime - scanDuration));
+        const bgAlpha = Math.min(1, suckP * 1.15);
+        ctx.fillStyle = `rgba(6, 8, 20, ${bgAlpha})`;
+        ctx.fillRect(0, 0, TOTAL_W, TOTAL_H);
+    }
+    ctx.restore();
 }

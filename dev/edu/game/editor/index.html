@@ -5,19 +5,44 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ハコゲーム - Webエディタ</title>
+    <script>
+        (function () {
+            try {
+                var isAuto = location.search.indexOf('autoBuilder=1') !== -1;
+                if (!isAuto && typeof sessionStorage !== 'undefined') {
+                    var raw = sessionStorage.getItem('hako_editor_redirect_payload');
+                    if (raw) {
+                        var p = JSON.parse(raw);
+                        if (p && p.ts && (Date.now() - p.ts) < 30000) isAuto = true;
+                    }
+                }
+                if (isAuto) {
+                    document.documentElement.classList.add('auto-builder-blackout');
+                    document.documentElement.style.backgroundColor = '#060814';
+                }
+            } catch (e) { }
+        })();
+    </script>
     <link rel="icon" href="../../../../pictures/hako_man_icon.png?v=1" type="image/png">
-    <link rel="stylesheet" href="ide.css?v=48">
+    <link rel="stylesheet" href="ide.css?v=49">
     <link rel="stylesheet" href="sticky-scroll.css?v=40">
     <link rel="stylesheet" href="docs.css?v=40">
     <script src="docs-content.js?v=40" defer></script>
     <script src="linter.js?v=44" defer></script>
     <script src="sticky-scroll.js?v=42" defer></script>
     <script src="../share-codec.js?v=1" defer></script>
-    <script src="ide.js?v=67" defer></script>
+    <script src="ide.js?v=68" defer></script>
     <script src="share-ui.js?v=1" defer></script>
 </head>
 
 <body>
+    <!-- ブラックホール等からのシームレス暗転カーテン・自動盤面エディタ誘導メッセージ -->
+    <div id="auto-builder-blackout-curtain" class="auto-builder-blackout-curtain" aria-hidden="true"></div>
+    <div id="auto-builder-marquee-banner" class="auto-builder-marquee-banner" aria-live="polite" aria-hidden="true">
+        <div class="auto-builder-marquee-track" id="auto-builder-marquee-track">
+            <span class="auto-builder-marquee-text" id="auto-builder-marquee-text">ゴールできるステージを作れ^^</span>
+        </div>
+    </div>
     <!-- ヘッダーツールバー -->
     <header class="studio-header">
         <div class="header-brand-group">

@@ -323,9 +323,11 @@ const STAGES = [
         initSettingsModal();
         initStageBuilderModal();
 
-        // 共有UI (share-ui.js) からステージ定義を参照するための読み取り専用フック
+        // 共有UI (share-ui.js) 等からステージ定義を参照するためのフック
         window.__editorApi = {
-            getStages: () => parseStagesSafely()
+            getStages: () => parseStagesSafely(),
+            checkAutoBuilderRedirect: () => handleAutoBuilderRedirectIfNeeded(),
+            getBuilderState: () => builderState
         };
 
         renderTabs();
@@ -514,13 +516,13 @@ const STAGES = [
             try {
                 const saved = localStorage.getItem(STORAGE_KEY_PREFIX + key);
                 if (saved) {
-                    // 古い main.js キャッシュ（超新星爆発や土管高さ食い込み版、足場両端0.5マス未搭載、ブラックホール演出未搭載、レンガ個別吸引未搭載、矢印くり抜き未搭載、爆発関与ブロック選別未搭載、連星インスパイラル合体・上空自動落下未搭載、雲・外枠吸引未搭載）は破棄して最新ファイルを読ませる
-                    if (key === 'main.js' && (!saved.includes('startSupernova') || !saved.includes('startBlackHole') || !saved.includes('drawGroundSuckPieces') || saved.includes('drawGimmickArrowOverlay') || !saved.includes('evenodd') || !saved.includes('LOOP_FREEZE_TIME') || !saved.includes('initDir') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('supernovaColliderIds') || !saved.includes('renderHierarchicalBinaryBlackHoles') || !saved.includes('updateBlackHoleUiDrop') || saved.includes('drawGoalArea()') || !saved.includes('.status-wrap'))) {
+                    // 古い main.js キャッシュ（超新星爆発や土管高さ食い込み版、足場両端0.5マス未搭載、ブラックホール演出未搭載、レンガ個別吸引未搭載、矢印くり抜き未搭載、爆発関与ブロック選別未搭載、連星インスパイラル合体・上空自動落下未搭載、雲・外枠吸引未搭載、盤面エディタ自動誘導未搭載）は破棄して最新ファイルを読ませる
+                    if (key === 'main.js' && (!saved.includes('startSupernova') || !saved.includes('startBlackHole') || !saved.includes('drawGroundSuckPieces') || saved.includes('drawGimmickArrowOverlay') || !saved.includes('evenodd') || !saved.includes('LOOP_FREEZE_TIME') || !saved.includes('initDir') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('supernovaColliderIds') || !saved.includes('renderHierarchicalBinaryBlackHoles') || !saved.includes('updateBlackHoleUiDrop') || saved.includes('drawGoalArea()') || !saved.includes('.status-wrap') || !saved.includes('redirectToEditorStageBuilder'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         return;
                     }
                     // 古い index.html キャッシュ（自作ステージ連携用バナーやボタン未搭載）は破棄して最新ファイルを読ませる
-                    if (key === 'index.html' && (!saved.includes('customStagesBanner') || !saved.includes('btnRestoreOfficial') || !saved.includes('gameToEditorBtn'))) {
+                    if (key === 'index.html' && (!saved.includes('customStagesBanner') || !saved.includes('btnRestoreOfficial') || !saved.includes('gameToEditorBtn') || !saved.includes('redirectBlackoutCurtain'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         return;
                     }
@@ -571,11 +573,11 @@ const STAGES = [
                     files[key].defaultContent = rawText;
 
                     let saved = !files[key].isSystemFile ? localStorage.getItem(STORAGE_KEY_PREFIX + key) : null;
-                    if (key === 'main.js' && saved && (!saved.includes('EMERGE_RISE_END') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('supernovaColliderIds') || !saved.includes('renderHierarchicalBinaryBlackHoles') || !saved.includes('updateBlackHoleUiDrop') || saved.includes('drawGoalArea()') || !saved.includes('.status-wrap') || !saved.includes('updateResetCancelButtonUI') || !saved.includes('drawLaserDeathOverlay'))) {
+                    if (key === 'main.js' && saved && (!saved.includes('EMERGE_RISE_END') || saved.includes('(groundY - py) + 4') || !saved.includes('halfW') || saved.includes('consumedStepGimmicks') || saved.includes('evacuatedStepDirs') || saved.includes('isOrthogonalDirection') || !saved.includes('resolveSameCellCollisions') || !saved.includes('loopBlockOffsets') || !saved.includes('supernovaColliderIds') || !saved.includes('renderHierarchicalBinaryBlackHoles') || !saved.includes('updateBlackHoleUiDrop') || saved.includes('drawGoalArea()') || !saved.includes('.status-wrap') || !saved.includes('updateResetCancelButtonUI') || !saved.includes('drawLaserDeathOverlay') || !saved.includes('redirectToEditorStageBuilder'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         saved = null;
                     }
-                    if (key === 'index.html' && saved && (!saved.includes('customStagesBanner') || !saved.includes('btnRestoreOfficial') || !saved.includes('gameToEditorBtn'))) {
+                    if (key === 'index.html' && saved && (!saved.includes('customStagesBanner') || !saved.includes('btnRestoreOfficial') || !saved.includes('gameToEditorBtn') || !saved.includes('redirectBlackoutCurtain'))) {
                         localStorage.removeItem(STORAGE_KEY_PREFIX + key);
                         saved = null;
                     }
@@ -601,6 +603,7 @@ const STAGES = [
                             ? findEditedStageIndex(files['stages.js'].content, codeTextarea.selectionStart)
                             : 0;
                         syncPreviewToStageIndex(stageIdx);
+                        handleAutoBuilderRedirectIfNeeded();
                     }
                 }
             } catch (e) {
@@ -611,6 +614,7 @@ const STAGES = [
         updateSidebarUI();
         updateAllFilesDiagnostics();
         updateUnsavedUI();
+        handleAutoBuilderRedirectIfNeeded();
     }
 
     // ── サイドバーのフォルダ開閉とアイテム選択 ──
@@ -3489,25 +3493,95 @@ const STAGES = [
         }
     }
 
-    function openStageBuilderModal(targetStageIdx = null) {
+    function openStageBuilderModal(targetStageIdx = null, directStageObj = null) {
         populateStageJumpSelectors();
         const overlay = document.getElementById('stage-builder-overlay');
         if (!overlay) return;
         const resolvedIdx = (targetStageIdx !== null && targetStageIdx !== undefined)
             ? targetStageIdx
             : getLastSavedStageIndex();
-        loadStageIntoBuilder(resolvedIdx);
+        loadStageIntoBuilder(resolvedIdx, directStageObj);
         overlay.classList.add('is-open');
         overlay.setAttribute('aria-hidden', 'false');
     }
 
-    function loadStageIntoBuilder(indexOrNew) {
+    function populateBuilderFromStageObject(st) {
+        builderState.maxBlocks = st.maxBlocks || 6;
+        builderState.targetBlocks = st.targetBlocks || st.maxBlocks || 6;
+        builderState.startRow = typeof st.startRow === 'number' ? st.startRow : 3;
+        builderState.goalRow = typeof st.goalRow === 'number' ? st.goalRow : 1;
+        builderState.hasCeiling = Boolean(st.hasCeiling);
+
+        if (Array.isArray(st.forbidden)) {
+            st.forbidden.forEach(f => {
+                if (f && f.row >= 0 && f.row < 5 && f.col >= 0 && f.col < 5) {
+                    builderState.cells[f.row][f.col].forbidden = true;
+                }
+            });
+        }
+        if (Array.isArray(st.gimmicks)) {
+            st.gimmicks.forEach(g => {
+                if (g && g.row >= 0 && g.row < 5 && g.col >= 0 && g.col < 5) {
+                    const cell = builderState.cells[g.row][g.col];
+                    if (g.type === 'dash') cell.dashDir = g.dir || 'right';
+                    else if (g.type === 'step') cell.stepDir = g.dir || 'up';
+                    else if (g.type === 'switch') {
+                        const validDirs = ['up', 'right', 'down', 'left'];
+                        const customDirs = Array.isArray(g.dirs)
+                            ? g.dirs.slice(0, 4).filter(d => validDirs.includes(d))
+                            : [];
+                        let dirs;
+                        if (customDirs.length >= 2) {
+                            dirs = customDirs;
+                        } else {
+                            const cw = ['right', 'down', 'left', 'up'];
+                            const startIdx = Math.max(0, cw.indexOf(g.dir || 'right'));
+                            const cnt = Math.max(2, Math.min(4, Number(g.switchCount) || 2));
+                            dirs = [];
+                            for (let k = 0; k < cnt; k++) dirs.push(cw[(startIdx + k) % 4]);
+                        }
+                        cell.switchData = {
+                            dirs,
+                            moveType: g.moveType === 'dash' ? 'dash' : 'step'
+                        };
+                    }
+                    if (g.purpleBorder) cell.purpleBorder = true;
+                }
+            });
+        }
+        if (Array.isArray(st.lasers)) {
+            st.lasers.forEach(l => {
+                if (l && l.row >= 0 && l.row < 5 && l.col >= 0 && l.col < 5 && ['top', 'right', 'bottom', 'left'].includes(l.side)) {
+                    const cell = builderState.cells[l.row][l.col];
+                    if (!cell.lasers.includes(l.side)) cell.lasers.push(l.side);
+                }
+            });
+        }
+        if (Array.isArray(st.solution)) {
+            st.solution.forEach(s => {
+                if (s && s.row >= 0 && s.row < 5 && s.col >= 0 && s.col < 5) {
+                    builderState.cells[s.row][s.col].solution = true;
+                }
+            });
+        }
+    }
+
+    function loadStageIntoBuilder(indexOrNew, directStageObj = null) {
         const parsed = parseStagesSafely() || [];
         resetBuilderCells();
         clearBuilderHistory();
 
         const stageSelect = document.getElementById('builder-stage-select');
-        if (indexOrNew === 'new' || parsed.length === 0) {
+        if (directStageObj && typeof directStageObj === 'object') {
+            const st = directStageObj;
+            builderState.stageIndex = parsed.length;
+            builderState.isNew = true;
+            builderState.id = st.id || 99;
+            builderState.title = st.title || `ステージ ${builderState.id}`;
+            builderState.subtitle = st.subtitle || '';
+            populateBuilderFromStageObject(st);
+            if (stageSelect) stageSelect.value = 'new';
+        } else if (indexOrNew === 'new' || parsed.length === 0) {
             const hasId99 = parsed.some(s => Number(s.id) === 99);
             const maxId = parsed.length > 0 ? Math.max(...parsed.map(s => Number(s.id) || 0)) : 0;
             const nextId = hasId99 ? Math.max(99, maxId + 1) : 99;
@@ -3530,64 +3604,7 @@ const STAGES = [
             builderState.id = st.id || (safeIdx + 1);
             builderState.title = st.title || `ステージ ${safeIdx + 1}`;
             builderState.subtitle = st.subtitle || '';
-            builderState.maxBlocks = st.maxBlocks || 6;
-            builderState.targetBlocks = st.targetBlocks || st.maxBlocks || 6;
-            builderState.startRow = typeof st.startRow === 'number' ? st.startRow : 3;
-            builderState.goalRow = typeof st.goalRow === 'number' ? st.goalRow : 1;
-            builderState.hasCeiling = Boolean(st.hasCeiling);
-
-            if (Array.isArray(st.forbidden)) {
-                st.forbidden.forEach(f => {
-                    if (f && f.row >= 0 && f.row < 5 && f.col >= 0 && f.col < 5) {
-                        builderState.cells[f.row][f.col].forbidden = true;
-                    }
-                });
-            }
-            if (Array.isArray(st.gimmicks)) {
-                st.gimmicks.forEach(g => {
-                    if (g && g.row >= 0 && g.row < 5 && g.col >= 0 && g.col < 5) {
-                        const cell = builderState.cells[g.row][g.col];
-                        if (g.type === 'dash') cell.dashDir = g.dir || 'right';
-                        else if (g.type === 'step') cell.stepDir = g.dir || 'up';
-                        else if (g.type === 'switch') {
-                            const validDirs = ['up', 'right', 'down', 'left'];
-                            const customDirs = Array.isArray(g.dirs)
-                                ? g.dirs.slice(0, 4).filter(d => validDirs.includes(d))
-                                : [];
-                            let dirs;
-                            if (customDirs.length >= 2) {
-                                dirs = customDirs;
-                            } else {
-                                const cw = ['right', 'down', 'left', 'up'];
-                                const startIdx = Math.max(0, cw.indexOf(g.dir || 'right'));
-                                const cnt = Math.max(2, Math.min(4, Number(g.switchCount) || 2));
-                                dirs = [];
-                                for (let k = 0; k < cnt; k++) dirs.push(cw[(startIdx + k) % 4]);
-                            }
-                            cell.switchData = {
-                                dirs,
-                                moveType: g.moveType === 'dash' ? 'dash' : 'step'
-                            };
-                        }
-                        if (g.purpleBorder) cell.purpleBorder = true;
-                    }
-                });
-            }
-            if (Array.isArray(st.lasers)) {
-                st.lasers.forEach(l => {
-                    if (l && l.row >= 0 && l.row < 5 && l.col >= 0 && l.col < 5 && ['top', 'right', 'bottom', 'left'].includes(l.side)) {
-                        const cell = builderState.cells[l.row][l.col];
-                        if (!cell.lasers.includes(l.side)) cell.lasers.push(l.side);
-                    }
-                });
-            }
-            if (Array.isArray(st.solution)) {
-                st.solution.forEach(s => {
-                    if (s && s.row >= 0 && s.row < 5 && s.col >= 0 && s.col < 5) {
-                        builderState.cells[s.row][s.col].solution = true;
-                    }
-                });
-            }
+            populateBuilderFromStageObject(st);
             if (stageSelect) stageSelect.value = String(safeIdx);
         }
 
@@ -4018,6 +4035,165 @@ const STAGES = [
             }
         }
         return null;
+    }
+
+    // ── ブラックホール・クリア不能ステージからの自動盤面エディタ誘導演出 ──
+    let autoBuilderRedirectHandled = false;
+    let autoBuilderMarqueeTimer = null;
+
+    function clearAutoBuilderBlackoutCurtain() {
+        const curtain = document.getElementById('auto-builder-blackout-curtain');
+        if (curtain) {
+            curtain.classList.remove('is-peeking', 'is-fading-out');
+            curtain.style.display = '';
+        }
+        if (document.documentElement) {
+            document.documentElement.classList.remove('auto-builder-blackout');
+            if (document.documentElement.style) {
+                document.documentElement.style.backgroundColor = '';
+            }
+        }
+    }
+
+    function showAutoBuilderMarquee(message) {
+        const banner = document.getElementById('auto-builder-marquee-banner');
+        const textEl = document.getElementById('auto-builder-marquee-text');
+        if (!banner || !textEl) return;
+
+        textEl.textContent = message || 'ゴールできるステージを作れ^^';
+        banner.classList.remove('is-active', 'is-closing');
+        void banner.offsetWidth;
+        banner.classList.add('is-active');
+        banner.setAttribute('aria-hidden', 'false');
+
+        if (autoBuilderMarqueeTimer) clearTimeout(autoBuilderMarqueeTimer);
+        autoBuilderMarqueeTimer = setTimeout(() => {
+            banner.classList.remove('is-active');
+            banner.setAttribute('aria-hidden', 'true');
+        }, 5500);
+    }
+
+    function resolveStageIndexForAutoBuilder(parsed, payload, queryStageId, queryStageIndex) {
+        const targetId = payload && payload.stageId != null ? Number(payload.stageId)
+            : (queryStageId !== null && queryStageId !== '' ? Number(queryStageId) : null);
+        const targetIndex = payload && typeof payload.stageIndex === 'number' ? payload.stageIndex
+            : (queryStageIndex !== null && queryStageIndex !== '' ? Number(queryStageIndex) : null);
+        const targetTitle = payload && payload.stageTitle ? String(payload.stageTitle) : '';
+
+        if (Array.isArray(parsed) && parsed.length > 0) {
+            if (targetId !== null && !Number.isNaN(targetId)) {
+                if (targetTitle) {
+                    const exactIdx = parsed.findIndex(s => Number(s.id) === targetId && (s.title || '') === targetTitle);
+                    if (exactIdx !== -1) return { stageIndex: exactIdx, directStageObj: null };
+                }
+                const idIdx = parsed.findIndex(s => Number(s.id) === targetId);
+                if (idIdx !== -1 && !(payload && payload.isSharedMode)) {
+                    return { stageIndex: idIdx, directStageObj: null };
+                }
+            }
+            if (targetIndex !== null && !Number.isNaN(targetIndex) && targetIndex >= 0 && targetIndex < parsed.length) {
+                const candidate = parsed[targetIndex];
+                if (!targetTitle || (candidate && (candidate.title || '') === targetTitle)) {
+                    return { stageIndex: targetIndex, directStageObj: null };
+                }
+            }
+        }
+        return {
+            stageIndex: 'new',
+            directStageObj: (payload && payload.stageData) ? payload.stageData : null
+        };
+    }
+
+    function handleAutoBuilderRedirectIfNeeded() {
+        if (autoBuilderRedirectHandled) return false;
+
+        let params = null;
+        try {
+            params = new URLSearchParams(window.location.search || '');
+        } catch (e) { /* ignore */ }
+
+        const isQueryAuto = Boolean(params && params.get('autoBuilder') === '1');
+        let payload = null;
+        try {
+            if (typeof sessionStorage !== 'undefined') {
+                const raw = sessionStorage.getItem('hako_editor_redirect_payload');
+                if (raw) {
+                    const parsedPayload = JSON.parse(raw);
+                    if (parsedPayload && (!parsedPayload.ts || (Date.now() - parsedPayload.ts) < 60000)) {
+                        payload = parsedPayload;
+                    }
+                }
+            }
+        } catch (e) { /* ignore */ }
+
+        if (!isQueryAuto && !payload) {
+            clearAutoBuilderBlackoutCurtain();
+            return false;
+        }
+
+        autoBuilderRedirectHandled = true;
+        try {
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.removeItem('hako_editor_redirect_payload');
+            }
+        } catch (e) { /* ignore */ }
+
+        if (isQueryAuto && typeof history !== 'undefined' && typeof history.replaceState === 'function') {
+            try {
+                const cleanParams = new URLSearchParams(window.location.search || '');
+                cleanParams.delete('autoBuilder');
+                cleanParams.delete('stageId');
+                cleanParams.delete('stageIndex');
+                const qs = cleanParams.toString();
+                const cleanUrl = window.location.pathname + (qs ? '?' + qs : '') + (window.location.hash || '');
+                history.replaceState(null, '', cleanUrl);
+            } catch (e) { /* ignore */ }
+        }
+
+        const parsed = parseStagesSafely() || [];
+        const resolved = resolveStageIndexForAutoBuilder(
+            parsed,
+            payload,
+            params ? params.get('stageId') : null,
+            params ? params.get('stageIndex') : null
+        );
+        const msg = (payload && payload.message) ? payload.message : 'ゴールできるステージを作れ^^';
+
+        // 1. エディタの stages.js タブと対象ステージを裏で準備しつつ暗転をわずかに透かす
+        switchFile('stages.js');
+        if (typeof resolved.stageIndex === 'number') {
+            jumpToStageInEditorAndPreview(resolved.stageIndex);
+        }
+
+        const curtain = document.getElementById('auto-builder-blackout-curtain');
+        if (curtain) {
+            curtain.classList.add('is-peeking');
+        }
+
+        // 2. ささっと盤面エディタ -> 当該ステージを自動的に開く
+        setTimeout(() => {
+            openStageBuilderModal(resolved.stageIndex, resolved.directStageObj);
+        }, 100);
+
+        // 3. 暗転を滑らかに解除
+        setTimeout(() => {
+            if (curtain) {
+                curtain.classList.remove('is-peeking');
+                curtain.classList.add('is-fading-out');
+            }
+        }, 220);
+
+        // 4. メッセージを流す
+        setTimeout(() => {
+            showAutoBuilderMarquee(msg);
+        }, 290);
+
+        // 5. 暗転クラス完全解除
+        setTimeout(() => {
+            clearAutoBuilderBlackoutCurtain();
+        }, 600);
+
+        return true;
     }
 
 })();

@@ -2476,3 +2476,14 @@ html.in-iframe[data-preview-layout="compact"] .block-count-badge {
 .editor-nav-btn:hover {
     background: #4f46e5 !important;
 }
+
+/* ブラックホール・クリア不能検出時のシームレス暗転カーテン */
+.blackhole-redirect-curtain {
+    position: fixed;
+    inset: 0;
+    background: #060814;
+    z-index: 99999;
+    pointer-events: all;
+    opacity: 0;
+    display: none;
+}
