@@ -4120,73 +4120,22 @@ const STAGES = [
             head.appendChild(badgesWrap);
             card.appendChild(head);
 
-            // ミニ 5×5 盤面プレビュー
+            // シンプルな 5×5 グリッドに配置場所のみを色で表示
             const boardWrap = document.createElement('div');
             boardWrap.className = 'sol-mini-board-wrap';
-
-            const ceilingEl = document.createElement('div');
-            ceilingEl.className = 'sol-mini-ceiling' + (builderState.hasCeiling ? ' is-active' : '');
-            boardWrap.appendChild(ceilingEl);
-
-            const rowWrap = document.createElement('div');
-            rowWrap.className = 'sol-mini-row-wrap';
-
-            const startCol = document.createElement('div');
-            startCol.className = 'sol-mini-side-col';
-            for (let r = 0; r < 5; r++) {
-                const slot = document.createElement('div');
-                slot.className = 'sol-mini-side-slot' + (builderState.startRow === r ? ' is-start' : '');
-                slot.textContent = builderState.startRow === r ? 'S' : '';
-                startCol.appendChild(slot);
-            }
-            rowWrap.appendChild(startCol);
 
             const miniGrid = document.createElement('div');
             miniGrid.className = 'sol-mini-grid';
             for (let r = 0; r < 5; r++) {
                 for (let c = 0; c < 5; c++) {
-                    const cellData = builderState.cells[r][c];
                     const isPlaced = placedSet.has(`${c},${r}`);
                     const cellEl = document.createElement('div');
-                    let cls = 'sol-mini-cell';
-                    if (cellData.forbidden) cls += ' is-forbidden';
-                    if (cellData.dashDir) cls += ' is-dash';
-                    if (cellData.stepDir) cls += ' is-step';
-                    if (cellData.switchData) cls += ' is-switch';
-                    if (cellData.purpleBorder) cls += ' is-purple';
-                    if (isPlaced) cls += ' is-placed';
-                    cellEl.className = cls;
-
-                    const arrowDir = cellData.dashDir || cellData.stepDir || (cellData.switchData ? cellData.switchData.dirs[0] : null);
-                    const arrowColor = cellData.switchData
-                        ? (cellData.switchData.moveType === 'dash' ? '#22d3ee' : '#4ade80')
-                        : '#ffffff';
-                    const arrowSvg = arrowDir ? getBuilderArrowSvg(arrowDir, 15, arrowColor) : '';
-                    const laserHtml = (cellData.lasers || [])
-                        .map(side => `<span class="sol-mini-laser is-${side}"></span>`)
-                        .join('');
-
-                    cellEl.innerHTML = `
-                        ${laserHtml}
-                        ${isPlaced ? '<span class="sol-mini-block"></span>' : ''}
-                        ${arrowSvg ? `<span class="sol-mini-arrow">${arrowSvg}</span>` : ''}
-                    `;
+                    cellEl.className = 'sol-mini-cell' + (isPlaced ? ' is-placed' : '');
                     miniGrid.appendChild(cellEl);
                 }
             }
-            rowWrap.appendChild(miniGrid);
 
-            const goalCol = document.createElement('div');
-            goalCol.className = 'sol-mini-side-col';
-            for (let r = 0; r < 5; r++) {
-                const slot = document.createElement('div');
-                slot.className = 'sol-mini-side-slot' + (builderState.goalRow === r ? ' is-goal' : '');
-                slot.textContent = builderState.goalRow === r ? 'G' : '';
-                goalCol.appendChild(slot);
-            }
-            rowWrap.appendChild(goalCol);
-
-            boardWrap.appendChild(rowWrap);
+            boardWrap.appendChild(miniGrid);
             card.appendChild(boardWrap);
 
             const meta = document.createElement('div');

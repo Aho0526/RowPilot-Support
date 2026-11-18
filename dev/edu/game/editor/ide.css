@@ -5839,195 +5839,39 @@ body.theme-light .builder-solution-tag.is-applied {
 
 .sol-mini-board-wrap {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}
-
-.sol-mini-ceiling {
-    width: 178px;
-    height: 5px;
-    border-radius: 3px;
-    background: #334155;
-    border: 1px solid #475569;
-}
-
-.sol-mini-ceiling.is-active {
-    background: linear-gradient(90deg, #94a3b8, #cbd5e1);
-    border-color: #e2e8f0;
-}
-
-.sol-mini-row-wrap {
-    display: flex;
-    align-items: stretch;
     justify-content: center;
-    gap: 6px;
-}
-
-.sol-mini-side-col {
-    display: grid;
-    grid-template-rows: repeat(5, 32px);
-    gap: 4px;
-    width: 24px;
-}
-
-.sol-mini-side-slot {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 9px;
-    font-weight: 800;
-    border-radius: 3px;
-    color: transparent;
-}
-
-.sol-mini-side-slot.is-start {
-    background: rgba(59, 130, 246, 0.22);
-    border: 1px solid #3b82f6;
-    color: #60a5fa;
-}
-
-.sol-mini-side-slot.is-goal {
-    background: rgba(245, 158, 11, 0.22);
-    border: 1px solid #f59e0b;
-    color: #fbbf24;
-}
-
-body.theme-light .sol-mini-side-slot.is-start {
-    color: #1d4ed8;
-}
-
-body.theme-light .sol-mini-side-slot.is-goal {
-    color: #b45309;
+    padding: 2px 0;
 }
 
 .sol-mini-grid {
     display: grid;
-    grid-template-columns: repeat(5, 32px);
-    grid-template-rows: repeat(5, 32px);
-    gap: 4px;
+    grid-template-columns: repeat(5, 34px);
+    grid-template-rows: repeat(5, 34px);
+    gap: 0;
+    border-top: 1.5px solid #0f172a;
+    border-left: 1.5px solid #0f172a;
+    background: #ffffff;
 }
 
 .sol-mini-cell {
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
-    background: #1e293b;
-    border: 1px solid #334155;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 34px;
+    height: 34px;
+    box-sizing: border-box;
+    background: #ffffff;
+    border-right: 1px solid #1e293b;
+    border-bottom: 1px solid #1e293b;
 }
 
-.sol-mini-cell.is-dash {
-    background: #0e7490;
-    border-color: #22d3ee;
+.sol-mini-cell:nth-child(5n) {
+    border-right: 1.5px solid #0f172a;
 }
 
-.sol-mini-cell.is-step {
-    background: #15803d;
-    border-color: #4ade80;
-}
-
-.sol-mini-cell.is-forbidden {
-    border-color: rgba(239, 68, 68, 0.85);
-}
-
-.sol-mini-cell.is-forbidden::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(239, 68, 68, 0.16) 4px, rgba(239, 68, 68, 0.38) 4px, rgba(239, 68, 68, 0.38) 7px);
-    pointer-events: none;
-}
-
-.sol-mini-cell.is-purple {
-    box-shadow: inset 0 0 0 2px #a855f7;
-    border-color: #c084fc;
-}
-
-.sol-mini-cell.is-switch {
-    background: rgba(234, 179, 8, 0.34);
-    border-color: #eab308;
-    box-shadow: inset 0 0 0 1.5px #facc15;
-}
-
-.sol-mini-cell.is-switch.is-purple {
-    box-shadow: inset 0 0 0 2px #a855f7, inset 0 0 0 3.5px #facc15;
+.sol-mini-cell:nth-child(n + 21) {
+    border-bottom: 1.5px solid #0f172a;
 }
 
 .sol-mini-cell.is-placed {
-    outline: 2px solid #f59e0b;
-    outline-offset: -1px;
-}
-
-.sol-mini-block {
-    position: relative;
-    z-index: 3;
-    width: 18px;
-    height: 18px;
-    border-radius: 3px;
-    background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
-    border: 1.5px solid #fef3c7;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
-}
-
-.sol-mini-cell.is-dash .sol-mini-block,
-.sol-mini-cell.is-step .sol-mini-block,
-.sol-mini-cell.is-switch .sol-mini-block {
-    position: absolute;
-    inset: 3px;
-    width: auto;
-    height: auto;
-    background: rgba(245, 158, 11, 0.38);
-    border-color: #fde68a;
-    z-index: 2;
-}
-
-.sol-mini-arrow {
-    position: relative;
-    z-index: 4;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-}
-
-.sol-mini-laser {
-    position: absolute;
-    background: #22d3ee;
-    box-shadow: 0 0 4px #06b6d4;
-    z-index: 5;
-}
-
-.sol-mini-laser.is-top {
-    top: 0;
-    left: 7px;
-    right: 7px;
-    height: 3px;
-}
-
-.sol-mini-laser.is-bottom {
-    bottom: 0;
-    left: 7px;
-    right: 7px;
-    height: 3px;
-}
-
-.sol-mini-laser.is-left {
-    left: 0;
-    top: 7px;
-    bottom: 7px;
-    width: 3px;
-}
-
-.sol-mini-laser.is-right {
-    right: 0;
-    top: 7px;
-    bottom: 7px;
-    width: 3px;
+    background: #f58220;
 }
 
 .builder-solution-card-meta {
