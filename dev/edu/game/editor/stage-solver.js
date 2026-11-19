@@ -643,6 +643,17 @@
                     keyframes.push({ x: curX, y: curY, type: 'done', time: curTime });
                     break;
                 } else if (curY === goalRow + 1) {
+                    const goalCeilBlocked = (goalRow >= 0) && getBlock(c, goalRow);
+                    if (goalCeilBlocked) {
+                        keyframes[curKfIdx].type = 'crash';
+                        const cd = Math.min(0.35, COLS - curX - 0.05);
+                        curTime += Math.max(cd, 0.05) / WALK_SPEED * 16.67;
+                        curX = Math.min(curX + Math.max(cd, 0.05), COLS - 0.65);
+                        keyframes.push({ x: curX, y: curY, type: 'fail', time: curTime });
+                        failKind = 'goal_blocked';
+                        failCol = COLS;
+                        break;
+                    }
                     keyframes[curKfIdx].type = 'jump';
                     jumpCount++;
                     curTime += (COLS - 0.5 + 0.15 - curX) / JUMP_SPEED * 16.67;
@@ -975,6 +986,8 @@
                 reasonMsg = `列 ${route.failCol} でジャンプ時に天井へ衝突します`;
             } else if (route.failKind === 'wall') {
                 reasonMsg = `列 ${route.failCol} で2段以上の壁または頭上ブロックに阻まれます`;
+            } else if (route.failKind === 'goal_blocked') {
+                reasonMsg = 'ゴール手前の頭上ブロックに阻まれてゴールへ登れません';
             } else if (route.failKind === 'goal_wall') {
                 reasonMsg = '右端到達時の高さがゴールと合わず右壁に衝突します';
             }
@@ -1175,7 +1188,8 @@
 
         function dfsPaths(c, curY) {
             if (c === COLS) {
-                if (curY === goalRow || curY === goalRow + 1 || curY === goalRow - 1) {
+                const goalJumpBlocked = (curY === goalRow + 1) && (goalRow >= 0 && goalRow < ROWS) && fixedTrue[goalRow][COLS - 1];
+                if (curY === goalRow || curY === goalRow - 1 || (curY === goalRow + 1 && !goalJumpBlocked)) {
                     rawPaths.push(colHeights.slice());
                 }
                 return;

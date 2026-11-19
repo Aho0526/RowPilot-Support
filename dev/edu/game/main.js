@@ -6255,6 +6255,16 @@ function solveRouteRaw() {
                 return keyframes;
             } else if (curY === st.goalRow + 1) {
                 // ゴール手前の左下（高さ1マス差）から1マス登ってゴールイン！
+                // ただし頭上（ゴール真左のマス (COLS - 1, st.goalRow)）にブロックがある場合は天井衝突でアウト！
+                const goalCeilBlocked = (st.goalRow >= 0) && getBlock(c, st.goalRow);
+                if (goalCeilBlocked) {
+                    keyframes[curKfIdx].type = 'crash';
+                    const cd = Math.min(0.35, COLS - curX - 0.05);
+                    curTime += Math.max(cd, 0.05) / WALK_SPEED * 16.67;
+                    curX = Math.min(curX + Math.max(cd, 0.05), COLS - 0.65);
+                    keyframes.push({ x: curX, y: curY, type: 'fail', time: curTime });
+                    return keyframes;
+                }
                 keyframes[curKfIdx].type = 'jump';
                 curTime += (COLS - 0.5 + 0.15 - curX) / JUMP_SPEED * 16.67;
                 curX = COLS - 0.5 + 0.15;
@@ -8835,7 +8845,8 @@ function computeStageSolvableUncached(stage) {
 
     function searchColPaths(c, curY) {
         if (c === COLS) {
-            if (curY === gr || curY === gr + 1 || curY === gr - 1) {
+            const goalJumpBlocked = (curY === gr + 1) && (gr >= 0 && gr < ROWS) && fixedTrue[gr][COLS - 1];
+            if (curY === gr || curY === gr - 1 || (curY === gr + 1 && !goalJumpBlocked)) {
                 candidatePaths.push([...colHeights]);
             }
             return;

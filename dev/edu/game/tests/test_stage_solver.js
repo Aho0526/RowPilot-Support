@@ -102,6 +102,16 @@ function createMainEngineVerifier(stages) {
             vm.runInContext('grid = ' + JSON.stringify(sim.finalGrid) + ';', context);
             const route = sandbox.solveRoute();
             assert.strictEqual(route[route.length - 1].type, 'done', 'Route must reach goal in main.js');
+        },
+        verifyCoordsFailOnStage(stageIndex, coords) {
+            sandbox.selectStage(stageIndex);
+            vm.runInContext('grid = Array.from({ length: 5 }, () => Array(5).fill(false));', context);
+            coords.forEach(p => sandbox.placeBlock(p.col, p.row));
+            const sim = sandbox.simulateGimmickBlockMoves();
+            vm.runInContext('grid = ' + JSON.stringify(sim.finalGrid) + ';', context);
+            const route = sandbox.solveRoute();
+            assert.notStrictEqual(route[route.length - 1].type, 'done', 'Blocked route must NOT reach goal in main.js');
+            assert.strictEqual(route[route.length - 1].type, 'fail', 'Blocked route must fail in main.js');
         }
     };
 }
@@ -121,9 +131,24 @@ async function runAllTests() {
             const res = Solver.findMinimumSolutionSync(blind);
             assert.strictEqual(res.found, true, `Stage ${st.id} must find a minimum solution`);
             assert.ok(res.blockCount <= st.solution.length, `Stage ${st.id} computed min (${res.blockCount}) must be <= official (${st.solution.length})`);
-            verifier.verifyCoordsClearOnStage(idx, res.solution);
+            assert.ok(Array.isArray(res.solutions) && res.solutions.length >= 1, `Stage ${st.id} must return solutions array`);
+            res.solutions.forEach(entry => {
+                verifier.verifyCoordsClearOnStage(idx, entry.solution);
+            });
         });
-        console.log(' -> OK: 全26ステージで最小ブロック解を自力検出し、main.js 実機シミュレーションでゴール到達を確認しました。');
+
+        // ステージ9回帰テスト: (1,1)->(4,0) がゴール手前の頭上を塞ぐ配置は main.js / stage-solver.js の両方でクリア不可になること
+        const stage9Idx = officialStages.findIndex(s => s.id === 9);
+        const stage9BlockedCoords = [
+            { col: 1, row: 1 }, { col: 0, row: 2 }, { col: 4, row: 2 },
+            { col: 1, row: 3 }, { col: 3, row: 3 }, { col: 2, row: 4 }
+        ];
+        const stage9Diag = Solver.validateSolution(officialStages[stage9Idx], stage9BlockedCoords);
+        assert.strictEqual(stage9Diag.ok, false, 'Stage 9 goal-blocked layout must fail in stage-solver.js');
+        assert.strictEqual(stage9Diag.reasonCode, 'goal_blocked', 'Stage 9 goal-blocked layout must report goal_blocked');
+        verifier.verifyCoordsFailOnStage(stage9Idx, stage9BlockedCoords);
+
+        console.log(' -> OK: 全26ステージの全最小ブロック解が main.js 実機シミュレーションでゴール到達し、ステージ9の頭上封鎖ケースが確実に失敗することを確認しました。');
     }
 
     // ==========================================================
