@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRコード手動復元ツール</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-left">
+      <h1>QRコード手動復元ツール</h1>
+      <span id="grid-info" class="badge">Version 1 (21 x 21)</span>
+      <span id="cursor-pos" class="coord-badge">R: -, C: -</span>
+    </div>
+    <div class="header-actions">
+      <button id="btn-undo" class="btn" title="元に戻す (Ctrl+Z / Cmd+Z)" disabled>戻す</button>
+      <button id="btn-redo" class="btn" title="やり直す (Ctrl+Y / Cmd+Shift+Z)" disabled>やり直す</button>
+      <button id="btn-clear" class="btn btn-danger">入力クリア</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- 左/中央：メイングリッドエリア -->
+    <section class="editor-pane">
+      <div class="editor-toolbar">
+        <div class="tool-group">
+          <label for="version-select">サイズ:</label>
+          <button id="btn-ver-minus" class="btn btn-icon" title="サイズを1段階小さく">-</button>
+          <select id="version-select"></select>
+          <button id="btn-ver-plus" class="btn btn-icon" title="サイズを1段階大きく">+</button>
+        </div>
+
+        <div class="tool-group">
+          <label for="zoom-range">拡大:</label>
+          <input id="zoom-range" type="range" min="8" max="36" value="22" step="1">
+          <span id="zoom-value">22px</span>
+        </div>
+
+        <div class="tool-group checkboxes">
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-crosshair" checked>
+            <span>十字ガイド</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-highlight-fixed" checked>
+            <span>固定パターン表示</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-lock-fixed" checked>
+            <span>固定パターンをロック</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="grid-viewport" class="grid-viewport">
+        <div id="grid-stage" class="grid-stage">
+          <img id="ref-image" class="ref-image hidden" alt="下絵画像">
+          <div id="qr-grid" class="qr-grid" role="grid" aria-label="QRコード編集グリッド"></div>
+        </div>
+      </div>
+
+      <div class="editor-hint">
+        クリックまたはドラッグで白黒を切り替えできます。固定パターン（ファインダ・タイミング・アライメント・ダークモジュール）は自動配置されます。画像の貼り付け（Cmd+V / Ctrl+V）で下絵を読み込めます。
+      </div>
+    </section>
+
+    <!-- 右：コントロール・結果パネル -->
+    <aside class="side-pane">
+      <!-- デコード結果 -->
+      <section class="panel">
+        <h2>読み取り結果</h2>
+        <div id="decode-status" class="status-box status-pending">
+          <span class="status-dot"></span>
+          <span id="decode-status-text">未検出</span>
+        </div>
+        <div id="decode-result-area" class="result-area hidden">
+          <textarea id="decode-output" readonly rows="3"></textarea>
+          <div class="result-actions">
+            <button id="btn-copy-result" class="btn btn-primary btn-sm">コピー</button>
+            <a id="link-open-result" class="btn btn-sm hidden" target="_blank" rel="noopener noreferrer">リンクを開く</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- スマホ読み取り用プレビュー -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2>プレビュー</h2>
+          <button id="btn-download-png" class="btn btn-sm">PNG保存</button>
+        </div>
+        <div class="preview-wrapper">
+          <canvas id="preview-canvas"></canvas>
+        </div>
+        <p class="panel-note">余白付きの画像です。このままカメラで読み取れます。</p>
+      </section>
+
+      <!-- 下絵オーバーレイ設定 -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2>下絵オーバーレイ</h2>
+          <button id="btn-ref-reset" class="btn btn-sm hidden">削除</button>
+        </div>
+        <div class="ref-upload-row">
+          <label class="btn btn-sm file-btn">
+            画像を選択
+            <input type="file" id="ref-file-input" accept="image/*" hidden>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-ref-on-top">
+            <span>手前に表示</span>
+          </label>
+        </div>
+
+        <div id="ref-controls" class="ref-controls disabled">
+          <div class="control-row">
+            <label for="ref-opacity">不透明度</label>
+            <input type="range" id="ref-opacity" min="0" max="100" value="45">
+            <span id="ref-opacity-val">45%</span>
+          </div>
+          <div class="control-row">
+            <label for="ref-scale">拡大率</label>
+            <input type="range" id="ref-scale" min="20" max="300" value="100">
+            <span id="ref-scale-val">100%</span>
+          </div>
+          <div class="control-row">
+            <label for="ref-rotate">回転</label>
+            <input type="range" id="ref-rotate" min="-45" max="45" value="0" step="0.5">
+            <span id="ref-rotate-val">0°</span>
+          </div>
+          <div class="control-row">
+            <label for="ref-offset-x">横位置</label>
+            <input type="range" id="ref-offset-x" min="-200" max="200" value="0">
+            <span id="ref-offset-x-val">0px</span>
+          </div>
+          <div class="control-row">
+            <label for="ref-offset-y">縦位置</label>
+            <input type="range" id="ref-offset-y" min="-200" max="200" value="0">
+            <span id="ref-offset-y-val">0px</span>
+          </div>
+          <button id="btn-ref-center" class="btn btn-sm full-width">位置・回転をリセット</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="jsQR.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
