@@ -9,6 +9,16 @@
         content="Support-Seite von RowPilot. Antworten auf häufige Fragen zu Concept2-PM5-Bluetooth-Verbindungen, Cloud-Synchronisation, SOS-Funktion sowie Verwaltung und Wiederherstellung von Abonnements.">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
+  <link rel="canonical" href="https://rowpilot.jp/de/support/">
+  <link rel="alternate" hreflang="ja" href="https://rowpilot.jp/support/">
+  <link rel="alternate" hreflang="en" href="https://rowpilot.jp/en/support/">
+  <link rel="alternate" hreflang="de" href="https://rowpilot.jp/de/support/">
+  <link rel="alternate" hreflang="fr" href="https://rowpilot.jp/fr/support/">
+  <link rel="alternate" hreflang="es" href="https://rowpilot.jp/es/support/">
+  <link rel="alternate" hreflang="it" href="https://rowpilot.jp/it/support/">
+  <link rel="alternate" hreflang="zh" href="https://rowpilot.jp/zh/support/">
+  <link rel="alternate" hreflang="ko" href="https://rowpilot.jp/ko/support/">
+  <link rel="alternate" hreflang="x-default" href="https://rowpilot.jp/support/">
 </head>
 
 <body>
@@ -257,7 +267,7 @@
                 <div class="faq-a">
                     <p>Teams im Team- oder MAX-Tarif können Trainingsdaten über das <a href="/teams/?lang=de" style="color: var(--accent); text-decoration: none; font-weight: 600;">Team-Web-Portal</a> am PC, Tablet oder Android-Smartphone im Browser einsehen und auswerten. Es stehen zwei Anmeldemethoden zur Verfügung:</p>
                     <p><strong>1. E-Mail-Login für Web-Coaches (für Trainer ohne iOS-App):</strong><br>
-                    Wenn der Team-Eigentümer oder Administrator in der iPhone-App unter „Erweiterte Teameinstellungen → Web-Dashboard → Web-Coach-Verwaltung“ eine E-Mail-Adresse registriert, wird ein Einladungslink zum Festlegen eines Passworts versendet. Danach ist die Anmeldung per E-Mail-Adresse und Passwort möglich.</p>
+                    Wenn der Team-Eigentümer oder Administrator in der iPhone-App unter „Teameinstellungen → Web-Dashboard → Web-Coach-Verwaltung“ eine E-Mail-Adresse registriert, wird ein Einladungslink zum Festlegen eines Passworts versendet. Danach ist die Anmeldung per E-Mail-Adresse und Passwort möglich.</p>
                     <p><strong>2. Ein-Tipp-Freigabe per RowPilot-App (für Ruderer &amp; Manager mit iOS-App):</strong><br>
                     Bestätigen Sie die auf Team Web angezeigte Schaltfläche, den QR-Code oder den 6-stelligen Authentifizierungscode einfach in der iPhone-App unter „Web-Login bestätigen“ – ganz ohne Passwort.</p>
                 </div>
@@ -269,7 +279,7 @@
                     <span class="faq-arrow">▼</span>
                 </div>
                 <div class="faq-a">
-                    <p>Team-Eigentümer oder Administratoren können in der iPhone-App unter „Erweiterte Teameinstellungen → Web-Dashboard“ eine leicht merkbare Kurz-URL im Format <code>rowpilot.jp/teams/ihr-team/</code> festlegen.</p>
+                    <p>Team-Eigentümer oder Administratoren können in der iPhone-App unter „Teameinstellungen → Web-Dashboard“ eine leicht merkbare Kurz-URL im Format <code>rowpilot.jp/teams/ihr-team/</code> festlegen.</p>
                     <p>Wenn Sie diese Kennung im Team-Web-Portal eingeben oder die URL direkt aufrufen, gelangen Sie bei aktiver Anmeldung unmittelbar zum Dashboard Ihres Teams.</p>
                 </div>
             </div>
@@ -424,7 +434,13 @@
 
         const openFaqFromHash = () => {
             if (!location.hash) return;
-            const target = document.querySelector(location.hash);
+            let hashId = '';
+            try {
+                hashId = decodeURIComponent(location.hash.slice(1));
+            } catch (e) {
+                return;
+            }
+            const target = hashId ? document.getElementById(hashId) : null;
             if (!target || !target.classList.contains('faq-item')) return;
             target.classList.add('open');
             const ans = target.querySelector('.faq-a');

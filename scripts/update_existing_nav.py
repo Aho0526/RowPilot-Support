@@ -13,7 +13,8 @@ PAGES = [
     'terms/index.html',
     'news/index.html',
     'news/pricing-revision.html',
-    'news/team-migration-policy.html'
+    'news/team-migration-policy.html',
+    'news/v1-0-1-update.html'
 ]
 
 def main():

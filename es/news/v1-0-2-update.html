@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualización v1.0.2, disculpas y reembolso por el mes de prueba gratuita — RowPilot</title>
+    <meta name="description"
+        content="Aviso de RowPilot v1.0.2: disculpas y reembolso por transferencia bancaria o PayPay para suscriptores del plan Manager del 20 de noviembre, conexión directa de sensores de frecuencia cardíaca BLE, eliminación de cuenta y mejoras en PM5, equipos y seguridad.">
+    <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <style>
+        .policy-wrap {
+            max-width: 1160px;
+            width: calc(100% - 2rem);
+        }
+
+        .policy-lead {
+            max-width: 880px;
+        }
+
+        .flow-card {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flow-card h2 {
+            font-family: var(--font-h);
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+        }
+
+        .flow-card>p {
+            color: var(--text-2);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1.35rem;
+        }
+
+        .feat-highlight-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1.25rem;
+            margin: 1.25rem 0 0.25rem;
+        }
+
+        .feat-highlight-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.35rem;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .feat-highlight-item:hover {
+            border-color: rgba(77, 203, 255, 0.3);
+            background: rgba(255, 255, 255, 0.045);
+        }
+
+        .feat-highlight-item h3 {
+            font-size: 1.05rem;
+            color: var(--accent);
+            margin-top: 0;
+            margin-bottom: 0.6rem;
+            line-height: 1.45;
+        }
+
+        .feat-highlight-item p {
+            color: var(--text-2);
+            font-size: 0.9rem;
+            line-height: 1.65;
+            margin: 0;
+        }
+
+        .pro-summary-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem 2rem;
+            margin-top: 1rem;
+            margin-bottom: 0;
+        }
+
+        .toggle-all-btn {
+            display: none;
+            background: none;
+            border: none;
+            padding: 0.25rem 0;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .feat-highlight-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .policy-wrap {
+                width: calc(100% - 1rem);
+                margin: 5.5rem auto 3rem;
+                padding: 1.5rem 1rem;
+                border-radius: 16px;
+            }
+
+            .flow-card {
+                padding: 1.25rem;
+                margin-bottom: 1.5rem;
+                border-radius: 14px;
+            }
+
+            .flow-card h2 {
+                font-size: 1.15rem;
+            }
+
+            .toggle-all-btn {
+                display: inline-block;
+            }
+
+            .feat-highlight-grid {
+                grid-template-columns: 1fr;
+                gap: 0.65rem;
+                margin-top: 1rem;
+            }
+
+            .feat-highlight-item {
+                padding: 0.95rem 1.05rem;
+                cursor: pointer;
+            }
+
+            .feat-highlight-item h3 {
+                font-size: 0.98rem;
+                margin-bottom: 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+            }
+
+            .feat-highlight-item h3::after {
+                content: '▾';
+                font-size: 0.85rem;
+                color: var(--text-2);
+                transition: transform 0.2s ease;
+                flex-shrink: 0;
+            }
+
+            .feat-highlight-item.is-open h3 {
+                margin-bottom: 0.55rem;
+            }
+
+            .feat-highlight-item.is-open h3::after {
+                transform: rotate(180deg);
+                color: var(--accent);
+            }
+
+            .feat-highlight-item p {
+                display: none;
+                font-size: 0.88rem;
+            }
+
+            .feat-highlight-item.is-open p {
+                display: block;
+            }
+
+            .pro-summary-list {
+                grid-template-columns: 1fr;
+            }
+
+            .refund-meta-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .policy-callout {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+            padding: 1.25rem 1.35rem;
+            border-radius: 14px;
+            margin: 1.25rem 0 0;
+            font-size: 0.92rem;
+            line-height: 1.75;
+        }
+
+        .policy-callout-gold {
+            background: rgba(255, 179, 71, 0.06);
+            border: 1px solid rgba(255, 179, 71, 0.28);
+            color: var(--text);
+        }
+
+        .policy-callout-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 0.15rem;
+            color: var(--gold);
+        }
+
+        .policy-callout-icon svg {
+            width: 100%;
+            height: 100%;
+            color: inherit;
+        }
+
+        .refund-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+            margin: 1rem 0 1.25rem;
+        }
+
+        .refund-meta-item {
+            background: rgba(255, 179, 71, 0.05);
+            border: 1px solid rgba(255, 179, 71, 0.22);
+            border-radius: 12px;
+            padding: 1rem 1.15rem;
+        }
+
+        .refund-meta-label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--gold);
+            margin-bottom: 0.3rem;
+        }
+
+        .refund-meta-value {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .refund-detail-list {
+            margin: 0.65rem 0 0;
+            padding-left: 1.25rem;
+            color: var(--text-2);
+            font-size: 0.88rem;
+            line-height: 1.75;
+        }
+
+        .refund-detail-list li + li {
+            margin-top: 0.35rem;
+        }
+    </style>
+  <link rel="canonical" href="https://rowpilot.jp/es/news/v1-0-2-update.html">
+  <link rel="alternate" hreflang="ja" href="https://rowpilot.jp/news/v1-0-2-update.html">
+  <link rel="alternate" hreflang="en" href="https://rowpilot.jp/en/news/v1-0-2-update.html">
+  <link rel="alternate" hreflang="de" href="https://rowpilot.jp/de/news/v1-0-2-update.html">
+  <link rel="alternate" hreflang="fr" href="https://rowpilot.jp/fr/news/v1-0-2-update.html">
+  <link rel="alternate" hreflang="es" href="https://rowpilot.jp/es/news/v1-0-2-update.html">
+  <link rel="alternate" hreflang="it" href="https://rowpilot.jp/it/news/v1-0-2-update.html">
+  <link rel="alternate" hreflang="zh" href="https://rowpilot.jp/zh/news/v1-0-2-update.html">
+  <link rel="alternate" hreflang="ko" href="https://rowpilot.jp/ko/news/v1-0-2-update.html">
+  <link rel="alternate" hreflang="x-default" href="https://rowpilot.jp/news/v1-0-2-update.html">
+</head>
+
+<body>
+
+    <header>
+        <div class="nav-wrap">
+            <a href="../index.html" class="logo" id="nav-logo">
+                <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                <span class="logo-text">RowPilot</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="../index.html">Inicio</a></li>
+                <li><a href="index.html" class="active">Noticias</a></li>
+                <li><a href="../support/index.html">Soporte</a></li>
+                <li><a href="../privacy-policy/index.html">Privacidad</a></li>
+                <li><a href="../terms/index.html">Términos</a></li>
+                <li><a href="/dev/">Desarrollo</a></li>
+                <li><a href="/teams/?lang=es">Equipos</a></li>
+                <li class="lang-dropdown-wrapper">
+                    <button class="lang-btn" type="button" aria-label="Seleccionar idioma">
+                        <span class="lang-globe">🌐</span>
+                        <span>ES</span>
+                        <span class="lang-arrow">▾</span>
+                    </button>
+                    <div class="lang-dropdown-menu">
+                        <a href="../../news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a
+                            href="../../en/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a
+                            href="../../de/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a
+                            href="../../fr/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a
+                            href="v1-0-2-update.html" class="lang-dropdown-item active"
+                            data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a
+                            href="../../it/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a
+                            href="../../zh/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a
+                            href="../../ko/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                    </div>
+                </li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Menú">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <nav class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-inner">
+            <a href="../index.html">Inicio</a>
+            <a href="index.html" class="active">Noticias</a>
+            <a href="../support/index.html">Soporte</a>
+            <a href="../privacy-policy/index.html">Privacidad</a>
+            <a href="../terms/index.html">Términos</a>
+            <a href="/dev/">Desarrollo</a>
+            <a href="/teams/?lang=es">Equipos</a>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-lang-sec">
+                <div class="mobile-lang-title">🌐 Idioma</div>
+                <div class="mobile-lang-grid">
+                    <a href="../../news/v1-0-2-update.html" class="mobile-lang-item"
+                        data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a
+                        href="../../en/news/v1-0-2-update.html" class="mobile-lang-item"
+                        data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a
+                        href="../../de/news/v1-0-2-update.html" class="mobile-lang-item"
+                        data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a
+                        href="../../fr/news/v1-0-2-update.html" class="mobile-lang-item"
+                        data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a
+                        href="v1-0-2-update.html" class="mobile-lang-item active"
+                        data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a
+                        href="../../it/news/v1-0-2-update.html" class="mobile-lang-item"
+                        data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a
+                        href="../../zh/news/v1-0-2-update.html" class="mobile-lang-item"
+                        data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a
+                        href="../../ko/news/v1-0-2-update.html" class="mobile-lang-item"
+                        data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
+        <div class="policy-hero">
+            <div class="policy-badge">Versión 1.0.2 / Aviso importante</div>
+            <h1>Actualización v1.0.2, disculpas e información de reembolso sobre el mes gratis</h1>
+            <p class="policy-lead">
+                Junto con las novedades de RowPilot v1.0.2, pedimos sinceras disculpas porque la prueba gratuita de 1 mes no se aplicó a ninguno de los planes de pago, e informamos del procedimiento de reembolso para los usuarios afectados.
+            </p>
+            <p class="policy-updated">Publicado: 21 de noviembre de 2026</p>
+        </div>
+
+        <div class="policy-content">
+            <p>Gracias por utilizar RowPilot. En este comunicado detallamos nuestras disculpas y el proceso de reembolso por el aviso de prueba gratuita, además de las nuevas funciones y mejoras incluidas en la versión v1.0.2.</p>
+
+            <div class="flow-card">
+                <h2><span>1. Disculpas e información de reembolso sobre la prueba gratuita de 1 mes</span></h2>
+                <p>Aunque la pantalla de suscripción dentro de la app indicaba «Primer mes gratis» y «1 mes de prueba gratis», hemos detectado que <strong>el mes gratuito no tuvo efecto en ninguno de los planes de pago: Pro, Manager, Team y MAX</strong>. Lamentamos profundamente las molestias y la confusión que esto haya podido causar.</p>
+                <p>En la versión v1.0.2, la aplicación verifica dinámicamente mediante StoreKit 2 si existe una oferta introductoria elegible para mostrar el aviso gratuito únicamente cuando corresponda.</p>
+
+                <div class="refund-meta-grid">
+                    <div class="refund-meta-item">
+                        <span class="refund-meta-label">Personas elegibles</span>
+                        <span class="refund-meta-value">Quienes contrataron el plan Manager el 20 de noviembre de 2026</span>
+                    </div>
+                    <div class="refund-meta-item">
+                        <span class="refund-meta-label">Método de reembolso</span>
+                        <span class="refund-meta-value">Transferencia bancaria o envío por PayPay</span>
+                    </div>
+                </div>
+
+                <div class="policy-callout policy-callout-gold">
+                    <span class="policy-callout-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                    </span>
+                    <div>
+                        <strong>Cómo solicitar el reembolso</strong><br>
+                        Si contrataste el plan Manager el 20 de noviembre de 2026, escribe a nuestro soporte a <a href="mailto:rowpilot.jp@gmail.com" style="color: #7dd3fc; text-decoration: underline;">rowpilot.jp@gmail.com</a> adjuntando los siguientes datos. Tras verificarlos, realizaremos el envío a la mayor brevedad.
+                        <ul class="refund-detail-list">
+                        <li>Captura de pantalla del correo de recibo de Apple o comprobante donde figure la fecha y hora de contratación</li>
+                        <li>Método de reembolso preferido: Transferencia bancaria o PayPay</li>
+                        <li>Datos de destino: banco, sucursal, tipo y número de cuenta y titular para transferencia bancaria, o tu PayPay ID o teléfono registrado para PayPay</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-card">
+                <h2><span>2. Nuevas funciones añadidas</span><button type="button" class="toggle-all-btn" data-expand="Abrir todo"
+                        data-collapse="Cerrar todo">Abrir todo</button></h2>
+                <p>Conexión directa con sensores cardíacos BLE, registro y gráficos de frecuencia cardíaca y calorías, y eliminación de cuenta del servidor.</p>
+
+                <div class="feat-highlight-grid">
+                    <div class="feat-highlight-item">
+                        <h3>Conexión directa a sensores cardíacos BLE en todos los modos</h3>
+                        <p>
+                            Añadimos una pantalla específica para vincular sensores cardíacos BLE estándar directamente al iPhone con reconexión automática y nivel de batería. Junto con la lectura automática desde el PM5, funciona en tiempo real en RowMode, Practice y Manager Mode.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Registro y gráficos de frecuencia cardíaca y calorías</h3>
+                        <p>
+                            Las sesiones ahora guardan frecuencia cardíaca media, máxima y calorías en detalles locales, registros de equipo y exportación CSV. Se incorpora la pestaña de Frecuencia cardíaca en gráficos y se mejora la precisión de trazado.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Eliminación de cuenta del servidor desde la app</h3>
+                        <p>
+                            Añadimos en Ajustes la opción de eliminar la cuenta del servidor para borrar perfil, pertenencia a equipos y entrenamientos compartidos manteniendo intactos los registros locales del dispositivo.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-card">
+                <h2><span>3. Cambios y mejoras</span><button type="button" class="toggle-all-btn" data-expand="Abrir todo"
+                        data-collapse="Cerrar todo">Abrir todo</button></h2>
+                <p>Mayor fiabilidad con PM5, límites acordes a especificación, paginación en equipos, integridad de datos y seguridad.</p>
+
+                <div class="feat-highlight-grid">
+                    <div class="feat-highlight-item">
+                        <h3>Estabilidad PM5, límites de entrada y guardado ante desconexión</h3>
+                        <p>
+                            Practice Mode incorpora cola secuencial CSAFE, byte stuffing estricto y conexión NFC más estable. Los límites de tiempo, parciales, intervalos, calorías y 50 intervalos se ajustan a la especificación Concept2 PM5, y se añade alerta para guardar si se pierde la conexión.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Panel Manager y mejoras en Vista de Regata</h3>
+                        <p>
+                            El panel añade botón de guardado y progreso de intervalos variables; la Vista de Regata suma botones Atrás y Guardar, bloqueo sincronizado, desempate por tiempo transcurrido y control de rotación. Selector de frecuencia ajustado a 1 Hz / 2 Hz / 4 Hz.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Paginación de equipo, permisos y navegación</h3>
+                        <p>
+                            La lista de equipo carga en bloques de 500 registros y resiste registros incompletos. Los miembros estándar ya pueden ver miembros y aprobar acceso web; se eliminaron duplicados en Ajustes, se acortó la comprobación de solicitudes a 30 segundos y el plan Manager compartido se limita al rol Manager.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Sincronización offline, iCloud e integridad de registros</h3>
+                        <p>
+                            La cola pendiente de equipo pasa a almacenamiento ligero en archivos; se evita subir importaciones externas y las marcas de borrado impiden que reaparezcan registros eliminados desde iCloud. Mejoras en Keychain multi-dispositivo, cancelación de edición y envío.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Elegibilidad de suscripción y refuerzo de seguridad</h3>
+                        <p>
+                            Comprobación dinámica de prueba gratuita, sincronización de reembolsos y revocaciones al servidor, autenticación serializada, verificación estricta de cadena x5c de Apple JWS y escape contra inyección de fórmulas en CSV. Retirada completa de restos del plan Organization.
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Estabilidad en RowMode, alarma SOS, mareas y clima</h3>
+                        <p>
+                            El banner de parada SOS permanece visible en primer plano en todas las pestañas y el audio solo se activa al sonar la alarma. Se mejora la espera de autoarranque tras segundo plano, la pausa al cancelar, el cálculo horario JST de mareas y las peticiones meteorológicas.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <h2 style="margin-top: 3rem;">Contacto</h2>
+            <p>Para gestionar reembolsos o enviar consultas y sugerencias sobre esta actualización, escribe a nuestro soporte en <a href="mailto:rowpilot.jp@gmail.com" style="color: #7dd3fc; text-decoration: underline;">rowpilot.jp@gmail.com</a>.</p>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-inner">
+            <a href="../index.html" class="footer-logo">
+                <img src="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                RowPilot
+            </a>
+            <div class="footer-links">
+                <a href="../index.html">Inicio</a>
+                <a href="index.html">Noticias</a>
+                <a href="../support/index.html">Soporte</a>
+                <a href="../privacy-policy/index.html">Privacidad</a>
+                <a href="../terms/index.html">Términos</a>
+                <a href="/dev/">Desarrollo</a>
+                <a href="/teams/?lang=es">Equipos</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 RowPilot. Todos los derechos reservados.</div>
+        </div>
+    </footer>
+
+    <script>
+        const toggle = document.getElementById('nav-toggle');
+        const mMenu = document.getElementById('mobile-menu');
+        toggle.addEventListener('click', () => {
+            const open = mMenu.classList.toggle('open');
+            toggle.classList.toggle('open', open);
+        });
+        mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            mMenu.classList.remove('open'); toggle.classList.remove('open');
+        }));
+
+        document.querySelectorAll('.flow-card').forEach(card => {
+            const items = card.querySelectorAll('.feat-highlight-item');
+            const toggleAllBtn = card.querySelector('.toggle-all-btn');
+            if (!items.length) return;
+
+            const syncToggleAllLabel = () => {
+                if (!toggleAllBtn) return;
+                const allOpen = Array.from(items).every(el => el.classList.contains('is-open'));
+                toggleAllBtn.textContent = allOpen ? toggleAllBtn.dataset.collapse : toggleAllBtn.dataset.expand;
+            };
+
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    if (window.innerWidth > 768) return;
+                    item.classList.toggle('is-open');
+                    syncToggleAllLabel();
+                });
+            });
+
+            if (toggleAllBtn) {
+                toggleAllBtn.addEventListener('click', () => {
+                    const allOpen = Array.from(items).every(el => el.classList.contains('is-open'));
+                    items.forEach(item => item.classList.toggle('is-open', !allOpen));
+                    syncToggleAllLabel();
+                });
+                syncToggleAllLabel();
+            }
+        });
+    </script>
+    <script src="../../js/lang-dropdown.js"></script>
+</body>
+
+</html>

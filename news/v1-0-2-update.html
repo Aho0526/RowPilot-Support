@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>v1.0.2アップデートのお知らせと初回1ヶ月無料表示に関するお詫び・返金のご案内 — RowPilot</title>
+    <meta name="description"
+        content="RowPilot v1.0.2アップデートのお知らせ。全プランで1ヶ月無料トライアルが適用されていなかった件のお詫びと対象者様への返金対応、BLE心拍センサー直接接続、アカウント削除機能、PM5通信・チーム同期・セキュリティの改善をご案内します。">
+    <link rel="icon" href="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .policy-wrap {
+            max-width: 1160px;
+            width: calc(100% - 2rem);
+        }
+
+        .policy-lead {
+            max-width: 880px;
+        }
+
+        .flow-card {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flow-card h2 {
+            font-family: var(--font-h);
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+        }
+
+        .flow-card>p {
+            color: var(--text-2);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 1.35rem;
+        }
+
+        .feat-highlight-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1.25rem;
+            margin: 1.25rem 0 0.25rem;
+        }
+
+        .feat-highlight-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.35rem;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .feat-highlight-item:hover {
+            border-color: rgba(77, 203, 255, 0.3);
+            background: rgba(255, 255, 255, 0.045);
+        }
+
+        .feat-highlight-item h3 {
+            font-size: 1.05rem;
+            color: var(--accent);
+            margin-top: 0;
+            margin-bottom: 0.6rem;
+            line-height: 1.45;
+        }
+
+        .feat-highlight-item p {
+            color: var(--text-2);
+            font-size: 0.9rem;
+            line-height: 1.65;
+            margin: 0;
+        }
+
+        .pro-summary-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem 2rem;
+            margin-top: 1rem;
+            margin-bottom: 0;
+        }
+
+        .toggle-all-btn {
+            display: none;
+            background: none;
+            border: none;
+            padding: 0.25rem 0;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .feat-highlight-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .policy-wrap {
+                width: calc(100% - 1rem);
+                margin: 5.5rem auto 3rem;
+                padding: 1.5rem 1rem;
+                border-radius: 16px;
+            }
+
+            .flow-card {
+                padding: 1.25rem;
+                margin-bottom: 1.5rem;
+                border-radius: 14px;
+            }
+
+            .flow-card h2 {
+                font-size: 1.15rem;
+            }
+
+            .toggle-all-btn {
+                display: inline-block;
+            }
+
+            .feat-highlight-grid {
+                grid-template-columns: 1fr;
+                gap: 0.65rem;
+                margin-top: 1rem;
+            }
+
+            .feat-highlight-item {
+                padding: 0.95rem 1.05rem;
+                cursor: pointer;
+            }
+
+            .feat-highlight-item h3 {
+                font-size: 0.98rem;
+                margin-bottom: 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+            }
+
+            .feat-highlight-item h3::after {
+                content: '▾';
+                font-size: 0.85rem;
+                color: var(--text-2);
+                transition: transform 0.2s ease;
+                flex-shrink: 0;
+            }
+
+            .feat-highlight-item.is-open h3 {
+                margin-bottom: 0.55rem;
+            }
+
+            .feat-highlight-item.is-open h3::after {
+                transform: rotate(180deg);
+                color: var(--accent);
+            }
+
+            .feat-highlight-item p {
+                display: none;
+                font-size: 0.88rem;
+            }
+
+            .feat-highlight-item.is-open p {
+                display: block;
+            }
+
+            .pro-summary-list {
+                grid-template-columns: 1fr;
+            }
+
+            .refund-meta-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .policy-callout {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+            padding: 1.25rem 1.35rem;
+            border-radius: 14px;
+            margin: 1.25rem 0 0;
+            font-size: 0.92rem;
+            line-height: 1.75;
+        }
+
+        .policy-callout-gold {
+            background: rgba(255, 179, 71, 0.06);
+            border: 1px solid rgba(255, 179, 71, 0.28);
+            color: var(--text);
+        }
+
+        .policy-callout-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 0.15rem;
+            color: var(--gold);
+        }
+
+        .policy-callout-icon svg {
+            width: 100%;
+            height: 100%;
+            color: inherit;
+        }
+
+        .refund-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+            margin: 1rem 0 1.25rem;
+        }
+
+        .refund-meta-item {
+            background: rgba(255, 179, 71, 0.05);
+            border: 1px solid rgba(255, 179, 71, 0.22);
+            border-radius: 12px;
+            padding: 1rem 1.15rem;
+        }
+
+        .refund-meta-label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--gold);
+            margin-bottom: 0.3rem;
+        }
+
+        .refund-meta-value {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .refund-detail-list {
+            margin: 0.65rem 0 0;
+            padding-left: 1.25rem;
+            color: var(--text-2);
+            font-size: 0.88rem;
+            line-height: 1.75;
+        }
+
+        .refund-detail-list li+li {
+            margin-top: 0.35rem;
+        }
+    </style>
+    <link rel="canonical" href="https://rowpilot.jp/news/v1-0-2-update.html">
+    <link rel="alternate" hreflang="ja" href="https://rowpilot.jp/news/v1-0-2-update.html">
+    <link rel="alternate" hreflang="en" href="https://rowpilot.jp/en/news/v1-0-2-update.html">
+    <link rel="alternate" hreflang="de" href="https://rowpilot.jp/de/news/v1-0-2-update.html">
+    <link rel="alternate" hreflang="fr" href="https://rowpilot.jp/fr/news/v1-0-2-update.html">
+    <link rel="alternate" hreflang="es" href="https://rowpilot.jp/es/news/v1-0-2-update.html">
+    <link rel="alternate" hreflang="it" href="https://rowpilot.jp/it/news/v1-0-2-update.html">
+    <link rel="alternate" hreflang="zh" href="https://rowpilot.jp/zh/news/v1-0-2-update.html">
+    <link rel="alternate" hreflang="ko" href="https://rowpilot.jp/ko/news/v1-0-2-update.html">
+    <link rel="alternate" hreflang="x-default" href="https://rowpilot.jp/news/v1-0-2-update.html">
+</head>
+
+<body>
+
+    <header>
+        <div class="nav-wrap">
+            <a href="../index.html" class="logo" id="nav-logo">
+                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                <span class="logo-text">RowPilot</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="../index.html">ホーム</a></li>
+                <li><a href="index.html" class="active">お知らせ</a></li>
+                <li><a href="../support/index.html">サポート</a></li>
+                <li><a href="../privacy-policy/index.html">プライバシー</a></li>
+                <li><a href="../terms/index.html">利用規約</a></li>
+                <li><a href="/dev/">開発</a></li>
+                <li><a href="/teams/">チーム</a></li>
+                <li class="lang-dropdown-wrapper">
+                    <button class="lang-btn" type="button" aria-label="Select Language">
+                        <span class="lang-globe">🌐</span>
+                        <span>JP</span>
+                        <span class="lang-arrow">▾</span>
+                    </button>
+                    <div class="lang-dropdown-menu">
+                        <a href="v1-0-2-update.html" class="lang-dropdown-item active"
+                            data-lang="ja"><span>日本語</span><span class="lang-code-badge">🇯🇵</span></a><a
+                            href="../en/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="en"><span>English</span><span class="lang-code-badge">🇺🇸</span></a><a
+                            href="../de/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="de"><span>Deutsch</span><span class="lang-code-badge">🇩🇪</span></a><a
+                            href="../fr/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="fr"><span>Français</span><span class="lang-code-badge">🇫🇷</span></a><a
+                            href="../es/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="es"><span>Español</span><span class="lang-code-badge">🇪🇸</span></a><a
+                            href="../it/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="it"><span>Italiano</span><span class="lang-code-badge">🇮🇹</span></a><a
+                            href="../zh/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="zh"><span>简体中文</span><span class="lang-code-badge">🇨🇳</span></a><a
+                            href="../ko/news/v1-0-2-update.html" class="lang-dropdown-item"
+                            data-lang="ko"><span>한국어</span><span class="lang-code-badge">🇰🇷</span></a>
+                    </div>
+                </li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="メニュー">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <nav class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-inner">
+            <a href="../index.html">ホーム</a>
+            <a href="index.html" class="active">お知らせ</a>
+            <a href="../support/index.html">サポート</a>
+            <a href="../privacy-policy/index.html">プライバシー</a>
+            <a href="../terms/index.html">利用規約</a>
+            <a href="/dev/">開発</a>
+            <a href="/teams/">チーム</a>
+            <div class="mobile-menu-divider"></div>
+            <div class="mobile-lang-sec">
+                <div class="mobile-lang-title">🌐 Language / 言語</div>
+                <div class="mobile-lang-grid">
+                    <a href="v1-0-2-update.html" class="mobile-lang-item active" data-lang="ja"><span>日本語</span><span
+                            class="lang-code-badge">🇯🇵</span></a><a href="../en/news/v1-0-2-update.html"
+                        class="mobile-lang-item" data-lang="en"><span>English</span><span
+                            class="lang-code-badge">🇺🇸</span></a><a href="../de/news/v1-0-2-update.html"
+                        class="mobile-lang-item" data-lang="de"><span>Deutsch</span><span
+                            class="lang-code-badge">🇩🇪</span></a><a href="../fr/news/v1-0-2-update.html"
+                        class="mobile-lang-item" data-lang="fr"><span>Français</span><span
+                            class="lang-code-badge">🇫🇷</span></a><a href="../es/news/v1-0-2-update.html"
+                        class="mobile-lang-item" data-lang="es"><span>Español</span><span
+                            class="lang-code-badge">🇪🇸</span></a><a href="../it/news/v1-0-2-update.html"
+                        class="mobile-lang-item" data-lang="it"><span>Italiano</span><span
+                            class="lang-code-badge">🇮🇹</span></a><a href="../zh/news/v1-0-2-update.html"
+                        class="mobile-lang-item" data-lang="zh"><span>简体中文</span><span
+                            class="lang-code-badge">🇨🇳</span></a><a href="../ko/news/v1-0-2-update.html"
+                        class="mobile-lang-item" data-lang="ko"><span>한국어</span><span
+                            class="lang-code-badge">🇰🇷</span></a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="policy-wrap" style="animation: fadeUp 0.7s both;">
+        <div class="policy-hero">
+            <div class="policy-badge">Version 1.0.2 / Important Notice</div>
+            <h1>v1.0.2アップデートのお知らせと初回1ヶ月無料表示に関するお詫び・返金のご案内</h1>
+            <p class="policy-lead">
+                RowPilot v1.0.2
+                のアップデート内容のご案内とあわせて、すべての有料プランで初回1ヶ月無料トライアルが適用されていなかった不具合に関するお詫びおよび対象者様への返金対応についてお知らせいたします。
+            </p>
+            <p class="policy-updated">公開日: 2026年11月21日</p>
+        </div>
+
+        <div class="policy-content">
+            <p>日頃よりRowPilotをご利用いただきありがとうございます。このたび、最新バージョン v1.0.2
+                のご案内とともに、サブスクリプション画面の初回無料表示に関するお詫びと返金対応、ならびに各種機能追加・改善点をお知らせいたします。</p>
+
+            <div class="flow-card">
+                <h2><span>1. 初回1ヶ月無料トライアルに関するお詫びと返金のご案内</span></h2>
+                <p>これまでアプリ内のサブスクリプション画面において「初月無料」と案内しておりましたが、Pro、Manager、Team、MAX
+                    の<strong>すべての有料プランに対して1ヶ月無料トライアルの効果が適用されていなかった</strong>ことが判明いたしました。ご利用の皆様に多大なるご迷惑とご心配をおかけしましたことを、心よりお詫び申し上げます。
+                </p>
+                <p>v1.0.2 では初回無料オファーが設定されており、かつ適用対象となるプランにのみ無料表示を行うよう修正いたしました。</p>
+
+                <div class="refund-meta-grid">
+                    <div class="refund-meta-item">
+                        <span class="refund-meta-label">返金対象者</span>
+                        <span class="refund-meta-value">2026年11月20日に Manager プランをご契約いただいた方</span>
+                    </div>
+                    <div class="refund-meta-item">
+                        <span class="refund-meta-label">返金方法</span>
+                        <span class="refund-meta-value">銀行振込 または PayPay による送金</span>
+                    </div>
+                </div>
+
+                <div class="policy-callout policy-callout-gold">
+                    <span class="policy-callout-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                    </span>
+                    <div>
+                        <strong>返金のお手続き方法</strong><br>
+                        2026年11月20日に Manager プランをご契約いただいたお客様は、サポート窓口 <a href="mailto:rowpilot.jp@gmail.com"
+                            style="color: #7dd3fc; text-decoration: underline;">rowpilot.jp@gmail.com</a>
+                        まで以下の情報をお添えのうえご連絡ください。確認後、速やかに送金手続きを行います。
+                        <ul class="refund-detail-list">
+                            <li>ご契約日時が確認できる Apple からの領収書メール等のスクリーンショット</li>
+                            <li>返金方法：銀行振込 または PayPay</li>
+                            <li>返金先情報：銀行振込をご希望の場合は金融機関名・支店名・口座種別・口座番号・口座名義、PayPay をご希望の場合は送金先の PayPay ID またはご登録電話番号</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-card">
+                <h2><span>2. 新たに追加された機能</span><button type="button" class="toggle-all-btn" data-expand="すべて開く"
+                        data-collapse="すべて閉じる">すべて開く</button></h2>
+                <p>心拍センサーの直接連携と計測データの可視化、アカウント削除機能を追加しました。</p>
+
+                <div class="feat-highlight-grid">
+                    <div class="feat-highlight-item">
+                        <h3>BLE 心拍センサー直接接続と全モード心拍計測</h3>
+                        <p>
+                            標準 BLE 心拍センサーを iPhone へ直接接続できる専用画面を追加し、自動再接続やバッテリー残量表示に対応しました。PM5 に接続された心拍計の自動読み取りとあわせて、水上
+                            RowMode・Practice・Manager Mode の全モードでリアルタイム計測が可能です。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>心拍数・消費カロリーの記録保存とグラフ可視化</h3>
+                        <p>
+                            平均心拍数・最大心拍数および消費カロリーの記録保存に対応し、ワークアウト詳細画面、チーム記録詳細、CSV
+                            書き出しへ反映しました。ワークアウトグラフ画面にも心拍数グラフタブを追加し、グラフの描画精度も改善しています。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>アプリ内からのサーバーアカウント削除機能</h3>
+                        <p>
+                            設定画面にサーバーアカウント削除機能を追加しました。サーバー上のユーザー情報、チーム所属、チームへ共有済みの記録をアプリ内から削除できます。端末ローカルに保存されたワークアウト記録はそのまま残ります。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-card">
+                <h2><span>3. 変更・改善された点</span><button type="button" class="toggle-all-btn" data-expand="すべて開く"
+                        data-collapse="すべて閉じる">すべて開く</button></h2>
+                <p>PM5 通信や仕様準拠の入力制御、チーム記録の読み込み、認証・セキュリティと各モードの安定性を強化しました。</p>
+
+                <div class="feat-highlight-grid">
+                    <div class="feat-highlight-item">
+                        <h3>PM5 通信安定化と仕様準拠の入力制限・切断保護</h3>
+                        <p>
+                            Practice Mode に順次 CSAFE 送信キューを導入し、標準フレームのバイトスタッフィング厳密化や NFC
+                            接続フローの安定化を行いました。時間・スプリット・インターバル・最大50区間の設定範囲を Concept2 PM5
+                            仕様に準拠させ、ワークアウト中に接続が切れた際もそこまでの記録を保存できるアラートを追加しています。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>Manager Mode ダッシュボードとレースビュー改善</h3>
+                        <p>
+                            ダッシュボードへ保存ボタンと可変インターバルの進行表示を追加し、レースビューにも終了・保存ボタン、誤操作ロック連携、同距離時の経過時間による順位判定、画面回転制御を導入しました。データ取得周期の設定も
+                            1 Hz・2 Hz・4 Hz の選択式へ見直しています。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>チーム記録のページネーションと権限・導線整理</h3>
+                        <p>
+                            チーム記録一覧で500件ごとの追加読み込みに対応し、欠損レコードが含まれても一覧表示が崩れないよう堅牢化しました。一般メンバー画面へのメンバー一覧・Web
+                            ログイン承認ボタンの配置、設定画面の重複整理、参加申請確認の30秒短縮、Manager 機能共有対象の Manager ロール限定化も実施しています。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>オフライン同期・iCloud 復元・記録整合性の強化</h3>
+                        <p>
+                            チーム送信待ちキューをファイル保存へ移行して軽量化し、外部インポート記録の誤送信や削除済み記録が iCloud から復活する事象を防止しました。複数端末間の Keychain
+                            認証同期の競合対策や、記録詳細画面での編集キャンセル操作、保存済み確定データの共有整理も行っています。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>サブスクリプション判定とセキュリティ強化</h3>
+                        <p>
+                            無料トライアル適格性の動的判定に加え、返金・失効状態のサーバー同期、並列認証の競合防止、Apple JWS 証明書チェーン検証の厳格化、CSV
+                            出力時の数式インジェクション対策を実装しました。旧 Organization プラン定義の整理と個人契約表示の分離も完了しています。
+                        </p>
+                    </div>
+
+                    <div class="feat-highlight-item">
+                        <h3>RowMode・SOS 警報・潮位・天気の安定性向上</h3>
+                        <p>
+                            SOS 警報鳴動中の停止バナーを全タブ共通の最前面へ移設し、鳴動時のみ音声セッションを有効化するよう改善しました。RowMode
+                            のバックグラウンド復帰時の自動スタート待機制御や一時停止中キャンセル時の挙動修正、潮位計算の日本標準時統一と最寄り観測所切替時の自動更新も実施しています。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <h2 style="margin-top: 3rem;">お問い合わせ</h2>
+            <p>返金のお手続きおよび本アップデートに関するご質問やご要望はサポート窓口 <a href="mailto:rowpilot.jp@gmail.com"
+                    style="color: #7dd3fc; text-decoration: underline;">rowpilot.jp@gmail.com</a> までお気軽にお問い合わせください。</p>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-inner">
+            <a href="../index.html" class="footer-logo">
+                <img src="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" alt="RowPilot">
+                RowPilot
+            </a>
+            <div class="footer-links">
+                <a href="../index.html">ホーム</a>
+                <a href="index.html">お知らせ</a>
+                <a href="../support/index.html">サポート</a>
+                <a href="../privacy-policy/index.html">プライバシーポリシー</a>
+                <a href="../terms/index.html">利用規約</a>
+                <a href="/dev/">開発</a>
+                <a href="/teams/">チーム</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 RowPilot. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        const toggle = document.getElementById('nav-toggle');
+        const mMenu = document.getElementById('mobile-menu');
+        toggle.addEventListener('click', () => {
+            const open = mMenu.classList.toggle('open');
+            toggle.classList.toggle('open', open);
+        });
+        mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            mMenu.classList.remove('open'); toggle.classList.remove('open');
+        }));
+
+        document.querySelectorAll('.flow-card').forEach(card => {
+            const items = card.querySelectorAll('.feat-highlight-item');
+            const toggleAllBtn = card.querySelector('.toggle-all-btn');
+            if (!items.length) return;
+
+            const syncToggleAllLabel = () => {
+                if (!toggleAllBtn) return;
+                const allOpen = Array.from(items).every(el => el.classList.contains('is-open'));
+                toggleAllBtn.textContent = allOpen ? toggleAllBtn.dataset.collapse : toggleAllBtn.dataset.expand;
+            };
+
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    if (window.innerWidth > 768) return;
+                    item.classList.toggle('is-open');
+                    syncToggleAllLabel();
+                });
+            });
+
+            if (toggleAllBtn) {
+                toggleAllBtn.addEventListener('click', () => {
+                    const allOpen = Array.from(items).every(el => el.classList.contains('is-open'));
+                    items.forEach(item => item.classList.toggle('is-open', !allOpen));
+                    syncToggleAllLabel();
+                });
+                syncToggleAllLabel();
+            }
+        });
+    </script>
+    <script src="../js/lang-dropdown.js"></script>
+</body>
+
+</html>

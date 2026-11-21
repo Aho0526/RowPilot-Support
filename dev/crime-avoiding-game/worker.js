@@ -81,7 +81,9 @@ function jsonResponse(data, headers, status = 200) {
 const TIME_LIMIT_SEC = 900;
 
 function nodeGridInfo(mapType) {
-    return { size: mapType === '4x4' ? 5 : 4, minDist: mapType === '4x4' ? 4 : 3 };
+    if (mapType === '5x5') return { size: 6, minDist: 5 };
+    if (mapType === '4x4') return { size: 5, minDist: 4 };
+    return { size: 4, minDist: 3 };
 }
 function nodeDist(a, b) {
     const [ax, ay] = a.split('_').slice(1).map(Number);
@@ -125,16 +127,15 @@ function pickPartnerStart(mapType, goalNode, hostRole, hostNode) {
 
 // ルーム作成
 async function handleCreateRoom(request, env, headers) {
-    const { hostName, preferredRole, mapType = '3x3', isAiMode = false } = await request.json();
+    const { hostName, preferredRole, mapType = '3x3', isAiMode = false, mapTheme = 'residential' } = await request.json();
     // 数字4桁のルームIDを生成 (1000〜9999)
     const roomId = Math.floor(1000 + Math.random() * 9000).toString();
     const playerId = 'p_' + Math.random().toString(36).substring(2, 10);
     const now = Date.now();
 
     // 初期配置はランダム（ゴールから離れ、互いにも離れた位置）
-    const is4x4 = mapType === '4x4';
-    const victimGoal = is4x4 ? 'node_4_4' : 'node_3_3';
-    const maxTurns = is4x4 ? 16 : 12;
+    const victimGoal = mapType === '5x5' ? 'node_5_5' : (mapType === '4x4' ? 'node_4_4' : 'node_3_3');
+    const maxTurns = mapType === '5x5' ? 20 : (mapType === '4x4' ? 16 : 12);
     const startNodes = pickStartNodes(mapType, victimGoal);
     const victimStart = startNodes.victim;
     const criminalStart = startNodes.criminal;
@@ -147,9 +148,9 @@ async function handleCreateRoom(request, env, headers) {
     const startedAt = isAiMode ? now : null;
 
     await db.prepare(`
-        INSERT INTO rooms (id, status, map_type, time_limit, max_turns, victim_goal_node, created_at, started_at)
-        VALUES (?, ?, ?, 900, ?, ?, ?, ?)
-    `).bind(roomId, initialStatus, mapType, maxTurns, victimGoal, now, startedAt).run();
+        INSERT INTO rooms (id, status, map_type, map_theme, time_limit, max_turns, victim_goal_node, is_ai_mode, created_at, started_at)
+        VALUES (?, ?, ?, ?, 900, ?, ?, ?, ?, ?)
+    `).bind(roomId, initialStatus, mapType, mapTheme, maxTurns, victimGoal, isAiMode ? 1 : 0, now, startedAt).run();
 
     const hostStartNode = hostRole === 'victim' ? victimStart : criminalStart;
     await db.prepare(`
@@ -169,12 +170,12 @@ async function handleCreateRoom(request, env, headers) {
         // 1人プレイ用初期位置ログ
         await db.prepare(`
             INSERT INTO moves (room_id, player_id, role, turn, from_node, to_node, timestamp, elapsed_seconds)
-            VALUES (?, ?, ?, 1, ?, ?, ?, 0)
+            VALUES (?, ?, ?, 0, ?, ?, ?, 0)
         `).bind(roomId, playerId, hostRole, hostStartNode, hostStartNode, now).run();
 
         await db.prepare(`
             INSERT INTO moves (room_id, player_id, role, turn, from_node, to_node, timestamp, elapsed_seconds)
-            VALUES (?, ?, ?, 1, ?, ?, ?, 0)
+            VALUES (?, ?, ?, 0, ?, ?, ?, 0)
         `).bind(roomId, aiId, aiRole, aiStartNode, aiStartNode, now).run();
     }
 
@@ -230,6 +231,7 @@ async function handleJoinRoom(request, env, headers) {
         role,
         startNode,
         mapType: room.map_type,
+        mapTheme: room.map_theme || 'residential',
     }, headers);
 }
 
@@ -254,8 +256,8 @@ async function handleStartGame(request, env, headers) {
     // 初期位置ログ記録
     for (const p of players.results) {
         await db.prepare(`
-            INSERT INTO moves (room_id, player_id, role, from_node, to_node, timestamp, elapsed_seconds)
-            VALUES (?, ?, ?, ?, ?, ?, 0)
+            INSERT INTO moves (room_id, player_id, role, turn, from_node, to_node, timestamp, elapsed_seconds)
+            VALUES (?, ?, ?, 0, ?, ?, ?, 0)
         `).bind(roomId, p.id, p.role, p.current_node, p.current_node, now).run();
     }
 
@@ -325,7 +327,7 @@ async function handleGetGameState(request, env, headers, url) {
 
     // 最新チャット取得
     const messages = await db.prepare(`
-        SELECT id, player_id, role, sender_name, content, timestamp, elapsed_seconds
+        SELECT id, player_id, role, sender_name, turn, content, timestamp, elapsed_seconds
         FROM messages WHERE room_id = ? ORDER BY id ASC LIMIT 50
     `).bind(roomId).all();
 
@@ -340,6 +342,7 @@ async function handleGetGameState(request, env, headers, url) {
             id: room.id,
             status: room.status,
             mapType: room.map_type,
+            mapTheme: room.map_theme || 'residential',
             timeLimit: room.time_limit,
             remainingTime,
             currentTurn: room.current_turn || 1,
@@ -348,6 +351,7 @@ async function handleGetGameState(request, env, headers, url) {
             winner: room.winner,
             finishReason: room.finish_reason,
             isInitialPeek,
+            isAiMode: !!room.is_ai_mode,
         },
         myStatus: {
             isReady: myPlayer ? (myPlayer.is_turn_ready === 1) : false,
@@ -472,16 +476,17 @@ async function handleBlock(request, env, headers) {
     // システムメッセージを挿入
     const now = Date.now();
     const room = await db.prepare('SELECT * FROM rooms WHERE id = ?').bind(roomId).first();
-    const elapsedSec = room.started_at ? Math.floor((now - room.started_at) / 1000) : 0;
+    const elapsedSec = room && room.started_at ? Math.floor((now - room.started_at) / 1000) : 0;
+    const currentTurn = room ? (room.current_turn || 1) : 1;
 
     await db.prepare(`
-        INSERT INTO messages (room_id, player_id, role, sender_name, content, sender_node_at_time, timestamp, elapsed_seconds)
-        VALUES (?, 'system', 'system', 'システム', '被害者が不審者をブロック＆削除しました。通信追跡が遮断されました。', '', ?, ?)
-    `).bind(roomId, now, elapsedSec).run();
+        INSERT INTO messages (room_id, player_id, role, sender_name, turn, content, sender_node_at_time, timestamp, elapsed_seconds)
+        VALUES (?, 'system', 'system', '防犯システム', ?, '被害者が不審者をブロック＆削除しました。通信追跡が遮断されました。', '', ?, ?)
+    `).bind(roomId, currentTurn, now, elapsedSec).run();
 
     // 1人プレイモード（AI戦）の場合のみ、即時ゲーム終了（被害者の勝利）
     let isGameOver = false;
-    if (room.is_ai_mode) {
+    if (room && room.is_ai_mode) {
         await db.prepare(`
             UPDATE rooms SET status = 'finished', ended_at = ?, winner = 'victim',
             finish_reason = '【防犯ブロック成功】不審な相手をブロックして危険を回避しました！'

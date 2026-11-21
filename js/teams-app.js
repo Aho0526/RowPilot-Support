@@ -260,12 +260,12 @@
 
   function roleLabel(role) {
     switch ((role || "").toLowerCase()) {
-      case "owner": return "最高管理者";
-      case "admin": return "管理者";
-      case "manager": return "マネージャー";
-      case "athlete": return "選手";
-      case "coach": return "Webコーチ";
-      case "viewer": return "閲覧専用";
+      case "owner": return tr("roleOwner", "最高管理者");
+      case "admin": return tr("roleAdmin", "管理者");
+      case "manager": return tr("roleManager", "マネージャー");
+      case "athlete": return tr("roleAthlete", "選手");
+      case "coach": return tr("roleCoach", "Webコーチ");
+      case "viewer": return tr("roleViewer", "閲覧専用");
       default: return role || "-";
     }
   }
@@ -355,7 +355,9 @@
       setLoadingMessage(tr("authenticating", "認証中..."));
       try {
         const meRes = await apiFetch("/web/me");
-        if (meRes.ok) {
+        if (meRes.status === 401) {
+          clearFallbackToken();
+        } else if (meRes.ok) {
           const me = await meRes.json();
           if (me.authenticated && (me.team_slug || me.team_id)) {
             setLoadingMessage(tr("authenticatingRedirect", "認証中... チームページへ移動しています"));
@@ -626,12 +628,16 @@
     badge.textContent = (team.plan || "TEAM").toUpperCase();
     badge.className = `plan-badge ${["max", "organization", "enterprise"].includes((team.plan || "").toLowerCase()) ? "max" : ""}`;
 
-    $("dash-subtitle").textContent = `登録メンバー ${members.length}名 ・ 読み込み済み記録 ${workouts.length}件`;
+    $("dash-subtitle").textContent = tr(
+      "dashSubtitleCounts",
+      `登録メンバー ${members.length}名 ・ 読み込み済み記録 ${workouts.length}件`,
+      { members: members.length, workouts: workouts.length }
+    );
 
     const isSuspended = !team.has_web_access;
     $("suspended-banner").hidden = !isSuspended;
     $("kpi-grid").hidden = isSuspended;
-    document.querySelector(".filter-bar").hidden = isSuspended;
+    $("filter-section").hidden = isSuspended;
     document.querySelector(".view-tabs").hidden = isSuspended;
     $("panel-feed").hidden = isSuspended || state.activeViewTab !== "feed";
     $("panel-athletes").hidden = isSuspended || state.activeViewTab !== "athletes";
@@ -662,7 +668,7 @@
     }
     for (const w of workouts) {
       if (w.athlete_id && !seenAthletes.has(w.athlete_id)) {
-        seenAthletes.set(w.athlete_id, w.athlete_name || "不明");
+        seenAthletes.set(w.athlete_id, w.athlete_name || tr("unknownAthlete", "不明"));
       }
     }
     for (const [id, name] of seenAthletes.entries()) {
@@ -677,11 +683,11 @@
     // KPI サマリー（全体固定値）
     if (summary) {
       $("kpi-7d-dist").textContent = formatDistance(summary.distance_7d_m);
-      $("kpi-7d-count").textContent = `${summary.workouts_7d_count} 回`;
+      $("kpi-7d-count").textContent = tr("unitCount", `${summary.workouts_7d_count} 回`, { n: summary.workouts_7d_count });
       $("kpi-30d-dist").textContent = formatDistance(summary.distance_30d_m);
-      $("kpi-30d-count").textContent = `${summary.workouts_30d_count} 回`;
-      $("kpi-active-athletes").textContent = `${summary.active_athletes_30d} 名`;
-      $("kpi-total-members").textContent = `全 ${members.length} 名中`;
+      $("kpi-30d-count").textContent = tr("unitCount", `${summary.workouts_30d_count} 回`, { n: summary.workouts_30d_count });
+      $("kpi-active-athletes").textContent = tr("unitPeople", `${summary.active_athletes_30d} 名`, { n: summary.active_athletes_30d });
+      $("kpi-total-members").textContent = tr("kpiTotalMembers", `全 ${members.length} 名中`, { n: members.length });
     } else {
       $("kpi-7d-dist").textContent = "-";
       $("kpi-7d-count").textContent = "-";
@@ -743,7 +749,7 @@
 
     if (badge) {
       badge.hidden = activeCount === 0;
-      badge.textContent = activeCount > 0 ? `${activeCount}件適用中` : "";
+      badge.textContent = activeCount > 0 ? tr("filterActiveCount", `${activeCount}件適用中`, { n: activeCount }) : "";
     }
     if (toggleBtn) {
       toggleBtn.classList.toggle("has-active", activeCount > 0);
@@ -809,7 +815,7 @@
       }
     }
     $("kpi-best-split").textContent = bestSplit ? `${formatSplit(bestSplit)}` : "-";
-    $("kpi-filtered-count").textContent = `表示中 ${filtered.length} 件`;
+    $("kpi-filtered-count").textContent = tr("kpiFilteredCount", `表示中 ${filtered.length} 件`, { n: filtered.length });
 
     renderWorkoutFeed();
     renderAthleteSummary();
@@ -827,7 +833,7 @@
       tr.addEventListener("click", () => openWorkoutModal(w));
 
       tr.appendChild(createEl("td", "date-cell", formatShortDate(w.recorded_on)));
-      tr.appendChild(createEl("td", "", w.athlete_name || "不明"));
+      tr.appendChild(createEl("td", "", w.athlete_name || tr("unknownAthlete", "不明")));
 
       const typeTd = document.createElement("td");
       const badge = createEl("span", `type-pill ${workoutTypeClass(w.type)}`, workoutTypeLabel(w.type));
@@ -861,7 +867,7 @@
         const mem = membersMap.get(id);
         statsMap.set(id, {
           id,
-          name: w.athlete_name || (mem ? mem.display_name : "不明"),
+          name: w.athlete_name || (mem ? mem.display_name : tr("unknownAthlete", "不明")),
           role: mem ? mem.role : "athlete",
           count: 0,
           distance: 0,
@@ -945,7 +951,7 @@
     }
     const dayKeys = Array.from(byDay.keys()).sort().slice(-14);
     if (dayKeys.length === 0) {
-      dailyWrap.appendChild(createEl("p", "muted", "表示できるデータがありません。"));
+      dailyWrap.appendChild(createEl("p", "muted", tr("noChartData", "表示できるデータがありません。")));
     } else {
       const maxVal = Math.max(...dayKeys.map((k) => byDay.get(k)), 1);
       const svgNS = "http://www.w3.org/2000/svg";
@@ -1020,12 +1026,12 @@
     clearElement(barsWrap);
     const byAthlete = new Map();
     for (const w of list) {
-      const name = w.athlete_name || "不明";
+      const name = w.athlete_name || tr("unknownAthlete", "不明");
       byAthlete.set(name, (byAthlete.get(name) || 0) + (Number(w.distance_m) || 0));
     }
     const ranked = Array.from(byAthlete.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
     if (ranked.length === 0) {
-      barsWrap.appendChild(createEl("p", "muted", "表示できるデータがありません。"));
+      barsWrap.appendChild(createEl("p", "muted", tr("noChartData", "表示できるデータがありません。")));
       return;
     }
     const topDist = Math.max(ranked[0][1], 1);
@@ -1048,12 +1054,12 @@
   const SVG_NS = "http://www.w3.org/2000/svg";
 
   const BOAT_SPECS = {
-    "1x": { code: "1x", displayName: "シングル", rowerCount: 1, hasCoxswain: false, isScull: true, widthFactor: 0.52, iconKind: "single" },
-    "2x": { code: "2x", displayName: "ダブルスカル", rowerCount: 2, hasCoxswain: false, isScull: true, widthFactor: 0.66, iconKind: "double" },
-    "2-": { code: "2-", displayName: "ペア", rowerCount: 2, hasCoxswain: false, isScull: false, widthFactor: 0.66, iconKind: "double" },
-    "4x+": { code: "4x+", displayName: "舵手付きクォード", rowerCount: 4, hasCoxswain: true, isScull: true, widthFactor: 0.80, iconKind: "group" },
-    "4-": { code: "4-", displayName: "フォア", rowerCount: 4, hasCoxswain: false, isScull: false, widthFactor: 0.80, iconKind: "group" },
-    "8+": { code: "8+", displayName: "エイト", rowerCount: 8, hasCoxswain: true, isScull: false, widthFactor: 0.94, iconKind: "group" }
+    "1x": { code: "1x", i18nKey: "boat1x", displayName: "シングル", rowerCount: 1, hasCoxswain: false, isScull: true, widthFactor: 0.52, iconKind: "single" },
+    "2x": { code: "2x", i18nKey: "boat2x", displayName: "ダブルスカル", rowerCount: 2, hasCoxswain: false, isScull: true, widthFactor: 0.66, iconKind: "double" },
+    "2-": { code: "2-", i18nKey: "boat2Minus", displayName: "ペア", rowerCount: 2, hasCoxswain: false, isScull: false, widthFactor: 0.66, iconKind: "double" },
+    "4x+": { code: "4x+", i18nKey: "boat4xPlus", displayName: "舵手付きクォード", rowerCount: 4, hasCoxswain: true, isScull: true, widthFactor: 0.80, iconKind: "group" },
+    "4-": { code: "4-", i18nKey: "boat4Minus", displayName: "フォア", rowerCount: 4, hasCoxswain: false, isScull: false, widthFactor: 0.80, iconKind: "group" },
+    "8+": { code: "8+", i18nKey: "boat8Plus", displayName: "エイト", rowerCount: 8, hasCoxswain: true, isScull: false, widthFactor: 0.94, iconKind: "group" }
   };
 
   function svgEl(tag, attrs = {}) {
@@ -1137,10 +1143,11 @@
     if (!spec) return null;
 
     const card = createEl("div", "crew-diagram-card");
+    const boatName = tr(spec.i18nKey, spec.displayName);
 
     const titleRow = createEl("div", "crew-diagram-title");
     titleRow.appendChild(createHeaderCrewIcon(spec.iconKind));
-    titleRow.appendChild(createEl("span", "", `${spec.displayName} (${spec.code})`));
+    titleRow.appendChild(createEl("span", "", `${boatName} (${spec.code})`));
     card.appendChild(titleRow);
 
     const totalSeats = spec.rowerCount + (spec.hasCoxswain ? 1 : 0);
@@ -1164,7 +1171,7 @@
       class: "crew-diagram-svg",
       viewBox: `0 0 ${W} ${H}`,
       role: "img",
-      "aria-label": `${spec.displayName} (${spec.code}) クルー編成図`
+      "aria-label": tr("crewDiagramAria", `${boatName} (${spec.code}) クルー編成図`, { name: boatName, code: spec.code })
     });
 
     // Boat hull gradient
@@ -1338,18 +1345,18 @@
     modalBadge.textContent = isOnWaterType(w.type)
       ? workoutTypeLabel(w.type)
       : `${workoutTypeLabel(w.type)} / ${w.format || "-"}`;
-    $("modal-athlete-name").textContent = w.athlete_name || "不明な選手";
+    $("modal-athlete-name").textContent = w.athlete_name || tr("unknownAthleteFull", "不明な選手");
     $("modal-date").textContent = formatDateTime(w.recorded_on);
 
     const metricsEl = $("modal-metrics");
     clearElement(metricsEl);
     const metricPairs = [
-      ["距離", formatDistance(w.distance_m)],
-      ["時間", formatDuration(w.duration_sec)],
-      ["500mペース", formatSplit(w.split_500m_sec)],
-      ["レート", w.stroke_rate ? `${Math.round(w.stroke_rate)} spm` : "-"],
-      ["平均パワー", w.average_watt ? `${Math.round(w.average_watt)} W` : "-"],
-      ["消費カロリー", w.calories ? `${Math.round(w.calories)} kcal` : "-"]
+      [tr("metricDist", "距離"), formatDistance(w.distance_m)],
+      [tr("metricTime", "時間"), formatDuration(w.duration_sec)],
+      [tr("metricSplit", "500mペース"), formatSplit(w.split_500m_sec)],
+      [tr("metricRate", "レート"), w.stroke_rate ? `${Math.round(w.stroke_rate)} spm` : "-"],
+      [tr("metricPower", "平均パワー"), w.average_watt ? `${Math.round(w.average_watt)} W` : "-"],
+      [tr("metricCalories", "消費カロリー"), w.calories ? `${Math.round(w.calories)} kcal` : "-"]
     ];
     for (const [label, val] of metricPairs) {
       const box = createEl("div", "modal-metric-box");
@@ -1385,7 +1392,7 @@
             crew.members.forEach((name, idx) => {
               const seatEl = createEl("div", "crew-seat");
               seatEl.appendChild(createEl("span", "", `Seat ${idx + 1}${boatKey ? ` (${boatKey})` : ""}`));
-              seatEl.appendChild(createEl("strong", "", name && name.trim() ? name : "未設定"));
+              seatEl.appendChild(createEl("strong", "", name && name.trim() ? name : tr("seatUnassigned", "未設定")));
               crewGrid.appendChild(seatEl);
             });
           }
@@ -1429,11 +1436,11 @@
   }
 
   // ── Contact / Feedback Modal ──
-  const CONTACT_PLACEHOLDERS = {
-    bug: "発生した画面や操作手順、表示されたエラーなどをご記入ください",
-    feature: "あると嬉しい機能や改善したい点をご記入ください",
-    other: "お問い合わせ内容をご記入ください"
-  };
+  function getContactPlaceholder(cat) {
+    if (cat === "bug") return tr("phContactBug", "発生した画面や操作手順、表示されたエラーなどをご記入ください");
+    if (cat === "feature") return tr("phContactFeature", "あると嬉しい機能や改善したい点をご記入ください");
+    return tr("phContactOther", "お問い合わせ内容をご記入ください");
+  }
 
   function getSelectedContactCategory() {
     const checked = document.querySelector('input[name="contact-category"]:checked');
@@ -1443,8 +1450,7 @@
   function updateContactPlaceholder() {
     const msgEl = $("contact-message");
     if (!msgEl) return;
-    const cat = getSelectedContactCategory();
-    msgEl.placeholder = CONTACT_PLACEHOLDERS[cat] || CONTACT_PLACEHOLDERS.other;
+    msgEl.placeholder = getContactPlaceholder(getSelectedContactCategory());
   }
 
   function openContactModal() {
@@ -1484,24 +1490,24 @@
     const replyEmail = $("contact-email").value.trim();
 
     if (!clubName) {
-      errEl.textContent = "クラブ名を入力してください。";
+      errEl.textContent = tr("errClubRequired", "クラブ名を入力してください。");
       errEl.hidden = false;
       return;
     }
     if (!message) {
-      errEl.textContent = "内容を入力してください。";
+      errEl.textContent = tr("errMsgRequired", "内容を入力してください。");
       errEl.hidden = false;
       return;
     }
     if (needsReply && (!replyEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyEmail))) {
-      errEl.textContent = "返信を希望する場合は、有効なメールアドレスを入力してください。";
+      errEl.textContent = tr("errReplyEmailInvalid", "返信を希望する場合は、有効なメールアドレスを入力してください。");
       errEl.hidden = false;
       return;
     }
 
     const submitBtn = $("btn-contact-submit");
     submitBtn.disabled = true;
-    submitBtn.textContent = "送信中...";
+    submitBtn.textContent = tr("btnSending", "送信中...");
 
     try {
       const targetKey = state.slugOrId || (state.dashboard && state.dashboard.team && (state.dashboard.team.slug || state.dashboard.team.id));
@@ -1521,22 +1527,22 @@
         if (res.status === 401 || res.status === 403) {
           throw new Error(data.error || "Unauthorized");
         }
-        throw new Error(data.error || "送信に失敗しました。時間をおいて再度お試しください。");
+        throw new Error(data.error || tr("contactSendFailed", "送信に失敗しました。時間をおいて再度お試しください。"));
       }
       $("contact-message").value = "";
       $("contact-needs-reply").checked = false;
       $("contact-reply-wrap").hidden = true;
       closeContactModal();
-      showToast("送信しました。ご連絡ありがとうございます");
+      showToast(tr("contactSentToast", "送信しました。ご連絡ありがとうございます"));
     } catch (err) {
       errEl.textContent = formatUserErrorMessage(
         err,
-        "送信に失敗しました。通信環境をご確認のうえ再度お試しください。"
+        tr("contactSendFailed", "送信に失敗しました。通信環境をご確認のうえ再度お試しください。")
       );
       errEl.hidden = false;
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = "送信する";
+      submitBtn.textContent = tr("btnSend", "送信する");
     }
   }
 
@@ -1672,9 +1678,9 @@
     $("btn-refresh").addEventListener("click", async () => {
       const ok = await tryLoadDashboard();
       if (ok) {
-        showToast("最新の記録を取得しました");
+        showToast(tr("refreshOk", "最新の記録を取得しました"));
       } else {
-        showToast("最新の記録を取得できませんでした。通信環境をご確認のうえ再度お試しください。");
+        showToast(tr("refreshFail", "最新の記録を取得できませんでした。通信環境をご確認のうえ再度お試しください。"));
       }
     });
 
@@ -1695,8 +1701,8 @@
     $("btn-print").addEventListener("click", () => window.print());
     $("btn-export-csv").addEventListener("click", handleExportCsv);
 
-    ["filter-q", "filter-athlete", "filter-type", "filter-from", "filter-to"].forEach((id) => {
-      $(id).addEventListener("input", applyFiltersAndRender);
+    $("filter-q").addEventListener("input", applyFiltersAndRender);
+    ["filter-athlete", "filter-type", "filter-from", "filter-to"].forEach((id) => {
       $(id).addEventListener("change", applyFiltersAndRender);
     });
 
@@ -1786,7 +1792,7 @@
     const email = $("coach-email").value.trim();
     const password = $("coach-password").value;
     if (!email || !password) {
-      errEl.textContent = "メールアドレスとパスワードを入力してください。";
+      errEl.textContent = tr("errEmailPwRequired", "メールアドレスとパスワードを入力してください。");
       errEl.hidden = false;
       return;
     }
@@ -1810,9 +1816,9 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
-          throw new Error(data.error || "認証に失敗しました。入力内容をご確認のうえ、解決しない場合はサポートページからお問い合わせください。");
+          throw new Error(data.error || tr("errAuthFailed", "認証に失敗しました。入力内容をご確認のうえ、解決しない場合はサポートページからお問い合わせください。"));
         }
-        throw new Error(data.error || "ログインに失敗しました。時間をおいて再度お試しください。");
+        throw new Error(data.error || tr("errLoginFailed", "ログインに失敗しました。時間をおいて再度お試しください。"));
       }
 
       if (data.requires_team_selection && Array.isArray(data.teams)) {
@@ -1835,14 +1841,14 @@
       $("form-coach-login").hidden = false;
       const ok = await tryLoadDashboard();
       if (!ok) {
-        throw new Error("ダッシュボードの読み込みに失敗しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。");
+        throw new Error(tr("errDashboardLoad", "ダッシュボードの読み込みに失敗しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。"));
       }
     } catch (err) {
       $("team-select-panel").hidden = true;
       $("form-coach-login").hidden = false;
       errEl.textContent = formatUserErrorMessage(
         err,
-        "ログインに失敗しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。"
+        tr("errLoginFailed", "ログインに失敗しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。")
       );
       errEl.hidden = false;
     } finally {
@@ -1867,7 +1873,7 @@
 
     const email = $("reset-email").value.trim();
     if (!email) {
-      errEl.textContent = "メールアドレスを入力してください。";
+      errEl.textContent = tr("errEmailRequired", "メールアドレスを入力してください。");
       errEl.hidden = false;
       return;
     }
@@ -1887,14 +1893,14 @@
         if (res.status === 401 || res.status === 403) {
           throw new Error(data.error || "Unauthorized");
         }
-        throw new Error(data.error || "送信に失敗しました。時間をおいて再度お試しください。");
+        throw new Error(data.error || tr("errSendFailed", "送信に失敗しました。時間をおいて再度お試しください。"));
       }
-      okEl.textContent = data.message || "再設定メールを送信しました。";
+      okEl.textContent = data.message || tr("resetSentMsg", "再設定メールを送信しました。");
       okEl.hidden = false;
     } catch (err) {
       errEl.textContent = formatUserErrorMessage(
         err,
-        "送信に失敗しました。通信環境をご確認のうえ再度お試しください。"
+        tr("errSendFailed", "送信に失敗しました。通信環境をご確認のうえ再度お試しください。")
       );
       errEl.hidden = false;
     } finally {
@@ -1910,12 +1916,12 @@
     const pw = $("setup-password").value;
     const pw2 = $("setup-password-confirm").value;
     if (pw.length < 8) {
-      errEl.textContent = "パスワードは8文字以上で設定してください。";
+      errEl.textContent = tr("errPwMinLen", "パスワードは8文字以上で設定してください。");
       errEl.hidden = false;
       return;
     }
     if (pw !== pw2) {
-      errEl.textContent = "確認用のパスワードが一致していません。";
+      errEl.textContent = tr("errPwMismatch", "確認用のパスワードが一致していません。");
       errEl.hidden = false;
       return;
     }
@@ -1932,25 +1938,24 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
-          throw new Error(data.error || "設定リンクが無効または期限切れです。チームの管理者に再招待を依頼するか、サポートページからお問い合わせください。");
+          throw new Error(data.error || tr("errInvalidSetupLink", "設定リンクが無効または期限切れです。チームの管理者に再招待を依頼するか、サポートページからお問い合わせください。"));
         }
-        throw new Error(data.error || "設定に失敗しました。時間をおいて再度お試しください。");
+        throw new Error(data.error || tr("errSetupFailed", "設定に失敗しました。時間をおいて再度お試しください。"));
       }
       saveFallbackTokenIfNeeded(data.web_token);
-      // URLからtokenを消す
+      // URLからtokenを消す（?lang= は維持）
       const cleanKey = (state.publicTeam && state.publicTeam.slug) || state.slugOrId;
-      const cleanUrl = `/teams/${encodeURIComponent(cleanKey)}/`;
-      history.replaceState(null, "", cleanUrl);
+      history.replaceState(null, "", buildTeamUrl(cleanKey));
       const ok = await tryLoadDashboard();
       if (!ok) {
         enterAuthView();
       } else {
-        showToast("パスワードを設定してログインしました");
+        showToast(tr("setupSuccessToast", "パスワードを設定してログインしました"));
       }
     } catch (err) {
       errEl.textContent = formatUserErrorMessage(
         err,
-        "設定に失敗しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。"
+        tr("errSetupFailed", "設定に失敗しました。通信環境をご確認のうえ、解決しない場合はサポートページからお問い合わせください。")
       );
       errEl.hidden = false;
     } finally {
@@ -1961,7 +1966,7 @@
   async function handleExportCsv() {
     if (!state.dashboard || !state.dashboard.team) return;
     if (!state.dashboard.team.has_csv_export) {
-      showToast("CSVエクスポートは MAX プラン以上でご利用いただけます");
+      showToast(tr("csvMaxOnly", "CSVエクスポートは MAX プラン以上でご利用いただけます"));
       return;
     }
 
@@ -1980,7 +1985,7 @@
         if (res.status === 401 || res.status === 403) {
           throw new Error(err.error || "Unauthorized");
         }
-        throw new Error(err.error || "CSVのダウンロードに失敗しました");
+        throw new Error(err.error || tr("csvDownloadFailed", "CSVのダウンロードに失敗しました"));
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -1991,12 +1996,12 @@
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      showToast("CSVをダウンロードしました");
+      showToast(tr("csvDownloadedToast", "CSVをダウンロードしました"));
     } catch (err) {
       showToast(
         formatUserErrorMessage(
           err,
-          "CSVのダウンロードに失敗しました。通信環境をご確認のうえ再度お試しください。"
+          tr("csvDownloadFailed", "CSVのダウンロードに失敗しました。通信環境をご確認のうえ再度お試しください。")
         )
       );
     }

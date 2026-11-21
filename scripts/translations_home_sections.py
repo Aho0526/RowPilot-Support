@@ -24,7 +24,6 @@ HOME_SECTIONS_TRANSLATIONS = {
         'mgr_badge': 'Für Trainer',
         'team_badge': 'Für Teams',
         'max_badge': 'Für Vereine',
-        'org_badge': 'Für Verbände',
     },
     'fr': {
         'feat_water_title': 'Mode Sur l\'Eau',
@@ -46,7 +45,6 @@ HOME_SECTIONS_TRANSLATIONS = {
         'mgr_badge': 'Pour Entraîneur',
         'team_badge': 'Pour Équipe',
         'max_badge': 'Pour Club',
-        'org_badge': 'Pour Organisation',
     },
     'es': {
         'feat_water_title': 'Modo En el Agua',
@@ -68,7 +66,6 @@ HOME_SECTIONS_TRANSLATIONS = {
         'mgr_badge': 'Para Entrenadores',
         'team_badge': 'Para Equipos',
         'max_badge': 'Para Clubes',
-        'org_badge': 'Para Organizaciones',
     },
     'it': {
         'feat_water_title': 'Modalità in Barca',
@@ -90,7 +87,6 @@ HOME_SECTIONS_TRANSLATIONS = {
         'mgr_badge': 'Per Allenatore',
         'team_badge': 'Per Equipaggio',
         'max_badge': 'Per Società',
-        'org_badge': 'Per Federazione',
     },
     'zh': {
         'feat_water_title': '水上实船模式',
@@ -112,7 +108,6 @@ HOME_SECTIONS_TRANSLATIONS = {
         'mgr_badge': '教练员首选',
         'team_badge': '社团与队伍',
         'max_badge': '中型赛艇俱乐部',
-        'org_badge': '大型体育组织',
     },
     'ko': {
         'feat_water_title': '수상 훈련 모드',
@@ -134,6 +129,5 @@ HOME_SECTIONS_TRANSLATIONS = {
         'mgr_badge': '코치·매니저용',
         'team_badge': '팀·소규모 동아리',
         'max_badge': '중형 클럽·대학팀',
-        'org_badge': '대규모 단체·연맹',
     }
 }

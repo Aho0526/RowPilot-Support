@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "start": "python3 -m http.server 8088",
-    "test": "node editor/linter.js || node dev/trial-admission/editor/linter.js"
+    "test": "node editor/linter.js || node dev/edu/trial-admission/editor/linter.js"
   },
   "keywords": [
     "game",

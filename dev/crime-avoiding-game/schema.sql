@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS rooms (
     id TEXT PRIMARY KEY,
     status TEXT NOT NULL DEFAULT 'waiting', -- waiting, playing, finished
     map_type TEXT NOT NULL DEFAULT '3x3',
+    map_theme TEXT NOT NULL DEFAULT 'residential',
     time_limit INTEGER NOT NULL DEFAULT 900,
     current_turn INTEGER NOT NULL DEFAULT 1,
     max_turns INTEGER NOT NULL DEFAULT 12,
@@ -14,6 +15,7 @@ CREATE TABLE IF NOT EXISTS rooms (
     winner TEXT, -- 'criminal', 'victim', 'timeout'
     finish_reason TEXT,
     victim_goal_node TEXT NOT NULL,
+    is_ai_mode INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL
 );
 

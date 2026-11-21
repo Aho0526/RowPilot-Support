@@ -9,6 +9,16 @@
         content="RowPilot 支持与帮助中心。解答 Concept2 PM5 蓝牙连接故障排查、云端同步、紧急 SOS 功能、订阅取消与恢复购买等常见问题。">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
+  <link rel="canonical" href="https://rowpilot.jp/zh/support/">
+  <link rel="alternate" hreflang="ja" href="https://rowpilot.jp/support/">
+  <link rel="alternate" hreflang="en" href="https://rowpilot.jp/en/support/">
+  <link rel="alternate" hreflang="de" href="https://rowpilot.jp/de/support/">
+  <link rel="alternate" hreflang="fr" href="https://rowpilot.jp/fr/support/">
+  <link rel="alternate" hreflang="es" href="https://rowpilot.jp/es/support/">
+  <link rel="alternate" hreflang="it" href="https://rowpilot.jp/it/support/">
+  <link rel="alternate" hreflang="zh" href="https://rowpilot.jp/zh/support/">
+  <link rel="alternate" hreflang="ko" href="https://rowpilot.jp/ko/support/">
+  <link rel="alternate" hreflang="x-default" href="https://rowpilot.jp/support/">
 </head>
 
 <body>
@@ -250,7 +260,7 @@
                 <div class="faq-a">
                     <p>所属团队订阅 Team 或 MAX 方案后，成员与教练可通过 <a href="/teams/?lang=zh" style="color: var(--accent); text-decoration: none; font-weight: 600;">Team Web 门户网站</a>在电脑、平板或 Android 设备浏览器上查阅并汇总训练数据。支持以下两种登录方式：</p>
                     <p><strong>1. Web 教练邮箱登录（适合未安装 iOS 应用的教练或领队）：</strong><br>
-                    由团队创建者或管理员在 iPhone 版 RowPilot 应用内依次进入“团队高级设置 → Web 仪表盘 → Web 教练管理”登记邮箱地址，系统将发送初始密码设置邀请链接。设置完成后即可使用邮箱与密码直接登录。</p>
+                    由团队创建者或管理员在 iPhone 版 RowPilot 应用内依次进入“团队管理 → Web 仪表盘 → Web 教练管理”登记邮箱地址，系统将发送初始密码设置邀请链接。设置完成后即可使用邮箱与密码直接登录。</p>
                     <p><strong>2. RowPilot 应用一键批准登录（适合已安装应用的队员与领队）：</strong><br>
                     在 iPhone 版应用的“Web 登录审批”中，通过点击 Team Web 页面上的快捷按钮、扫描二维码或输入 6 位验证码即可免密一键登录。</p>
                 </div>
@@ -262,7 +272,7 @@
                     <span class="faq-arrow">▼</span>
                 </div>
                 <div class="faq-a">
-                    <p>团队创建者或管理员可在 iPhone 版应用的“团队高级设置 → Web 仪表盘”中设置形如 <code>rowpilot.jp/teams/自定义标识/</code> 的易记专属网址。</p>
+                    <p>团队创建者或管理员可在 iPhone 版应用的“团队管理 → Web 仪表盘”中设置形如 <code>rowpilot.jp/teams/自定义标识/</code> 的易记专属网址。</p>
                     <p>在 Team Web 门户输入该标识或直接打开专属链接时，若当前已处于登录状态，将直接跳转至所属团队的数据仪表盘。</p>
                 </div>
             </div>
@@ -413,7 +423,13 @@
 
         const openFaqFromHash = () => {
             if (!location.hash) return;
-            const target = document.querySelector(location.hash);
+            let hashId = '';
+            try {
+                hashId = decodeURIComponent(location.hash.slice(1));
+            } catch (e) {
+                return;
+            }
+            const target = hashId ? document.getElementById(hashId) : null;
             if (!target || !target.classList.contains('faq-item')) return;
             target.classList.add('open');
             const ans = target.querySelector('.faq-a');

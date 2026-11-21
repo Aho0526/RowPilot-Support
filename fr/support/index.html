@@ -9,6 +9,16 @@
         content="Page d'assistance RowPilot. Réponses aux questions fréquentes sur la connexion Concept2 PM5, la synchronisation cloud, la fonction SOS et la gestion des abonnements.">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
+  <link rel="canonical" href="https://rowpilot.jp/fr/support/">
+  <link rel="alternate" hreflang="ja" href="https://rowpilot.jp/support/">
+  <link rel="alternate" hreflang="en" href="https://rowpilot.jp/en/support/">
+  <link rel="alternate" hreflang="de" href="https://rowpilot.jp/de/support/">
+  <link rel="alternate" hreflang="fr" href="https://rowpilot.jp/fr/support/">
+  <link rel="alternate" hreflang="es" href="https://rowpilot.jp/es/support/">
+  <link rel="alternate" hreflang="it" href="https://rowpilot.jp/it/support/">
+  <link rel="alternate" hreflang="zh" href="https://rowpilot.jp/zh/support/">
+  <link rel="alternate" hreflang="ko" href="https://rowpilot.jp/ko/support/">
+  <link rel="alternate" hreflang="x-default" href="https://rowpilot.jp/support/">
 </head>
 
 <body>
@@ -256,7 +266,7 @@
                 <div class="faq-a">
                     <p>Les équipes disposant d'un forfait Team ou MAX peuvent consulter et compiler leurs séances depuis le navigateur d'un PC, d'une tablette ou d'un appareil Android via le <a href="/teams/?lang=fr" style="color: var(--accent); text-decoration: none; font-weight: 600;">portail Team Web</a>. Deux modes de connexion sont proposés :</p>
                     <p><strong>1. Connexion par e-mail pour entraîneur Web (pour les entraîneurs sans l'application iOS) :</strong><br>
-                    Lorsque le propriétaire ou un administrateur de l'équipe enregistre une adresse e-mail dans l'application iPhone sous « Paramètres avancés de l'équipe → Tableau de bord Web → Gestion des entraîneurs Web », un lien d'invitation est envoyé pour définir un mot de passe initial. La connexion s'effectue ensuite avec l'adresse e-mail et le mot de passe.</p>
+                    Lorsque le propriétaire ou un administrateur de l'équipe enregistre une adresse e-mail dans l'application iPhone sous « Paramètres de l'équipe → Tableau de bord Web → Gestion des entraîneurs Web », un lien d'invitation est envoyé pour définir un mot de passe initial. La connexion s'effectue ensuite avec l'adresse e-mail et le mot de passe.</p>
                     <p><strong>2. Approbation en un geste depuis l'application RowPilot (pour les rameurs et managers disposant de l'application) :</strong><br>
                     Utilisez le bouton affiché sur Team Web, le code QR ou le code à 6 chiffres et validez-le dans « Approbation de connexion Web » sur l'application iPhone pour vous connecter sans mot de passe.</p>
                 </div>
@@ -268,7 +278,7 @@
                     <span class="faq-arrow">▼</span>
                 </div>
                 <div class="faq-a">
-                    <p>Le propriétaire ou un administrateur de l'équipe peut définir une URL dédiée facile à retenir au format <code>rowpilot.jp/teams/identifiant-choisi/</code> depuis l'application iPhone sous « Paramètres avancés de l'équipe → Tableau de bord Web ».</p>
+                    <p>Le propriétaire ou un administrateur de l'équipe peut définir une URL dédiée facile à retenir au format <code>rowpilot.jp/teams/identifiant-choisi/</code> depuis l'application iPhone sous « Paramètres de l'équipe → Tableau de bord Web ».</p>
                     <p>En saisissant cet identifiant sur le portail Team Web ou en ouvrant directement l'URL dédiée, vous accédez immédiatement au tableau de bord de votre équipe si vous êtes connecté.</p>
                 </div>
             </div>
@@ -423,7 +433,13 @@
 
         const openFaqFromHash = () => {
             if (!location.hash) return;
-            const target = document.querySelector(location.hash);
+            let hashId = '';
+            try {
+                hashId = decodeURIComponent(location.hash.slice(1));
+            } catch (e) {
+                return;
+            }
+            const target = hashId ? document.getElementById(hashId) : null;
             if (!target || !target.classList.contains('faq-item')) return;
             target.classList.add('open');
             const ans = target.querySelector('.faq-a');

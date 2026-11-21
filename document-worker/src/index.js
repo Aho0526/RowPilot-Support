@@ -11,14 +11,14 @@ const app = new Hono();
 // ── CORS ──────────────────────────────────────────────────────
 app.use('/document/api/*', cors({
   origin: (origin) => origin || '*',
-  allowMethods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Cache-Control', 'Pragma'],
   maxAge: 86400,
 }));
 
 app.use('/sop/api/*', cors({
   origin: (origin) => origin || '*',
-  allowMethods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Cache-Control', 'Pragma'],
   maxAge: 86400,
 }));
@@ -86,18 +86,38 @@ const runMigration = async (db) => {
   }
 };
 
+let migrationPromise = null;
+
+const ensureMigrated = async (db) => {
+  if (!db) return;
+  if (!migrationPromise) {
+    migrationPromise = runMigration(db).catch((e) => {
+      migrationPromise = null;
+      throw e;
+    });
+  }
+  await migrationPromise;
+};
+
 app.use('/document/api/*', async (c, next) => {
-  await runMigration(c.env.DB);
+  await ensureMigrated(c.env.DB);
   await next();
 });
 
 app.use('/sop/api/*', async (c, next) => {
-  await runMigration(c.env.DB);
+  await ensureMigrated(c.env.DB);
   await next();
 });
 
-// ── Utility: JSON エラーレスポンス ────────────────────────────
+// ── Utility: JSON エラーレスポンス & ID バリデーション ───────────
 const err = (c, status, message) => c.json({ error: message }, status);
+
+const parsePositiveId = (raw) => {
+  const s = String(raw ?? '').trim();
+  if (!/^\d+$/.test(s)) return null;
+  const n = parseInt(s, 10);
+  return Number.isNaN(n) || n <= 0 ? null : n;
+};
 
 // ================================================================
 // エッセイ
@@ -109,17 +129,18 @@ const err = (c, status, message) => c.json({ error: message }, status);
  */
 app.get('/document/api/essays/:id', async (c) => {
   const db = c.env.DB;
-  const id = parseInt(c.req.param('id'));
+  const id = parsePositiveId(c.req.param('id'));
+  if (!id) return err(c, 400, 'Invalid id');
 
   let essay = await db.prepare('SELECT * FROM essays WHERE id = ?').bind(id).first();
 
   if (!essay) {
-    // 初回アクセス時にデフォルトエッセイを生成
+    // 初回アクセス時にデフォルトエッセイを生成（競合時は既存行を取得）
     await db.prepare(
-      `INSERT INTO essays (id, title, current_content, updated_at)
+      `INSERT OR IGNORE INTO essays (id, title, current_content, updated_at)
        VALUES (?, '課題論文', '', datetime('now'))`
     ).bind(id).run();
-    essay = { id, title: '課題論文', current_content: '', updated_at: new Date().toISOString() };
+    essay = await db.prepare('SELECT * FROM essays WHERE id = ?').bind(id).first();
   }
 
   // 最新のバージョン（レビュー依頼済みスナップショット）を取得
@@ -152,7 +173,8 @@ app.get('/document/api/essays/:id', async (c) => {
  */
 app.patch('/document/api/essays/:id', async (c) => {
   const db = c.env.DB;
-  const id = parseInt(c.req.param('id'));
+  const id = parsePositiveId(c.req.param('id'));
+  if (!id) return err(c, 400, 'Invalid id');
 
   let body;
   try {
@@ -184,7 +206,8 @@ app.patch('/document/api/essays/:id', async (c) => {
  */
 app.post('/document/api/essays/:id/versions', async (c) => {
   const db = c.env.DB;
-  const essayId = parseInt(c.req.param('id'));
+  const essayId = parsePositiveId(c.req.param('id'));
+  if (!essayId) return err(c, 400, 'Invalid id');
 
   let body = {};
   try {
@@ -214,7 +237,8 @@ app.post('/document/api/essays/:id/versions', async (c) => {
  */
 app.get('/document/api/essays/:id/versions', async (c) => {
   const db = c.env.DB;
-  const essayId = parseInt(c.req.param('id'));
+  const essayId = parsePositiveId(c.req.param('id'));
+  if (!essayId) return err(c, 400, 'Invalid id');
 
   const versions = await db.prepare(
     `SELECT
@@ -238,11 +262,13 @@ app.get('/document/api/essays/:id/versions', async (c) => {
  */
 app.get('/document/api/essays/:id/versions/:vid', async (c) => {
   const db = c.env.DB;
-  const versionId = parseInt(c.req.param('vid'));
+  const essayId = parsePositiveId(c.req.param('id'));
+  const versionId = parsePositiveId(c.req.param('vid'));
+  if (!essayId || !versionId) return err(c, 400, 'Invalid id');
 
   const version = await db.prepare(
-    'SELECT * FROM essay_versions WHERE id = ?'
-  ).bind(versionId).first();
+    'SELECT * FROM essay_versions WHERE id = ? AND essay_id = ?'
+  ).bind(versionId, essayId).first();
 
   if (!version) return err(c, 404, 'Version not found');
 
@@ -348,7 +374,8 @@ app.post('/document/api/reviews', async (c) => {
  */
 app.patch('/document/api/reviews/:id', async (c) => {
   const db = c.env.DB;
-  const reviewId = parseInt(c.req.param('id'));
+  const reviewId = parsePositiveId(c.req.param('id'));
+  if (!reviewId) return err(c, 400, 'Invalid id');
 
   // 提出済みチェック
   const review = await db.prepare('SELECT submitted_at FROM reviews WHERE id = ?').bind(reviewId).first();
@@ -406,7 +433,8 @@ app.patch('/document/api/reviews/:id', async (c) => {
  */
 app.post('/document/api/reviews/:id/submit', async (c) => {
   const db = c.env.DB;
-  const reviewId = parseInt(c.req.param('id'));
+  const reviewId = parsePositiveId(c.req.param('id'));
+  if (!reviewId) return err(c, 400, 'Invalid id');
 
   let body = {};
   try {
@@ -433,16 +461,17 @@ app.post('/document/api/reviews/:id/submit', async (c) => {
 /** GET /sop/api/essays/:id */
 app.get('/sop/api/essays/:id', async (c) => {
   const db = c.env.DB;
-  const id = parseInt(c.req.param('id'));
+  const id = parsePositiveId(c.req.param('id'));
+  if (!id) return err(c, 400, 'Invalid id');
 
   let essay = await db.prepare('SELECT * FROM essays WHERE id = ?').bind(id).first();
 
   if (!essay) {
     await db.prepare(
-      `INSERT INTO essays (id, title, current_content, updated_at)
+      `INSERT OR IGNORE INTO essays (id, title, current_content, updated_at)
        VALUES (?, '志願理由書', '', datetime('now'))`
     ).bind(id).run();
-    essay = { id, title: '志願理由書', current_content: '', updated_at: new Date().toISOString() };
+    essay = await db.prepare('SELECT * FROM essays WHERE id = ?').bind(id).first();
   }
 
   const latestVersion = await db.prepare(
@@ -470,7 +499,8 @@ app.get('/sop/api/essays/:id', async (c) => {
 /** PATCH /sop/api/essays/:id */
 app.patch('/sop/api/essays/:id', async (c) => {
   const db = c.env.DB;
-  const id = parseInt(c.req.param('id'));
+  const id = parsePositiveId(c.req.param('id'));
+  if (!id) return err(c, 400, 'Invalid id');
 
   let body;
   try {
@@ -493,7 +523,8 @@ app.patch('/sop/api/essays/:id', async (c) => {
 /** POST /sop/api/essays/:id/versions */
 app.post('/sop/api/essays/:id/versions', async (c) => {
   const db = c.env.DB;
-  const essayId = parseInt(c.req.param('id'));
+  const essayId = parsePositiveId(c.req.param('id'));
+  if (!essayId) return err(c, 400, 'Invalid id');
 
   const essay = await db.prepare('SELECT * FROM essays WHERE id = ?').bind(essayId).first();
   if (!essay) return err(c, 404, 'Essay not found');
@@ -574,7 +605,8 @@ app.post('/sop/api/reviews', async (c) => {
 /** PATCH /sop/api/reviews/:id */
 app.patch('/sop/api/reviews/:id', async (c) => {
   const db = c.env.DB;
-  const reviewId = parseInt(c.req.param('id'));
+  const reviewId = parsePositiveId(c.req.param('id'));
+  if (!reviewId) return err(c, 400, 'Invalid id');
 
   const review = await db.prepare('SELECT submitted_at FROM reviews WHERE id = ?').bind(reviewId).first();
   if (!review) return err(c, 404, 'Review not found');
@@ -613,7 +645,8 @@ app.patch('/sop/api/reviews/:id', async (c) => {
 /** POST /sop/api/reviews/:id/submit */
 app.post('/sop/api/reviews/:id/submit', async (c) => {
   const db = c.env.DB;
-  const reviewId = parseInt(c.req.param('id'));
+  const reviewId = parsePositiveId(c.req.param('id'));
+  if (!reviewId) return err(c, 400, 'Invalid id');
 
   const review = await db.prepare('SELECT submitted_at FROM reviews WHERE id = ?').bind(reviewId).first();
   if (!review) return err(c, 404, 'Review not found');
@@ -717,8 +750,10 @@ const fetchCountSummary = async (db) => {
  */
 app.get('/document/api/count/records', async (c) => {
   const db = c.env.DB;
-  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '200', 10), 1), 1000);
-  const offset = Math.max(parseInt(c.req.query('offset') || '0', 10), 0);
+  const parsedLimit = parseInt(c.req.query('limit') || '200', 10);
+  const parsedOffset = parseInt(c.req.query('offset') || '0', 10);
+  const limit = Math.min(Math.max(Number.isNaN(parsedLimit) ? 200 : parsedLimit, 1), 1000);
+  const offset = Math.max(Number.isNaN(parsedOffset) ? 0 : parsedOffset, 0);
 
   const recordsResult = await db.prepare(`
     SELECT * FROM count_records
@@ -770,9 +805,12 @@ app.post('/document/api/count/records', async (c) => {
     return err(c, 400, 'Invalid JSON body');
   }
 
-  const peopleCount = Math.max(parseInt(body.people_count || '1', 10), 1);
-  const playCount = Math.max(parseInt(body.play_count || '1', 10), 1);
-  const unitPrice = parseInt(body.unit_price !== undefined ? body.unit_price : '100', 10);
+  const parsedPeople = parseInt(body.people_count ?? '1', 10);
+  const parsedPlay = parseInt(body.play_count ?? '1', 10);
+  const parsedUnit = parseInt(body.unit_price !== undefined ? body.unit_price : '100', 10);
+  const peopleCount = Math.max(Number.isNaN(parsedPeople) ? 1 : parsedPeople, 1);
+  const playCount = Math.max(Number.isNaN(parsedPlay) ? 1 : parsedPlay, 1);
+  const unitPrice = Number.isNaN(parsedUnit) ? 100 : Math.max(parsedUnit, 0);
   
   // total_amount が明示されていればそれを採用、なければ計算 (デフォルト: 合計プレイ回数 × 単価)
   let totalAmount = parseInt(body.total_amount, 10);
@@ -818,8 +856,8 @@ app.post('/document/api/count/records', async (c) => {
  */
 app.delete('/document/api/count/records/:id', async (c) => {
   const db = c.env.DB;
-  const id = parseInt(c.req.param('id'), 10);
-  if (isNaN(id)) return err(c, 400, 'Invalid id');
+  const id = parsePositiveId(c.req.param('id'));
+  if (!id) return err(c, 400, 'Invalid id');
 
   const existing = await db.prepare('SELECT id FROM count_records WHERE id = ?').bind(id).first();
   if (!existing) return err(c, 404, 'Record not found');
@@ -832,6 +870,7 @@ app.delete('/document/api/count/records/:id', async (c) => {
     deletedId: id,
     summary: summary.total,
     todaySummary: summary.today,
+    gamesSummary: summary.games,
   });
 });
 

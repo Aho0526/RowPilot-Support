@@ -471,19 +471,19 @@
           <span class="quick-link-icon icon-home" aria-hidden="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           </span>
-          RowPilot
+          <span id="ql-home-label">RowPilot</span>
         </a>
         <a href="/dev/" class="quick-link" id="ql-dev">
           <span class="quick-link-icon icon-dev" aria-hidden="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
           </span>
-          Dev Portal
+          <span id="ql-dev-label">Dev Portal</span>
         </a>
         <a href="/dev/docs/" class="quick-link" id="ql-docs">
           <span class="quick-link-icon icon-doc" aria-hidden="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           </span>
-          Research Docs
+          <span id="ql-docs-label">Research Docs</span>
         </a>
       </div>
     </nav>
@@ -494,13 +494,13 @@
     urlEl.textContent = location.pathname + location.search;
 
     const I18N_404 = {
-      en: { htmlLang: 'en', title: 'Page Not Found', sub: 'The requested URL does not exist or may have been moved or deleted.<br>Please check the URL or use the links below.', moved: 'This URL has moved. Would you like to go to the new URL?', home: 'RowPilot Home', back: 'Go Back', ql: 'Quick Links' },
-      de: { htmlLang: 'de', title: 'Seite nicht gefunden', sub: 'Die angeforderte URL existiert nicht oder wurde verschoben bzw. gelöscht.<br>Bitte überprüfen Sie die Adresse oder nutzen Sie die folgenden Links.', moved: 'Diese URL ist umgezogen. Zur neuen Adresse wechseln?', home: 'Zur RowPilot-Startseite', back: 'Zurück', ql: 'Schnellzugriff' },
-      fr: { htmlLang: 'fr', title: 'Page introuvable', sub: 'L’URL demandée n’existe pas ou a été déplacée ou supprimée.<br>Veuillez vérifier l’adresse ou utiliser les liens ci-dessous.', moved: 'Cette URL a été déplacée. Accéder à la nouvelle adresse ?', home: 'Accueil RowPilot', back: 'Retour', ql: 'Accès rapide' },
-      es: { htmlLang: 'es', title: 'Página no encontrada', sub: 'La URL solicitada no existe o puede haber sido movida o eliminada.<br>Verifique la dirección o utilice los enlaces siguientes.', moved: 'Esta URL se ha trasladado. ¿Desea ir a la nueva dirección?', home: 'Inicio de RowPilot', back: 'Volver', ql: 'Enlaces rápidos' },
-      it: { htmlLang: 'it', title: 'Pagina non trovata', sub: 'L’URL richiesto non esiste o potrebbe essere stato spostato o rimosso.<br>Controlla l’indirizzo o utilizza i link qui sotto.', moved: 'Questo URL è stato spostato. Vuoi andare al nuovo indirizzo?', home: 'Home di RowPilot', back: 'Torna indietro', ql: 'Link rapidi' },
-      zh: { htmlLang: 'zh-CN', title: '找不到页面', sub: '您访问的网址不存在，或者已被移动、删除。<br>请检查网址或通过下方链接返回。', moved: '此网址已迁移，是否前往新地址？', home: '返回 RowPilot 首页', back: '返回上一页', ql: '常用页面' },
-      ko: { htmlLang: 'ko', title: '페이지를 찾을 수 없습니다', sub: '요청하신 URL이 존재하지 않거나 이동·삭제되었을 수 있습니다.<br>주소를 확인하시거나 아래 링크를 이용해 주세요.', moved: '이 URL은 이동되었습니다. 새 주소로 이동하시겠습니까?', home: 'RowPilot 홈으로', back: '이전 페이지로', ql: '자주 찾는 페이지' }
+      en: { htmlLang: 'en', title: 'Page Not Found', sub: 'The requested URL does not exist or may have been moved or deleted.<br>Please check the URL or use the links below.', moved: 'This URL has moved. Would you like to go to the new URL?', home: 'RowPilot Home', back: 'Go Back', ql: 'Quick Links', qlHome: 'RowPilot Home', qlDev: 'Dev Portal', qlDocs: 'Research Docs' },
+      de: { htmlLang: 'de', title: 'Seite nicht gefunden', sub: 'Die angeforderte URL existiert nicht oder wurde verschoben bzw. gelöscht.<br>Bitte überprüfen Sie die Adresse oder nutzen Sie die folgenden Links.', moved: 'Diese URL ist umgezogen. Zur neuen Adresse wechseln?', home: 'Zur RowPilot-Startseite', back: 'Zurück', ql: 'Schnellzugriff', qlHome: 'RowPilot Startseite', qlDev: 'Dev-Portal', qlDocs: 'Forschungsdoku' },
+      fr: { htmlLang: 'fr', title: 'Page introuvable', sub: 'L’URL demandée n’existe pas ou a été déplacée ou supprimée.<br>Veuillez vérifier l’adresse ou utiliser les liens ci-dessous.', moved: 'Cette URL a été déplacée. Accéder à la nouvelle adresse ?', home: 'Accueil RowPilot', back: 'Retour', ql: 'Accès rapide', qlHome: 'Accueil RowPilot', qlDev: 'Portail Dev', qlDocs: 'Documentation' },
+      es: { htmlLang: 'es', title: 'Página no encontrada', sub: 'La URL solicitada no existe o puede haber sido movida o eliminada.<br>Verifique la dirección o utilice los enlaces siguientes.', moved: 'Esta URL se ha trasladado. ¿Desea ir a la nueva dirección?', home: 'Inicio de RowPilot', back: 'Volver', ql: 'Enlaces rápidos', qlHome: 'Inicio de RowPilot', qlDev: 'Portal Dev', qlDocs: 'Documentación' },
+      it: { htmlLang: 'it', title: 'Pagina non trovata', sub: 'L’URL richiesto non esiste o potrebbe essere stato spostato o rimosso.<br>Controlla l’indirizzo o utilizza i link qui sotto.', moved: 'Questo URL è stato spostato. Vuoi andare al nuovo indirizzo?', home: 'Home di RowPilot', back: 'Torna indietro', ql: 'Link rapidi', qlHome: 'Home di RowPilot', qlDev: 'Portale Dev', qlDocs: 'Documentazione' },
+      zh: { htmlLang: 'zh-CN', title: '找不到页面', sub: '您访问的网址不存在，或者已被移动、删除。<br>请检查网址或通过下方链接返回。', moved: '此网址已迁移，是否前往新地址？', home: '返回 RowPilot 首页', back: '返回上一页', ql: '常用页面', qlHome: 'RowPilot 首页', qlDev: '开发者门户', qlDocs: '研究文档' },
+      ko: { htmlLang: 'ko', title: '페이지를 찾을 수 없습니다', sub: '요청하신 URL이 존재하지 않거나 이동·삭제되었을 수 있습니다.<br>주소를 확인하시거나 아래 링크를 이용해 주세요.', moved: '이 URL은 이동되었습니다. 새 주소로 이동하시겠습니까?', home: 'RowPilot 홈으로', back: '이전 페이지로', ql: '자주 찾는 페이지', qlHome: 'RowPilot 홈', qlDev: '개발자 포털', qlDocs: '연구 문서' }
     };
 
     const seg0 = (location.pathname.split('/').filter(Boolean)[0] || '').toLowerCase();
@@ -516,6 +516,9 @@
       document.getElementById('btn-go-home-label').textContent = t.home;
       document.getElementById('btn-go-home').href = homeHref;
       document.getElementById('ql-home').href = homeHref;
+      document.getElementById('ql-home-label').textContent = t.qlHome;
+      document.getElementById('ql-dev-label').textContent = t.qlDev;
+      document.getElementById('ql-docs-label').textContent = t.qlDocs;
       document.getElementById('btn-go-back-label').textContent = t.back;
       document.getElementById('quick-links-title').textContent = t.ql;
       document.getElementById('quick-links-nav').setAttribute('aria-label', t.ql);

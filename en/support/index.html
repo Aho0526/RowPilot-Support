@@ -9,6 +9,16 @@
         content="RowPilot support page. Find answers to frequently asked questions about Concept2 PM5 Bluetooth troubleshooting, cloud sync, emergency SOS, and subscription management.">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
+  <link rel="canonical" href="https://rowpilot.jp/en/support/">
+  <link rel="alternate" hreflang="ja" href="https://rowpilot.jp/support/">
+  <link rel="alternate" hreflang="en" href="https://rowpilot.jp/en/support/">
+  <link rel="alternate" hreflang="de" href="https://rowpilot.jp/de/support/">
+  <link rel="alternate" hreflang="fr" href="https://rowpilot.jp/fr/support/">
+  <link rel="alternate" hreflang="es" href="https://rowpilot.jp/es/support/">
+  <link rel="alternate" hreflang="it" href="https://rowpilot.jp/it/support/">
+  <link rel="alternate" hreflang="zh" href="https://rowpilot.jp/zh/support/">
+  <link rel="alternate" hreflang="ko" href="https://rowpilot.jp/ko/support/">
+  <link rel="alternate" hreflang="x-default" href="https://rowpilot.jp/support/">
 </head>
 
 <body>
@@ -257,7 +267,7 @@
                 <div class="faq-a">
                     <p>Teams on the Team or MAX plan can browse and aggregate workout records from a PC, tablet, or Android browser via the <a href="/teams/?lang=en" style="color: var(--accent); text-decoration: none; font-weight: 600;">Team Web Portal</a>. There are two ways to log in:</p>
                     <p><strong>1. Web Coach Email Login (for head coaches &amp; staff without the iOS app):</strong><br>
-                    When a team owner or admin registers an email address in the iPhone RowPilot app under "Team Advanced Settings → Web Dashboard → Web Coach Management", an invitation link is sent to set an initial password. After setting the password, coaches can log in with their email address and password.</p>
+                    When a team owner or admin registers an email address in the iPhone RowPilot app under "Team Settings → Web Dashboard → Manage Web Coaches", an invitation link is sent to set an initial password. After setting the password, coaches can log in with their email address and password.</p>
                     <p><strong>2. One-Tap Approval in the RowPilot App (for rowers &amp; managers with the iOS app):</strong><br>
                     Use the button, QR code, or 6-digit verification code displayed on Team Web and approve it under "Web Login Approval" inside the iPhone app to sign in without a password.</p>
                 </div>
@@ -269,7 +279,7 @@
                     <span class="faq-arrow">▼</span>
                 </div>
                 <div class="faq-a">
-                    <p>Team owners or admins can configure an easy-to-remember custom URL in the format <code>rowpilot.jp/teams/your-slug/</code> from "Team Advanced Settings → Web Dashboard" inside the iPhone app.</p>
+                    <p>Team owners or admins can configure an easy-to-remember custom URL in the format <code>rowpilot.jp/teams/your-slug/</code> from "Team Settings → Web Dashboard" inside the iPhone app.</p>
                     <p>Entering the identifier on the Team Web Portal or opening the custom URL directly will take you straight to your team dashboard when signed in.</p>
                 </div>
             </div>
@@ -424,7 +434,13 @@
 
         const openFaqFromHash = () => {
             if (!location.hash) return;
-            const target = document.querySelector(location.hash);
+            let hashId = '';
+            try {
+                hashId = decodeURIComponent(location.hash.slice(1));
+            } catch (e) {
+                return;
+            }
+            const target = hashId ? document.getElementById(hashId) : null;
             if (!target || !target.classList.contains('faq-item')) return;
             target.classList.add('open');
             const ans = target.querySelector('.faq-a');

@@ -14,14 +14,14 @@ LANGUAGES = [
 ]
 
 NAV_ITEMS = {
-    'ja': {'home': 'ホーム', 'news': 'お知らせ', 'support': 'サポート', 'privacy': 'プライバシー', 'terms': '利用規約', 'dev': '開発'},
-    'en': {'home': 'Home', 'news': 'Updates', 'support': 'Support', 'privacy': 'Privacy', 'terms': 'Terms', 'dev': 'Dev'},
-    'de': {'home': 'Startseite', 'news': 'Aktuelles', 'support': 'Support', 'privacy': 'Datenschutz', 'terms': 'Nutzungsbedingungen', 'dev': 'Dev'},
-    'fr': {'home': 'Accueil', 'news': 'Actualités', 'support': 'Support', 'privacy': 'Confidentialité', 'terms': 'Conditions', 'dev': 'Dev'},
-    'es': {'home': 'Inicio', 'news': 'Noticias', 'support': 'Soporte', 'privacy': 'Privacidad', 'terms': 'Términos', 'dev': 'Dev'},
-    'it': {'home': 'Home', 'news': 'Novità', 'support': 'Supporto', 'privacy': 'Privacy', 'terms': 'Termini', 'dev': 'Dev'},
-    'zh': {'home': '首页', 'news': '动态', 'support': '技术支持', 'privacy': '隐私政策', 'terms': '用户条款', 'dev': '开发'},
-    'ko': {'home': '홈', 'news': '공지사항', 'support': '고객지원', 'privacy': '개인정보처리방침', 'terms': '이용약관', 'dev': '개발'},
+    'ja': {'home': 'ホーム', 'news': 'お知らせ', 'support': 'サポート', 'privacy': 'プライバシー', 'terms': '利用規約', 'dev': '開発', 'teams': 'チーム'},
+    'en': {'home': 'Home', 'news': 'Updates', 'support': 'Support', 'privacy': 'Privacy', 'terms': 'Terms', 'dev': 'Dev', 'teams': 'Teams'},
+    'de': {'home': 'Startseite', 'news': 'Aktuelles', 'support': 'Support', 'privacy': 'Datenschutz', 'terms': 'Nutzungsbedingungen', 'dev': 'Dev', 'teams': 'Teams'},
+    'fr': {'home': 'Accueil', 'news': 'Actualités', 'support': 'Support', 'privacy': 'Confidentialité', 'terms': 'Conditions', 'dev': 'Dev', 'teams': 'Équipes'},
+    'es': {'home': 'Inicio', 'news': 'Noticias', 'support': 'Soporte', 'privacy': 'Privacidad', 'terms': 'Términos', 'dev': 'Dev', 'teams': 'Equipos'},
+    'it': {'home': 'Home', 'news': 'Novità', 'support': 'Supporto', 'privacy': 'Privacy', 'terms': 'Termini', 'dev': 'Dev', 'teams': 'Team'},
+    'zh': {'home': '首页', 'news': '动态', 'support': '技术支持', 'privacy': '隐私政策', 'terms': '用户条款', 'dev': '开发', 'teams': '团队'},
+    'ko': {'home': '홈', 'news': '공지사항', 'support': '고객지원', 'privacy': '개인정보처리방침', 'terms': '이용약관', 'dev': '개발', 'teams': '팀'},
 }
 
 def get_rel_url(from_lang, to_lang, page_path):
@@ -83,6 +83,7 @@ def generate_lang_dropdown(from_lang, page_path):
 
 def get_nav_links(page_path, lang):
     labels = NAV_ITEMS[lang]
+    teams_href = '/teams/' if lang == 'ja' else f'/teams/?lang={lang}'
     
     if page_path == 'index.html':
         return [
@@ -92,6 +93,7 @@ def get_nav_links(page_path, lang):
             (labels['privacy'], 'privacy-policy/index.html', False, None),
             (labels['terms'], 'terms/index.html', False, None),
             (labels['dev'], '/dev/', False, None),
+            (labels['teams'], teams_href, False, None),
         ]
     elif page_path == 'news/index.html':
         return [
@@ -101,6 +103,7 @@ def get_nav_links(page_path, lang):
             (labels['privacy'], '../privacy-policy/index.html', False, None),
             (labels['terms'], '../terms/index.html', False, None),
             (labels['dev'], '/dev/', False, None),
+            (labels['teams'], teams_href, False, None),
         ]
     elif page_path.startswith('news/'):
         return [
@@ -110,6 +113,7 @@ def get_nav_links(page_path, lang):
             (labels['privacy'], '../privacy-policy/index.html', False, None),
             (labels['terms'], '../terms/index.html', False, None),
             (labels['dev'], '/dev/', False, None),
+            (labels['teams'], teams_href, False, None),
         ]
     elif page_path == 'support/index.html':
         return [
@@ -119,6 +123,7 @@ def get_nav_links(page_path, lang):
             (labels['privacy'], '../privacy-policy/index.html', False, None),
             (labels['terms'], '../terms/index.html', False, None),
             (labels['dev'], '/dev/', False, None),
+            (labels['teams'], teams_href, False, None),
         ]
     elif page_path == 'privacy-policy/index.html':
         return [
@@ -128,6 +133,7 @@ def get_nav_links(page_path, lang):
             (labels['privacy'], '#', True, None),
             (labels['terms'], '../terms/index.html', False, None),
             (labels['dev'], '/dev/', False, None),
+            (labels['teams'], teams_href, False, None),
         ]
     elif page_path == 'terms/index.html':
         return [
@@ -137,6 +143,7 @@ def get_nav_links(page_path, lang):
             (labels['privacy'], '../privacy-policy/index.html', False, None),
             (labels['terms'], '#', True, None),
             (labels['dev'], '/dev/', False, None),
+            (labels['teams'], teams_href, False, None),
         ]
     else:
         raise ValueError(f"Unknown page path: {page_path}")
@@ -198,4 +205,26 @@ def update_entire_navbar(html_content, lang, page_path):
     if 'js/lang-dropdown.js' not in html_content:
         html_content = html_content.replace('</body>', f'  {js_tag}\n</body>')
 
+    html_content = update_canonical_and_hreflang(html_content, lang, page_path)
     return html_content
+
+
+def get_canonical_url(lang, page_path):
+    clean_path = page_path[:-len('index.html')] if page_path.endswith('index.html') else page_path
+    if lang == 'ja':
+        return f'https://rowpilot.jp/{clean_path}'
+    return f'https://rowpilot.jp/{lang}/{clean_path}'
+
+
+def update_canonical_and_hreflang(html_content, lang, page_path):
+    canonical_url = get_canonical_url(lang, page_path)
+    links = [f'  <link rel="canonical" href="{canonical_url}">']
+    for l in LANGUAGES:
+        alt_url = get_canonical_url(l['code'], page_path)
+        links.append(f'  <link rel="alternate" hreflang="{l["code"]}" href="{alt_url}">')
+    links.append(f'  <link rel="alternate" hreflang="x-default" href="{get_canonical_url("ja", page_path)}">')
+    seo_block = '\n'.join(links)
+
+    html_content = re.sub(r'\s*<link\s+rel="canonical"[^>]*>\s*', '\n', html_content)
+    html_content = re.sub(r'\s*<link\s+rel="alternate"\s+hreflang="[^"]*"[^>]*>\s*', '\n', html_content)
+    return html_content.replace('</head>', f'{seo_block}\n</head>', 1)

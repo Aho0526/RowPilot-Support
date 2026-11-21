@@ -9,6 +9,16 @@
         content="RowPilotのサポートページ。Concept2 PM5の接続トラブル、クラウド同期、SOS機能、サブスクリプションの解約・復元など、よくある質問に回答しています。">
     <link rel="icon" href="../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../css/style.css">
+  <link rel="canonical" href="https://rowpilot.jp/support/">
+  <link rel="alternate" hreflang="ja" href="https://rowpilot.jp/support/">
+  <link rel="alternate" hreflang="en" href="https://rowpilot.jp/en/support/">
+  <link rel="alternate" hreflang="de" href="https://rowpilot.jp/de/support/">
+  <link rel="alternate" hreflang="fr" href="https://rowpilot.jp/fr/support/">
+  <link rel="alternate" hreflang="es" href="https://rowpilot.jp/es/support/">
+  <link rel="alternate" hreflang="it" href="https://rowpilot.jp/it/support/">
+  <link rel="alternate" hreflang="zh" href="https://rowpilot.jp/zh/support/">
+  <link rel="alternate" hreflang="ko" href="https://rowpilot.jp/ko/support/">
+  <link rel="alternate" hreflang="x-default" href="https://rowpilot.jp/support/">
 </head>
 
 <body>
@@ -268,7 +278,7 @@
                             style="color: var(--accent); text-decoration: none; font-weight: 600;">Team Web ポータル</a>から
                         PC・タブレット・Android 端末のブラウザで練習記録を閲覧・集計できます。ログイン方法は2通りあります。</p>
                     <p><strong>1. Webコーチ用メールログイン（アプリをお持ちでない監督・コーチ向け）：</strong><br>
-                        チームのオーナーまたは管理者が iPhone 版 RowPilot アプリ内の「チーム詳細設定 → Webダッシュボード →
+                        チームのオーナーまたは管理者が iPhone 版 RowPilot アプリ内の「チーム管理 → Webダッシュボード →
                         Webコーチ管理」からメールアドレスを登録すると、初回パスワード設定用の招待リンクが届きます。パスワード設定後はメールアドレスとパスワードでログインできます。</p>
                     <p><strong>2. RowPilot アプリでワンタップ承認（アプリをお持ちの部員・マネージャー向け）：</strong><br>
                         Team Web 画面に表示されるボタン、QRコード、または6桁の認証コードを、iPhone 版アプリ内の「Webログイン承認」で承認するとパスワード不要でログインできます。</p>
@@ -281,7 +291,7 @@
                     <span class="faq-arrow">▼</span>
                 </div>
                 <div class="faq-a">
-                    <p>チームのオーナーまたは管理者が、iPhone 版アプリ内の「チーム詳細設定 → Webダッシュボード」から <code>rowpilot.jp/teams/任意の識別子/</code>
+                    <p>チームのオーナーまたは管理者が、iPhone 版アプリ内の「チーム管理 → Webダッシュボード」から <code>rowpilot.jp/teams/任意の識別子/</code>
                         の形式で覚えやすい専用 URL を設定できます。</p>
                     <p>Team Web ポータルで識別子を入力するか専用 URL を直接開くと、ログイン中であればそのままチームのダッシュボードへ移動します。</p>
                 </div>
@@ -355,7 +365,7 @@
                     <span class="faq-arrow">▼</span>
                 </div>
                 <div class="faq-a">
-                    <p>AppStoreのファミリー共有には対応していません。チームで利用したい場合は、Team・MAXプランのマネージャー共有機能をご利用ください。顧問1名がプランを購入し、メンバーにマネージャーモードを共有できます。
+                    <p>App Storeのファミリー共有には対応していません。チームで利用したい場合は、Team・MAXプランのマネージャー共有機能をご利用ください。顧問1名がプランを購入し、メンバーにマネージャーモードを共有できます。
                     </p>
                 </div>
             </div>
@@ -369,7 +379,7 @@
                     <span class="faq-arrow">▼</span>
                 </div>
                 <div class="faq-a">
-                    <p>AppStore手数料（15%
+                    <p>App Store手数料（15%
                         *）・税金・最低限のサーバー維持費を除いた収益を、開発者が年に一度まとめて高知県ローイング協会へ寄付します。寄付金はボート用具の整備や、ジュニア・ユース選手の活動支援に役立てられます。</p>
                     <p>* Apple Small Business Programに参加しているので、手数料が通常30%から15%に設定されています。</p>
                 </div>
@@ -441,7 +451,13 @@
 
         const openFaqFromHash = () => {
             if (!location.hash) return;
-            const target = document.querySelector(location.hash);
+            let hashId = '';
+            try {
+                hashId = decodeURIComponent(location.hash.slice(1));
+            } catch (e) {
+                return;
+            }
+            const target = hashId ? document.getElementById(hashId) : null;
             if (!target || !target.classList.contains('faq-item')) return;
             target.classList.add('open');
             const ans = target.querySelector('.faq-a');

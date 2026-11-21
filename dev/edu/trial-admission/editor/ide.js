@@ -235,7 +235,7 @@
             editable: false,
             isDirty: false,
             desc: 'プロジェクトパッケージ設定',
-            content: `{\n  "name": "space-invaders-studio",\n  "version": "1.0.0",\n  "description": "Space Invaders Game & Interactive Code Studio for Trial Admission",\n  "main": "index.html",\n  "scripts": {\n    "start": "python3 -m http.server 8088",\n    "test": "node editor/linter.js || node dev/trial-admission/editor/linter.js"\n  },\n  "keywords": [\n    "game",\n    "space-invaders",\n    "canvas",\n    "education",\n    "trial-admission"\n  ],\n  "author": "Kaito Nakahira",\n  "license": "MIT"\n}\n`
+            content: `{\n  "name": "space-invaders-studio",\n  "version": "1.0.0",\n  "description": "Space Invaders Game & Interactive Code Studio for Trial Admission",\n  "main": "index.html",\n  "scripts": {\n    "start": "python3 -m http.server 8088",\n    "test": "node editor/linter.js || node dev/edu/trial-admission/editor/linter.js"\n  },\n  "keywords": [\n    "game",\n    "space-invaders",\n    "canvas",\n    "education",\n    "trial-admission"\n  ],\n  "author": "Kaito Nakahira",\n  "license": "MIT"\n}\n`
         },
         'LICENSE': {
             name: 'LICENSE',

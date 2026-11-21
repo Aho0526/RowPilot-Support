@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS essay_versions (
 CREATE TABLE IF NOT EXISTS reviews (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
   version_id       INTEGER NOT NULL REFERENCES essay_versions(id) ON DELETE CASCADE,
+  teacher_name     TEXT    NOT NULL DEFAULT '',
   markdown_comment TEXT    NOT NULL DEFAULT '',
   submitted_at     TEXT,           -- NULL = 下書き中, 値あり = 提出済み
   created_at       TEXT    NOT NULL DEFAULT (datetime('now')),

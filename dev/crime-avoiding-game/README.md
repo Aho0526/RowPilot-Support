@@ -50,7 +50,7 @@ crime-avoiding-game/
 ├── index.html       # メインHTML（トップ、ロビー、ゲーム画面、リザルトモーダル）
 ├── style.css        # サイバー・ミステリー風デザイン、アニメーション、レスポンシブ
 ├── game.js          # ゲーム全体の進行管理、キーボード入力、ステートマシン
-├── map.js           # マップ定義（3x3 / 4x4）、通行止めエッジ、BFS最短距離、SVG描画
+├── map.js           # マップ定義（3x3 / 4x4 / 5x5）、通行止めエッジ、BFS最短距離、SVG描画
 ├── player.js        # プレイヤー情報、役割、移動クールダウン
 ├── chat.js          # チャット送受信、クイック発言、ブロック機能
 ├── api.js           # Cloudflare Workers API連携 ＆ ローカル高速同期（BroadcastChannel）
@@ -79,7 +79,7 @@ crime-avoiding-game/
 2. **1人プレイ（AI対戦）**:
    - 「🤖 AI犯罪者と対戦」タブを選び、「AI対戦をスタート！」をクリック。
 3. **2人対戦（ブラウザ2タブ対戦 / PC同士）**:
-   - タブ1で「ルームを新しく作成」→ 発行されたルームコード（例: `A8B2`）をコピー。
+   - タブ1で「ルームを新しく作成」→ 発行された数字4桁のルームコード（例: `4829`）をコピー。
    - タブ2で「発行されたルームに参加」→ ルームコードを入力して参加。
    - タブ1の「ゲームを開始する！」を押すと、両画面が同時に対戦開始！
    - ※ `BroadcastChannel` と `localStorage` により、リアルタイムに通信・マスキングが行われます。
@@ -87,15 +87,15 @@ crime-avoiding-game/
 ### B. Cloudflare Workers + D1 にデプロイする場合
 1. Cloudflare D1データベースを作成:
    ```bash
-   npx wrangler d1 create crime_avoiding_db
+   npx wrangler d1 create crime-avoiding-game
    ```
 2. 出力された `database_id` を `wrangler.toml` に設定。
 3. スキーマを適用:
    ```bash
-   npx wrangler d1 execute crime_avoiding_db --file=./schema.sql
+   npx wrangler d1 execute crime-avoiding-game --file=./schema.sql
    ```
 4. Workers をデプロイ:
    ```bash
    npx wrangler deploy
    ```
-5. デプロイ先のURL（例: `https://crime-avoiding-game.yourname.workers.dev`）を、ゲーム画面右上の「⚙️ 接続設定」に入力すれば本番環境で全国どこからでもオンライン対戦できます。
+5. デプロイ先のURLを `api.js` のデフォルトURLに設定（または開発者コンソール等から `apiService.setServerUrl(...)` で指定）すれば、本番環境で全国どこからでもオンライン対戦できます。

@@ -19,14 +19,14 @@ EN_DIR = os.path.join(REPO_ROOT, 'en')
 NEW_LANGS = ['de', 'fr', 'es', 'it', 'zh', 'ko']
 
 FOOTER_LABELS = {
-    'ja': {'home': 'ホーム', 'feat': '機能', 'plans': 'プラン', 'news': 'お知らせ', 'support': 'サポート', 'privacy': 'プライバシーポリシー', 'terms': '利用規約'},
-    'en': {'home': 'Home', 'feat': 'Features', 'plans': 'Plans', 'news': 'Updates', 'support': 'Support', 'privacy': 'Privacy Policy', 'terms': 'Terms of Use'},
-    'de': {'home': 'Startseite', 'feat': 'Funktionen', 'plans': 'Pläne', 'news': 'Aktuelles', 'support': 'Support', 'privacy': 'Datenschutz', 'terms': 'Nutzungsbedingungen'},
-    'fr': {'home': 'Accueil', 'feat': 'Fonctionnalités', 'plans': 'Tarifs', 'news': 'Actualités', 'support': 'Support', 'privacy': 'Confidentialité', 'terms': 'Conditions'},
-    'es': {'home': 'Inicio', 'feat': 'Funciones', 'plans': 'Planes', 'news': 'Noticias', 'support': 'Soporte', 'privacy': 'Privacidad', 'terms': 'Términos'},
-    'it': {'home': 'Home', 'feat': 'Funzioni', 'plans': 'Piani', 'news': 'Novità', 'support': 'Supporto', 'privacy': 'Privacy', 'terms': 'Termini'},
-    'zh': {'home': '首页', 'feat': '功能', 'plans': '方案', 'news': '动态', 'support': '技术支持', 'privacy': '隐私政策', 'terms': '用户条款'},
-    'ko': {'home': '홈', 'feat': '기능', 'plans': '요금제', 'news': '공지사항', 'support': '고객지원', 'privacy': '개인정보처리방침', 'terms': '이용약관'},
+    'ja': {'home': 'ホーム', 'feat': '機能', 'plans': 'プラン', 'news': 'お知らせ', 'support': 'サポート', 'privacy': 'プライバシーポリシー', 'terms': '利用規約', 'teams': 'チーム'},
+    'en': {'home': 'Home', 'feat': 'Features', 'plans': 'Plans', 'news': 'Updates', 'support': 'Support', 'privacy': 'Privacy Policy', 'terms': 'Terms of Use', 'teams': 'Teams'},
+    'de': {'home': 'Startseite', 'feat': 'Funktionen', 'plans': 'Pläne', 'news': 'Aktuelles', 'support': 'Support', 'privacy': 'Datenschutz', 'terms': 'Nutzungsbedingungen', 'teams': 'Teams'},
+    'fr': {'home': 'Accueil', 'feat': 'Fonctionnalités', 'plans': 'Tarifs', 'news': 'Actualités', 'support': 'Support', 'privacy': 'Confidentialité', 'terms': 'Conditions', 'teams': 'Équipes'},
+    'es': {'home': 'Inicio', 'feat': 'Funciones', 'plans': 'Planes', 'news': 'Noticias', 'support': 'Soporte', 'privacy': 'Privacidad', 'terms': 'Términos', 'teams': 'Equipos'},
+    'it': {'home': 'Home', 'feat': 'Funzioni', 'plans': 'Piani', 'news': 'Novità', 'support': 'Supporto', 'privacy': 'Privacy', 'terms': 'Termini', 'teams': 'Team'},
+    'zh': {'home': '首页', 'feat': '功能', 'plans': '方案', 'news': '动态', 'support': '技术支持', 'privacy': '隐私政策', 'terms': '用户条款', 'teams': '团队'},
+    'ko': {'home': '홈', 'feat': '기능', 'plans': '요금제', 'news': '공지사항', 'support': '고객지원', 'privacy': '개인정보처리방침', 'terms': '이용약관', 'teams': '팀'},
 }
 
 def update_footer_links(html, lang):
@@ -41,6 +41,7 @@ def update_footer_links(html, lang):
         footer_html = footer_html.replace('>Support<', f'>{fl["support"]}<')
         footer_html = footer_html.replace('>Privacy Policy<', f'>{fl["privacy"]}<')
         footer_html = footer_html.replace('>Terms of Use<', f'>{fl["terms"]}<')
+        footer_html = footer_html.replace('>Teams<', f'>{fl["teams"]}<')
         return footer_html
     return re.sub(r'<div class="footer-links">.*?</div>', replace_footer, html, flags=re.DOTALL)
 
@@ -222,6 +223,18 @@ def build_news_pages(lang):
     with open(os.path.join(out_dir, 'team-migration-policy.html'), 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"Generated {lang}/news/team-migration-policy.html")
+
+    # news/v1-0-1-update.html
+    en_path = os.path.join(EN_DIR, 'news', 'v1-0-1-update.html')
+    if os.path.exists(en_path):
+        with open(en_path, 'r', encoding='utf-8') as f:
+            html = f.read()
+        html = re.sub(r'<html\s+lang="[^"]*"', f'<html lang="{lang}"', html)
+        html = update_footer_links(html, lang)
+        html = update_entire_navbar(html, lang, 'news/v1-0-1-update.html')
+        with open(os.path.join(out_dir, 'v1-0-1-update.html'), 'w', encoding='utf-8') as f:
+            f.write(html)
+        print(f"Generated {lang}/news/v1-0-1-update.html")
 
 def main():
     if '--force-legacy-overwrite' not in sys.argv:

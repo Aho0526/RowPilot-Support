@@ -245,15 +245,6 @@ class ChatManager {
 
                     if (btnSend) btnSend.classList.remove('hidden');
                     if (extraIcons) extraIcons.classList.add('hidden');
-
-                    // ターン行動確定欄にもセット
-                    const turnInput = document.getElementById('turnChatInput');
-                    if (turnInput) {
-                        turnInput.value = text;
-                        if (window.gameManager) {
-                            window.gameManager.updateCommitButtonState();
-                        }
-                    }
                 }
             });
         });

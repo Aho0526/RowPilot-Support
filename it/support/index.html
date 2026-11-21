@@ -9,6 +9,16 @@
         content="Pagina di supporto di RowPilot. Risposte alle domande frequenti su connessione Concept2 PM5, sincronizzazione cloud, funzione SOS e gestione degli abbonamenti.">
     <link rel="icon" href="../../pictures/tOLEOe7OiEqYmjh1765190733_1765190737.png" type="image/png">
     <link rel="stylesheet" href="../../css/style.css">
+  <link rel="canonical" href="https://rowpilot.jp/it/support/">
+  <link rel="alternate" hreflang="ja" href="https://rowpilot.jp/support/">
+  <link rel="alternate" hreflang="en" href="https://rowpilot.jp/en/support/">
+  <link rel="alternate" hreflang="de" href="https://rowpilot.jp/de/support/">
+  <link rel="alternate" hreflang="fr" href="https://rowpilot.jp/fr/support/">
+  <link rel="alternate" hreflang="es" href="https://rowpilot.jp/es/support/">
+  <link rel="alternate" hreflang="it" href="https://rowpilot.jp/it/support/">
+  <link rel="alternate" hreflang="zh" href="https://rowpilot.jp/zh/support/">
+  <link rel="alternate" hreflang="ko" href="https://rowpilot.jp/ko/support/">
+  <link rel="alternate" hreflang="x-default" href="https://rowpilot.jp/support/">
 </head>
 
 <body>
@@ -250,7 +260,7 @@
                 <div class="faq-a">
                     <p>I team con piano Team o MAX possono consultare e riepilogare i dati di allenamento dal browser di PC, tablet o dispositivi Android tramite il <a href="/teams/?lang=it" style="color: var(--accent); text-decoration: none; font-weight: 600;">portale Team Web</a>. Sono disponibili due modalità di accesso:</p>
                     <p><strong>1. Accesso e-mail per Web Coach (per allenatori che non possiedono l'app iOS):</strong><br>
-                    Quando il proprietario o un amministratore del team registra un indirizzo e-mail nell'app per iPhone da «Impostazioni avanzate team → Web Dashboard → Gestione Web Coach», viene inviato un link di invito per impostare la password iniziale. Successivamente sarà possibile accedere con e-mail e password.</p>
+                    Quando il proprietario o un amministratore del team registra un indirizzo e-mail nell'app per iPhone da «Impostazioni team → Web Dashboard → Gestione Web Coach», viene inviato un link di invito per impostare la password iniziale. Successivamente sarà possibile accedere con e-mail e password.</p>
                     <p><strong>2. Approvazione con un tocco dall'app RowPilot (per atleti e manager con l'app iOS):</strong><br>
                     Utilizza il pulsante di apertura rapida, il codice QR o il codice a 6 cifre mostrato su Team Web e approva l'accesso dall'app per iPhone tramite «Approvazione accesso Web», senza bisogno di password.</p>
                 </div>
@@ -262,7 +272,7 @@
                     <span class="faq-arrow">▼</span>
                 </div>
                 <div class="faq-a">
-                    <p>Il proprietario o un amministratore del team può impostare un URL dedicato facile da ricordare nel formato <code>rowpilot.jp/teams/tuo-identificativo/</code> dall'app per iPhone in «Impostazioni avanzate team → Web Dashboard».</p>
+                    <p>Il proprietario o un amministratore del team può impostare un URL dedicato facile da ricordare nel formato <code>rowpilot.jp/teams/tuo-identificativo/</code> dall'app per iPhone in «Impostazioni team → Web Dashboard».</p>
                     <p>Inserendo l'identificativo nel portale Team Web o aprendo direttamente l'URL dedicato, se hai già effettuato l'accesso verrai indirizzato subito alla dashboard della tua squadra.</p>
                 </div>
             </div>
@@ -413,7 +423,13 @@
 
         const openFaqFromHash = () => {
             if (!location.hash) return;
-            const target = document.querySelector(location.hash);
+            let hashId = '';
+            try {
+                hashId = decodeURIComponent(location.hash.slice(1));
+            } catch (e) {
+                return;
+            }
+            const target = hashId ? document.getElementById(hashId) : null;
             if (!target || !target.classList.contains('faq-item')) return;
             target.classList.add('open');
             const ans = target.querySelector('.faq-a');
